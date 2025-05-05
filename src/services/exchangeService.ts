@@ -10,6 +10,28 @@ import { Candle, Order, OrderSide, OrderType } from '../core/types';
 import logger from '../utils/logger';
 
 /**
+ * 注文オプションのインターフェース
+ */
+export interface OrderOptions {
+  postOnly?: boolean;   // Post-Onlyオプション
+  hidden?: boolean;     // 隠し注文オプション
+  iceberg?: number;     // アイスバーグ注文の表示数量
+  stopPrice?: number;   // ストップ価格
+}
+
+/**
+ * OCO注文の入力パラメータ
+ */
+export interface OcoOrderParams {
+  symbol: string;         // 銘柄シンボル
+  side: OrderSide;        // 注文サイド
+  amount: number;         // 注文数量
+  stopPrice: number;      // ストップ価格
+  limitPrice: number;     // 指値価格
+  stopLimitPrice?: number; // ストップリミットの場合の指値価格
+}
+
+/**
  * 取引所サービスクラス
  */
 export class ExchangeService {
@@ -81,9 +103,10 @@ export class ExchangeService {
   /**
    * 注文を実行する
    * @param order 注文オブジェクト
+   * @param options 注文オプション
    * @returns 注文ID（成功した場合）またはnull
    */
-  public async executeOrder(order: Order): Promise<string | null> {
+  public async executeOrder(order: Order, options?: OrderOptions): Promise<string | null> {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return null;
@@ -93,14 +116,41 @@ export class ExchangeService {
       const type = order.type.toLowerCase();
       const side = order.side.toLowerCase();
       const amount = order.amount;
-      const price = order.price;
+      let price = order.price;
       const symbol = order.symbol;
 
       const params: any = {};
       
+      // 成行注文の場合、priceパラメータを明示的にundefinedに設定
+      if (order.type === OrderType.MARKET) {
+        price = undefined;
+        logger.debug(`[ExchangeService] 成行注文のためpriceパラメータを削除: ${side} ${amount} ${symbol}`);
+      }
+      
       // ストップ注文の場合、パラメータを追加
       if (order.type === OrderType.STOP || order.type === OrderType.STOP_LIMIT) {
         params.stopPrice = order.stopPrice;
+      }
+      
+      // 追加オプションを適用
+      if (options) {
+        // Post-Onlyオプション
+        if (options.postOnly) {
+          params.postOnly = true;
+          logger.debug(`[ExchangeService] Post-Onlyオプションを適用: ${symbol}`);
+        }
+        
+        // 隠し注文オプション
+        if (options.hidden) {
+          params.hidden = true;
+          logger.debug(`[ExchangeService] 隠し注文オプションを適用: ${symbol}`);
+        }
+        
+        // アイスバーグ注文オプション
+        if (options.iceberg && options.iceberg > 0) {
+          params.iceberg = options.iceberg;
+          logger.debug(`[ExchangeService] アイスバーグ注文オプションを適用: 表示数量=${options.iceberg}, ${symbol}`);
+        }
       }
 
       const result = await this.exchange.createOrder(
@@ -112,10 +162,83 @@ export class ExchangeService {
         params
       );
 
-      logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}`);
+      logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
       return result.id;
     } catch (error) {
       logger.error(`注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
+  /**
+   * OCO注文（One-Cancels-the-Other）を作成
+   * 利確と損切りを同時に注文し、どちらかが約定すると他方はキャンセルされる
+   * @param params OCO注文のパラメータ
+   * @returns 注文ID（成功した場合）またはnull
+   */
+  public async createOcoOrder(params: OcoOrderParams): Promise<string | null> {
+    if (!this.isInitialized) {
+      logger.error('取引所が初期化されていません');
+      return null;
+    }
+    
+    try {
+      // 取引所がOCO注文をサポートしているか確認
+      if (this.exchange.has['createOCO']) {
+        // ネイティブOCO注文をサポートしている場合
+        const result = await this.exchange.createOCOOrder(
+          params.symbol,
+          params.side,
+          params.amount,
+          params.limitPrice,
+          params.stopPrice,
+          params.stopLimitPrice
+        );
+        
+        logger.info(`OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`);
+        return result.id;
+      } else {
+        // OCOをサポートしていない場合は個別に注文を出す
+        logger.warn(`取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`);
+        
+        // 利確注文（指値）
+        const limitOrderId = await this.executeOrder({
+          symbol: params.symbol,
+          type: OrderType.LIMIT,
+          side: params.side,
+          amount: params.amount,
+          price: params.limitPrice
+        });
+        
+        // 損切り注文（ストップ）
+        const stopOrderId = await this.executeOrder({
+          symbol: params.symbol,
+          type: OrderType.STOP,
+          side: params.side,
+          amount: params.amount,
+          stopPrice: params.stopPrice,
+          price: params.stopLimitPrice || params.stopPrice // ストップリミットの場合は指定された価格、そうでなければストップ価格
+        });
+        
+        if (limitOrderId && stopOrderId) {
+          logger.info(`個別注文で擬似OCO作成: 指値=${limitOrderId}, ストップ=${stopOrderId}`);
+          return `${limitOrderId},${stopOrderId}`; // 両方の注文IDをカンマ区切りで返す
+        } else {
+          logger.error('OCO注文の作成に失敗しました');
+          
+          // 部分的に成功した注文をキャンセル
+          if (limitOrderId) {
+            await this.exchange.cancelOrder(limitOrderId, params.symbol);
+          }
+          if (stopOrderId) {
+            await this.exchange.cancelOrder(stopOrderId, params.symbol);
+          }
+          
+          return null;
+        }
+      }
+    } catch (error) {
+      logger.error(`OCO注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   }

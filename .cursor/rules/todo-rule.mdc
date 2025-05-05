@@ -1,0 +1,106 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+1. フォルダ & ファイル構成
+
+repo-root/
+ └── .todo/
+      ├──  backlog.mdc    # 未着手タスク (inbox)
+      ├──  sprint.mdc     # 今スプリントの WIP/Done
+      └──  archive.mdc    # 完了 3 ヵ月後にここへ移動
+
+運用サイクル:
+Backlog にインプット → 週次スクラムで Sprint へ選別 → 完了タスクは ~~打消し~~ にして 3 か月後 Archive へ。
+
+大重要★
+作成するbotの要件は適宜C:\Users\nijor\Dev\SOL_bot\SOLUSDT_Algo_Strategy_Designを参照
+
+2. タスク行フォーマット
+
+- [ ] TASK‑ID: <短いタイトル>  ← 1 行目は見出し
+      - 📅 Due        : YYYY‑MM‑DD
+      - 👤 Owner      : <GitHub ユーザー or @slack>
+      - 🔗 Depends-on : TASK‑ID1, TASK‑ID2 ...
+      - 🏷️  Label      : bug / feat / doc / infra / 研究
+      - 🩺 Health     : ⏳ / ⚠️ / 🚑 / ✅
+      - ✎ Notes      : (自由メモ 120 字以内)
+
+
+＞記号意味
+フィールド例：TASK‑ID
+説明例：DAT‑001
+説明：3 文字カテゴリ + 3 桁通番
+
+フィールド例：DAT‑001
+説明例：⏳=WIP, ⚠️=遅延気味, 🚑=要救援, ✅=完了
+
+＞チェックボックス [ ] / [x] は GitHub diff で完了判定をするため “小文字 x” を推奨。
+
+
+3. カテゴリ接頭辞 一覧
+
+略号/意味
+
+DAT/データ収集・ETL
+
+ALG/売買ロジック／バックテスト
+
+OMS/発注・OMS 実装
+
+INF/インフラ・CI/CD
+
+DOC/ドキュメント
+
+
+4. ライフサイクル・ルール
+
+新規作成 : backlog.mdc に追加。Health = ⏳。
+
+スプリント移動 : 週次で優先タスクを sprint.mdc へ Cut & Paste。
+
+状態更新 : コミット時に [ ]→[x] & Health✅。遅延は ⚠️、要支援は 🚑 で可視化。
+
+クロージャ : 3 か月経過で sprint.mdc から archive.mdc へ。
+
+5. サンプル sprint.mdc
+
+## 🗓 2025‑W22 Sprint
+
+- [ ] DAT‑001: 1h 足データ取り込みジョブ
+      - 📅 Due        : 2025‑06‑03
+      - 👤 Owner      : @koshi
+      - 🔗 Depends-on : INF‑002
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : Dagster or Airflow どちら使うか決める
+
+- [x] INF‑002: S3 バケット権限設定
+      - 📅 Due        : 2025‑05‑25
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : ServerSideEncryption = AES256
+
+6. Git 運用 Tips
+
+PR テンプレに Fixes TASK‑ID を必ず入れて紐付け。
+
+pre-commit で .todo/*.mdc の行末スペース除去・改行統一。
+
+CI で unchecked‑boxes > 0 のままマージ禁止ルールを入れると漏れ防止。
+
+7. 今後の改善アイデア
+
+GitHub Actions で Slack 通知: Due ‑ 2 日で DM。
+
+Mermaid ガント を自動生成し進捗を可視化。
+
+
+
+
+
+
+
+.todo/metrics.yaml にコミット履歴を集計しベロシティ可視化。

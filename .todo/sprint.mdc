@@ -104,78 +104,78 @@ alwaysApply: false
 
 ## 🗓 2025-W30〜W31 スプリント - 重大リスク修正 (7月22日〜8月4日)
 
-- [ ] ALG-012: ブラックスワン検出ロジックの修正
+- [x] ALG-012: ブラックスワン検出ロジックの修正
       - 📅 Due        : 2025-07-30
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : 24時間前の終値（previousDailyClose）を保持し、現在価格との比較で15%変動を検出するよう修正
 
-- [ ] ALG-013: リスクフィルターの金額ベース計算への修正
+- [x] ALG-013: リスクフィルターの金額ベース計算への修正
       - 📅 Due        : 2025-07-30
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : notional = amount × priceを使用してMAX_RISKと比較する実装に変更
 
-- [ ] ALG-014: 日次PnL計算の修正
+- [x] ALG-014: 日次PnL計算の修正
       - 📅 Due        : 2025-07-31
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : 「午前0時残高」をキャッシュし現在残高との差分で日次PnLを正しく計算
 
-- [ ] ALG-015: レジーム判定ロジックの修正
+- [x] ALG-015: レジーム判定ロジックの修正
       - 📅 Due        : 2025-08-02
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : LOW_VOL判定にEMA勾配チェック(0.15°)を追加し、ATR%閾値をパラメータ化
 
-- [ ] OMS-003: 成行注文時のpriceパラメータ修正
+- [x] OMS-003: 成行注文時のpriceパラメータ修正
       - 📅 Due        : 2025-08-04
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : type===MARKETの場合はpriceパラメータを削除して取引所リジェクトを防止
 
 ## 🗓 2025-W32〜W33 スプリント - 機能強化 (8月5日〜8月18日)
 
-- [ ] ALG-016: TrailingStopをATR×1.2に変更
+- [x] ALG-016: TrailingStopをATR×1.2に変更
       - 📅 Due        : 2025-08-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : 固定3%のトレイリングストップをatr * 1.2の動的な値に変更
 
-- [ ] OMS-002: 高度な注文タイプの実装
+- [x] OMS-002: 高度な注文タイプの実装
       - 📅 Due        : 2025-08-08
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : OMS-001
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : Post-Only + Hidden Iceberg / OCOをccxtで実装。発注オプションに追加
 
-- [ ] ALG-017: 動的グリッド本数計算にATR%反映
+- [x] ALG-017: 動的グリッド本数計算にATR%反映
       - 📅 Due        : 2025-08-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : レンジ幅とATR%に基づいてceil(range/(ATR*0.6))でグリッド本数を動的計算
 
-- [ ] OMS-004: Post-Only & Icebergオプション実装
+- [x] OMS-004: Post-Only & Icebergオプション実装
       - 📅 Due        : 2025-08-15
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : OMS-002
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : CCXT発注時に{ postOnly:true, iceberg:qty }オプションを追加、決済ペアはcreateOcoOrder
 
-- [ ] ALG-018: ポジション偏りヘッジ実装
+- [x] ALG-018: ポジション偏りヘッジ実装
       - 📅 Due        : 2025-08-18
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
+      - 🩺 Health     : ✅
       - ✎ Notes      : NetPositionDeltaが15%を超えた場合にVWAP成行でヘッジするロジックを実装
 
 ## 🗓 完了したタスク
@@ -221,6 +221,22 @@ alwaysApply: false
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - ✎ Notes      : riskAmount = balance * MAX_RISK_PER_TRADE → positionSize = riskAmount/stopDistanceへ変更
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

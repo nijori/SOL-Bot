@@ -151,12 +151,13 @@ function createIcebergOrders(
  */
 function calculateDynamicGridLevels(range: number, atrPercent: number): number {
   // ATR%が小さいほど（ボラティリティが低いほど）グリッドレベルを増やす
-  // ATR%の0.6倍を使ってレンジをどれだけの粒度に分割するかを決定
-  const levelWidth = range * (atrPercent * 0.006); // ATR% * 0.6 / 100 を使用
+  // ATR%に設定値を掛けてレンジをどれだけの粒度に分割するかを決定
+  const multiplier = RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER / 100; // 0.6/100 = 0.006
+  const levelWidth = range * (atrPercent * multiplier);
   
-  // 最小レベル数は3、最大は10
+  // 最小レベル数と最大レベル数の間の値を返す
   const levels = Math.ceil(range / levelWidth);
-  return Math.max(3, Math.min(10, levels));
+  return Math.max(RANGE_PARAMETERS.GRID_LEVELS_MIN, Math.min(RANGE_PARAMETERS.GRID_LEVELS_MAX, levels));
 }
 
 /**

@@ -20,8 +20,8 @@ export const TREND_PARAMETERS = {
   DONCHIAN_PERIOD: process.env.DONCHIAN_PERIOD ? parseInt(process.env.DONCHIAN_PERIOD) : 20,
   ADX_PERIOD: process.env.ADX_PERIOD ? parseInt(process.env.ADX_PERIOD) : 14,
   ADX_THRESHOLD: process.env.ADX_THRESHOLD ? parseInt(process.env.ADX_THRESHOLD) : 25,
-  TRAILING_STOP_PERCENTAGE: 0.03,  // 3%のトレイリングストップ（非推奨：ATR_TRAILING_STOP_MULTIPLIERを使用）
-  ATR_TRAILING_STOP_MULTIPLIER: 1.2,  // トレイリングストップ = ATR * 1.2
+  // 固定パーセンテージのトレイリングストップは削除し、ATRベースのみを使用
+  ATR_TRAILING_STOP_MULTIPLIER: 1.2,  // トレイリングストップ = ATR * 1.2 (動的に相場環境に適応)
   ADD_ON_POSITION_MULTIPLIER: 0.5,  // 1R進むごとに0.5R追加、最大2回
   POSITION_SIZING: 0.2,  // ポジションサイズ（利用可能資金の20%）
 }
@@ -29,7 +29,9 @@ export const TREND_PARAMETERS = {
 // レンジ戦略用パラメータ
 export const RANGE_PARAMETERS = {
   RANGE_PERIOD: 30,  // 30日間の高値・安値をレンジ境界として使用
-  GRID_LEVELS: 5,    // グリッドレベルのデフォルト数（動的調整時の初期値）
+  GRID_LEVELS_MIN: 3,    // 最小グリッドレベル数（動的計算時のフォールバック値）
+  GRID_LEVELS_MAX: 10,   // 最大グリッドレベル数
+  GRID_WIDTH_MULTIPLIER: 0.6, // ATR%の0.6倍をグリッド幅計算に使用
   POSITION_SIZING: 0.1,  // ポジションサイズ（利用可能資金の10%）
 }
 

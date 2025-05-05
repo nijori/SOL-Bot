@@ -50,8 +50,8 @@ SOL-Bot/
 ### コア (src/core/)
 
 - **types.ts**: システム全体で使用される型定義（Candle, Order, Position等）
-- **tradingEngine.ts**: トレーディングエンジンのメインロジック、戦略切替、データ更新
-- **orderManagementSystem.ts**: 注文管理システム、ポジション追跡、約定処理
+- **tradingEngine.ts**: トレーディングエンジンのメインロジック、戦略切替、データ更新、ポジション偏りヘッジ機能
+- **orderManagementSystem.ts**: 注文管理システム、ポジション追跡、約定処理、高度な注文タイプ（Post-Only, Hidden, Iceberg）サポート
 
 ### インジケーター (src/indicators/)
 
@@ -59,8 +59,8 @@ SOL-Bot/
 
 ### 戦略 (src/strategies/)
 
-- **trendStrategy.ts**: トレンド相場用の戦略
-- **rangeStrategy.ts**: レンジ相場用の戦略
+- **trendStrategy.ts**: トレンド相場用の戦略（ATRベースのトレイリングストップ）
+- **rangeStrategy.ts**: レンジ相場用の戦略（動的グリッドレベル計算、ATR%ベースの幅調整）
 - **DonchianBreakoutStrategy.ts**: ドンチャンチャネルブレイクアウト戦略（ATRベースのストップロス）
 
 ### データアクセス (src/data/)
@@ -70,11 +70,11 @@ SOL-Bot/
 
 ### サービス (src/services/)
 
-- **exchangeService.ts**: 取引所APIとの通信
+- **exchangeService.ts**: 取引所APIとの通信、各種注文タイプのサポート、OCO注文（One-Cancels-the-Other）機能
 
 ### 設定 (src/config/)
 
-- **parameters.ts**: 戦略パラメータと設定（EMAPeriod, DonchianPeriod, ATRMultiplier等）
+- **parameters.ts**: 戦略パラメータと設定（EMAPeriod, DonchianPeriod, ATRMultiplier, 動的グリッド設定等）
 
 ### ユーティリティ (src/utils/)
 
@@ -98,12 +98,15 @@ MarketState分析では、以下の環境を識別します：
 市場環境に応じて、以下の戦略を自動選択します：
 
 - トレンド環境 → **Donchianブレイクアウト戦略** または **トレンドフォロー戦略**
-- レンジ環境 → **グリッド/レンジ戦略**
+- レンジ環境 → **グリッド/レンジ戦略**（動的グリッド計算）
 - 急激な変動時 → **緊急戦略**（ポジション削減、トレイリングストップ）
+- ポジション偏り時 → **ヘッジ戦略**（15%以上の偏りでVWAP価格による反対ポジション）
 
 ## 注文管理システム（OMS）
 
 - 注文の作成、追跡、キャンセル
+- 高度な注文オプション（Post-Only, Hidden, Iceberg）
+- OCO注文（One-Cancels-the-Other）サポート
 - ポジション管理（新規、追加、部分決済）
 - 損益計算（実現/未実現PnL）
 - 価格更新によるポジション評価額更新
@@ -113,7 +116,16 @@ MarketState分析では、以下の環境を識別します：
 - **最大取引リスク**: 口座残高の1%
 - **日次損失上限**: 口座残高の5%（超過時取引停止）
 - **ポジションサイジング**: ATRベースのリスク計算（ストップロス幅に基づく）
+- **トレイリングストップ**: ATR × 1.2の動的計算（市場ボラティリティに適応）
+- **ポジション偏りヘッジ**: ネットポジションが15%以上偏った場合に自動ヘッジ
 - **ブラックスワン対策**: 急激な価格変動時に自動的にポジション半減
+
+## 高度な注文タイプ
+
+- **Post-Only**: 指値注文がメイカーとしてのみ約定（テイカー約定を防止）
+- **Hidden**: 板に表示されない隠し注文
+- **Iceberg**: 大口注文を小分けにして表示（例: 表示数量制限）
+- **OCO**: One-Cancels-the-Other注文（利確と損切りの同時発注）
 
 ## 依存関係
 

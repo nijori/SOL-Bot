@@ -50,6 +50,16 @@ function calculateSlope(emaValues: number[], periods: number = 5): number {
 }
 
 /**
+ * 傾きを角度（度数法）に変換
+ * @param slope 傾き
+ * @returns 角度（度数法）
+ */
+function slopeToAngle(slope: number): number {
+  // arctan(slope) * (180/π) で角度（度数法）に変換
+  return Math.atan(slope) * (180 / Math.PI);
+}
+
+/**
  * EMAの傾きを確認する期間を動的に調整する関数
  * ボラティリティに応じて期間を変える
  * @param atrPercentage ATRパーセンテージ（ボラティリティ指標）
@@ -148,17 +158,26 @@ export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
   // 短期EMAの傾きを計算（最適化されたメソッド）
   const shortTermSlope = calculateSlope(shortTermEmaValues, adjustedPeriods);
   
+  // 傾きを角度に変換
+  const shortTermSlopeAngle = slopeToAngle(shortTermSlope);
+  
   // 長期EMAの傾きも計算（トレンドの持続性判断に使用）
   const longTermSlope = calculateSlope(longTermEmaValues, adjustedPeriods * 2);
+  
+  // 長期EMAの傾きを角度に変換
+  const longTermSlopeAngle = slopeToAngle(longTermSlope);
   
   // ATRの変化率を計算
   const atrChange = calculateAtrChange(atrValues);
   
   // 市場環境を判定するフラグ
-  const strongTrendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 1.5;
-  const trendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD;
-  const weakTrendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7;
-  const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD; // ATR%がしきい値未満は低ボラティリティ
+  const strongTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 1.5;
+  const trendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD;
+  const weakTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7;
+  
+  // 低ボラティリティ判定（ATR%が閾値未満 かつ EMA勾配が0.15°未満）
+  const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD && 
+                    Math.abs(shortTermSlopeAngle) < 0.15;
   
   // トレンドの方向性を判定（短期・長期EMAの位置関係とスロープの符号）
   const latestShortEma = shortTermEmaValues[shortTermEmaValues.length - 1];
@@ -215,6 +234,8 @@ export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
       longTermEma: latestLongEma,
       shortTermSlope,
       longTermSlope,
+      shortTermSlopeAngle,  // 角度に変換した傾き
+      longTermSlopeAngle,  // 角度に変換した傾き
       adjustedPeriods,  // 動的に調整された期間も含める
       atr: currentAtr,
       atrPercentage,

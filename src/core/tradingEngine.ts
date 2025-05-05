@@ -26,6 +26,9 @@ export class TradingEngine {
   private marketAnalysis: MarketAnalysisResult | null = null;
   private activeStrategy: StrategyType = StrategyType.TREND_FOLLOWING;
   private previousClose: number | null = null;
+  private previousDailyClose: number | null = null; // 24時間前の終値
+  private lastDailyCloseUpdateTime: number = 0; // 前回のDailyClose更新時刻
+  private dailyStartingBalance: number = 0; // 午前0時の残高
   private account: Account;
   private oms: OrderManagementSystem;
 
@@ -39,6 +42,8 @@ export class TradingEngine {
       dailyPnlPercentage: 0
     };
     this.oms = new OrderManagementSystem();
+    // 初期残高を設定
+    this.dailyStartingBalance = this.account.balance;
     logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${symbol}`);
   }
   
@@ -55,24 +60,45 @@ export class TradingEngine {
     this.latestCandles = newCandles;
     logger.debug(`[TradingEngine] マーケットデータ更新: ${this.symbol}, キャンドル数: ${newCandles.length}`);
     
+    // 24時間ごとにpreviousDailyCloseを更新
+    this.updateDailyClose();
+    
     // ブラックスワン検出
     this.detectBlackSwanEvent();
+  }
+  
+  /**
+   * 24時間ごとに日次終値を更新
+   */
+  private updateDailyClose(): void {
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000; // 24時間（ミリ秒）
+    
+    // 初回または24時間経過した場合に更新
+    if (!this.previousDailyClose || now - this.lastDailyCloseUpdateTime >= oneDayMs) {
+      // 最新のキャンドルの終値を日次終値として保存
+      if (this.latestCandles.length > 0) {
+        this.previousDailyClose = this.latestCandles[this.latestCandles.length - 1].close;
+        this.lastDailyCloseUpdateTime = now;
+        logger.info(`[TradingEngine] 日次終値を更新しました: ${this.previousDailyClose}`);
+      }
+    }
   }
   
   /**
    * ブラックスワンイベント（急激な価格変動）を検出
    */
   private detectBlackSwanEvent(): void {
-    if (!this.previousClose || this.latestCandles.length === 0) {
+    if (!this.previousDailyClose || this.latestCandles.length === 0) {
       return;
     }
     
     const currentClose = this.latestCandles[this.latestCandles.length - 1].close;
-    const priceChange = Math.abs(currentClose - this.previousClose) / this.previousClose;
+    const priceChange = Math.abs(currentClose - this.previousDailyClose) / this.previousDailyClose;
     
     // 価格変動が閾値を超えた場合、緊急戦略に切り替え
     if (priceChange > RISK_PARAMETERS.EMERGENCY_GAP_THRESHOLD) {
-      logger.warn(`[TradingEngine] ブラックスワンイベント検出: ${(priceChange * 100).toFixed(2)}% の価格変動`);
+      logger.warn(`[TradingEngine] ブラックスワンイベント検出: ${(priceChange * 100).toFixed(2)}% の価格変動 (現在価格: ${currentClose}, 24時間前価格: ${this.previousDailyClose})`);
       this.activeStrategy = StrategyType.EMERGENCY;
       
       // 緊急戦略を即座に実行
@@ -88,11 +114,11 @@ export class TradingEngine {
   public updateAccount(account: Account): void {
     this.account = account;
     
-    // デイリーPnLを計算
-    this.account.dailyPnl = this.account.balance - this.account.balance;
-    this.account.dailyPnlPercentage = (this.account.dailyPnl / this.account.balance) * 100;
+    // デイリーPnLを計算（午前0時の残高との差分）
+    this.account.dailyPnl = this.account.balance - this.dailyStartingBalance;
+    this.account.dailyPnlPercentage = (this.account.dailyPnl / this.dailyStartingBalance) * 100;
     
-    logger.debug(`[TradingEngine] アカウント更新: 残高: ${account.balance}, ポジション数: ${account.positions.length}`);
+    logger.debug(`[TradingEngine] アカウント更新: 残高: ${account.balance}, 日次損益: ${this.account.dailyPnl.toFixed(2)}, 日次損益率: ${this.account.dailyPnlPercentage.toFixed(2)}%, ポジション数: ${account.positions.length}`);
     
     // デイリー損失が閾値を超えた場合、警告を出す
     if (this.account.dailyPnlPercentage < -RISK_PARAMETERS.MAX_DAILY_LOSS * 100) {
@@ -104,9 +130,14 @@ export class TradingEngine {
    * 日次リセット処理
    */
   public resetDailyTracking(): void {
+    // 現在の残高を新しい日次開始残高として記録
+    this.dailyStartingBalance = this.account.balance;
+    
+    // PnL情報をリセット
     this.account.dailyPnl = 0;
     this.account.dailyPnlPercentage = 0;
-    logger.info(`[TradingEngine] 日次トラッキングをリセット: 新しい開始残高: ${this.account.balance}`);
+    
+    logger.info(`[TradingEngine] 日次トラッキングをリセット: 新しい開始残高: ${this.dailyStartingBalance}`);
   }
   
   /**
@@ -164,6 +195,9 @@ export class TradingEngine {
     // 現在のポジションを取得
     const currentPositions = this.oms.getPositions();
     
+    // ポジションの偏りを計算し、必要に応じてヘッジ
+    const hedgeSignals = this.checkAndCreateHedgeOrders(currentPositions);
+    
     // 適切な戦略を実行
     switch (this.activeStrategy) {
       case StrategyType.TREND_FOLLOWING:
@@ -194,10 +228,84 @@ export class TradingEngine {
         );
     }
     
+    // ヘッジ注文があれば、戦略からの注文と結合
+    if (hedgeSignals.length > 0) {
+      strategyResult.signals = [...strategyResult.signals, ...hedgeSignals];
+    }
+    
     // シグナルを処理（実際の注文を作成）
     this.processSignals(strategyResult.signals);
     
     return strategyResult;
+  }
+  
+  /**
+   * ポジションの偏りをチェックし、必要に応じてヘッジ注文を作成
+   * @param positions 現在のポジション
+   * @returns ヘッジ注文の配列
+   */
+  private checkAndCreateHedgeOrders(positions: Position[]): Order[] {
+    // シンボルに関連するポジションのみをフィルタリング
+    const symbolPositions = positions.filter(p => p.symbol === this.symbol);
+    
+    // ポジションがない場合は空配列を返す
+    if (symbolPositions.length === 0) {
+      return [];
+    }
+    
+    // ロングとショートのポジション量を集計
+    const longAmount = symbolPositions
+      .filter(p => p.side === OrderSide.BUY)
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    const shortAmount = symbolPositions
+      .filter(p => p.side === OrderSide.SELL)
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    // 総ポジションサイズ
+    const totalPositionSize = longAmount + shortAmount;
+    
+    // ポジションの偏り度合い（NetPositionDelta）を計算
+    // 正の値はロング偏り、負の値はショート偏り
+    const netPositionDelta = (longAmount - shortAmount) / totalPositionSize;
+    
+    // 偏りが15%以上ある場合にヘッジ
+    const hedgeThreshold = 0.15; // 15%
+    
+    if (Math.abs(netPositionDelta) < hedgeThreshold) {
+      return []; // 偏りが閾値未満の場合は何もしない
+    }
+    
+    // VWAPを計算（最近の20本のキャンドルを使用）
+    const recentCandles = this.latestCandles.slice(-20);
+    let cumulativePV = 0;
+    let cumulativeVolume = 0;
+    
+    for (const candle of recentCandles) {
+      const typicalPrice = (candle.high + candle.low + candle.close) / 3;
+      cumulativePV += typicalPrice * candle.volume;
+      cumulativeVolume += candle.volume;
+    }
+    
+    const vwapPrice = cumulativeVolume > 0 ? (cumulativePV / cumulativeVolume) : this.latestCandles[this.latestCandles.length - 1].close;
+    
+    // ヘッジするサイド（ロング偏りならショート、ショート偏りならロング）
+    const hedgeSide = netPositionDelta > 0 ? OrderSide.SELL : OrderSide.BUY;
+    
+    // ヘッジする量（偏りの40%をヘッジ）
+    const imbalanceAmount = Math.abs(longAmount - shortAmount);
+    const hedgeAmount = imbalanceAmount * 0.4; // 偏りの40%をヘッジ
+    
+    logger.warn(`[TradingEngine] ポジション偏り検出: ${(netPositionDelta * 100).toFixed(2)}%, ヘッジ実行: ${hedgeSide} ${hedgeAmount.toFixed(4)} @ VWAP(${vwapPrice.toFixed(2)})`);
+    
+    // ヘッジ注文を生成（VWAP価格で成行注文）
+    return [{
+      symbol: this.symbol,
+      type: OrderType.MARKET,
+      side: hedgeSide,
+      amount: hedgeAmount,
+      timestamp: Date.now()
+    }];
   }
   
   /**
@@ -311,10 +419,24 @@ export class TradingEngine {
     const maxRiskAmount = this.account.balance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
     const availableBalance = this.account.available;
     
+    // 最新の価格を取得（リスク計算用）
+    const currentPrice = this.latestCandles.length > 0 
+      ? this.latestCandles[this.latestCandles.length - 1].close 
+      : 0;
+    
+    if (currentPrice === 0) {
+      logger.warn('[TradingEngine] 価格情報がないためリスク計算を正確に行えません');
+      return signals; // 価格情報がない場合は元のシグナルをそのまま返す
+    }
+    
     for (const signal of signals) {
+      // 注文金額（量×価格）を計算
+      const orderPrice = signal.price || currentPrice; // 指値注文の場合は指定価格、そうでなければ現在価格
+      const notionalValue = signal.amount * orderPrice;
+      
       // 資金が不足している場合はスキップ
-      if (signal.side === OrderSide.BUY && signal.amount > availableBalance) {
-        logger.warn(`[TradingEngine] 資金不足のため注文をスキップ: 必要額=${signal.amount}, 利用可能額=${availableBalance}`);
+      if (signal.side === OrderSide.BUY && notionalValue > availableBalance) {
+        logger.warn(`[TradingEngine] 資金不足のため注文をスキップ: 必要額=${notionalValue.toFixed(2)}, 利用可能額=${availableBalance.toFixed(2)}`);
         continue;
       }
       
@@ -325,15 +447,17 @@ export class TradingEngine {
           .reduce((sum, p) => sum + p.amount, 0);
           
         if (signal.type !== OrderType.STOP && totalPosition < signal.amount) {
-          logger.warn(`[TradingEngine] ポジション不足のため注文をスキップ: 必要額=${signal.amount}, 保有ポジション=${totalPosition}`);
+          logger.warn(`[TradingEngine] ポジション不足のため注文をスキップ: 必要数量=${signal.amount}, 保有ポジション=${totalPosition}`);
           continue;
         }
       }
       
-      // 1回の取引で最大リスク以上を取らない
-      if (signal.amount > maxRiskAmount) {
-        logger.info(`[TradingEngine] リスク管理: 注文サイズを縮小 ${signal.amount} → ${maxRiskAmount}`);
-        signal.amount = maxRiskAmount;
+      // 1回の取引で最大リスク金額以上を取らない（金額ベース）
+      if (notionalValue > maxRiskAmount) {
+        // 注文金額が最大リスク金額を超える場合、注文数量を調整
+        const adjustedAmount = maxRiskAmount / orderPrice;
+        logger.info(`[TradingEngine] リスク管理: 注文金額(${notionalValue.toFixed(2)})が最大リスク金額(${maxRiskAmount.toFixed(2)})を超えるため、注文数量を縮小 ${signal.amount.toFixed(4)} → ${adjustedAmount.toFixed(4)}`);
+        signal.amount = adjustedAmount;
       }
       
       filteredSignals.push(signal);

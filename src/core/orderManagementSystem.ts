@@ -6,6 +6,7 @@ import {
   Position 
 } from './types';
 import logger from '../utils/logger';
+import { OrderOptions, OcoOrderParams } from '../services/exchangeService';
 
 /**
  * 注文管理システム（OMS）
@@ -15,17 +16,27 @@ export class OrderManagementSystem {
   private orders: Map<string, Order> = new Map();
   private positions: Map<string, Position> = new Map();
   private nextOrderId: number = 1;
+  private exchangeService: any; // 実際の実装では型を明確に
   
   constructor() {
     logger.info('[OMS] 注文管理システムを初期化しました');
   }
   
   /**
+   * ExchangeServiceを設定
+   * @param service 取引所サービス
+   */
+  public setExchangeService(service: any): void {
+    this.exchangeService = service;
+  }
+  
+  /**
    * 注文を作成して追跡する
    * @param order 注文情報
+   * @param options 注文オプション
    * @returns 生成された注文ID
    */
-  public createOrder(order: Order): string {
+  public createOrder(order: Order, options?: OrderOptions): string {
     // 注文IDを生成（実際の取引所APIを使用する場合は、APIからのレスポンスでIDを取得）
     const orderId = `order-${Date.now()}-${this.nextOrderId++}`;
     
@@ -40,9 +51,107 @@ export class OrderManagementSystem {
     // 注文を追跡リストに追加
     this.orders.set(orderId, newOrder);
     
-    logger.info(`[OMS] 注文を作成しました: ${orderId}, ${newOrder.side} ${newOrder.amount} ${newOrder.symbol} @ ${newOrder.price || 'MARKET'}`);
+    // オプション情報をログに出力
+    const optionsLog = options ? 
+      `, オプション: ${options.postOnly ? 'Post-Only' : ''}${options.hidden ? ' Hidden' : ''}${options.iceberg ? ` Iceberg(${options.iceberg})` : ''}` : 
+      '';
+    
+    logger.info(`[OMS] 注文を作成しました: ${orderId}, ${newOrder.side} ${newOrder.amount} ${newOrder.symbol} @ ${newOrder.price || 'MARKET'}${optionsLog}`);
+    
+    // 取引所サービスが設定されている場合、実際に注文を送信
+    if (this.exchangeService) {
+      this.exchangeService.executeOrder(newOrder, options)
+        .then((exchangeOrderId: string) => {
+          if (exchangeOrderId) {
+            logger.info(`[OMS] 取引所への注文送信成功: ${exchangeOrderId}`);
+          } else {
+            logger.error(`[OMS] 取引所への注文送信失敗: ${orderId}`);
+            newOrder.status = OrderStatus.REJECTED;
+            this.orders.set(orderId, newOrder);
+          }
+        })
+        .catch((error: Error) => {
+          logger.error(`[OMS] 取引所への注文送信エラー: ${error.message}`);
+          newOrder.status = OrderStatus.REJECTED;
+          this.orders.set(orderId, newOrder);
+        });
+    }
     
     return orderId;
+  }
+  
+  /**
+   * OCO注文（One-Cancels-the-Other）を作成する
+   * 利確と損切りを同時に注文し、どちらかが約定すると他方はキャンセルされる
+   * @param params OCO注文のパラメータ
+   * @returns 注文ID
+   */
+  public createOcoOrder(params: OcoOrderParams): string {
+    // 2つの注文IDを記録するための配列
+    const orderIds: string[] = [];
+    
+    // OCO注文の基本情報をログに出力
+    logger.info(`[OMS] OCO注文を作成: ${params.side} ${params.amount} ${params.symbol}, 利確=${params.limitPrice}, 損切=${params.stopPrice}`);
+    
+    // 取引所サービスが設定されている場合、実際にOCO注文を送信
+    if (this.exchangeService) {
+      return this.exchangeService.createOcoOrder(params)
+        .then((exchangeOrderId: string) => {
+          if (exchangeOrderId) {
+            logger.info(`[OMS] 取引所へのOCO注文送信成功: ${exchangeOrderId}`);
+            
+            // リスト形式の場合（カンマ区切りでIDが返される場合）
+            if (exchangeOrderId.includes(',')) {
+              const ids = exchangeOrderId.split(',');
+              ids.forEach((id, index) => {
+                const ocoType = index === 0 ? '利確' : '損切';
+                const ocoOrder: Order = {
+                  id,
+                  symbol: params.symbol,
+                  side: params.side,
+                  amount: params.amount,
+                  type: index === 0 ? OrderType.LIMIT : OrderType.STOP,
+                  price: index === 0 ? params.limitPrice : params.stopLimitPrice || params.stopPrice,
+                  stopPrice: index === 1 ? params.stopPrice : undefined,
+                  status: OrderStatus.OPEN,
+                  timestamp: Date.now()
+                };
+                this.orders.set(id, ocoOrder);
+                orderIds.push(id);
+                logger.info(`[OMS] OCO注文追跡 (${ocoType}): ${id}`);
+              });
+            } else {
+              // 単一IDの場合（取引所側でOCOをサポートしている場合）
+              const ocoOrder: Order = {
+                id: exchangeOrderId,
+                symbol: params.symbol,
+                side: params.side,
+                amount: params.amount,
+                type: OrderType.LIMIT, // OCO注文は基本的に指値として扱う
+                price: params.limitPrice,
+                stopPrice: params.stopPrice,
+                status: OrderStatus.OPEN,
+                timestamp: Date.now()
+              };
+              this.orders.set(exchangeOrderId, ocoOrder);
+              orderIds.push(exchangeOrderId);
+            }
+            
+            return orderIds.join(',');
+          } else {
+            logger.error(`[OMS] 取引所へのOCO注文送信失敗`);
+            return '';
+          }
+        })
+        .catch((error: Error) => {
+          logger.error(`[OMS] 取引所へのOCO注文送信エラー: ${error.message}`);
+          return '';
+        });
+    }
+    
+    // 取引所サービスが設定されていない場合は空文字を返す
+    logger.warn(`[OMS] 取引所サービスが設定されていないため、OCO注文を送信できません`);
+    return '';
   }
   
   /**
