@@ -1,0 +1,23 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SOL-Bot アーカイブ
+
+## 🗓 2025-Q1 (1月〜3月)
+
+- [x] INF-003: プロジェクト初期設定
+      - 📅 Due        : 2025-03-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : リポジトリの初期設定、package.jsonとtsconfig.jsonの設定
+
+- [x] DOC-002: README作成
+      - 📅 Due        : 2025-03-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ✅
+      - ✎ Notes      : プロジェクトの説明と主な機能についてのREADME作成
+

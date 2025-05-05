@@ -1,0 +1,65 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SOL-Bot バックログ
+
+## アーキテクチャ／設計レベルのギャップ
+
+- [ ] OMS-002: 高度な注文タイプの実装
+      - 📅 Due        : 2025-07-25
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : Post-Only + Hidden Iceberg / OCOをccxtで実装。発注オプションに追加
+
+## コード品質 & バグ
+
+- [ ] INF-004: 型安全性の改善
+      - 📅 Due        : 2025-08-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : strategyResult.signalsの処理で新オブジェクトをpushするパターンに修正
+
+- [ ] INF-005: ロギング最適化
+      - 📅 Due        : 2025-09-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : logger[level] && logger[level](mdc:...)パターンで不要ログ抑制
+
+## インフラ／CI面で不足しているもの
+
+- [ ] DAT-002: Parquet + DuckDBデータ永続化の実装
+      - 📅 Due        : 2025-09-10
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : DAT-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : fetchMarketData()で取得したCandleを/data/*.parquetへ書き込むバッチを追加
+
+- [ ] ALG-011: ウォークフォワード検証システムの実装
+      - 📅 Due        : 2025-09-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : backtest/runner.tsで3M Train→1M Testのループを実装し、CIでOptuna最適化のsmoke-test
+
+- [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-09-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック
+
+- [ ] INF-007: 本番用Dockerfileの作成
+      - 📅 Due        : 2025-09-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+
+
+      - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述

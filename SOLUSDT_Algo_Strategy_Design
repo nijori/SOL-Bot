@@ -1,0 +1,144 @@
+# SOL‑USDT 多層アルゴリズム戦略 ─ 設計ブループリント
+
+> **目的** : SOL/USDT の中短期トレンドとレンジ両局面を捉え、日次平均 0.5–1.0 % のリスク調整後リターン（Sharpe > 1.2）を狙う。
+>
+> **前提** : 日足データ 6 か月 + 1h 足以上の高頻度データを取得し、手数料 = 0.1 %/片側、スリッページ = 0.05 % 想定。
+
+---
+
+## 1. システム全体アーキテクチャ
+
+```
++-----------------+     +-------------------+     +------------------+
+| Data Ingestion  | --> | Regime Detection  | --> | Strategy Switch  |
++-----------------+     +-------------------+     +-------+----------+
+                                                            |
+                                         +------------------+------------------+
+                                         |                                     |
+                             +-----------v-----------+           +-------------v---------+
+                             | Trend‑Follow Engine   |           | Range/MeanRev Engine  |
+                             +-----------+-----------+           +-------------+---------+
+                                         |                                     |
+                              +----------v-----------+           +-------------v---------+
+                              | Execution & OMS      | <---------+ Risk Management Layer |
+                              +----------+-----------+                         |
+                                         |                                     |
+                                    +----v----+                         +------v-----+
+                                    | Exchange |                         | Monitoring |
+                                    +---------+                         +------------+
+```
+
+---
+
+## 2. データ準備
+
+| ソース                   | 粒度                        | 保存形式             | 備考            |
+| --------------------- | ------------------------- | ---------------- | ------------- |
+| Binance Japan API     | 1m, 15m, 1h, 1d           | Parquet + DuckDB | cron で 1 分毎更新 |
+| Glassnode / Defillama | チェーン指標 (TVL, Active Addr) | Postgres         | オンチェーンサポート用   |
+
+*インプット特徴量一覧*
+
+* Price OHLCV, 20本 (マルチタイムフレーム)
+* Technical: MA(7/30), EMA(10/55), Bollinger(20,2), RSI(14), ATR(14), MACD
+* Volatility: daily range, ATR/Close, intraday VWAP dev
+* Order‑book: bid/ask depth 10 levels (optional)
+
+---
+
+## 3. レジーム判定ロジック
+
+| 指標                 | 条件                                  | レジームフラグ       |
+| ------------------ | ----------------------------------- | ------------- |
+| **MA‑Slope**       | EMA(10) 過去 5 本の勾配 > 0.15°           | `TREND = 1`   |
+| **ATR%**           | ATR(14)/Close < 6 %                 | `LOW_VOL = 1` |
+| **Price Location** | Close > EMA(10) & EMA(10) > EMA(55) | `BULL = 1`    |
+
+```python
+if BULL and TREND:
+    regime = "UPTREND"
+elif not BULL and TREND:
+    regime = "DOWNTREND"
+elif LOW_VOL:
+    regime = "RANGE"
+else:
+    regime = "MIXED"
+```
+
+---
+
+## 4‑A. トレンドフォローエンジン（UPTREND / DOWNTREND）
+
+| 要素       | パラメータ                            | デフォルト     |
+| -------- | -------------------------------- | --------- |
+| エントリー    | Donchian(20) ブレイク+ADX(14)>25     | –         |
+| 方向       | regime = "UP" ? `LONG` : `SHORT` | –         |
+| ポジションサイズ | Kelly 0.5 × Account Eq × Risk%   | Risk%=1 % |
+| 追従       | 決済は Parabolic‑SAR or EMA(10) クロス | –         |
+| 加速ポジ     | +1R 進む毎に 0.5R 追加、最大2回            | –         |
+
+**オーダー種別**
+
+* *初回*: **Stop‑Market (Post‑Only) + Hidden Iceberg**（板抜け防止）
+* *追随*: **Trailing Stop 1.2 × ATR**
+* **OCO**: 利確 = 2.5R, 損切り = 1R
+
+---
+
+## 4‑B. レンジ／ミーンリバースエンジン（RANGE）
+
+| 要素      | パラメータ                            | デフォルト |
+| ------- | -------------------------------- | ----- |
+| レンジ幅    | 最新 30 日の `DonchianRange × 0.9`   | –     |
+| グリッド本数  | `ceil(Range / (ATR%×0.6))`       | –     |
+| 注文方式    | Maker‑only Limit, Spread ≥ 0.3 % | –     |
+| ポジション上限 | 35 % of Account Eq               | –     |
+| エスケープ   | レンジ上限＋2 % or 下限−2 % で全決済         | –     |
+
+**強制バランス**
+`NetPositionDelta > 15 %` になったら VWAP で即時ヘッジ。
+
+---
+
+## 5. リスク管理層
+
+* **1 トレード最大損失** : AccountEq × 1 % (hard)
+* **日次 DRAWDOWN‑STOP** : Equity↓5 % で全戦略停止 24h
+* **ブラックスワン** : SOL が 15 % ギャップダウン → 総ポジ 50 % 縮小 + TrailingStop
+* **ヘッジ** : SOL/USDT 先物インバース or 逆ポジでデルタニュートラル化可
+
+---
+
+## 6. バックテスト & 最適化
+
+| フェーズ        | 手法                             | 評価指標                          |
+| ----------- | ------------------------------ | ----------------------------- |
+| ◎ パラメータ粗探索  | Latin Hypercube 500 サンプル       | NetProfit > 0, Sharpe> 1      |
+| ◎ 精緻化       | Bayesian Opt (Optuna) 50 trial | MaxSharpe – penalty(Drawdown) |
+| ◎ ウォークフォワード | 3M train → 1M test × rolling   | PF≥1.4, HitRate≥48 %          |
+| ◎ モンテカルロ    | 500 resample                   | Expected shortfall 95 %       |
+
+---
+
+## 7. 実行インフラ & OMS
+
+| Tier            | コンポーネント                                | 備考                       |
+| --------------- | -------------------------------------- | ------------------------ |
+| **Collector**   | Python + ccxt → DuckDB                 | 1m 更新 & S3 バックアップ        |
+| **Core Engine** | FastAPI + SQLModel                     | Websocket ストリームで Tick 処理 |
+| **OMS**         | Hummingbot‑connector patch             | Iceberg/OCO 対応拡張         |
+| **監視**          | Prometheus + Grafana + Discord Webhook | Latency/PnL アラート         |
+
+---
+
+## 8. 今後の TODO
+
+1. 1h 足データ取得ジョブを作成（Dagster/Python）
+2. Regime 判定の閾値（MA 勾配, ATR%）を Optuna で最適化
+3. OMS の Post‑Only & Hidden Iceberg 実装詳細をドキュメント化
+4. シミュレーション環境で 2019–2024 年マルチイヤー検証
+5. メタパラメータを YAML に抽出し CI/CD に組み込み
+
+---
+
+> *このドキュメントは “設計書 v0.1” です。パラメータや構成は今後の議論でアップデートしてください。*

@@ -1,0 +1,231 @@
+import { EMA, ATR } from 'technicalindicators';
+import { 
+  Candle, 
+  MarketEnvironment, 
+  MarketAnalysisResult, 
+  StrategyType 
+} from '../core/types';
+import { MARKET_PARAMETERS } from '../config/parameters';
+
+/**
+ * EMAの傾きを計算（線形回帰方式）
+ * @param emaValues EMAの値の配列
+ * @param periods 傾きを計算する期間
+ * @returns 傾きの値（標準化された値）
+ */
+function calculateSlope(emaValues: number[], periods: number = 5): number {
+  if (emaValues.length < periods) {
+    return 0;
+  }
+  
+  // 直近のperiods分のデータを取得
+  const recentEma = emaValues.slice(-periods);
+  
+  // 線形回帰の計算
+  // y = mx + b の m（傾き）を求める
+  let sumX = 0;
+  let sumY = 0;
+  let sumXY = 0;
+  let sumXX = 0;
+  
+  // 値を正規化するための平均価格（初期値）
+  const avgPrice = recentEma[0];
+  
+  for (let i = 0; i < periods; i++) {
+    const normalizedPrice = recentEma[i] / avgPrice;  // 価格を正規化
+    sumX += i;
+    sumY += normalizedPrice;
+    sumXY += i * normalizedPrice;
+    sumXX += i * i;
+  }
+  
+  const n = periods;
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  
+  // 傾きを年率換算（1日あたりの変化率に変換し、年率に変換）
+  // 1日4時間足6本 → 6本 = 1日、年間250取引日として計算
+  const annualizedSlope = slope * (250 / (periods / 6)) * 100;
+  
+  return annualizedSlope;
+}
+
+/**
+ * EMAの傾きを確認する期間を動的に調整する関数
+ * ボラティリティに応じて期間を変える
+ * @param atrPercentage ATRパーセンテージ（ボラティリティ指標）
+ * @param defaultPeriods デフォルトの期間
+ * @returns 調整された期間
+ */
+function adjustSlopePeriods(atrPercentage: number, defaultPeriods: number = 5): number {
+  // ボラティリティが高い場合、期間を短くする（素早く反応）
+  // ボラティリティが低い場合、期間を長くする（フィルタリング効果を高める）
+  if (atrPercentage > 8) {
+    return Math.max(3, defaultPeriods - 2);  // 高ボラティリティ：短い期間
+  } else if (atrPercentage < 3) {
+    return defaultPeriods + 3;  // 低ボラティリティ：長い期間
+  }
+  return defaultPeriods;  // 通常のボラティリティ：デフォルト期間
+}
+
+/**
+ * ATRの変化率を計算
+ * @param atrValues ATRの値の配列
+ * @param periods 変化率を計算する期間
+ * @returns 変化率
+ */
+function calculateAtrChange(atrValues: number[], periods: number = 10): number {
+  if (atrValues.length < periods + 1) {
+    return 1;
+  }
+  
+  const atr1 = atrValues[atrValues.length - periods - 1];
+  const atr2 = atrValues[atrValues.length - 1];
+  
+  // ATRの変化率: atr2 / atr1
+  return atr2 / atr1;
+}
+
+/**
+ * ATRパーセンテージを計算（ATR/Close）
+ * @param atr ATR値
+ * @param closePrice 終値
+ * @returns ATRパーセンテージ
+ */
+function calculateAtrPercentage(atr: number, closePrice: number): number {
+  return (atr / closePrice) * 100;
+}
+
+/**
+ * 市場環境を分析する
+ * @param candles ローソク足データ
+ * @returns 市場分析の結果
+ */
+export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
+  if (candles.length < Math.max(MARKET_PARAMETERS.LONG_TERM_EMA, MARKET_PARAMETERS.ATR_PERIOD) + 10) {
+    return {
+      environment: MarketEnvironment.UNKNOWN,
+      recommendedStrategy: StrategyType.TREND_FOLLOWING,
+      indicators: {},
+      timestamp: Date.now()
+    };
+  }
+  
+  // 短期EMAを計算
+  const shortTermEmaInput = {
+    period: MARKET_PARAMETERS.SHORT_TERM_EMA,
+    values: candles.map(c => c.close)
+  };
+  const shortTermEmaValues = EMA.calculate(shortTermEmaInput);
+  
+  // 長期EMAを計算
+  const longTermEmaInput = {
+    period: MARKET_PARAMETERS.LONG_TERM_EMA,
+    values: candles.map(c => c.close)
+  };
+  const longTermEmaValues = EMA.calculate(longTermEmaInput);
+  
+  // ATRを計算
+  const atrInput = {
+    high: candles.map(c => c.high),
+    low: candles.map(c => c.low),
+    close: candles.map(c => c.close),
+    period: MARKET_PARAMETERS.ATR_PERIOD
+  };
+  const atrValues = ATR.calculate(atrInput);
+  
+  // 現在の終値
+  const currentClose = candles[candles.length - 1].close;
+  
+  // 現在のATR
+  const currentAtr = atrValues[atrValues.length - 1];
+  
+  // ATRパーセンテージ（ATR/Close）を計算
+  const atrPercentage = calculateAtrPercentage(currentAtr, currentClose);
+  
+  // ボラティリティに基づいて傾きの計算期間を調整
+  const adjustedPeriods = adjustSlopePeriods(atrPercentage);
+  
+  // 短期EMAの傾きを計算（最適化されたメソッド）
+  const shortTermSlope = calculateSlope(shortTermEmaValues, adjustedPeriods);
+  
+  // 長期EMAの傾きも計算（トレンドの持続性判断に使用）
+  const longTermSlope = calculateSlope(longTermEmaValues, adjustedPeriods * 2);
+  
+  // ATRの変化率を計算
+  const atrChange = calculateAtrChange(atrValues);
+  
+  // 市場環境を判定するフラグ
+  const strongTrendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 1.5;
+  const trendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD;
+  const weakTrendFlag = Math.abs(shortTermSlope) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7;
+  const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD; // ATR%がしきい値未満は低ボラティリティ
+  
+  // トレンドの方向性を判定（短期・長期EMAの位置関係とスロープの符号）
+  const latestShortEma = shortTermEmaValues[shortTermEmaValues.length - 1];
+  const latestLongEma = longTermEmaValues[longTermEmaValues.length - 1];
+  const emaCrossover = latestShortEma > latestLongEma;
+  const bullFlag = emaCrossover && shortTermSlope > 0;
+  const bearFlag = !emaCrossover && shortTermSlope < 0;
+  
+  // 傾きの一致（短期と長期の傾きの方向が一致するか）
+  const slopesAligned = (shortTermSlope > 0 && longTermSlope > 0) || (shortTermSlope < 0 && longTermSlope < 0);
+  
+  // 市場環境を判定（改良版ロジック）
+  let environment = MarketEnvironment.RANGE;
+  let recommendedStrategy = StrategyType.RANGE_TRADING;
+  
+  if (lowVolFlag) {
+    // 低ボラティリティ環境
+    environment = MarketEnvironment.RANGE;
+    recommendedStrategy = StrategyType.RANGE_TRADING;
+  } else if (bullFlag && strongTrendFlag && slopesAligned) {
+    // 強い上昇トレンド
+    environment = MarketEnvironment.STRONG_UPTREND;
+    recommendedStrategy = StrategyType.TREND_FOLLOWING;
+  } else if (bearFlag && strongTrendFlag && slopesAligned) {
+    // 強い下降トレンド
+    environment = MarketEnvironment.STRONG_DOWNTREND;
+    recommendedStrategy = StrategyType.TREND_FOLLOWING;
+  } else if (bullFlag && trendFlag) {
+    // 通常の上昇トレンド
+    environment = MarketEnvironment.UPTREND;
+    recommendedStrategy = StrategyType.TREND_FOLLOWING;
+  } else if (bearFlag && trendFlag) {
+    // 通常の下降トレンド
+    environment = MarketEnvironment.DOWNTREND;
+    recommendedStrategy = StrategyType.TREND_FOLLOWING;
+  } else if (weakTrendFlag) {
+    // 弱いトレンド（わずかに傾向あり）
+    environment = bullFlag ? MarketEnvironment.WEAK_UPTREND : MarketEnvironment.WEAK_DOWNTREND;
+    recommendedStrategy = StrategyType.TREND_FOLLOWING;
+  } else {
+    // レンジ相場
+    environment = MarketEnvironment.RANGE;
+    recommendedStrategy = StrategyType.RANGE_TRADING;
+  }
+  
+  // ATRの変化率が閾値を超えた場合、ボラティリティが高いと判定
+  const highVolatility = atrChange > MARKET_PARAMETERS.VOLATILITY_THRESHOLD;
+  
+  return {
+    environment,
+    recommendedStrategy,
+    indicators: {
+      shortTermEma: latestShortEma,
+      longTermEma: latestLongEma,
+      shortTermSlope,
+      longTermSlope,
+      adjustedPeriods,  // 動的に調整された期間も含める
+      atr: currentAtr,
+      atrPercentage,
+      atrChange,
+      highVolatility,
+      lowVolatility: lowVolFlag,
+      bullTrend: bullFlag,
+      bearTrend: bearFlag,
+      slopesAligned,  // 傾きの一致状態
+      emaCrossover
+    },
+    timestamp: Date.now()
+  };
+} 
