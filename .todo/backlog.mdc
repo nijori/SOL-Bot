@@ -5,23 +5,83 @@ alwaysApply: false
 ---
 # SOL-Bot バックログ
 
-## コード品質 & バグ
+## P0 - 本番ブレイク級バグ
+
+- [ ] OMS-005: STOP_MARKET注文のpriceパラメータ修正
+      - 📅 Due        : 2025-06-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : type.endsWith('MARKET')の条件判定で成行系すべてのpriceをundefinedに修正
+
+- [ ] INF-011: HTTP 429エラー時の指数バックオフ実装
+      - 📅 Due        : 2025-06-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : enableRateLimit:trueのみでは不十分。for (retry of [1,2,4,8,16])の指数バックオフ実装
+
+- [ ] OMS-006: 注文ステータス更新プロセスの修正
+      - 📅 Due        : 2025-06-20
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : 取引所送信成功後、ステータスをOPEN→PLACEDに、約定webhook受信時にFILLEDへ更新
+
+- [ ] ALG-019: ATR配列不足時のセーフガード
+      - 📅 Due        : 2025-06-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : marketState.ts行42付近でatrValues.length確認、空の場合はUNKNOWN環境を返す
+
+## P1 - 設計ズレ/仕様不足
+
+- [ ] CONF-004: ATR%閾値の外部設定化
+      - 📅 Due        : 2025-07-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : ATR%閾値(6.0%)をYAML外部パラメータ化し、backtestのOptunaスペースへ追加
+
+- [ ] ALG-020: EMA傾き計算のタイムフレーム対応
+      - 📅 Due        : 2025-07-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : 4h足前提から一般化：factor = (365*24/timeframeHours)/(periods/6)に修正
+
+- [ ] ALG-021: レンジ戦略のグリッド本数計算修正
+      - 📅 Due        : 2025-07-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : atrPercentageは%表記(100倍)のため、0.006にしてグリッド本数を適正化
+
+## コード品質改善
 
 - [ ] INF-004: 型安全性の改善
       - 📅 Due        : 2025-08-30
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
       - 🩺 Health     : ⏳
-      - ✎ Notes      : strategyResult.signalsの処理で新オブジェクトをpushするパターンに修正
+      - ✎ Notes      : Exchangeインターフェース作成。any多用を排除。Zodでバリデーション実装
 
 - [ ] INF-005: ロギング最適化
       - 📅 Due        : 2025-09-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ⏳
-      - ✎ Notes      : logger[level] && logger[level](mdc:...)パターンで不要ログ抑制
+      - ✎ Notes      : Console重複チェック。logger[level] && logger[level](mdc:...)パターンで不要ログ抑制
 
 ## インフラ／CI面で不足しているもの
+
+- [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-09-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : lint→test→build→deploy、PR時に.todo未完チェック(grep '\[ \]' .todo/sprint.mdc)
 
 - [ ] DAT-002: Parquet + DuckDBデータ永続化の実装
       - 📅 Due        : 2025-09-10
@@ -38,12 +98,126 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - ✎ Notes      : backtest/runner.tsで3M Train→1M Testのループを実装し、CIでOptuna最適化のsmoke-test
 
+- [ ] INF-007: 本番用Dockerfileの作成
+      - 📅 Due        : 2025-09-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述
+
+## P0: クリティカルリスク修正（最優先）
+
+- [ ] ALG-012: ブラックスワン検出ロジックの修正
+      - 📅 Due        : 2025-07-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⚠️
+      - ✎ Notes      : 24時間前の終値（previousDailyClose）を保持し、現在価格との比較で15%変動を検出するよう修正
+
+- [ ] ALG-013: リスクフィルターの金額ベース計算への修正
+      - 📅 Due        : 2025-07-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⚠️
+      - ✎ Notes      : notional = amount × priceを使用してMAX_RISKと比較する実装に変更
+
+- [ ] ALG-014: 日次PnL計算の修正
+      - 📅 Due        : 2025-07-31
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⚠️
+      - ✎ Notes      : 「午前0時残高」をキャッシュし現在残高との差分で日次PnLを正しく計算
+
+- [ ] ALG-015: レジーム判定ロジックの修正
+      - 📅 Due        : 2025-08-02
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⚠️
+      - ✎ Notes      : LOW_VOL判定にEMA勾配チェック(0.15°)を追加し、ATR%閾値をパラメータ化
+
+- [ ] ALG-016: TrailingStopをATR×1.2に変更
+      - 📅 Due        : 2025-08-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : 固定3%のトレイリングストップをatr * 1.2の動的な値に変更
+
+- [ ] ALG-017: 動的グリッド本数計算にATR%反映
+      - 📅 Due        : 2025-08-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : レンジ幅とATR%に基づいてceil(range/(ATR*0.6))でグリッド本数を動的計算
+
+## P1: OMS改善
+
+- [ ] OMS-003: 成行注文時のpriceパラメータ修正
+      - 📅 Due        : 2025-08-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : type===MARKETの場合はpriceパラメータを削除して取引所リジェクトを防止
+
+- [ ] OMS-004: Post-Only & Icebergオプション実装
+      - 📅 Due        : 2025-08-12
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-002
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : CCXT発注時に{ postOnly:true, iceberg:qty }オプションを追加、決済ペアはcreateOcoOrder
+
+- [ ] ALG-018: ポジション偏りヘッジ実装
+      - 📅 Due        : 2025-08-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : NetPositionDeltaが15%を超えた場合にVWAP成行でヘッジするロジックを実装
+
+## P2: インフラ改善
+
+- [ ] INF-009: 日次残高キャッシュと初期化処理
+      - 📅 Due        : 2025-08-18
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : DailyBalanceCacheの実装、node-cronで0時にresetDailyTrackingを実行
+
+- [ ] INF-010: レートリミット対応の強化
+      - 📅 Due        : 2025-08-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : 429エラー発生時の指数バックオフ実装、最大リトライ5回のラッパー関数作成
+
+- [ ] CONF-003: パラメータ設定のYAML化
+      - 📅 Due        : 2025-08-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : parameters.tsをYAMLに抽出、dotenvと連携させOptunaでの自動最適化を可能に
+
+- [ ] INF-005: ロギング最適化
+      - 📅 Due        : 2025-09-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : logger[level] && logger[level](mdc:...)パターンで不要ログ抑制、console.transportの重複解消
+
+## P3: 検証・CI/CD
+
+- [ ] ALG-011: ウォークフォワード検証システムの実装
+      - 📅 Due        : 2025-09-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : backtest/runner.tsで3M Train→1M Testのループを実装し、CIでOptuna最適化のsmoke-test
+
 - [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
       - 📅 Due        : 2025-09-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック、Jest backtest smoke
 
 - [ ] INF-007: 本番用Dockerfileの作成
       - 📅 Due        : 2025-09-25
@@ -51,6 +225,19 @@ alwaysApply: false
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述
+
+- [ ] ALG-019: OptunaによるパラメータAI最適化
+      - 📅 Due        : 2025-09-30
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : CONF-003, ALG-011
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : Claude/GPT4oを使用したOptunaスクリプト作成、外部YAMLパラメータの最適化ループを実装
+
+
+
+
+
 
 
       

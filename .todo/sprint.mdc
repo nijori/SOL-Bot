@@ -178,6 +178,59 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - ✎ Notes      : NetPositionDeltaが15%を超えた場合にVWAP成行でヘッジするロジックを実装
 
+## 🗓 2025-W34〜W35 スプリント - P0バグ修正 (8月19日〜9月1日)
+
+- [ ] OMS-005: STOP_MARKET注文のpriceパラメータ修正
+      - 📅 Due        : 2025-08-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : type.endsWith('MARKET')の条件判定で成行系すべてのpriceをundefinedに修正
+
+- [ ] INF-011: HTTP 429エラー時の指数バックオフ実装
+      - 📅 Due        : 2025-08-28
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : enableRateLimit:trueのみでは不十分。for (retry of [1,2,4,8,16])の指数バックオフ実装
+
+- [ ] OMS-006: 注文ステータス更新プロセスの修正
+      - 📅 Due        : 2025-08-30
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : 取引所送信成功後、ステータスをOPEN→PLACEDに、約定webhook受信時にFILLEDへ更新
+
+- [ ] ALG-019: ATR配列不足時のセーフガード
+      - 📅 Due        : 2025-09-01
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : 🚑
+      - ✎ Notes      : marketState.ts行42付近でatrValues.length確認、空の場合はUNKNOWN環境を返す
+
+## 🗓 2025-W36〜W37 スプリント - P1設計改善 (9月2日〜9月15日)
+
+- [ ] CONF-004: ATR%閾値の外部設定化
+      - 📅 Due        : 2025-09-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : ATR%閾値(6.0%)をYAML外部パラメータ化し、backtestのOptunaスペースへ追加
+
+- [ ] ALG-020: EMA傾き計算のタイムフレーム対応
+      - 📅 Due        : 2025-09-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : 4h足前提から一般化：factor = (365*24/timeframeHours)/(periods/6)に修正
+
+- [ ] ALG-021: レンジ戦略のグリッド本数計算修正
+      - 📅 Due        : 2025-09-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : atrPercentageは%表記(100倍)のため、0.006にしてグリッド本数を適正化
+
 ## 🗓 完了したタスク
 
 - [x] INF-002: プロジェクトのフォルダ構造設定
@@ -221,6 +274,7 @@ alwaysApply: false
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - ✎ Notes      : riskAmount = balance * MAX_RISK_PER_TRADE → positionSize = riskAmount/stopDistanceへ変更
+
 
 
 
