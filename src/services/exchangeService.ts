@@ -121,14 +121,15 @@ export class ExchangeService {
 
       const params: any = {};
       
-      // 成行注文の場合、priceパラメータを明示的にundefinedに設定
-      if (order.type === OrderType.MARKET) {
+      // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
+      // MARKET, STOP_MARKET など "MARKET" で終わる注文タイプすべてに対応
+      if (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) {
         price = undefined;
-        logger.debug(`[ExchangeService] 成行注文のためpriceパラメータを削除: ${side} ${amount} ${symbol}`);
+        logger.debug(`[ExchangeService] 成行系注文のためpriceパラメータを削除: ${order.type} ${side} ${amount} ${symbol}`);
       }
       
       // ストップ注文の場合、パラメータを追加
-      if (order.type === OrderType.STOP || order.type === OrderType.STOP_LIMIT) {
+      if (order.type === OrderType.STOP || order.type === OrderType.STOP_LIMIT || order.type.toString().includes('STOP')) {
         params.stopPrice = order.stopPrice;
       }
       

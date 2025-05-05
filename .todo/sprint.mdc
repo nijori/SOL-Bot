@@ -180,11 +180,11 @@ alwaysApply: false
 
 ## 🗓 2025-W34〜W35 スプリント - P0バグ修正 (8月19日〜9月1日)
 
-- [ ] OMS-005: STOP_MARKET注文のpriceパラメータ修正
+- [x] OMS-005: STOP_MARKET注文のpriceパラメータ修正
       - 📅 Due        : 2025-08-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : 🚑
+      - 🩺 Health     : ✅
       - ✎ Notes      : type.endsWith('MARKET')の条件判定で成行系すべてのpriceをundefinedに修正
 
 - [ ] INF-011: HTTP 429エラー時の指数バックオフ実装
@@ -274,6 +274,7 @@ alwaysApply: false
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - ✎ Notes      : riskAmount = balance * MAX_RISK_PER_TRADE → positionSize = riskAmount/stopDistanceへ変更
+
 
 
 
