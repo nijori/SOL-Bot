@@ -11,9 +11,10 @@ import { MARKET_PARAMETERS } from '../config/parameters';
  * EMAの傾きを計算（線形回帰方式）
  * @param emaValues EMAの値の配列
  * @param periods 傾きを計算する期間
+ * @param timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
  * @returns 傾きの値（標準化された値）
  */
-function calculateSlope(emaValues: number[], periods: number = 5): number {
+function calculateSlope(emaValues: number[], periods: number = 5, timeframeHours: number = 4): number {
   if (emaValues.length < periods) {
     return 0;
   }
@@ -42,9 +43,14 @@ function calculateSlope(emaValues: number[], periods: number = 5): number {
   const n = periods;
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   
-  // 傾きを年率換算（1日あたりの変化率に変換し、年率に変換）
-  // 1日4時間足6本 → 6本 = 1日、年間250取引日として計算
-  const annualizedSlope = slope * (250 / (periods / 6)) * 100;
+  // 傾きを年率換算：タイムフレームに応じた一般化された計算式
+  // 例：
+  // 1時間足: factor = (365*24/1)/(periods/6) = 8760/(periods/6)
+  // 4時間足: factor = (365*24/4)/(periods/6) = 2190/(periods/6)
+  // 日足: factor = (365*24/24)/(periods/6) = 365/(periods/6)
+  //
+  // 一般式: factor = (年間取引日数 * 1日の期間数 / タイムフレーム) / (periods / 基準期間補正)
+  const annualizedSlope = slope * ((365 * 24 / timeframeHours) / (periods / 6)) * 100;
   
   return annualizedSlope;
 }
@@ -84,12 +90,24 @@ function adjustSlopePeriods(atrPercentage: number, defaultPeriods: number = 5): 
  * @returns 変化率
  */
 function calculateAtrChange(atrValues: number[], periods: number = 10): number {
+  if (!atrValues || atrValues.length === 0) {
+    console.warn('[MarketState] ATR配列が空です');
+    return 1; // デフォルト値として1を返す（変化なし）
+  }
+  
   if (atrValues.length < periods + 1) {
-    return 1;
+    console.warn(`[MarketState] ATR配列長不足: length=${atrValues.length}, required=${periods + 1}`);
+    return 1; // データ不足時は変化なしとして1を返す
   }
   
   const atr1 = atrValues[atrValues.length - periods - 1];
   const atr2 = atrValues[atrValues.length - 1];
+  
+  // 0除算防止
+  if (atr1 === 0 || isNaN(atr1)) {
+    console.warn('[MarketState] ATR計算の基準値が0またはNaNです');
+    return 1;
+  }
   
   // ATRの変化率: atr2 / atr1
   return atr2 / atr1;
@@ -108,9 +126,10 @@ function calculateAtrPercentage(atr: number, closePrice: number): number {
 /**
  * 市場環境を分析する
  * @param candles ローソク足データ
+ * @param timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
  * @returns 市場分析の結果
  */
-export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
+export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4): MarketAnalysisResult {
   if (candles.length < Math.max(MARKET_PARAMETERS.LONG_TERM_EMA, MARKET_PARAMETERS.ATR_PERIOD) + 10) {
     return {
       environment: MarketEnvironment.UNKNOWN,
@@ -143,6 +162,20 @@ export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
   };
   const atrValues = ATR.calculate(atrInput);
   
+  // ATR配列不足時のセーフガード
+  // ATR計算結果が空または要素数が不足している場合はUNKNOWN環境を返す
+  if (!atrValues || atrValues.length === 0 || atrValues.length < MARKET_PARAMETERS.ATR_PERIOD) {
+    console.warn(`[MarketState] ATR配列不足: length=${atrValues?.length}, period=${MARKET_PARAMETERS.ATR_PERIOD}`);
+    return {
+      environment: MarketEnvironment.UNKNOWN,
+      recommendedStrategy: StrategyType.TREND_FOLLOWING,
+      indicators: {
+        error: 'ATR calculation failed - insufficient data'
+      },
+      timestamp: Date.now()
+    };
+  }
+  
   // 現在の終値
   const currentClose = candles[candles.length - 1].close;
   
@@ -155,14 +188,14 @@ export function analyzeMarketState(candles: Candle[]): MarketAnalysisResult {
   // ボラティリティに基づいて傾きの計算期間を調整
   const adjustedPeriods = adjustSlopePeriods(atrPercentage);
   
-  // 短期EMAの傾きを計算（最適化されたメソッド）
-  const shortTermSlope = calculateSlope(shortTermEmaValues, adjustedPeriods);
+  // 短期EMAの傾きを計算（最適化されたメソッド）- タイムフレーム対応
+  const shortTermSlope = calculateSlope(shortTermEmaValues, adjustedPeriods, timeframeHours);
   
   // 傾きを角度に変換
   const shortTermSlopeAngle = slopeToAngle(shortTermSlope);
   
-  // 長期EMAの傾きも計算（トレンドの持続性判断に使用）
-  const longTermSlope = calculateSlope(longTermEmaValues, adjustedPeriods * 2);
+  // 長期EMAの傾きも計算（トレンドの持続性判断に使用）- タイムフレーム対応
+  const longTermSlope = calculateSlope(longTermEmaValues, adjustedPeriods * 2, timeframeHours);
   
   // 長期EMAの傾きを角度に変換
   const longTermSlopeAngle = slopeToAngle(longTermSlope);

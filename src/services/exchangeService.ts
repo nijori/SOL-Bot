@@ -35,8 +35,10 @@ export interface OcoOrderParams {
  * 取引所サービスクラス
  */
 export class ExchangeService {
-  private exchange: ccxt.Exchange;
+  private exchange!: ccxt.Exchange; // 初期化は initialize() で行うため ! を使用
   private isInitialized: boolean = false;
+  private readonly MAX_RETRIES = 5; // 最大再試行回数
+  private readonly BACKOFF_DELAYS = [1, 2, 4, 8, 16]; // 再試行待機時間（秒）
 
   /**
    * 取引所サービスを初期化する
@@ -47,7 +49,8 @@ export class ExchangeService {
   public async initialize(exchangeId: string, apiKey?: string, secret?: string): Promise<boolean> {
     try {
       // 取引所インスタンスの作成
-      const exchangeClass = ccxt[exchangeId];
+      // ccxtは動的にインスタンス化するため、as any でキャスト
+      const exchangeClass = (ccxt as any)[exchangeId];
       if (!exchangeClass) {
         logger.error(`指定された取引所が見つかりません: ${exchangeId}`);
         return false;
@@ -60,7 +63,7 @@ export class ExchangeService {
       });
 
       // 取引所への接続テスト
-      await this.exchange.loadMarkets();
+      await this.fetchWithExponentialBackoff(() => this.exchange.loadMarkets());
       this.isInitialized = true;
       logger.info(`取引所に接続しました: ${exchangeId}`);
       return true;
@@ -68,6 +71,46 @@ export class ExchangeService {
       logger.error(`取引所接続エラー: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
+  }
+
+  /**
+   * 指数バックオフ付きのAPI呼び出し
+   * HTTP 429（レート制限）エラーが発生した場合に再試行する
+   * @param apiCall API呼び出し関数
+   * @returns API呼び出しの結果
+   */
+  private async fetchWithExponentialBackoff<T>(apiCall: () => Promise<T>): Promise<T> {
+    let lastError: any;
+    
+    for (let retry = 0; retry < this.MAX_RETRIES; retry++) {
+      try {
+        return await apiCall();
+      } catch (error: any) {
+        lastError = error;
+        
+        // HTTP 429エラー（レート制限）の場合のみ再試行
+        // ccxtの例外クラスは動的に生成されるため文字列チェックが安全
+        if ((error.name && error.name === 'RateLimitExceeded') || 
+            (error.message && error.message.includes('429')) || 
+            (error.code && error.code === 429)) {
+          
+          // 最後の試行なら例外をそのまま投げる
+          if (retry === this.MAX_RETRIES - 1) {
+            throw error;
+          }
+          
+          const delay = this.BACKOFF_DELAYS[retry] * 1000;
+          logger.warn(`レート制限（429）エラーが発生しました。${delay/1000}秒待機後に再試行 (${retry + 1}/${this.MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // レート制限以外のエラーはすぐに例外を投げる
+          throw error;
+        }
+      }
+    }
+    
+    // ここには到達しないはずだが、コンパイルエラーを防ぐ
+    throw lastError;
   }
 
   /**
@@ -84,7 +127,9 @@ export class ExchangeService {
     }
 
     try {
-      const ohlcv = await this.exchange.fetchOHLCV(symbol, timeframe, undefined, limit);
+      const ohlcv = await this.fetchWithExponentialBackoff(() => 
+        this.exchange.fetchOHLCV(symbol, timeframe, undefined, limit)
+      );
       
       return ohlcv.map(candle => ({
         timestamp: candle[0],
@@ -154,17 +199,20 @@ export class ExchangeService {
         }
       }
 
-      const result = await this.exchange.createOrder(
-        symbol,
-        type,
-        side,
-        amount,
-        price,
-        params
+      const result = await this.fetchWithExponentialBackoff(() => 
+        this.exchange.createOrder(
+          symbol,
+          type,
+          side,
+          amount,
+          price,
+          params
+        )
       );
 
       logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
-      return result.id;
+      // result は any 型として扱う
+      return (result as any)?.id || null;
     } catch (error) {
       logger.error(`注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
       return null;
@@ -187,17 +235,20 @@ export class ExchangeService {
       // 取引所がOCO注文をサポートしているか確認
       if (this.exchange.has['createOCO']) {
         // ネイティブOCO注文をサポートしている場合
-        const result = await this.exchange.createOCOOrder(
-          params.symbol,
-          params.side,
-          params.amount,
-          params.limitPrice,
-          params.stopPrice,
-          params.stopLimitPrice
+        const result = await this.fetchWithExponentialBackoff(() => 
+          this.exchange.createOCOOrder(
+            params.symbol,
+            params.side,
+            params.amount,
+            params.limitPrice,
+            params.stopPrice,
+            params.stopLimitPrice
+          )
         );
         
         logger.info(`OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`);
-        return result.id;
+        // result は any 型として処理
+        return (result as any)?.id || null;
       } else {
         // OCOをサポートしていない場合は個別に注文を出す
         logger.warn(`取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`);
@@ -229,10 +280,14 @@ export class ExchangeService {
           
           // 部分的に成功した注文をキャンセル
           if (limitOrderId) {
-            await this.exchange.cancelOrder(limitOrderId, params.symbol);
+            await this.fetchWithExponentialBackoff(() => 
+              this.exchange.cancelOrder(limitOrderId, params.symbol)
+            );
           }
           if (stopOrderId) {
-            await this.exchange.cancelOrder(stopOrderId, params.symbol);
+            await this.fetchWithExponentialBackoff(() => 
+              this.exchange.cancelOrder(stopOrderId, params.symbol)
+            );
           }
           
           return null;
@@ -255,11 +310,13 @@ export class ExchangeService {
     }
 
     try {
-      const balances = await this.exchange.fetchBalance();
+      const balances = await this.fetchWithExponentialBackoff(() => 
+        this.exchange.fetchBalance()
+      );
       const result: Record<string, number> = {};
 
       // 利用可能な残高を抽出
-      for (const [currency, balance] of Object.entries(balances.free)) {
+      for (const [currency, balance] of Object.entries(balances.free || {})) {
         result[currency] = balance as number;
       }
 
@@ -280,7 +337,7 @@ export class ExchangeService {
       return false;
     }
     
-    return this.exchange.has[feature];
+    return Boolean(this.exchange.has[feature]);
   }
 
   /**

@@ -12,7 +12,8 @@ export const MARKET_PARAMETERS = {
   // 相場判定のしきい値
   TREND_SLOPE_THRESHOLD: 0.2,  // EMAの傾きがこの値より大きいとトレンド判定
   VOLATILITY_THRESHOLD: 2.0,   // ATRがこの値倍以上に増えると高ボラティリティ判定
-  ATR_PERCENTAGE_THRESHOLD: 6.0,  // ATR%がこの値未満だとLOW_VOL判定
+  ATR_PERCENTAGE_THRESHOLD: process.env.ATR_PERCENTAGE_THRESHOLD ? 
+    parseFloat(process.env.ATR_PERCENTAGE_THRESHOLD) : 6.0,  // ATR%がこの値未満だとLOW_VOL判定
 }
 
 // トレンド戦略用パラメータ

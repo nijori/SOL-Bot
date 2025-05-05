@@ -22,6 +22,7 @@ import { OrderManagementSystem } from './orderManagementSystem';
  */
 export class TradingEngine {
   private symbol: string;
+  private timeframeHours: number; // タイムフレーム（時間単位）
   private latestCandles: Candle[] = [];
   private marketAnalysis: MarketAnalysisResult | null = null;
   private activeStrategy: StrategyType = StrategyType.TREND_FOLLOWING;
@@ -32,8 +33,9 @@ export class TradingEngine {
   private account: Account;
   private oms: OrderManagementSystem;
 
-  constructor(symbol: string) {
+  constructor(symbol: string, timeframeHours: number = 4) {
     this.symbol = symbol;
+    this.timeframeHours = timeframeHours;
     this.account = {
       balance: 10000,
       available: 10000,
@@ -44,7 +46,7 @@ export class TradingEngine {
     this.oms = new OrderManagementSystem();
     // 初期残高を設定
     this.dailyStartingBalance = this.account.balance;
-    logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${symbol}`);
+    logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${symbol}, タイムフレーム ${timeframeHours}h`);
   }
   
   /**
@@ -155,7 +157,7 @@ export class TradingEngine {
       };
     }
     
-    this.marketAnalysis = analyzeMarketState(this.latestCandles);
+    this.marketAnalysis = analyzeMarketState(this.latestCandles, this.timeframeHours);
     
     logger.info(`[TradingEngine] 市場分析結果: ${this.marketAnalysis.environment}, 推奨戦略: ${this.marketAnalysis.recommendedStrategy}`);
     return this.marketAnalysis;

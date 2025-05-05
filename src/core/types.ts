@@ -54,23 +54,25 @@ export enum OrderSide {
 
 // 注文のステータス
 export enum OrderStatus {
-  OPEN = 'open',
-  FILLED = 'filled',
-  CANCELED = 'canceled',
-  REJECTED = 'rejected',
+  OPEN = 'open',      // システム内で作成された注文（取引所送信前）
+  PLACED = 'placed',  // 取引所に送信され受け付けられた注文
+  FILLED = 'filled',  // 約定済みの注文
+  CANCELED = 'canceled', // キャンセルされた注文
+  REJECTED = 'rejected', // 拒否された注文
 }
 
 // 注文情報の型
 export interface Order {
-  id?: string;
-  symbol: string;
-  type: OrderType;
-  side: OrderSide;
-  price?: number;
-  amount: number;
-  status?: OrderStatus;
-  timestamp?: number;
-  stopPrice?: number;
+  id?: string;            // システム内部の注文ID
+  exchangeOrderId?: string; // 取引所から返された注文ID
+  symbol: string;         // 取引ペア
+  type: OrderType;        // 注文タイプ
+  side: OrderSide;        // 買い/売り
+  price?: number;         // 価格（成行注文の場合は不要）
+  amount: number;         // 数量
+  status?: OrderStatus;   // 注文ステータス
+  timestamp?: number;     // タイムスタンプ
+  stopPrice?: number;     // ストップ価格（ストップ注文の場合）
 }
 
 // ポジション情報の型

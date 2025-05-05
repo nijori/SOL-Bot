@@ -9,6 +9,7 @@ declare namespace NodeJS {
     SHORT_TERM_EMA?: string;
     LONG_TERM_EMA?: string;
     ATR_PERIOD?: string;
+    ATR_PERCENTAGE_THRESHOLD?: string; // ATR%閾値（LOW_VOL判定用）
     
     // トレンド戦略パラメータ
     DONCHIAN_PERIOD?: string;

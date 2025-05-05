@@ -150,10 +150,15 @@ function createIcebergOrders(
  * @returns グリッドレベル数
  */
 function calculateDynamicGridLevels(range: number, atrPercent: number): number {
-  // ATR%が小さいほど（ボラティリティが低いほど）グリッドレベルを増やす
-  // ATR%に設定値を掛けてレンジをどれだけの粒度に分割するかを決定
-  const multiplier = RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER / 100; // 0.6/100 = 0.006
-  const levelWidth = range * (atrPercent * multiplier);
+  // ATR%がすでにパーセント表記（100倍）になっているため、適切に扱う
+  // GRID_WIDTH_MULTIPLIERはそのままの値（0.6）として使用する
+  // atrPercentが6.0%の場合、0.6 * 6.0 = 3.6%の幅でグリッドを作成
+  const levelWidth = range * (atrPercent * RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER / 100);
+  
+  // デバッグログ
+  console.log(`[RangeStrategy] グリッド計算: range=${range}, atrPercent=${atrPercent}%, ` +
+              `multiplier=${RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER}, levelWidth=${levelWidth}, ` +
+              `levels=${Math.ceil(range / levelWidth)}`);
   
   // 最小レベル数と最大レベル数の間の値を返す
   const levels = Math.ceil(range / levelWidth);

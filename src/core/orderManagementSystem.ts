@@ -63,7 +63,12 @@ export class OrderManagementSystem {
       this.exchangeService.executeOrder(newOrder, options)
         .then((exchangeOrderId: string) => {
           if (exchangeOrderId) {
-            logger.info(`[OMS] 取引所への注文送信成功: ${exchangeOrderId}`);
+            // 取引所送信成功時、ステータスをPLACEDに更新
+            newOrder.status = OrderStatus.PLACED;
+            // 取引所から返されたIDを保存
+            newOrder.exchangeOrderId = exchangeOrderId;
+            this.orders.set(orderId, newOrder);
+            logger.info(`[OMS] 取引所への注文送信成功: ${exchangeOrderId}, ステータスをPLACEDに更新`);
           } else {
             logger.error(`[OMS] 取引所への注文送信失敗: ${orderId}`);
             newOrder.status = OrderStatus.REJECTED;
@@ -107,30 +112,32 @@ export class OrderManagementSystem {
                 const ocoType = index === 0 ? '利確' : '損切';
                 const ocoOrder: Order = {
                   id,
+                  exchangeOrderId: id, // 取引所の注文IDを保存
                   symbol: params.symbol,
                   side: params.side,
                   amount: params.amount,
                   type: index === 0 ? OrderType.LIMIT : OrderType.STOP,
                   price: index === 0 ? params.limitPrice : params.stopLimitPrice || params.stopPrice,
                   stopPrice: index === 1 ? params.stopPrice : undefined,
-                  status: OrderStatus.OPEN,
+                  status: OrderStatus.PLACED, // 取引所送信成功時はPLACEDステータス
                   timestamp: Date.now()
                 };
                 this.orders.set(id, ocoOrder);
                 orderIds.push(id);
-                logger.info(`[OMS] OCO注文追跡 (${ocoType}): ${id}`);
+                logger.info(`[OMS] OCO注文追跡 (${ocoType}): ${id}, ステータス: PLACED`);
               });
             } else {
               // 単一IDの場合（取引所側でOCOをサポートしている場合）
               const ocoOrder: Order = {
                 id: exchangeOrderId,
+                exchangeOrderId: exchangeOrderId, // 取引所の注文IDを保存
                 symbol: params.symbol,
                 side: params.side,
                 amount: params.amount,
                 type: OrderType.LIMIT, // OCO注文は基本的に指値として扱う
                 price: params.limitPrice,
                 stopPrice: params.stopPrice,
-                status: OrderStatus.OPEN,
+                status: OrderStatus.PLACED, // 取引所送信成功時はPLACEDステータス
                 timestamp: Date.now()
               };
               this.orders.set(exchangeOrderId, ocoOrder);
@@ -167,7 +174,7 @@ export class OrderManagementSystem {
       return false;
     }
     
-    if (order.status !== OrderStatus.OPEN) {
+    if (order.status !== OrderStatus.OPEN && order.status !== OrderStatus.PLACED) {
       logger.warn(`[OMS] キャンセル失敗: 注文 ${orderId} は既に ${order.status} 状態です`);
       return false;
     }
@@ -195,7 +202,8 @@ export class OrderManagementSystem {
       return false;
     }
     
-    if (order.status !== OrderStatus.OPEN) {
+    // OPEN状態またはPLACED状態の注文のみ約定処理を行う
+    if (order.status !== OrderStatus.OPEN && order.status !== OrderStatus.PLACED) {
       logger.warn(`[OMS] 約定処理失敗: 注文 ${orderId} は既に ${order.status} 状態です`);
       return false;
     }
@@ -210,6 +218,37 @@ export class OrderManagementSystem {
     logger.info(`[OMS] 注文 ${orderId} が約定しました: ${order.side} ${order.amount} ${order.symbol} @ ${executionPrice}`);
     
     return true;
+  }
+  
+  /**
+   * 取引所の注文IDから内部注文を検索する
+   * @param exchangeOrderId 取引所の注文ID
+   * @returns 注文オブジェクト、見つからない場合はundefined
+   */
+  public findOrderByExchangeId(exchangeOrderId: string): Order | undefined {
+    for (const order of this.orders.values()) {
+      if (order.exchangeOrderId === exchangeOrderId) {
+        return order;
+      }
+    }
+    return undefined;
+  }
+  
+  /**
+   * Webhookからの約定通知を処理する
+   * @param exchangeOrderId 取引所の注文ID
+   * @param executionPrice 約定価格
+   * @returns 処理が成功したかどうか
+   */
+  public handleWebhookFill(exchangeOrderId: string, executionPrice: number): boolean {
+    const order = this.findOrderByExchangeId(exchangeOrderId);
+    
+    if (!order) {
+      logger.warn(`[OMS] Webhook約定処理失敗: 取引所注文ID ${exchangeOrderId} に対応する注文が見つかりません`);
+      return false;
+    }
+    
+    return this.fillOrder(order.id!, executionPrice);
   }
   
   /**
