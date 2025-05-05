@@ -5,16 +5,6 @@ alwaysApply: false
 ---
 # SOL-Bot バックログ
 
-## アーキテクチャ／設計レベルのギャップ
-
-- [ ] OMS-002: 高度な注文タイプの実装
-      - 📅 Due        : 2025-07-25
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : OMS-001
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : Post-Only + Hidden Iceberg / OCOをccxtで実装。発注オプションに追加
-
 ## コード品質 & バグ
 
 - [ ] INF-004: 型安全性の改善
@@ -60,6 +50,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-
-
       - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述
+
+
+      
