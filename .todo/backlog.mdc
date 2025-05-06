@@ -7,58 +7,185 @@ alwaysApply: false
 
 ## P0 - 本番ブレイク級バグ（最優先）
 
-## P1 - CI/CD構築
+- [x] ALG-031: applyRiskFilters 呼び出し忘れを修正
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : RISK-003
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TradingEngine.executeStrategyにsignals = applyRiskFilters(signals)追加完了、次回スプリント終了時にアーカイブ予定
 
-- [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
-      - 📅 Due        : 2025-11-25
+- [x] BT-005: バックテストに手数料・スリッページを反映
+      - 📅 Due        : 2025-12-06
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了、次回スプリント終了時にアーカイブ予定
+
+## P1 - CI/CD構築と重要バグ修正
+
+- [x] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-12-07
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー実装、ESLint/Prettier設定追加、次回スプリント終了時にアーカイブ予定
 
-- [ ] CICD-001: Jestと.todo未完チェックのマージガード
-      - 📅 Due        : 2025-11-30
+- [x] TST-001: P0修正後のバックテストスモークテスト
+      - 📅 Due        : 2025-12-08
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-006
-      - 🏷️  Label      : infra
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+
+- [ ] INF-016: TradingEngine 依存注入リファクタ
+      - 📅 Due        : 2025-12-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - ✎ Notes      : GitHub Actionsでの自動テストと.todoタスク未完チェックによるマージガード実装
+      - 📊 Progress   : 0%
+      - ✎ Notes      : constructor(…, opts:{ oms, exchangeSvc })形式に変更しテスト容易化、モック注入可能に
+
+- [ ] INF-017: parameters.yaml のmonitoring重複削除
+      - 📅 Due        : 2025-12-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 2箇所に定義されたmonitoring:セクションを統合し、単一パスからアクセス可能に
+
+- [ ] BT-006: シャープレシオ計算をタイムフレーム対応
+      - 📅 Due        : 2025-12-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : BT-004
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : annualizedReturn/Stddev計算に(barsPerYear = 8760 / timeframeHours)を導入
+
+- [ ] OMS-011: cronタスクtimezone & 多重起動対策
+      - 📅 Due        : 2025-12-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : cron.schedule(opts,{timezone:'UTC'})と既存task.stop()の前にtask.destroy()呼び出し追加
 
 ## P2 - コード品質改善
 
-- [ ] INF-005: ロギング最適化
-      - 📅 Due        : 2025-10-20
+- [ ] CONF-004b: adjustSlopePeriods閾値の外部設定化
+      - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ⏳
-      - ✎ Notes      : logger[level] && logger[level](mdc:...)パターンで不要ログ抑制、console.transportの重複解消
+      - 📊 Progress   : 0%
+      - ✎ Notes      : adjustSlopePeriods閾値8/3をYAML外出しし、Optunaの最適化対象に追加
+
+- [ ] ALG-032: EMERGENCY戦略の解除ロジック追加
+      - 📅 Due        : 2025-12-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装
+
+- [ ] TST-002: Jest+ts-jestで戦略ユニットテスト80%
+      - 📅 Due        : 2025-12-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : candles stubでtrend/range答えをassert、CIカバレッジ閾値80%
+
+- [ ] PERF-001: EMA/ATR計算のインクリメンタル化
+      - 📅 Due        : 2026-01-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
+
+- [ ] CICD-003: OCO対応キーの修正 
+      - 📅 Due        : 2025-12-22
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : exchange.has['createOCO']→多くは'createOCOOrder'。fallbackを追加して互換性確保
 
 ## P3 - インフラ／CI面の改善
 
 - [ ] INF-007: 本番用Dockerfileの作成
-      - 📅 Due        : 2025-10-26
+      - 📅 Due        : 2025-12-28
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述
+      - 📊 Progress   : 0%
+      - ✎ Notes      : node:18-slim, non-root user, multi-stage buildでRUN npm ci --prod対応
+
+- [ ] SEC-001: API Key Secret Manager対応
+      - 📅 Due        : 2026-01-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : AWS Parameter Store / GCP Secret Manager用の抽象driverを実装
+
+- [ ] CICD-002: TodoフォーマットのGitHub Actionsチェック
+      - 📅 Due        : 2025-12-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : PR時に.todo/*.mdcの未完チェックとフォーマット検証
+
+- [ ] PERF-002: バックテスト実行の--quietモード追加
+      - 📅 Due        : 2026-01-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : LOG_LEVEL=warnオプションをBacktestRunnerに追加し、CI実行時に大量ログを抑制
 
 ## 仕上げチェックリスト
-
-- [ ] TST-001: P0修正後のバックテストスモークテスト
-      - 📅 Due        : 2025-10-05
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : すべてのP0修正後に npm run backtest:smoke で3-day勢いテストを実行
 
 - [x] OPT-001: 高度戦略のOptunaスペース追加
       - 📅 Due        : 2025-10-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : ATR_THRESHOLD、TrailingStopFactor、GridATRMultiplierをOptunaに追加し最適化フレームワーク実装完了
 
 ## 完了済みタスク
+
+- [x] ALG-020: EMA傾き計算のタイムフレーム対応
+      - 📅 Due        : 2025-12-01
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 年率換算係数から不要な "(periods/6)"を削除し、factor = (365*24/timeframeHours)の計算式に修正
+
+- [x] ALG-021: レンジ戦略のグリッド幅計算修正
+      - 📅 Due        : 2025-12-03
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : levelWidth計算式のバグで過剰グリッド生成。式をlevelWidth = (atrPercent/100) * GRID_ATR_MULTIPLIER * closePriceに修正
+
+- [x] INF-011b: HTTPリトライ設定の強化
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : MAX_RETRIES=5だとBinanceのban対策に不十分。MAX_RETRIES=7 / delays [1,2,4,8,16,32,64]秒に変更
 
 - [x] INF-015: Node.js開発環境の構築
       - 📅 Due        : 2025-11-25
@@ -74,6 +201,20 @@ alwaysApply: false
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
+
+- [x] ALG-016b: トレイリングストップ更新ロジック修正
+      - 📅 Due        : 2025-11-23
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : トレンド戦略のトレイリングストップ更新判定条件(entryPrice-ATR*F < newStopPrice)が常に真になる問題。position.stopPriceを保持して比較するよう修正
+
+- [x] RISK-003: リスクフィルター停止距離考慮の実装
+      - 📅 Due        : 2025-11-24
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : リスク計算にストップロス距離を考慮するよう修正。risk = orderAmount × stopDistanceの計算式を実装
 
 - [x] OMS-008: フィル更新と未決済監視タスクの実装
       - 📅 Due        : 2025-09-22

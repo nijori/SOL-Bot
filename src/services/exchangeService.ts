@@ -32,13 +32,22 @@ export interface OcoOrderParams {
 }
 
 /**
+ * 取引所APIエラーのインターフェース
+ */
+export interface ExchangeError extends Error {
+  code?: number | string;
+  name: string;
+  message: string;
+}
+
+/**
  * 取引所サービスクラス
  */
 export class ExchangeService {
   private exchange!: ccxt.Exchange; // 初期化は initialize() で行うため ! を使用
   private isInitialized: boolean = false;
-  private readonly MAX_RETRIES = 5; // 最大再試行回数
-  private readonly BACKOFF_DELAYS = [1, 2, 4, 8, 16]; // 再試行待機時間（秒）
+  private readonly MAX_RETRIES = 7; // 最大再試行回数を5から7に増加
+  private readonly BACKOFF_DELAYS = [1, 2, 4, 8, 16, 32, 64]; // 再試行待機時間（秒）- より長い待機時間を追加
 
   /**
    * 取引所サービスを初期化する
@@ -49,8 +58,10 @@ export class ExchangeService {
   public async initialize(exchangeId: string, apiKey?: string, secret?: string): Promise<boolean> {
     try {
       // 取引所インスタンスの作成
-      // ccxtは動的にインスタンス化するため、as any でキャスト
-      const exchangeClass = (ccxt as any)[exchangeId];
+      // ccxtは動的にインスタンス化するのでRecord型を使用
+      const exchangeClasses = ccxt as unknown as Record<string, new (options: ccxt.ExchangeOptions) => ccxt.Exchange>;
+      const exchangeClass = exchangeClasses[exchangeId];
+      
       if (!exchangeClass) {
         logger.error(`指定された取引所が見つかりません: ${exchangeId}`);
         return false;
@@ -74,36 +85,74 @@ export class ExchangeService {
   }
 
   /**
+   * エラーが再試行可能かどうか判定する
+   * @param error 発生したエラー
+   * @returns 再試行可能な場合はtrue
+   */
+  private isRetryable(error: ExchangeError): boolean {
+    // レート制限（429）エラー
+    if ((error.name && error.name === 'RateLimitExceeded') || 
+        (error.message && error.message.includes('429')) || 
+        (error.code && error.code === 429)) {
+      return true;
+    }
+    
+    // サーバーエラー（5xx）
+    if ((error.message && /50\d/.test(error.message)) || 
+        (error.code && typeof error.code === 'number' && error.code >= 500 && error.code < 600)) {
+      return true;
+    }
+    
+    // ゲートウェイエラー
+    if (error.message && (
+        error.message.includes('502') || 
+        error.message.includes('Bad Gateway') || 
+        error.message.includes('Gateway Timeout'))) {
+      return true;
+    }
+    
+    // 接続リセットやネットワークエラー
+    if (error.code === 'ECONNRESET' || 
+        error.code === 'ETIMEDOUT' || 
+        error.code === 'ESOCKETTIMEDOUT' ||
+        error.code === 'ECONNREFUSED') {
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
    * 指数バックオフ付きのAPI呼び出し
-   * HTTP 429（レート制限）エラーが発生した場合に再試行する
+   * HTTP 429（レート制限）やその他の一時的なエラーが発生した場合に再試行する
    * @param apiCall API呼び出し関数
    * @returns API呼び出しの結果
    */
   private async fetchWithExponentialBackoff<T>(apiCall: () => Promise<T>): Promise<T> {
-    let lastError: any;
+    let lastError: ExchangeError = new Error('Unknown error') as ExchangeError;
     
     for (let retry = 0; retry < this.MAX_RETRIES; retry++) {
       try {
         return await apiCall();
-      } catch (error: any) {
-        lastError = error;
+      } catch (error) {
+        lastError = error as ExchangeError;
         
-        // HTTP 429エラー（レート制限）の場合のみ再試行
-        // ccxtの例外クラスは動的に生成されるため文字列チェックが安全
-        if ((error.name && error.name === 'RateLimitExceeded') || 
-            (error.message && error.message.includes('429')) || 
-            (error.code && error.code === 429)) {
-          
+        // 再試行可能なエラーかどうか判定
+        if (this.isRetryable(lastError)) {
           // 最後の試行なら例外をそのまま投げる
           if (retry === this.MAX_RETRIES - 1) {
             throw error;
           }
           
           const delay = this.BACKOFF_DELAYS[retry] * 1000;
-          logger.warn(`レート制限（429）エラーが発生しました。${delay/1000}秒待機後に再試行 (${retry + 1}/${this.MAX_RETRIES})`);
+          const errorCode = lastError.code || '';
+          const errorType = lastError.name || (lastError.message && lastError.message.includes('429') ? 'レート制限' : 
+                           (lastError.message && /50\d/.test(lastError.message) ? 'サーバーエラー' : 'ネットワークエラー'));
+          
+          logger.warn(`${errorType}エラー(${errorCode})が発生しました。${delay/1000}秒待機後に再試行 (${retry + 1}/${this.MAX_RETRIES})`);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
-          // レート制限以外のエラーはすぐに例外を投げる
+          // 再試行不可能なエラーはすぐに例外を投げる
           throw error;
         }
       }
@@ -164,7 +213,7 @@ export class ExchangeService {
       let price = order.price;
       const symbol = order.symbol;
 
-      const params: any = {};
+      const params: Record<string, unknown> = {};
       
       // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
       // MARKET, STOP_MARKET など "MARKET" で終わる注文タイプすべてに対応
@@ -200,19 +249,18 @@ export class ExchangeService {
       }
 
       const result = await this.fetchWithExponentialBackoff(() => 
-        this.exchange.createOrder(
-          symbol,
-          type,
-          side,
-          amount,
-          price,
-          params
-        )
+        this.exchange.createOrder(symbol, type, side, amount, price, params)
       );
 
       logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
-      // result は any 型として扱う
-      return (result as any)?.id || null;
+      
+      // resultがnullでなく、かつidプロパティを持つことを確認
+      if (result && typeof result === 'object' && 'id' in result && result.id) {
+        return result.id;
+      } else {
+        logger.warn('注文は成功しましたが、注文IDが取得できませんでした');
+        return null;
+      }
     } catch (error) {
       logger.error(`注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
       return null;
@@ -232,13 +280,30 @@ export class ExchangeService {
     }
     
     try {
-      // 取引所がOCO注文をサポートしているか確認
-      if (this.exchange.has['createOCO']) {
+      // 取引所がOCO注文をサポートしているか確認（'createOCO'または'createOCOOrder'の両方をチェック）
+      const hasOcoSupport = 
+        (this.exchange.has && (this.exchange.has['createOCO'] || this.exchange.has['createOCOOrder']));
+      
+      if (hasOcoSupport) {
         // ネイティブOCO注文をサポートしている場合
+        // まず標準的なメソッド名'createOCOOrder'をチェック
+        let createOCOMethod = this.exchange.createOCOOrder;
+        
+        // 存在しなければ'createOCO'をチェック（一部の取引所での命名）
+        if (!createOCOMethod && 'createOCO' in this.exchange) {
+          createOCOMethod = (this.exchange as any).createOCO;
+        }
+        
+        if (!createOCOMethod) {
+          logger.error('取引所がOCO注文をサポートしているのに、メソッドが存在しません');
+          return null;
+        }
+        
         const result = await this.fetchWithExponentialBackoff(() => 
-          this.exchange.createOCOOrder(
+          createOCOMethod.call(
+            this.exchange,
             params.symbol,
-            params.side,
+            params.side.toLowerCase(),
             params.amount,
             params.limitPrice,
             params.stopPrice,
@@ -247,8 +312,14 @@ export class ExchangeService {
         );
         
         logger.info(`OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`);
-        // result は any 型として処理
-        return (result as any)?.id || null;
+        
+        // resultの安全な処理
+        if (result && typeof result === 'object' && 'id' in result && result.id) {
+          return result.id;
+        } else {
+          logger.warn('OCO注文は成功しましたが、注文IDが取得できませんでした');
+          return null;
+        }
       } else {
         // OCOをサポートしていない場合は個別に注文を出す
         logger.warn(`取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`);
@@ -324,6 +395,28 @@ export class ExchangeService {
     } catch (error) {
       logger.error(`残高取得エラー: ${error instanceof Error ? error.message : String(error)}`);
       return {};
+    }
+  }
+
+  /**
+   * 注文情報を取得する
+   * @param orderId 取引所の注文ID
+   * @param symbol 銘柄（例: 'SOL/USDT'）
+   * @returns 注文情報
+   */
+  public async fetchOrder(orderId: string, symbol: string): Promise<ccxt.Order | null> {
+    if (!this.isInitialized) {
+      logger.error('取引所が初期化されていません');
+      return null;
+    }
+
+    try {
+      return await this.fetchWithExponentialBackoff(() => 
+        this.exchange.fetchOrder(orderId, symbol)
+      );
+    } catch (error) {
+      logger.error(`注文情報取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
     }
   }
 
