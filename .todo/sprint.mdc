@@ -19,6 +19,7 @@ alwaysApply: false
 7. ✅ INF-019: docker-compose node_modules named volume化 (100% 完了) - 既存の実装で対応済み
 8. ✅ RISK-004: ATR==0のケースにフォールバックstopDistance実装 (100% 完了) - 各戦略にATR=0対策を実装
 9. ✅ DATA-013: ATR==0フォールバックパラメータ設定ファイル化 (100% 完了)
+10. ✅ RISK-005: ポジションサイジングロジックの共通化 (100% 完了)
 
 ### 進行中のタスク状況:
 * API-021: Bitget/Bybit向けにnull/undefinedの特別処理を実装。ccxt.Exchangeの型定義問題には暫定対応として、TypeScriptの型アサーションを利用。最終的にはccxtの型定義との互換性がベストプラクティスを探索中。
@@ -32,6 +33,7 @@ alwaysApply: false
 * DOC-006: READMEとPROJECT_STRUCTUREの差分を同期し、最新情報に更新。
 * RISK-004: ATR==0問題に対するフォールバック機能を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、marketState.tsのIncrementalATRクラスすべてに対応。DEFAULT_ATR_PERCENTAGEとMIN_STOP_DISTANCE_PERCENTAGEのパラメータ化も実装。
 * DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動。risk.defaultAtrPercentage、risk.minStopDistancePercentage、risk.minAtrValueをparameters.yamlに追加し、各戦略から共通で参照できるよう実装。
+* RISK-005: 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
 
 ## 新たに検出された問題点:
 1. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動（優先度：中）~~
@@ -305,6 +307,9 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、キャンドル数が不足していても強制的にシグナルを生成するように対応。スモークテスト実行で120件の取引が生成されることを確認。
+
+
+
 
 
 

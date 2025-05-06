@@ -15,6 +15,8 @@ import {
 import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters';
 import { parameterService } from '../config/parameterService';
 import { calculateParabolicSAR, ParabolicSARResult } from '../indicators/parabolicSAR';
+import { ParameterService } from '../config/parameterService';
+import { calculateRiskBasedPositionSize } from '../utils/positionSizing';
 
 // 戦略パラメータをYAML設定から取得
 const DONCHIAN_PERIOD = parameterService.get<number>('trendFollowStrategy.donchianPeriod', 20);
@@ -128,39 +130,8 @@ function calculateATR(candles: Candle[], period: number): number {
  * @param riskPercentage リスク割合（デフォルト2%）
  * @returns 適切なポジションサイズ
  */
-function calculateRiskBasedPositionSize(
-  accountBalance: number,
-  entryPrice: number,
-  stopPrice: number,
-  riskPercentage: number = MAX_RISK_PER_TRADE
-): number {
-  // ストップ距離を計算
-  let stopDistance = Math.abs(entryPrice - stopPrice);
-  
-  // ストップ距離が非常に小さい、あるいは0の場合のフォールバック
-  if (stopDistance < entryPrice * 0.001) {
-    console.warn('[TrendFollowStrategy] ストップ距離が非常に小さいため、フォールバック値を使用: 元の値=', stopDistance);
-    // 最小ストップ距離として価格の1%を使用
-    stopDistance = entryPrice * MIN_STOP_DISTANCE_PERCENTAGE;
-    console.log(`[TrendFollowStrategy] フォールバックストップ距離: ${stopDistance} (${MIN_STOP_DISTANCE_PERCENTAGE * 100}%)`);
-  }
-  
-  // リスク許容額を計算
-  const riskAmount = accountBalance * riskPercentage;
-  
-  // ポジションサイズを計算 = リスク許容額 / ストップ距離
-  const positionSize = riskAmount / stopDistance;
-  
-  // 過度に大きいポジションを制限（口座の10%以上は取らない）
-  const maxPositionValue = accountBalance * 0.5;
-  const positionValue = positionSize * entryPrice;
-  
-  if (positionValue > maxPositionValue) {
-    return maxPositionValue / entryPrice;
-  }
-  
-  return positionSize;
-}
+// このfunction定義を削除し、共通ユーティリティを使用するように置き換えました
+// (関数は完全に削除し、代わりにpositionSizing.tsからimportしています)
 
 /**
  * 改良版トレンドフォロー戦略を実行する関数
@@ -257,7 +228,9 @@ export function executeTrendFollowStrategy(
       const positionSize = calculateRiskBasedPositionSize(
         accountBalance,
         currentPrice,
-        stopPrice
+        stopPrice,
+        MAX_RISK_PER_TRADE,
+        'TrendFollow'
       );
       
       // 市場価格での買いエントリー
@@ -294,7 +267,9 @@ export function executeTrendFollowStrategy(
       const positionSize = calculateRiskBasedPositionSize(
         accountBalance,
         currentPrice,
-        stopPrice
+        stopPrice,
+        MAX_RISK_PER_TRADE,
+        'TrendFollow'
       );
       
       // 市場価格での売りエントリー

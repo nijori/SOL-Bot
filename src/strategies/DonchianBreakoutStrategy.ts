@@ -11,6 +11,8 @@ import {
 import { TREND_PARAMETERS, RISK_PARAMETERS } from '../config/parameters';
 import logger from '../utils/logger';
 import { parameterService } from '../config/parameterService';
+import { ParameterService } from '../config/parameterService';
+import { calculateRiskBasedPositionSize } from '../utils/positionSizing';
 
 // ATR==0の場合のフォールバック設定
 const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>('risk.minStopDistancePercentage', 0.01);
@@ -118,30 +120,8 @@ function calculateATR(candles: Candle[], period: number): number {
  * @param stopPrice ストップ価格
  * @returns ポジションサイズ
  */
-function calculateRiskBasedPositionSize(
-  accountBalance: number, 
-  entryPrice: number, 
-  stopPrice: number
-): number {
-  // リスク距離（エントリーからストップまでの距離）
-  let riskDistance = Math.abs(entryPrice - stopPrice);
-  
-  // 距離が非常に小さい、または0の場合はフォールバック値を使用
-  if (riskDistance < entryPrice * 0.001) {
-    logger.warn('[DonchianStrategy] リスク距離が非常に小さいため、フォールバック値を使用: 元の値=', riskDistance);
-    // 最小リスク距離として価格の一定割合を使用
-    riskDistance = entryPrice * MIN_STOP_DISTANCE_PERCENTAGE;
-    logger.info(`[DonchianStrategy] フォールバックリスク距離: ${riskDistance} (${MIN_STOP_DISTANCE_PERCENTAGE * 100}%)`);
-  }
-  
-  // 許容リスク額（口座残高の一定割合）
-  const riskAmount = accountBalance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
-  
-  // ポジションサイズ = リスク額 / リスク距離
-  const positionSize = riskAmount / riskDistance;
-  
-  return positionSize;
-}
+// このfunction定義を削除し、共通ユーティリティを使用するように置き換えました
+// (関数は完全に削除し、代わりにpositionSizing.tsからimportしています)
 
 /**
  * Donchianブレイクアウト戦略を実行する関数
@@ -218,7 +198,9 @@ export function executeDonchianBreakoutStrategy(
     const positionSize = calculateRiskBasedPositionSize(
       accountBalance,
       currentPrice,
-      stopPrice
+      stopPrice,
+      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+      'DonchianBreakout'
     );
     
     // 買いシグナル（エントリー注文）
@@ -252,7 +234,9 @@ export function executeDonchianBreakoutStrategy(
     const positionSize = calculateRiskBasedPositionSize(
       accountBalance,
       currentPrice,
-      stopPrice
+      stopPrice,
+      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+      'DonchianBreakout'
     );
     
     // 売りシグナル（エントリー注文）
