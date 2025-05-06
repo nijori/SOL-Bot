@@ -231,6 +231,141 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - ✎ Notes      : marketState.ts行42付近でatrValues.length確認、空の場合はUNKNOWN環境を返す
 
+## 🗓 2025-W38〜W39 スプリント - OMS改善 (9月16日〜9月29日)
+
+- [x] OMS-007: isRetryable関数の追加とエラーハンドリング強化
+      - 📅 Due        : 2025-09-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
+
+- [x] OMS-008: フィル更新と未決済監視タスクの実装
+      - 📅 Due        : 2025-09-29
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-007
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : OrderManagementSystemにWebhook/RESTでの約定検知と定期的な未決済注文監視機能を追加
+
+## 🗓 2025-W40〜W41 スプリント - コード品質・データ管理強化 (9月30日〜10月13日)
+
+- [x] INF-004: 型安全性の改善
+      - 📅 Due        : 2025-10-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Exchangeインターフェース作成、any多用を排除、Zodでバリデーション実装
+
+- [x] DAT-002: Parquet + DuckDBデータ永続化の実装
+      - 📅 Due        : 2025-10-08
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : DAT-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : fetchMarketData()で取得したCandleを/data/*.parquetへ書き込むバッチを追加
+
+- [x] CONF-003: パラメータ設定のYAML化
+      - 📅 Due        : 2025-10-13
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - ✎ Notes      : parameters.tsをYAMLに抽出、dotenvと連携させOptunaでの自動最適化を可能に
+
+## 🗓 2025-W42〜W43 スプリント - パラメータ最適化・機能強化 (10月14日〜10月27日)
+
+- [x] ALG-022: トレンド戦略における追い玉(add-on)ポジション実装
+      - 📅 Due        : 2025-10-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-016
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : if (unrealizedR >= 1 && pyramids < 2) addPosition(size*0.5); の実装でエントリー強化
+
+- [x] CONF-005: トレイリングストップ係数の外部設定化
+      - 📅 Due        : 2025-10-24
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : trendFollowStrategy.trailingStopFactorをYAML設定に追加し、parameterServiceで取得
+
+- [x] CONF-006: グリッドATR乗数の外部設定化
+      - 📅 Due        : 2025-10-27
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : rangeStrategy.gridAtrMultiplierを外部パラメータ化し、レンジ戦略のグリッド幅計算を最適化
+
+## 🗓 2025-W44〜W45 スプリント - 最適化と運用自動化 (10月28日〜11月10日)
+
+- [x] OPT-002: Optuna最適化フレームワークの構築
+      - 📅 Due        : 2025-11-02
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : src/optimizer/ディレクトリ構造の作成、parameterSpace.ts、optunaOptimizer.ts、runOptimization.tsの実装
+
+- [x] ALG-023: OptunaによるパラメータAI最適化
+      - 📅 Due        : 2025-11-03
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OPT-002, CONF-005, CONF-006
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : ATR_THRESHOLD、TrailingStopFactor、GridATRMultiplierを含む20試行の最適化実装
+
+- [x] OPT-003: バックテストランナーのParquet対応
+      - 📅 Due        : 2025-11-15
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OPT-002
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : backtestRunner.tsを実装し、ParquetDataStoreからデータを取得する機能とパラメータ適用機能を実装
+
+- [x] DAT-003: サンプルデータ生成と検証
+      - 📅 Due        : 2025-11-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OPT-003
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : src/data/generateSampleData.tsとsrc/data/runSampleTest.tsを実装し、サンプルデータ生成、バックテスト実行、最適化のワークフローをテスト
+
+- [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-11-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック、backtest:smoke実行
+
+- [ ] CICD-001: Jestと.todo未完チェックのマージガード
+      - 📅 Due        : 2025-11-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : GitHub Actionsでの自動テストと.todoタスク未完チェックによるマージガード実装
+
+- [x] INF-013: .envファイル設定の作成
+      - 📅 Due        : 2025-11-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : DAT-002
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : .envと.env.exampleにUSE_PARQUET、PARQUET_STORAGE_PATH、DUCKDB_設定を追加
+
+- [x] DEP-001: Parquet+DuckDBパッケージのインストール
+      - 📅 Due        : 2025-11-06
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-013
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : package.jsonにapache-arrow, duckdb, parquetjs, js-yamlパッケージを追加
+
+- [x] INF-015: Node.js開発環境の構築
+      - 📅 Due        : 2025-11-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Node.jsとnpmをインストールし、依存関係をセットアップしてTypeScriptプロジェクトの開発環境を構築。OptunaとDuckDBパッケージを除外
+
 ## 🗓 完了したタスク
 
 - [x] INF-002: プロジェクトのフォルダ構造設定
