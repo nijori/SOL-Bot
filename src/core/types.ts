@@ -44,6 +44,7 @@ export enum OrderType {
   LIMIT = 'limit',
   STOP = 'stop',
   STOP_LIMIT = 'stop_limit',
+  STOP_MARKET = 'stop_market',
 }
 
 // 注文の方向
@@ -84,6 +85,18 @@ export interface Position {
   currentPrice: number;
   unrealizedPnl: number;
   timestamp: number;
+  stopPrice?: number; // ストップ価格（オプショナル）
+}
+
+// 約定情報の型
+export interface Fill {
+  orderId?: string;
+  exchangeOrderId?: string;
+  symbol: string;
+  side: OrderSide;
+  amount: number;
+  price: number;
+  timestamp: number;
 }
 
 // 口座情報の型
@@ -100,6 +113,7 @@ export interface StrategyResult {
   strategy: StrategyType;
   signals: Order[];
   timestamp: number;
+  error?: string; // エラーメッセージ（オプショナル）
 }
 
 // 市場分析の結果

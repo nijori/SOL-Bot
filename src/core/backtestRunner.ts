@@ -7,6 +7,10 @@ import * as path from 'path';
 import { ParquetDataStore } from '../data/parquetDataStore';
 import { TradingEngine } from './tradingEngine';
 import { applyParameters } from '../config/parameterService';
+import { BACKTEST_PARAMETERS } from '../config/parameters';
+import { Candle } from './types';
+import logger from '../utils/logger';
+import { OrderManagementSystem } from './orderManagementSystem';
 
 /**
  * バックテスト設定インターフェース
@@ -19,6 +23,8 @@ export interface BacktestConfig {
   initialBalance: number;
   parameters?: Record<string, any>;
   isSmokeTest?: boolean;
+  slippage?: number;        // スリッページ
+  commissionRate?: number;  // 取引手数料率
 }
 
 /**
@@ -54,7 +60,9 @@ export class BacktestRunner {
       ...config,
       // デフォルト値を設定
       initialBalance: config.initialBalance || 10000,
-      parameters: config.parameters || {}
+      parameters: config.parameters || {},
+      slippage: config.slippage || BACKTEST_PARAMETERS.slippage || 0.001,         // デフォルト0.1%のスリッページ
+      commissionRate: config.commissionRate || BACKTEST_PARAMETERS.commission_rate || 0.001  // デフォルト0.1%の取引手数料
     };
   }
   
@@ -63,6 +71,7 @@ export class BacktestRunner {
    */
   async run(): Promise<BacktestResult> {
     console.log(`[BacktestRunner] バックテスト開始: ${this.config.symbol} (${this.config.startDate} - ${this.config.endDate})`);
+    console.log(`[BacktestRunner] スリッページ: ${(this.config.slippage ?? 0) * 100}%, 取引手数料: ${(this.config.commissionRate ?? 0) * 100}%`);
 
     try {
       // データの読み込み
@@ -75,12 +84,19 @@ export class BacktestRunner {
         console.log(`[BacktestRunner] カスタムパラメータを適用: ${Object.keys(this.config.parameters).length}個のパラメータ`);
       }
       
-      // トレーディングエンジンの初期化
+      // OrderManagementSystemのインスタンスを作成
+      const oms = new OrderManagementSystem();
+      
+      // トレーディングエンジンの初期化（依存注入を使用）
       const engine = new TradingEngine({
         symbol: this.config.symbol,
+        timeframeHours: this.config.timeframeHours,
         initialBalance: this.config.initialBalance,
         isBacktest: true,
-        timeframeHours: this.config.timeframeHours
+        slippage: this.config.slippage,
+        commissionRate: this.config.commissionRate,
+        isSmokeTest: this.config.isSmokeTest,
+        oms: oms // OMSを注入
       });
       
       // すべてのローソク足でシミュレーション実行
@@ -107,20 +123,18 @@ export class BacktestRunner {
       // 最終的なすべての取引をクローズ
       await engine.closeAllPositions();
       
-      // 最終ポジションクローズ後の取引を取得
-      const finalTrades = engine.getCompletedTrades();
-      if (finalTrades.length > 0) {
-        allTrades.push(...finalTrades.filter(t => !allTrades.some(at => at.id === t.id)));
-      }
-      
-      // 取引データから指標計算
+      // 完了したバックテストの結果を取得して評価
       const metrics = this.calculateMetrics(allTrades, equityHistory);
       
       const result: BacktestResult = {
         metrics,
         trades: allTrades,
         equity: equityHistory,
-        parameters: this.config.parameters || {}
+        parameters: {
+          ...this.config.parameters,
+          slippage: this.config.slippage,
+          commissionRate: this.config.commissionRate
+        }
       };
       
       console.log(`[BacktestRunner] バックテスト完了: トータルリターン=${metrics.totalReturn.toFixed(2)}%, シャープレシオ=${metrics.sharpeRatio.toFixed(2)}`);
@@ -135,16 +149,87 @@ export class BacktestRunner {
   /**
    * 期間内のデータを読み込む
    */
-  private async loadData(): Promise<any[]> {
+  private async loadData(): Promise<Candle[]> {
     try {
       // Parquetストアから読み込み
       const dataStore = new ParquetDataStore();
+      
+      // 期間とシンボル、タイムフレーム情報を詳細にログ出力
+      console.log(`[BacktestRunner] データ検索条件: ${this.config.symbol}, ${this.config.timeframeHours}h時間足, 期間=${this.config.startDate} - ${this.config.endDate}`);
+      
+      // データディレクトリの内容を確認して表示
+      const fs = require('fs');
+      const path = require('path');
+      const dataDir = path.join(process.cwd(), 'data/candles');
+      
+      if (fs.existsSync(dataDir)) {
+        const files = fs.readdirSync(dataDir);
+        console.log(`[BacktestRunner] データディレクトリ内のファイル: ${files.join(', ')}`);
+      } else {
+        console.log(`[BacktestRunner] データディレクトリが見つかりません: ${dataDir}`);
+      }
+      
       const candles = await dataStore.getCandleData({
         symbol: this.config.symbol,
         timeframeHours: this.config.timeframeHours,
         startDate: new Date(this.config.startDate),
         endDate: new Date(this.config.endDate)
       });
+      
+      // データストアを閉じる
+      dataStore.close();
+      
+      console.log(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+      
+      if (candles.length === 0 && this.config.isSmokeTest) {
+        // スモークテスト用の最小限のサンプルデータ生成（改善版）
+        console.log(`[BacktestRunner] スモークテスト用のサンプルデータを生成します`);
+        
+        const now = new Date().getTime();
+        const sampleData: Candle[] = [];
+        
+        // 技術指標計算のために十分なデータを生成（最低でも60本）
+        const candleCount = 60;
+        const hoursPerCandle = this.config.timeframeHours;
+        
+        // トレンドのあるデータを生成
+        let basePrice = 100;
+        const trend = Math.random() > 0.5 ? 1 : -1; // 上昇または下降トレンド
+        
+        for (let i = 0; i < candleCount; i++) {
+          // 時間はcandleCount*hoursPerCandle時間前から現在までの間隔で均等に配置
+          const timestamp = now - (candleCount - i) * hoursPerCandle * 60 * 60 * 1000;
+          
+          // トレンドを加えた価格（周期的な変動も追加）
+          const trendComponent = trend * (i * 0.2); // 弱いトレンド
+          const cycleComponent = Math.sin(i / 10) * 3; // 周期的な変動
+          const randomComponent = (Math.random() - 0.5) * 2; // ランダム要素
+          
+          const price = basePrice + trendComponent + cycleComponent + randomComponent;
+          
+          // ローソク足データ生成
+          const open = price - 0.5 + Math.random();
+          const close = price;
+          const high = Math.max(open, close) + 0.5 + Math.random();
+          const low = Math.min(open, close) - 0.5 - Math.random();
+          const volume = 5000 + Math.random() * 5000;
+          
+          sampleData.push({
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume
+          });
+          
+          // 次の基準価格を更新
+          basePrice = close;
+        }
+        
+        console.log(`[BacktestRunner] ${sampleData.length}件のサンプルデータを生成しました`);
+        return sampleData;
+      }
       
       return candles;
     } catch (error) {
@@ -223,24 +308,36 @@ export class BacktestRunner {
     const totalReturn = ((finalBalance - initialBalance) / initialBalance) * 100;
     
     // シャープレシオ計算
-    // 日次リターンを計算
-    const dailyReturns: number[] = [];
+    // タイムフレームごとのリターンを計算
+    const periodicReturns: number[] = [];
     for (let i = 1; i < equityHistory.length; i++) {
       const prevEquity = equityHistory[i - 1].equity;
       const currEquity = equityHistory[i].equity;
-      const dailyReturn = (currEquity - prevEquity) / prevEquity;
-      dailyReturns.push(dailyReturn);
+      const periodicReturn = (currEquity - prevEquity) / prevEquity;
+      periodicReturns.push(periodicReturn);
     }
     
     // 平均リターンと標準偏差
-    const avgReturn = dailyReturns.reduce((sum, r) => sum + r, 0) / dailyReturns.length;
-    const stdDev = Math.sqrt(
-      dailyReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / dailyReturns.length
-    );
+    const avgReturn = periodicReturns.length > 0 
+      ? periodicReturns.reduce((sum, r) => sum + r, 0) / periodicReturns.length 
+      : 0;
+    const stdDev = periodicReturns.length > 0
+      ? Math.sqrt(
+          periodicReturns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / periodicReturns.length
+        )
+      : 0;
     
-    // 年率換算（252取引日として）
-    const annualizedReturn = avgReturn * 252;
-    const annualizedStdDev = stdDev * Math.sqrt(252);
+    // タイムフレームに基づいた年間バー数の計算
+    // 1年間に何本のバーがあるかを計算（時間単位のタイムフレームを想定）
+    const timeframeHours = this.config.timeframeHours || 1; // デフォルト値を1時間に設定
+    const hoursInYear = 24 * 365; // 1年の時間数
+    const barsPerYear = hoursInYear / timeframeHours;
+    
+    logger.debug(`タイムフレーム: ${timeframeHours}時間, 年間バー数: ${barsPerYear}`);
+    
+    // 年率換算（タイムフレームに応じた年間バー数で換算）
+    const annualizedReturn = avgReturn * barsPerYear;
+    const annualizedStdDev = stdDev * Math.sqrt(barsPerYear);
     
     // シャープレシオ計算（リスクフリーレートを0と仮定）
     const sharpeRatio = annualizedStdDev > 0 ? annualizedReturn / annualizedStdDev : 0;
@@ -249,11 +346,13 @@ export class BacktestRunner {
     const calmarRatio = maxDrawdown > 0 ? annualizedReturn / maxDrawdown : 0;
     
     // ソルティノレシオ計算（下方リスクのみ考慮）
-    const downReturns = dailyReturns.filter(r => r < 0);
-    const downSideDev = Math.sqrt(
-      downReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / dailyReturns.length
-    );
-    const annualizedDownSideDev = downSideDev * Math.sqrt(252);
+    const downReturns = periodicReturns.filter(r => r < 0);
+    const downSideDev = periodicReturns.length > 0
+      ? Math.sqrt(
+          downReturns.reduce((sum, r) => sum + Math.pow(r, 2), 0) / periodicReturns.length
+        )
+      : 0;
+    const annualizedDownSideDev = downSideDev * Math.sqrt(barsPerYear);
     const sortinoRatio = annualizedDownSideDev > 0 ? annualizedReturn / annualizedDownSideDev : 0;
     
     return {

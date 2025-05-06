@@ -51,3 +51,22 @@ jobs:
         else
           echo "すべてのTodo項目のタスクIDフォーマットが正しいです。"
         fi 
+    
+    - name: 進捗状況フォーマットチェック
+      run: |
+        echo "進捗状況のフォーマットチェックを実行しています..."
+        # WIP状態（未完了）かつProgressフィールドが欠落しているタスクを検索
+        WIP_TASKS=$(grep -E "^\s*- \[( )\]" .todo/sprint.mdc)
+        MISSING_PROGRESS=$(echo "$WIP_TASKS" | grep -v "📊 Progress   :")
+        
+        if [ -n "$MISSING_PROGRESS" ]; then
+          echo "エラー: 以下のWIPタスクに進捗状況(Progress)が設定されていません:"
+          echo "$MISSING_PROGRESS"
+          echo ""
+          echo "Sprint内のWIPタスクには以下のフォーマットで進捗状況を設定してください:"
+          echo "- [ ] TASK-ID: タイトル"
+          echo "      - 📊 Progress   : 0% / 25% / 50% / 75% / 100%"
+          exit 1
+        else
+          echo "すべてのWIPタスクに適切な進捗状況が設定されています。"
+        fi 

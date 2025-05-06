@@ -20,6 +20,7 @@ repo-root/
       - 🔗 Depends-on : TASK‑ID1, TASK‑ID2 ... (省略可)
       - 🏷️  Label      : bug / feat / doc / infra / test
       - 🩺 Health     : ⏳ / ⚠️ / 🚑 / ✅
+      - 📊 Progress   : 0% / 25% / 50% / 75% / 100%
       - ✎ Notes      : (自由メモ 120 字以内)
 ```
 
@@ -32,6 +33,7 @@ repo-root/
 | Depends-on | 依存するタスクID（カンマ区切りで複数可）|
 | Label      | タスクの種類: `feat`/`bug`/`doc`/`infra`/`test` |
 | Health     | ⏳=WIP, ⚠️=遅延気味, 🚑=要救援, ✅=完了 |
+| Progress   | 作業の進捗状況をパーセント表示 |
 | Notes      | タスクの詳細、実装メモなど |
 
 ## 4. カテゴリ接頭辞一覧
@@ -48,6 +50,8 @@ repo-root/
 | TST    | テスト |
 | CICD   | CI/CD関連 |
 | DEP    | 依存関係・パッケージ |
+| BT     | バックテスト関連 |
+| RISK   | リスク管理関連 |
 
 ## 5. ライフサイクル・ルール
 

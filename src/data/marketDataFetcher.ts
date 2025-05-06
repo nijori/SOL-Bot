@@ -4,9 +4,15 @@
  * ccxtライブラリを使用して取引所から定期的にデータを取得し、DuckDBに保存する処理
  */
 
+// Node.js関連の型定義
+declare const require: any;
+declare const process: any;
+declare const module: any;
+
 import ccxt from 'ccxt';
 import { Candle } from '../core/types';
 import { DataRepository } from './dataRepository';
+import { ParquetDataStore } from './parquetDataStore';
 import logger from '../utils/logger';
 import cron from 'node-cron';
 import 'dotenv/config';
@@ -18,14 +24,28 @@ const DEFAULT_TIMEFRAME = '1h'; // 1時間足
 const DEFAULT_LIMIT = 100; // 一度に取得するローソク足の数
 const EXCHANGES = ['binance', 'kucoin', 'bybit']; // 利用する取引所のリスト
 const RETRY_COUNT = 3; // エラー時の再試行回数
+const USE_PARQUET = process.env.USE_PARQUET === 'true'; // 追加: Parquet形式を使用するかどうか
 
 export class MarketDataFetcher {
   private dataRepository: DataRepository;
+  private parquetDataStore: ParquetDataStore | null = null; // 追加: Parquetデータストア
   private exchanges: Map<string, ccxt.Exchange>;
   private isRunning: boolean = false;
 
   constructor() {
     this.dataRepository = new DataRepository();
+    
+    // Parquet形式を使用する場合は初期化
+    if (USE_PARQUET) {
+      try {
+        this.parquetDataStore = new ParquetDataStore();
+        logger.info('Parquetデータストアを初期化しました');
+      } catch (error) {
+        logger.error(`Parquetデータストア初期化エラー: ${error instanceof Error ? error.message : String(error)}`);
+        this.parquetDataStore = null;
+      }
+    }
+    
     this.exchanges = new Map();
     
     // 指定された取引所を初期化
@@ -115,8 +135,16 @@ export class MarketDataFetcher {
         try {
           const candles = await this.fetchCandlesFromExchange(exchangeId, symbol, timeframe);
           if (candles.length > 0) {
-            // 取引所IDを含むファイル名にしてデータを保存
-            await this.dataRepository.saveCandles(`${exchangeId}_${symbol}`, timeframe, candles);
+            // 取引所IDを含むファイル名で保存
+            const symbolKey = `${exchangeId}_${symbol}`;
+            
+            // Parquet形式で保存
+            if (this.parquetDataStore && USE_PARQUET) {
+              await this.parquetDataStore.saveCandles(symbolKey, timeframe, candles);
+            }
+            
+            // 従来のJSON形式でも保存（互換性のため）
+            await this.dataRepository.saveCandles(symbolKey, timeframe, candles);
           }
         } catch (error) {
           logger.error(`${exchangeId}からのデータ取得中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
@@ -142,6 +170,11 @@ export class MarketDataFetcher {
     });
     
     logger.info(`1時間足データ取得ジョブをスケジュールしました (${cronExpression})`);
+    if (USE_PARQUET) {
+      logger.info('データはParquet形式で保存されます');
+    } else {
+      logger.info('データはJSON形式で保存されます');
+    }
   }
 
   /**
@@ -156,6 +189,19 @@ export class MarketDataFetcher {
     logger.info(`${symbol}の${days}日分の${timeframe}足データを取得します`);
     return await this.fetchAndSaveCandles(symbol, timeframe);
   }
+  
+  /**
+   * リソースを解放する
+   */
+  public close(): void {
+    if (this.parquetDataStore) {
+      try {
+        this.parquetDataStore.close();
+      } catch (error) {
+        logger.error(`Parquetデータストアの終了中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
 }
 
 // スクリプトとして直接実行された場合
@@ -165,5 +211,11 @@ if (typeof require !== 'undefined' && require.main === module) {
     await fetcher.manualFetch();
     // スケジュールされたジョブを開始
     fetcher.startScheduledJob();
+    
+    // プロセス終了時にリソースを解放
+    process.on('SIGINT', () => {
+      fetcher.close();
+      process.exit(0);
+    });
   })();
 } 

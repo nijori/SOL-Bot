@@ -9,6 +9,13 @@ import {
   StrategyType 
 } from '../core/types';
 import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters';
+import { parameterService } from '../config/parameterService';
+
+// トレイリングストップとピラミッディングのパラメータをYAML設定から取得
+const TRAILING_STOP_FACTOR = parameterService.get<number>('trendFollowStrategy.trailingStopFactor', 1.2);
+const PYRAMID_THRESHOLD = parameterService.get<number>('trendFollowStrategy.pyramidThreshold', 1.0);
+const PYRAMID_SIZE_MULTIPLIER = parameterService.get<number>('trendFollowStrategy.pyramidSizeMultiplier', 0.5);
+const MAX_PYRAMIDS = parameterService.get<number>('trendFollowStrategy.maxPyramids', 2);
 
 /**
  * Donchianチャネルを計算する関数
@@ -165,7 +172,7 @@ export function executeTrendStrategy(
   // 上昇ブレイクアウトでかつ強いトレンドの場合、買いシグナル
   if (isBreakingUp && isStrongTrend && !hasLongPosition) {
     // ATRベースのストップロス価格
-    const stopPrice = currentPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+    const stopPrice = currentPrice - (currentATR * TRAILING_STOP_FACTOR);
     
     // リスクベースのポジションサイズを計算
     const positionSize = calculateRiskBasedPositionSize(
@@ -197,7 +204,7 @@ export function executeTrendStrategy(
   // 下降ブレイクアウトでかつ強いトレンドの場合、売りシグナル
   if (isBreakingDown && isStrongTrend && !hasShortPosition) {
     // ATRベースのストップロス価格
-    const stopPrice = currentPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+    const stopPrice = currentPrice + (currentATR * TRAILING_STOP_FACTOR);
     
     // リスクベースのポジションサイズを計算
     const positionSize = calculateRiskBasedPositionSize(
@@ -231,10 +238,14 @@ export function executeTrendStrategy(
     const firstLongPosition = longPositions[0]; // 最初の買いポジション
     
     // 新しいトレイリングストップ価格（ATRベース）
-    const newStopPrice = currentPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+    const newStopPrice = currentPrice - (currentATR * TRAILING_STOP_FACTOR);
+    
+    // 既存のストップ価格を取得（存在しない場合はエントリー価格からATR×係数を引いた値）
+    const existingStopPrice = firstLongPosition.stopPrice || 
+                             (firstLongPosition.entryPrice - (currentATR * TRAILING_STOP_FACTOR));
     
     // 既存のストップよりも高い水準に更新する場合のみ
-    if (firstLongPosition.entryPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER) < newStopPrice) {
+    if (newStopPrice > existingStopPrice) {
       // すべての買いポジションの総量
       const totalLongAmount = longPositions.reduce((sum, pos) => sum + pos.amount, 0);
       
@@ -249,17 +260,17 @@ export function executeTrendStrategy(
     }
     
     // 追加ポジション（add-on）のロジック
-    // 価格が1R以上上昇し、かつ追加ポジションが2回未満の場合
-    if (longAddOnCount < 2 && currentPrice > firstLongPosition.entryPrice + riskUnit) {
+    // 価格が1R以上上昇し、かつ追加ポジションが最大数未満の場合
+    if (longAddOnCount < MAX_PYRAMIDS && currentPrice > firstLongPosition.entryPrice + (riskUnit * PYRAMID_THRESHOLD)) {
       // 新しいストップ価格
-      const addOnStopPrice = currentPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+      const addOnStopPrice = currentPrice - (currentATR * TRAILING_STOP_FACTOR);
       
       // 追加ポジションのサイズをリスクベースで計算
       const addOnPositionSize = calculateRiskBasedPositionSize(
         accountBalance,
         currentPrice,
         addOnStopPrice,
-        RISK_PARAMETERS.MAX_RISK_PER_TRADE * TREND_PARAMETERS.ADD_ON_POSITION_MULTIPLIER // 追加ポジションは通常の半分のリスク
+        RISK_PARAMETERS.MAX_RISK_PER_TRADE * PYRAMID_SIZE_MULTIPLIER // 追加ポジションのリスク比率
       );
       
       signals.push({
@@ -277,10 +288,14 @@ export function executeTrendStrategy(
     const firstShortPosition = shortPositions[0]; // 最初の売りポジション
     
     // 新しいトレイリングストップ価格（ATRベース）
-    const newStopPrice = currentPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+    const newStopPrice = currentPrice + (currentATR * TRAILING_STOP_FACTOR);
+    
+    // 既存のストップ価格を取得（存在しない場合はエントリー価格からATR×係数を足した値）
+    const existingStopPrice = firstShortPosition.stopPrice || 
+                             (firstShortPosition.entryPrice + (currentATR * TRAILING_STOP_FACTOR));
     
     // 既存のストップよりも低い水準に更新する場合のみ
-    if (firstShortPosition.entryPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER) > newStopPrice) {
+    if (newStopPrice < existingStopPrice) {
       // すべての売りポジションの総量
       const totalShortAmount = shortPositions.reduce((sum, pos) => sum + pos.amount, 0);
       
@@ -295,17 +310,17 @@ export function executeTrendStrategy(
     }
     
     // 追加ポジション（add-on）のロジック
-    // 価格が1R以上下落し、かつ追加ポジションが2回未満の場合
-    if (shortAddOnCount < 2 && currentPrice < firstShortPosition.entryPrice - riskUnit) {
+    // 価格が1R以上下落し、かつ追加ポジションが最大数未満の場合
+    if (shortAddOnCount < MAX_PYRAMIDS && currentPrice < firstShortPosition.entryPrice - (riskUnit * PYRAMID_THRESHOLD)) {
       // 新しいストップ価格
-      const addOnStopPrice = currentPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
+      const addOnStopPrice = currentPrice + (currentATR * TRAILING_STOP_FACTOR);
       
       // 追加ポジションのサイズをリスクベースで計算
       const addOnPositionSize = calculateRiskBasedPositionSize(
         accountBalance,
         currentPrice,
         addOnStopPrice,
-        RISK_PARAMETERS.MAX_RISK_PER_TRADE * TREND_PARAMETERS.ADD_ON_POSITION_MULTIPLIER // 追加ポジションは通常の半分のリスク
+        RISK_PARAMETERS.MAX_RISK_PER_TRADE * PYRAMID_SIZE_MULTIPLIER // 追加ポジションのリスク比率
       );
       
       signals.push({

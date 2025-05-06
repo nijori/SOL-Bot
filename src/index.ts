@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
 import cron from 'node-cron';
-import ccxt from 'ccxt';
+// ccxtのインポート
+const ccxt = require('ccxt');
 import { TradingEngine } from './core/tradingEngine';
+import { OrderManagementSystem } from './core/orderManagementSystem';
 import { OperationMode, OPERATION_MODE, MARKET_PARAMETERS } from './config/parameters';
 import logger from './utils/logger';
 import { Candle, Order } from './core/types';
@@ -14,7 +16,7 @@ const TIMEFRAME = process.env.TIMEFRAME || '5m';
 const INITIAL_BALANCE = parseFloat(process.env.INITIAL_BALANCE || '10000');
 
 // 取引所の初期化
-let exchange: ccxt.Exchange;
+let exchange;
 try {
   exchange = new ccxt.binance({
     apiKey: process.env.EXCHANGE_API_KEY,
@@ -27,8 +29,16 @@ try {
   process.exit(1);
 }
 
+// OrderManagementSystemのインスタンスを作成
+const oms = new OrderManagementSystem();
+
 // トレーディングエンジンの初期化
-const tradingEngine = new TradingEngine(SYMBOL, INITIAL_BALANCE);
+const tradingEngine = new TradingEngine({
+  symbol: SYMBOL,
+  initialBalance: INITIAL_BALANCE,
+  oms: oms,
+  // 将来的にexchangeServiceを追加する場合はここで注入
+});
 
 // Expressアプリの設定
 const app = express();
@@ -172,13 +182,52 @@ app.listen(PORT, () => {
   logger.info(`サーバーが起動しました: http://localhost:${PORT}`);
   logger.info(`モード: ${OPERATION_MODE}, シンボル: ${SYMBOL}, タイムフレーム: ${TIMEFRAME}`);
   
+  // タスク用の変数を定義
+  let tradingTask: any = null;
+  let dailyResetTask: any = null;
+  
+  // 既存タスクのクリーンアップ関数
+  const cleanupTasks = () => {
+    if (tradingTask) {
+      if (typeof tradingTask.destroy === 'function') {
+        tradingTask.destroy();
+      } else {
+        tradingTask.stop();
+      }
+      tradingTask = null;
+    }
+    
+    if (dailyResetTask) {
+      if (typeof dailyResetTask.destroy === 'function') {
+        dailyResetTask.destroy();
+      } else {
+        dailyResetTask.stop();
+      }
+      dailyResetTask = null;
+    }
+  };
+  
+  // アプリケーション終了時のクリーンアップ
+  process.on('SIGINT', () => {
+    logger.info('アプリケーションを終了します...');
+    cleanupTasks();
+    process.exit(0);
+  });
+  
+  // クリーンアップを実行してから新しいタスクを設定
+  cleanupTasks();
+  
   // トレーディングロジックのスケジュール設定（5分ごとに実行）
-  cron.schedule('*/5 * * * *', runTradingLogic);
+  tradingTask = cron.schedule('*/5 * * * *', runTradingLogic, {
+    timezone: 'UTC'  // UTCタイムゾーンを使用
+  });
   
   // 日次リセット処理（毎日0時に実行）
-  cron.schedule('0 0 * * *', () => {
+  dailyResetTask = cron.schedule('0 0 * * *', () => {
     tradingEngine.resetDailyTracking();
     logger.info('日次トラッキングをリセットしました');
+  }, {
+    timezone: 'UTC'  // UTCタイムゾーンを使用
   });
   
   // 初期実行

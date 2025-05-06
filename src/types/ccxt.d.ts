@@ -12,7 +12,7 @@ declare module 'ccxt' {
     userAgent?: string;
     verbose?: boolean;
     proxy?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface OrderBook {
@@ -35,7 +35,7 @@ declare module 'ccxt' {
     close?: number;
     baseVolume?: number;
     quoteVolume?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface Trade {
@@ -53,7 +53,7 @@ declare module 'ccxt' {
       cost: number;
       currency: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface Order {
@@ -68,20 +68,59 @@ declare module 'ccxt' {
     filled?: number;
     remaining?: number;
     cost?: number;
-    status?: string;
+    status?: 'open' | 'closed' | 'canceled' | 'expired' | 'rejected' | 'filled' | string;
     fee?: {
       cost: number;
       currency: string;
     };
     trades?: Trade[];
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface Balance {
     free: { [currency: string]: number };
     used: { [currency: string]: number };
     total: { [currency: string]: number };
-    [key: string]: any;
+    [key: string]: unknown;
+  }
+
+  export interface ExchangeFeatures {
+    [feature: string]: boolean;
+  }
+
+  export interface MarketInfo {
+    id: string;
+    symbol: string;
+    base: string;
+    quote: string;
+    baseId: string;
+    quoteId: string;
+    active: boolean;
+    precision: {
+      price: number;
+      amount: number;
+      cost?: number;
+    };
+    limits: {
+      price?: { min?: number; max?: number };
+      amount?: { min?: number; max?: number };
+      cost?: { min?: number; max?: number };
+    };
+    [key: string]: unknown;
+  }
+
+  export interface CurrencyInfo {
+    id: string;
+    code: string;
+    name?: string;
+    precision: number;
+    fee?: number;
+    active: boolean;
+    limits?: {
+      withdraw?: { min?: number; max?: number };
+      deposit?: { min?: number; max?: number };
+    };
+    [key: string]: unknown;
   }
 
   export interface Exchange {
@@ -100,26 +139,42 @@ declare module 'ccxt' {
     enableRateLimit: boolean;
     userAgent: string | boolean;
     verbose: boolean;
-    markets: { [symbol: string]: any };
+    has: ExchangeFeatures;
+    markets: { [symbol: string]: MarketInfo };
     symbols: string[];
-    currencies: { [currency: string]: any };
+    currencies: { [currency: string]: CurrencyInfo };
     apiKey: string;
     secret: string;
     password: string;
-    fetchOrderBook(symbol: string, limit?: number, params?: {}): Promise<OrderBook>;
-    fetchTicker(symbol: string, params?: {}): Promise<Ticker>;
-    fetchOHLCV(symbol: string, timeframe?: string, since?: number, limit?: number, params?: {}): Promise<number[][]>;
-    fetchTrades(symbol: string, since?: number, limit?: number, params?: {}): Promise<Trade[]>;
-    createOrder(symbol: string, type: string, side: string, amount: number, price?: number, params?: {}): Promise<Order>;
-    cancelOrder(id: string, symbol?: string, params?: {}): Promise<Order>;
-    fetchOrder(id: string, symbol?: string, params?: {}): Promise<Order>;
-    fetchOrders(symbol?: string, since?: number, limit?: number, params?: {}): Promise<Order[]>;
-    fetchOpenOrders(symbol?: string, since?: number, limit?: number, params?: {}): Promise<Order[]>;
-    fetchClosedOrders(symbol?: string, since?: number, limit?: number, params?: {}): Promise<Order[]>;
-    fetchBalance(params?: {}): Promise<Balance>;
-    withdraw(currency: string, amount: number, address: string, tag?: string, params?: {}): Promise<{}>;
-    fetchDepositAddress(currency: string, params?: {}): Promise<{}>;
-    [key: string]: any;
+    
+    loadMarkets(): Promise<{ [symbol: string]: MarketInfo }>;
+    fetchOrderBook(symbol: string, limit?: number, params?: Record<string, unknown>): Promise<OrderBook>;
+    fetchTicker(symbol: string, params?: Record<string, unknown>): Promise<Ticker>;
+    fetchOHLCV(symbol: string, timeframe?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<number[][]>;
+    fetchTrades(symbol: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Trade[]>;
+    createOrder(symbol: string, type: string, side: string, amount: number, price?: number, params?: Record<string, unknown>): Promise<Order>;
+    createOCOOrder?(symbol: string, side: string, amount: number, price: number, stopPrice: number, stopLimitPrice?: number, params?: Record<string, unknown>): Promise<Order>;
+    cancelOrder(id: string, symbol?: string, params?: Record<string, unknown>): Promise<Order>;
+    fetchOrder(id: string, symbol?: string, params?: Record<string, unknown>): Promise<Order>;
+    fetchOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
+    fetchOpenOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
+    fetchClosedOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
+    fetchBalance(params?: Record<string, unknown>): Promise<Balance>;
+    withdraw(currency: string, amount: number, address: string, tag?: string, params?: Record<string, unknown>): Promise<{
+      id: string;
+      info: unknown;
+      txid?: string;
+      [key: string]: unknown;
+    }>;
+    fetchDepositAddress(currency: string, params?: Record<string, unknown>): Promise<{
+      currency: string;
+      address: string;
+      tag?: string;
+      info: unknown;
+      [key: string]: unknown;
+    }>;
+    
+    [key: string]: unknown;
   }
 
   export const exchanges: string[];

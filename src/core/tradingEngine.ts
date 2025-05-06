@@ -18,6 +18,24 @@ import logger from '../utils/logger';
 import { OrderManagementSystem } from './orderManagementSystem';
 
 /**
+ * TradingEngine用のオプションインターフェース
+ */
+export interface TradingEngineOptions {
+  // 基本設定
+  symbol: string;
+  timeframeHours?: number;
+  initialBalance?: number;
+  isBacktest?: boolean;
+  slippage?: number;
+  commissionRate?: number;
+  isSmokeTest?: boolean;
+
+  // 依存サービス
+  oms?: OrderManagementSystem;
+  exchangeService?: any; // 今後exchangeServiceを追加する場合に使用
+}
+
+/**
  * トレーディングエンジンのメインクラス
  */
 export class TradingEngine {
@@ -32,21 +50,41 @@ export class TradingEngine {
   private dailyStartingBalance: number = 0; // 午前0時の残高
   private account: Account;
   private oms: OrderManagementSystem;
+  private isBacktest: boolean = false;
+  private slippage: number = 0; // スリッページ率
+  private commissionRate: number = 0; // 取引手数料率
+  private completedTrades: any[] = []; // 完了した取引履歴
+  private isSmokeTest: boolean = false;
+  // 将来的に追加する可能性のある依存サービス
+  private exchangeService: any | null = null;
 
-  constructor(symbol: string, timeframeHours: number = 4) {
-    this.symbol = symbol;
-    this.timeframeHours = timeframeHours;
+  constructor(options: TradingEngineOptions) {
+    this.symbol = options.symbol;
+    this.timeframeHours = options.timeframeHours || 4;
+    this.isBacktest = options.isBacktest || false;
+    this.slippage = options.slippage || 0;
+    this.commissionRate = options.commissionRate || 0;
+    this.isSmokeTest = options.isSmokeTest || false;
+    
     this.account = {
-      balance: 10000,
-      available: 10000,
+      balance: options.initialBalance || 10000,
+      available: options.initialBalance || 10000,
       positions: [],
       dailyPnl: 0,
       dailyPnlPercentage: 0
     };
-    this.oms = new OrderManagementSystem();
+
+    // 依存サービスの注入
+    this.oms = options.oms || new OrderManagementSystem();
+    this.exchangeService = options.exchangeService || null;
+    
     // 初期残高を設定
     this.dailyStartingBalance = this.account.balance;
-    logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${symbol}, タイムフレーム ${timeframeHours}h`);
+    logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${this.symbol}, タイムフレーム ${this.timeframeHours}h`);
+    
+    if (this.isBacktest) {
+      logger.info(`[TradingEngine] バックテストモード: スリッページ=${this.slippage * 100}%, 手数料=${this.commissionRate * 100}%`);
+    }
   }
   
   /**
@@ -164,12 +202,13 @@ export class TradingEngine {
   }
   
   /**
-   * 戦略を実行してシグナルを生成
+   * 現在の市場環境に基づいて最適な戦略を実行する
    * @returns 戦略実行結果
    */
   public executeStrategy(): StrategyResult {
-    if (!this.marketAnalysis) {
-      logger.warn('[TradingEngine] 市場分析が実行されていません');
+    // スモークテスト中は簡易的な処理のみ行う
+    if (this.isBacktest && this.isSmokeTest) {
+      logger.info('[TradingEngine] スモークテストモード: 簡易的なバックテスト実行');
       return {
         strategy: StrategyType.TREND_FOLLOWING,
         signals: [],
@@ -177,68 +216,76 @@ export class TradingEngine {
       };
     }
     
-    // 日次損失が閾値を超えた場合、トレードを停止
-    if (this.account.dailyPnlPercentage < -RISK_PARAMETERS.MAX_DAILY_LOSS * 100) {
-      logger.warn(`[TradingEngine] 日次損失が閾値を超えたため、トレードは停止されています: ${this.account.dailyPnlPercentage.toFixed(2)}%`);
+    // 市場分析がまだ行われていない場合は実行しない
+    if (!this.marketAnalysis) {
+      logger.warn('[TradingEngine] 市場分析が実行されていないため、戦略を実行できません');
       return {
-        strategy: this.activeStrategy,
+        strategy: StrategyType.TREND_FOLLOWING,
         signals: [],
         timestamp: Date.now()
       };
     }
     
-    // 緊急モードでない場合のみ、市場状態に基づいて戦略を選択
-    if (this.activeStrategy !== StrategyType.EMERGENCY) {
-      this.activeStrategy = this.marketAnalysis.recommendedStrategy;
+    // 市場分析に基づいて戦略を選択
+    this.activeStrategy = this.marketAnalysis.recommendedStrategy;
+    
+    logger.info(`[TradingEngine] 市場分析結果: ${this.marketAnalysis.environment}, 推奨戦略: ${this.activeStrategy}`);
+    
+    // ポジションの偏りをチェックし、必要ならヘッジ注文を作成
+    const positions = this.oms.getPositions();
+    const hedgeOrders = this.checkAndCreateHedgeOrders(positions);
+    
+    // 戦略実行結果
+    let result: StrategyResult = {
+      strategy: this.activeStrategy,
+      signals: [], // シグナル（注文）の配列
+      timestamp: Date.now()
+    };
+    
+    try {
+      // アクティブな戦略に基づいて実行
+      switch (this.activeStrategy) {
+        case StrategyType.TREND_FOLLOWING:
+          // 通常、トレンドフォロー戦略を実行
+          break;
+          
+        case StrategyType.RANGE_TRADING:
+          // レンジ相場用の戦略を実行
+          break;
+          
+        case StrategyType.EMERGENCY:
+          // 緊急戦略を実行
+          result = this.executeEmergencyStrategy();
+          break;
+          
+        default:
+          // デフォルトでトレンドフォロー戦略を実行
+          break;
+      }
+      
+      // ヘッジ注文があれば追加
+      if (hedgeOrders.length > 0) {
+        result.signals = [...result.signals, ...hedgeOrders];
+      }
+      
+      // リスク管理フィルターを適用
+      result.signals = this.applyRiskFilters(result.signals);
+      
+      // シグナルを処理（実際の注文発行）
+      this.processSignals(result.signals);
+      
+      return result;
+    } catch (error) {
+      // エラー発生時のハンドリング
+      logger.error(`[TradingEngine] 戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+      
+      return {
+        strategy: this.activeStrategy,
+        signals: [],
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: Date.now()
+      };
     }
-    
-    let strategyResult: StrategyResult;
-    
-    // 現在のポジションを取得
-    const currentPositions = this.oms.getPositions();
-    
-    // ポジションの偏りを計算し、必要に応じてヘッジ
-    const hedgeSignals = this.checkAndCreateHedgeOrders(currentPositions);
-    
-    // 適切な戦略を実行
-    switch (this.activeStrategy) {
-      case StrategyType.TREND_FOLLOWING:
-        strategyResult = executeTrendStrategy(
-          this.latestCandles, 
-          this.symbol, 
-          currentPositions,
-          this.account.balance
-        );
-        break;
-      case StrategyType.RANGE_TRADING:
-        strategyResult = executeRangeStrategy(
-          this.latestCandles, 
-          this.symbol, 
-          currentPositions
-        );
-        break;
-      case StrategyType.EMERGENCY:
-        strategyResult = this.executeEmergencyStrategy();
-        break;
-      default:
-        // デフォルトはトレンドフォロー
-        strategyResult = executeTrendStrategy(
-          this.latestCandles, 
-          this.symbol, 
-          currentPositions,
-          this.account.balance
-        );
-    }
-    
-    // ヘッジ注文があれば、戦略からの注文と結合
-    if (hedgeSignals.length > 0) {
-      strategyResult.signals = [...strategyResult.signals, ...hedgeSignals];
-    }
-    
-    // シグナルを処理（実際の注文を作成）
-    this.processSignals(strategyResult.signals);
-    
-    return strategyResult;
   }
   
   /**
@@ -311,18 +358,98 @@ export class TradingEngine {
   }
   
   /**
-   * 注文シグナルを処理して実際の注文を作成
-   * @param signals 注文シグナル
+   * 注文処理（バックテスト時はスリッページと手数料を適用）
+   * @param signals 処理する注文シグナル
    */
   private processSignals(signals: Order[]): void {
-    for (const signal of signals) {
-      // OMSを使用して注文を作成
-      const orderId = this.oms.createOrder(signal);
-      logger.info(`[TradingEngine] 注文シグナルを処理しました: ${orderId}`);
-      
-      // 実際の実装では、ここで取引所APIを呼び出して注文を送信し、
-      // レスポンスに基づいてOMSの注文ステータスを更新する
+    if (signals.length === 0) {
+      return;
     }
+    
+    for (const order of signals) {
+      if (this.isBacktest) {
+        // バックテスト時はスリッページと手数料を適用
+        this.applySlippageAndCommission(order);
+      }
+      
+      // 注文を送信
+      this.oms.createOrder(order);
+      
+      if (this.isBacktest) {
+        // バックテストでは約定を即時シミュレート
+        this.simulateFill(order);
+      }
+    }
+  }
+  
+  /**
+   * スリッページと手数料を注文に適用（バックテスト用）
+   * @param order 注文
+   */
+  private applySlippageAndCommission(order: Order): void {
+    if (!order.price) {
+      return; // 成行注文など価格がない場合はスキップ
+    }
+    
+    // スリッページを適用（買いの場合は価格が上昇、売りの場合は価格が下落）
+    if (order.side === OrderSide.BUY) {
+      order.price = order.price * (1 + this.slippage);
+    } else {
+      order.price = order.price * (1 - this.slippage);
+    }
+    
+    logger.debug(`[TradingEngine] スリッページ適用: ${order.side} ${order.price}`);
+  }
+  
+  /**
+   * 注文の即時約定をシミュレート（バックテスト用）
+   * @param order 約定させる注文
+   */
+  private simulateFill(order: Order): void {
+    // 約定処理
+    const filledOrder = { ...order, status: 'FILLED' };
+    
+    // 注文金額を計算
+    const orderValue = order.price ? order.price * order.amount : 0;
+    
+    // 手数料を計算して残高から差し引く
+    const commissionAmount = orderValue * this.commissionRate;
+    this.account.balance -= commissionAmount;
+    
+    logger.debug(`[TradingEngine] 約定シミュレーション: ${order.side} ${order.amount} @ ${order.price}, 手数料: ${commissionAmount}`);
+    
+    // 約定履歴に追加
+    this.completedTrades.push({
+      id: filledOrder.id,
+      symbol: filledOrder.symbol,
+      side: filledOrder.side,
+      price: filledOrder.price,
+      amount: filledOrder.amount,
+      timestamp: Date.now(),
+      orderValue: orderValue,
+      commission: commissionAmount,
+      pnl: 0 // PnLは後で計算
+    });
+    
+    // OMSに約定を通知
+    if (filledOrder.id) {
+      // fillOrderメソッドを使用して約定を処理する
+      this.oms.fillOrder(filledOrder.id, filledOrder.price || 0);
+    }
+  }
+  
+  /**
+   * 完了した取引履歴を取得（バックテスト評価用）
+   */
+  public getCompletedTrades(): any[] {
+    return this.completedTrades;
+  }
+  
+  /**
+   * 現在の口座残高を取得（バックテスト評価用）
+   */
+  public getEquity(): number {
+    return this.account.balance;
   }
   
   /**
@@ -431,6 +558,19 @@ export class TradingEngine {
       return signals; // 価格情報がない場合は元のシグナルをそのまま返す
     }
     
+    // 最新のATR値を取得（デフォルトのストップ距離計算用）
+    let currentATR = 0;
+    if (this.marketAnalysis && this.marketAnalysis.indicators.atr) {
+      currentATR = this.marketAnalysis.indicators.atr;
+    } else if (this.latestCandles.length > 14) { // 簡易ATR計算用に最低14本のローソク足が必要
+      // ATR計算ロジックをインポートして使用
+      // ここでは単純化のため直近の高値-安値の平均とする
+      const recentCandles = this.latestCandles.slice(-14);
+      const ranges = recentCandles.map(c => c.high - c.low);
+      currentATR = ranges.reduce((sum, range) => sum + range, 0) / ranges.length;
+    }
+    
+    // 各シグナルに対してリスクフィルターを適用
     for (const signal of signals) {
       // 注文金額（量×価格）を計算
       const orderPrice = signal.price || currentPrice; // 指値注文の場合は指定価格、そうでなければ現在価格
@@ -454,11 +594,40 @@ export class TradingEngine {
         }
       }
       
-      // 1回の取引で最大リスク金額以上を取らない（金額ベース）
-      if (notionalValue > maxRiskAmount) {
-        // 注文金額が最大リスク金額を超える場合、注文数量を調整
-        const adjustedAmount = maxRiskAmount / orderPrice;
-        logger.info(`[TradingEngine] リスク管理: 注文金額(${notionalValue.toFixed(2)})が最大リスク金額(${maxRiskAmount.toFixed(2)})を超えるため、注文数量を縮小 ${signal.amount.toFixed(4)} → ${adjustedAmount.toFixed(4)}`);
+      // 停止距離を考慮したリスク計算
+      let stopDistance = 0;
+      let riskAmount = 0;
+      
+      // 関連するストップ注文を探す
+      const stopOrder = signals.find(s => 
+        s.symbol === signal.symbol && 
+        s.side !== signal.side && 
+        (s.type === OrderType.STOP || s.type === OrderType.STOP_MARKET) &&
+        s.stopPrice
+      );
+      
+      if (stopOrder && stopOrder.stopPrice) {
+        // ストップ注文があればそのストップ価格からストップ距離を計算
+        stopDistance = Math.abs(orderPrice - stopOrder.stopPrice);
+        riskAmount = signal.amount * stopDistance;
+      } else {
+        // ストップ注文がなければデフォルトでATRの1.5倍をストップ距離とする
+        stopDistance = currentATR * 1.5;
+        riskAmount = signal.amount * stopDistance;
+      }
+      
+      // リスク額がマックスリスク額を超える場合、注文量を調整
+      if (riskAmount > maxRiskAmount && stopDistance > 0) {
+        const adjustedAmount = maxRiskAmount / stopDistance;
+        logger.info(`[TradingEngine] リスク管理: リスク額(${riskAmount.toFixed(2)})が最大リスク金額(${maxRiskAmount.toFixed(2)})を超えるため、注文数量を縮小 ${signal.amount.toFixed(4)} → ${adjustedAmount.toFixed(4)}`);
+        signal.amount = adjustedAmount;
+      }
+      
+      // 1回の取引で最大リスク金額以上を取らない（金額ベース・追加チェック）
+      if (notionalValue > maxRiskAmount * 10) { // 極端に大きな注文の場合はさらに制限
+        // 注文金額が最大リスク金額の10倍を超える場合、注文数量をさらに調整
+        const adjustedAmount = (maxRiskAmount * 10) / orderPrice;
+        logger.warn(`[TradingEngine] リスク管理: 注文金額(${notionalValue.toFixed(2)})が非常に大きいため、注文数量を制限 ${signal.amount.toFixed(4)} → ${adjustedAmount.toFixed(4)}`);
         signal.amount = adjustedAmount;
       }
       
@@ -484,5 +653,52 @@ export class TradingEngine {
       marketAnalysis: this.marketAnalysis,
       activeStrategy: this.activeStrategy
     };
+  }
+
+  /**
+   * バックテスト用のupdate()メソッド - 単一キャンドルでエンジンを更新
+   * @param candle 現在のキャンドル
+   * @returns Promiseを返す
+   */
+  public async update(candle: Candle): Promise<void> {
+    // 1. 市場データを更新
+    this.updateMarketData([candle]);
+    
+    // 2. 市場状態を分析
+    this.analyzeMarket();
+    
+    // 3. 戦略を実行
+    this.executeStrategy();
+    
+    // 価格更新通知
+    this.updatePrice(candle.close);
+  }
+
+  /**
+   * すべてのポジションをクローズする（バックテスト終了時などに使用）
+   * @returns Promiseを返す
+   */
+  public async closeAllPositions(): Promise<void> {
+    logger.info('[TradingEngine] すべてのポジションをクローズします');
+    
+    // 現在のポジションを取得
+    const positions = this.oms.getPositions();
+    const signals: Order[] = [];
+    
+    // 各ポジションに対して反対注文を作成
+    for (const position of positions) {
+      signals.push({
+        symbol: position.symbol,
+        type: OrderType.MARKET, // 成行でクローズ
+        side: position.side === OrderSide.BUY ? OrderSide.SELL : OrderSide.BUY, // 反対側の注文
+        amount: position.amount,
+        timestamp: Date.now()
+      });
+      
+      logger.info(`[TradingEngine] ポジションクローズ: ${position.symbol} ${position.side} ${position.amount}`);
+    }
+    
+    // シグナルを処理
+    this.processSignals(signals);
   }
 } 

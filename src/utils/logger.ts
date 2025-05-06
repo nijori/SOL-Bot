@@ -1,11 +1,18 @@
 import winston from 'winston';
-import { MONITORING_PARAMETERS } from '../config/parameters';
+// 循環参照を避けるため、parametersからの直接インポートを削除
+// import { MONITORING_PARAMETERS } from '../config/parameters';
+
+// 環境変数からログレベルを取得するか、デフォルト値を使用
+const logLevel = process.env.LOG_LEVEL || 'info';
+
+// スモークテストモードを検出
+const isSmokeTest = process.argv.some(arg => arg.includes('smoke-test'));
 
 /**
  * ロギング用のウィンストン・ロガーを設定
  */
 const logger = winston.createLogger({
-  level: MONITORING_PARAMETERS.LOG_LEVEL,
+  level: isSmokeTest ? 'warn' : logLevel, // スモークテスト中は警告以上のみ表示
   format: winston.format.combine(
     winston.format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss'

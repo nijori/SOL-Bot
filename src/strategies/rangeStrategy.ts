@@ -9,6 +9,13 @@ import {
   StrategyType 
 } from '../core/types';
 import { RANGE_PARAMETERS, MARKET_PARAMETERS } from '../config/parameters';
+import { parameterService } from '../config/parameterService';
+
+// グリッド関連のパラメータをYAML設定から取得
+const GRID_ATR_MULTIPLIER = parameterService.get<number>('rangeStrategy.gridAtrMultiplier', 0.6);
+const RANGE_MULTIPLIER = parameterService.get<number>('rangeStrategy.rangeMultiplier', 0.9);
+const MIN_SPREAD_PERCENTAGE = parameterService.get<number>('rangeStrategy.minSpreadPercentage', 0.3);
+const ESCAPE_THRESHOLD = parameterService.get<number>('rangeStrategy.escapeThreshold', 0.02);
 
 /**
  * 特定期間の高値と安値を計算
@@ -147,18 +154,18 @@ function createIcebergOrders(
  * グリッドレベル数を動的に計算
  * @param range レンジの幅
  * @param atrPercent ATRパーセンテージ
+ * @param currentPrice 現在の価格
  * @returns グリッドレベル数
  */
-function calculateDynamicGridLevels(range: number, atrPercent: number): number {
-  // ATR%がすでにパーセント表記（100倍）になっているため、適切に扱う
-  // GRID_WIDTH_MULTIPLIERはそのままの値（0.6）として使用する
-  // atrPercentが6.0%の場合、0.6 * 6.0 = 3.6%の幅でグリッドを作成
-  const levelWidth = range * (atrPercent * RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER / 100);
+function calculateDynamicGridLevels(range: number, atrPercent: number, currentPrice: number): number {
+  // ATR%がすでにパーセント表記（100倍）になっているため、100で割る
+  // 正しいグリッド幅計算式に修正：ATR%を小数に変換してから計算
+  const levelWidth = (atrPercent/100) * GRID_ATR_MULTIPLIER * currentPrice;
   
   // デバッグログ
   console.log(`[RangeStrategy] グリッド計算: range=${range}, atrPercent=${atrPercent}%, ` +
-              `multiplier=${RANGE_PARAMETERS.GRID_WIDTH_MULTIPLIER}, levelWidth=${levelWidth}, ` +
-              `levels=${Math.ceil(range / levelWidth)}`);
+              `multiplier=${GRID_ATR_MULTIPLIER}, currentPrice=${currentPrice}, ` +
+              `levelWidth=${levelWidth}, levels=${Math.ceil(range / levelWidth)}`);
   
   // 最小レベル数と最大レベル数の間の値を返す
   const levels = Math.ceil(range / levelWidth);
@@ -222,8 +229,8 @@ export function executeRangeStrategy(
   // VWAPを計算（直近20本のローソク足を使用）
   const vwap = calculateVWAP(candles, 20);
   
-  // 動的にグリッドレベル数を計算
-  const gridLevelCount = calculateDynamicGridLevels(rangeWidth, atrPercent);
+  // 動的にグリッドレベル数を計算 - 現在価格をパラメータとして渡す
+  const gridLevelCount = calculateDynamicGridLevels(rangeWidth, atrPercent, currentPrice);
   
   // グリッドレベルを計算
   const gridLevels = calculateGridLevels(range.high, range.low, gridLevelCount);
