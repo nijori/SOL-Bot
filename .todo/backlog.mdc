@@ -159,14 +159,14 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : バックテスト実行時のログ出力を抑制する--quietオプションを追加し、TradingEngine含め全機能に対応
 
-- [ ] ALG-034: トレンドフォローエンジン実装
+- [x] ALG-034: トレンドフォローエンジン実装
       - 📅 Due        : 2026-01-20
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : ALG-033
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic-SARによる追従、トレイリングストップの実装
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic SARによる追従、トレイリングストップの実装完了
 
 - [ ] ALG-035: レンジ/ミーンリバースエンジン実装
       - 📅 Due        : 2026-01-25

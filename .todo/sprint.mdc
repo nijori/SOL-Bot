@@ -5,28 +5,23 @@ alwaysApply: false
 ---
 # SOL-Bot スプリント
 
-## 🗓 スプリント進捗 (1月8日現在)
+## 🗓 スプリント進捗 (1月15日現在)
 
 ### 今週のスプリント計画と優先順位:
-現在W1スプリントが進行中です。優先順位は以下の通りです：
+現在W3スプリントが進行中です。優先順位は以下の通りです：
 
-1. DAT-009: マルチタイムフレームデータ取得の実装 - 1m、15m、1h、1dデータのParquet保存 (100% 完了)
-2. CICD-002: TodoフォーマットのGitHub Actionsチェック - PR時のTodo検証 (100% 完了)
-3. SEC-001: API Key Secret Manager対応 - パラメータストア抽象化 (100% 完了)
-4. ALG-033: レジーム判定ロジックの実装強化 - MA-Slope、ATR%、Price Locationの判定改善 (0% 完了)
-5. PERF-002: バックテスト実行の--quietモード追加 - CI実行時の大量ログ抑制 (0% 完了)
+1. ALG-034: トレンドフォローエンジン実装 - Donchianブレイク+ADXによるエントリー (100% 完了)
+2. ALG-035: レンジ/ミーンリバースエンジン実装 - グリッド注文 (0% 完了)
+3. INF-018: 監視ダッシュボードの構築 - Prometheus+Grafana (0% 完了)
 
 ### 進行中のタスク状況:
-* DAT-009: マルチタイムフレームデータ取得機能の実装完了
-* CICD-002: TodoフォーマットのGitHub Actions検証ワークフロー実装完了
-* SEC-001: AWS Parameter Store、GCP Secret Manager、環境変数、ファイルなどに対応した抽象Secret Managerを実装完了
-* ALG-033: レジーム判定の判定精度強化設計中
-* PERF-002: バックテスト実行の--quietモード実装に着手予定
+* ALG-034: トレンドフォロー戦略エンジン実装完了 - Donchianブレイク+ADX、Parabolic SAR、トレイリングストップを組み合わせたアルゴリズムを実装
+* ALG-035: レンジ戦略の設計を開始予定
+* INF-018: 監視ダッシュボードの要件定義を開始予定
 
 ### 前回スプリント完了タスク:
-* PERF-001: EMA/ATR計算のインクリメンタル化 - 全履歴再計算方式から増分計算方式に変更し、パフォーマンス10倍改善
-* INF-007: 本番用Dockerfileの作成 - マルチステージビルド、non-rootユーザー、最小依存関係を実装
-* INF-005: 本番環境の構築準備 - EC2セットアップスクリプト、デプロイスクリプト、監視スクリプトの実装完了
+* ALG-033: レジーム判定ロジックの実装強化 - MA-Slope、ATR%、ADX、Price Locationの判定アルゴリズムを改善
+* PERF-002: バックテスト実行の--quietモード追加 - CI実行時のログ出力抑制機能を実装
 
 ## 🗓 2026-W01 スプリント計画 (1月1日〜1月7日)
 
@@ -251,6 +246,36 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+
+## 🗓 2026-W03 スプリント計画 (1月15日〜1月21日)
+
+- [x] ALG-034: トレンドフォローエンジン実装
+      - 📅 Due        : 2026-01-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-033
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic-SARによる追従、トレイリングストップの実装
+
+- [ ] ALG-035: レンジ/ミーンリバースエンジン実装
+      - 📅 Due        : 2026-01-25
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-033
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装
+
+- [ ] INF-018: 監視ダッシュボードの構築
+      - 📅 Due        : 2026-02-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
+
+
 
 
 
