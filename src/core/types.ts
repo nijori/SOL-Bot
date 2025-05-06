@@ -85,6 +85,8 @@ export interface Order {
   type: OrderType;        // 注文タイプ
   side: OrderSide;        // 買い/売り
   price?: number | undefined;    // 価格（成行注文の場合はundefined）
+                          // 指値注文では必須、成行注文では省略またはundefined
+                          // ccxt互換性のため、null値は使用せずundefinedのみ使用する
   amount: number;         // 数量
   status?: OrderStatus;   // 注文ステータス
   timestamp?: number;     // タイムスタンプ

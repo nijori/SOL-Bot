@@ -18,6 +18,8 @@ import { RISK_PARAMETERS } from '../config/parameters';
 import logger from '../utils/logger';
 import { OrderManagementSystem } from './orderManagementSystem';
 import { parameterService } from '../config/parameterService';
+import { syncOrderForSimulateFill } from '../utils/orderUtils';
+import metricsService from '../utils/metrics';
 
 /**
  * TradingEngine用のオプションインターフェース
@@ -622,13 +624,20 @@ export class TradingEngine {
         this.applySlippageAndCommission(order);
       }
       
-      // 注文を送信
-      this.oms.createOrder(order);
-      logger.info(`[TradingEngine] 注文送信: ${order.id} - ${order.side} ${order.amount} @ ${order.price || 'MARKET'}`);
+      // 注文を送信し、IDを取得
+      const orderId = this.oms.createOrder(order);
+      logger.info(`[TradingEngine] 注文送信: ${orderId} - ${order.side} ${order.amount} @ ${order.price || 'MARKET'}`);
       
       if (this.isBacktest) {
         // バックテストでは約定を即時シミュレート
-        this.simulateFill(order);
+        // 注文ID情報を更新してからシミュレーション
+        const updatedOrder = this.oms.getOrders().find(o => o.id === orderId);
+        if (updatedOrder) {
+          this.simulateFill(updatedOrder);
+        } else {
+          // 注文が見つからない場合は元の注文を使用
+          this.simulateFill(order);
+        }
       }
     }
   }
@@ -680,11 +689,11 @@ export class TradingEngine {
       return;
     }
     
-    // 約定処理
+    // OrderStatusの型を確実に適用
     const filledOrder = { 
       ...order, 
       price: fillPrice, // 明示的に価格を設定
-      status: 'FILLED' as OrderStatus
+      status: OrderStatus.FILLED
     };
     
     // 注文金額を計算
@@ -989,5 +998,69 @@ export class TradingEngine {
     
     // シグナルを処理
     this.processSignals(signals);
+  }
+
+  /**
+   * ポジションおよび残高の更新
+   * @param order 約定した注文
+   * @param fill 約定情報
+   */
+  private updatePositionAndBalance(order: Order, fill: Fill): void {
+    // 既存のコード...
+    // ... existing code ...
+    
+    // メトリクスの更新
+    metricsService.updateMetrics.updateBalance(this.account.balance);
+    
+    // 勝率、ドローダウン、シャープレシオの計算と更新（指標から取得）
+    if (this.performanceStats) {
+      const winRate = this.performanceStats.winRate || 0;
+      const maxDrawdown = this.performanceStats.maxDrawdown || 0;
+      const sharpeRatio = this.performanceStats.sharpeRatio || 0;
+      
+      metricsService.updateMetrics.updatePerformanceMetrics(
+        winRate,
+        maxDrawdown,
+        sharpeRatio
+      );
+    }
+    
+    // 取引履歴を記録
+    metricsService.updateMetrics.recordTrade(fill.amount);
+  }
+
+  /**
+   * 日次パフォーマンスの計算と更新
+   */
+  private updateDailyPerformance(): void {
+    if (!this.initialBalance || !this.account) {
+      return;
+    }
+    
+    const currentBalance = this.account.balance;
+    const dailyPnl = currentBalance - this.initialBalance;
+    const dailyPnlPercentage = dailyPnl / this.initialBalance;
+    
+    // メトリクスに日次損益を更新
+    metricsService.updateMetrics.updateDailyPnl(dailyPnl, dailyPnlPercentage);
+    
+    // ログ出力
+    logger.info(`[TradingEngine] 日次パフォーマンス更新: PnL=${dailyPnl.toFixed(2)} (${(dailyPnlPercentage * 100).toFixed(2)}%)`);
+    
+    // 日次損失制限チェック
+    if (dailyPnlPercentage < -0.05) { // 5%以上の損失で停止
+      logger.warn(`[TradingEngine] 日次損失制限に達しました。取引を停止します: ${(dailyPnlPercentage * 100).toFixed(2)}%`);
+      this.stop();
+    }
+  }
+
+  /**
+   * エラー記録とメトリクス更新
+   * @param error エラーオブジェクト
+   * @param errorType エラーの種類
+   */
+  private logErrorAndUpdateMetrics(error: Error, errorType: string): void {
+    logger.error(`[TradingEngine] ${errorType}エラー: ${error.message}`);
+    metricsService.updateMetrics.recordError(errorType);
   }
 } 

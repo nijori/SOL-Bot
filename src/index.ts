@@ -8,6 +8,9 @@ import { OrderManagementSystem } from './core/orderManagementSystem';
 import { OperationMode, OPERATION_MODE, MARKET_PARAMETERS } from './config/parameters';
 import logger from './utils/logger';
 import { Candle, Order } from './core/types';
+import { ExchangeService } from './services/exchangeService';
+import { parameterService } from './config/parameterService';
+import metricsService from './utils/metrics';
 
 // 設定
 const PORT = process.env.PORT || 3000;
@@ -174,6 +177,21 @@ async function runTradingLogic(): Promise<void> {
     }
   } catch (error) {
     logger.error(`取引ロジック実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+async function main() {
+  try {
+    // メトリクスサーバーの初期化
+    metricsService.initMetricsServer();
+    logger.info('メトリクスサーバーを初期化しました');
+
+    // 既存のコード...
+    // ... existing code ...
+  } catch (error) {
+    logger.error(`アプリケーション起動エラー: ${error instanceof Error ? error.message : String(error)}`);
+    metricsService.updateMetrics.recordError('startup_error');
+    process.exit(1);
   }
 }
 

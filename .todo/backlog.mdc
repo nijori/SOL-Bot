@@ -177,61 +177,61 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装完了
 
-- [ ] INF-018: 監視ダッシュボードの構築
+- [x] INF-018: 監視ダッシュボードの構築
       - 📅 Due        : 2026-02-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Prometheus+GrafanaでCPU/Memのリソース監視ダッシュボード＋アラーティング＋Discordへの通知。メトリクスエクスポーターを実装し、システムリソースとトレーディングパフォーマンスの監視が可能に。
 
-- [ ] PERF-003: バックテスト処理速度とメモリ使用量の最適化
+- [x] PERF-003: バックテスト処理速度とメモリ使用量の最適化
       - 📅 Due        : 2026-02-07
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : backtest ラン 1M rows で heap 使用量計測、--max-old-space-size 調整
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : メモリ使用量モニタリングクラスを実装し、バッチ処理による最適化、GC間隔設定などを追加。大量データでのバックテストを効率化。
 
-- [ ] ALG-036: BacktestRunner の重複 trade 集計修正
+- [x] ALG-036: BacktestRunner の重複 trade 集計修正
       - 📅 Due        : 2026-01-29
       - 👤 Owner      : @assistant
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : lastTradeIndex を保持して新規分のみ metrics へ、timestamp も昇順 sort
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : lastTradeIndex追跡とユニークIDの付与による重複防止を実装。processedTradeIdsセットによる重複検出も追加。スプリントに移動済み。
 
-- [ ] REF-018: 二重 require / console.log ガード除去
+- [x] REF-018: 二重 require / console.log ガード除去
       - 📅 Due        : 2026-01-29
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : backtestRunner.ts 内部の fs/path shadow, quiet ログ漏れ
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : backtestRunner.ts内のconsole.logをlogger.*に統一し、quietモードチェックを強化。スプリントに移動済み。
 
-- [ ] RISK-004: ATR==0 フォールバック stopDistance 実装
+- [x] RISK-004: ATR==0 フォールバック stopDistance 実装
       - 📅 Due        : 2026-02-01
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ATR 未計算時は stopDistance = price * 0.01 など安全サイドの fallback
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ATR未計算時のフォールバック実装が完了し、スプリントに移動。IncrementalATRクラスと各戦略にフォールバック機能を追加
 
-- [ ] OMS-013: createOrder → simulateFill 時の ID / 状態同期
+- [x] OMS-013: createOrder → simulateFill 時の ID / 状態同期
       - 📅 Due        : 2026-02-03
       - 👤 Owner      : @assistant
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : createOrder 返り値を使い、simulateFill() に渡す；または createOrder の戻り Order を返すように修正
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : createOrderを修正してIDを返すように変更し、TradingEngineのprocessSignalsメソッドでsimulatedFillにIDを渡すよう実装。OrderUtilsモジュールで注文状態の同期とマッピングを実装。
 
-- [ ] CONF-005: ParameterService env 置換時の型キャスト
+- [x] CONF-005: ParameterService env 置換時の型キャスト
       - 📅 Due        : 2026-02-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : processEnvVariables で Number() or parseFloat 自動キャスト、boolean も
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : processEnvVariables で環境変数を自動的に適切な型(number/boolean/string)に変換する機能を実装。${VAR:number:123}のような型ヒント構文もサポート。
 
 - [x] INF-019: docker-compose node_modules を named volume 化
       - 📅 Due        : 2026-02-05
@@ -436,3 +436,107 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。デプロイスクリプト、監視スクリプト、初期セットアップスクリプトを実装完了。
+
+## 優先度高
+
+- [x] API-021: 成行注文時のprice=undefined問題
+      - 📅 Due        : 2024-02-09
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Bitget/Bybitで成行注文にprice=undefinedを渡すとエラーになる問題を解決。Order.price型をnumber | undefinedに統一し、特殊な型対応と関数実装により解決しました。
+
+- [x] API-023: OrderTypeとccxtマッピング
+      - 📅 Due        : 2024-02-09
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : OrderType enumとccxtの注文タイプ文字列の相互変換に対応する実装とテスト。ORDER_TYPE_MAPPINGとCCXT_TO_ORDER_TYPE_MAPPINGテーブルを実装し、変換関数を作成。fetchOrderAndConvert関数も追加。
+
+- [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
+      - 📅 Due        : 2024-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータを一元管理。parameters.yamlのriskセクションに追加完了。
+
+- [x] RISK-005: ポジションサイジングロジックの共通化
+      - 📅 Due        : 2024-02-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 各戦略で実装されていたcalculateRiskBasedPositionSize関数をsrc/utils/positionSizing.tsに共通化。すべての戦略から参照するよう変更完了。
+
+## 優先度中
+
+- [ ] PERF-001: 指標計算の最適化
+      - 📅 Due        : 2024-02-25
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : インジケーター計算のインクリメンタル実装を全指標に拡張、キャッシュ戦略の最適化
+
+- [ ] OPT-002: ベイズ最適化メトリクス拡張
+      - 📅 Due        : 2024-03-01
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Optuna最適化の評価メトリクスをカスタマイズ可能に変更、ロス関数をパラメータとして渡せるよう拡張
+
+## 優先度低
+
+- [ ] INF-021: CI/CDパイプラインの拡張
+      - 📅 Due        : 2024-03-15
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : GitHub Actionsによるテスト自動化と本番環境へのデプロイ
+
+- [ ] DOC-007: JSDOCコメント完全対応
+      - 📅 Due        : 2024-03-20
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 全コンポーネントのJSDocコメントを統一フォーマットで整理（ライブラリ出力にも対応）
+
+- [x] DATA-011: Candle.timestamp型統一
+      - 📅 Due        : 2024-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Candle.timestampの型をnumber | string統一、型ガード関数と変換関数を実装、各呼び出し箇所を対応
+
+## 新規タスク
+
+- [ ] PERF-005: OrderTypeUtilsのキャッシュ最適化
+      - 📅 Due        : 2026-02-20
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 頻繁に使用される変換関数の結果をキャッシュし、パフォーマンスを向上。特にisMarketOrder等の判定関数の高速化。
+
+- [ ] TYPE-002: TypeScriptのstrictNullChecks対応強化
+      - 📅 Due        : 2026-02-25
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : tsconfig.jsonでstrictNullChecksを有効化し、nullとundefinedのチェックを厳密化。コードベース全体での型安全性強化。
+
+- [ ] DOCS-008: ユーティリティ関数のJSDoc強化とAPIドキュメント
+      - 📅 Due        : 2026-03-01
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 新規追加されたユーティリティ関数のJSDocを強化し、読みやすいAPIドキュメントを生成。例を含む使用方法の詳細解説も追加。

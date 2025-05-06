@@ -71,12 +71,76 @@ export class ParameterService {
   /**
    * オブジェクト内の環境変数プレースホルダーを置換する
    * ${ENV_VAR:-defaultValue} 形式をサポート
+   * 型ヒントも処理: ${ENV_VAR:number:123} - 数値として処理
+   *                ${ENV_VAR:boolean:true} - 真偽値として処理
+   *                ${ENV_VAR:string:default} - 文字列として処理
    */
   private processEnvVariables(obj: any): any {
     if (typeof obj === 'string') {
       // 環境変数プレースホルダーを検出して置換
-      return obj.replace(/\${([^:-]+)(?:-([^}]+))?}/g, (match, envVar, defaultValue) => {
-        return process.env[envVar] || defaultValue || '';
+      // 新しい正規表現パターンで型ヒントをサポート
+      return obj.replace(/\${([^:}]+)(?::([^:}]+))?(?::([^}]+))?}/g, (match, envVar, typeHint, defaultValue) => {
+        const envValue = process.env[envVar];
+        
+        // 環境変数が存在しない場合はデフォルト値を使用
+        if (envValue === undefined) {
+          return defaultValue || '';
+        }
+        
+        // 型ヒントがある場合は適切な型に変換
+        if (typeHint) {
+          try {
+            switch (typeHint.toLowerCase()) {
+              case 'number':
+                // 数値に変換
+                const numValue = Number(envValue);
+                // 有効な数値であることを確認
+                if (!isNaN(numValue)) {
+                  return numValue;
+                }
+                // 変換できなければデフォルト値を数値として返す
+                return defaultValue ? Number(defaultValue) : 0;
+                
+              case 'boolean':
+                // 真偽値に変換 (true、yes、1、onなどを真として扱う)
+                const boolStr = envValue.toLowerCase();
+                if (['true', 'yes', '1', 'on', 'y'].includes(boolStr)) {
+                  return true;
+                }
+                if (['false', 'no', '0', 'off', 'n'].includes(boolStr)) {
+                  return false;
+                }
+                // 変換できなければデフォルト値を真偽値として返す
+                return defaultValue ? ['true', 'yes', '1', 'on', 'y'].includes(defaultValue.toLowerCase()) : false;
+                
+              case 'string':
+                // 明示的に文字列として扱う
+                return envValue;
+                
+              default:
+                // 不明な型ヒントの場合は文字列として処理
+                logger.warn(`未知の型ヒント '${typeHint}' が指定されました。文字列として処理します。`);
+                return envValue;
+            }
+          } catch (error) {
+            logger.error(`環境変数 ${envVar} の型変換中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+            return defaultValue || envValue;
+          }
+        }
+        
+        // 型ヒントがない場合は自動的に型を推論
+        // 数値として解析可能かチェック
+        if (/^-?\d+(\.\d+)?$/.test(envValue)) {
+          return Number(envValue);
+        }
+        
+        // 真偽値として解析可能かチェック
+        if (['true', 'false'].includes(envValue.toLowerCase())) {
+          return envValue.toLowerCase() === 'true';
+        }
+        
+        // それ以外は文字列として扱う
+        return envValue;
       });
     } else if (Array.isArray(obj)) {
       // 配列の各要素を再帰的に処理

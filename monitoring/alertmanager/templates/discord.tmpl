@@ -1,0 +1,25 @@
+{{ define "discord.default.title" }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}
+{{ end }}
+
+{{ define "discord.default.message" }}
+{{ if gt (len .Alerts.Firing) 0 }}
+**アラート発生**
+{{ range .Alerts.Firing }}
+**重要度:** {{ .Labels.severity }}
+**説明:** {{ .Annotations.description }}
+**発生時間:** {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+**対象:** {{ .Labels.instance }}
+{{ end }}
+{{ end }}
+
+{{ if gt (len .Alerts.Resolved) 0 }}
+**アラート解決**
+{{ range .Alerts.Resolved }}
+**重要度:** {{ .Labels.severity }}
+**説明:** {{ .Annotations.description }}
+**解決時間:** {{ .EndsAt.Format "2006-01-02 15:04:05" }}
+**対象:** {{ .Labels.instance }}
+{{ end }}
+{{ end }}
+{{ end }} 

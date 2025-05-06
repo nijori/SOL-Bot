@@ -6,8 +6,9 @@
  */
 
 import ccxt from 'ccxt';
-import { Candle, Order, OrderSide, OrderType } from '../core/types';
+import { Candle, Order, OrderSide, OrderType, OrderStatus } from '../core/types';
 import logger from '../utils/logger';
+import { orderTypeToCcxt, ccxtToOrderType, ORDER_TYPE_TO_CCXT_MAPPING, CCXT_TO_ORDER_TYPE_MAPPING } from '../utils/orderTypeUtils';
 
 /**
  * 注文オプションのインターフェース
@@ -44,13 +45,15 @@ export interface ExchangeError extends Error {
  * OrderType enumとCCXT注文タイプのマッピング
  * 取引所ごとに異なる注文タイプの文字列表現を正規化する
  */
-const ORDER_TYPE_MAPPING: Record<OrderType, string> = {
-  [OrderType.MARKET]: 'market',
-  [OrderType.LIMIT]: 'limit',
-  [OrderType.STOP]: 'stop',
-  [OrderType.STOP_LIMIT]: 'stop_limit',  // 一部の取引所では 'STOP_LIMIT' や他の表現が使われる
-  [OrderType.STOP_MARKET]: 'stop_market' // 一部の取引所では 'STOP_MARKET' や他の表現が使われる
-};
+// orderTypeUtils.tsで定義されたマッピングを使用するため削除
+// const ORDER_TYPE_MAPPING = { ... }
+
+/**
+ * CCXT注文タイプ文字列からOrderType enumへの逆マッピング
+ * 取引所から返された文字列の注文タイプをシステム内部のEnum値に変換
+ */
+// orderTypeUtils.tsで定義されたマッピングを使用するため削除
+// const CCXT_TO_ORDER_TYPE_MAPPING = { ... }
 
 /**
  * 取引所サービスクラス
@@ -228,7 +231,7 @@ export class ExchangeService {
 
     try {
       // OrderType enumとCCXTの注文タイプをマッピング
-      const ccxtOrderType = this.mapOrderTypeToCCXT(order.type);
+      const ccxtOrderType = orderTypeToCcxt(order.type);
       const side = order.side.toLowerCase();
       const amount = order.amount;
       let price = order.price;
@@ -236,7 +239,7 @@ export class ExchangeService {
 
       const params: Record<string, unknown> = {};
       
-      // 成行系注文の場合、priceパラメータを明示的にundefinedに設定または削除
+      // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
       if (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) {
         // 成行注文の場合はpriceをundefinedに設定（ccxtの型定義に合わせる）
         price = undefined;
@@ -269,42 +272,52 @@ export class ExchangeService {
         }
       }
 
-      const result = await this.fetchWithExponentialBackoff(() => {
-        // 取引所がBitgetまたはBybitの場合、成行注文時は特別な処理が必要
-        if (price === undefined && 
-            (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) &&
-            (this.exchange.id === 'bitget' || this.exchange.id === 'bybit')) {
-          // 成行注文のパラメータに明示的にpriceキーがないことを確認する
-          const marketOrderParams = { ...params };
-          logger.debug(`[ExchangeService] ${this.exchange.id}向け成行注文特殊処理: priceパラメータ省略`);
-          
-          // TS互換性のため型アサーションを使用し、any型の中間関数経由で呼び出す
-          const createMarketOrder = (
-            symbol: string, 
-            type: string, 
-            side: string, 
-            amount: number, 
-            params: any
-          ) => {
-            // @ts-ignore: ccxtの型定義問題を回避するためにignore
-            return this.exchange.createOrder(symbol, type, side, amount, undefined, params);
-          };
-          
-          return createMarketOrder(symbol, ccxtOrderType, side, amount, marketOrderParams);
-        }
+      // 全取引所で一貫した成行注文処理を行う
+      if (price === undefined &&
+          (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET'))) {
+        // 成行注文のパラメータを準備
+        const marketOrderParams = { ...params };
         
-        // 通常の処理
-        return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, price === null ? undefined : price, params);
-      });
-
-      logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
-      
-      // resultがnullでなく、かつidプロパティを持つことを確認
-      if (result && typeof result === 'object' && 'id' in result && result.id) {
-        return result.id;
+        // 取引所ごとの特殊処理を適用
+        const result = await this.fetchWithExponentialBackoff(() => {
+          logger.debug(`[ExchangeService] 成行注文実行: ${symbol} ${side} ${amount}`);
+          
+          // 取引所がBitgetまたはBybitの場合、特別な処理が必要
+          if (this.exchange.id === 'bitget' || this.exchange.id === 'bybit') {
+            logger.debug(`[ExchangeService] ${this.exchange.id}向け成行注文特殊処理: priceパラメータ省略`);
+            
+            // @ts-ignore: ccxtの型定義問題を回避
+            return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, undefined, marketOrderParams);
+          }
+          
+          // 標準的な取引所の場合
+          return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, undefined, marketOrderParams);
+        });
+        
+        logger.info(`成行注文実行: ${side} ${amount} ${symbol}, オプション: ${JSON.stringify(marketOrderParams)}`);
+        
+        // resultがnullでなく、かつidプロパティを持つことを確認
+        if (result && typeof result === 'object' && 'id' in result && result.id) {
+          return result.id;
+        } else {
+          logger.warn('注文は成功しましたが、注文IDが取得できませんでした');
+          return null;
+        }
       } else {
-        logger.warn('注文は成功しましたが、注文IDが取得できませんでした');
-        return null;
+        // 指値注文など、価格が必要な注文の処理
+        const result = await this.fetchWithExponentialBackoff(() => {
+          return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, price, params);
+        });
+        
+        logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
+        
+        // resultがnullでなく、かつidプロパティを持つことを確認
+        if (result && typeof result === 'object' && 'id' in result && result.id) {
+          return result.id;
+        } else {
+          logger.warn('注文は成功しましたが、注文IDが取得できませんでした');
+          return null;
+        }
       }
     } catch (error) {
       logger.error(`注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
@@ -318,13 +331,18 @@ export class ExchangeService {
    * @returns CCXTで使用する注文タイプ文字列
    */
   private mapOrderTypeToCCXT(orderType: OrderType): string {
-    // マッピングテーブルに存在する場合はそれを使用
-    if (orderType in ORDER_TYPE_MAPPING) {
-      return ORDER_TYPE_MAPPING[orderType];
-    }
-    
-    // 存在しない場合は小文字に変換（後方互換性）
-    return orderType.toLowerCase();
+    // 新しいユーティリティ関数を使用
+    return orderTypeToCcxt(orderType);
+  }
+
+  /**
+   * CCXTの注文タイプ文字列からOrderTypeに変換する
+   * @param ccxtOrderType CCXT注文タイプ文字列
+   * @returns OrderType enum値
+   */
+  private mapCCXTToOrderType(ccxtOrderType: string): OrderType {
+    // 新しいユーティリティ関数を使用
+    return ccxtToOrderType(ccxtOrderType);
   }
 
   /**
@@ -493,6 +511,68 @@ export class ExchangeService {
     } catch (error) {
       logger.error(`注文情報取得エラー: ${error instanceof Error ? error.message : String(error)}`);
       return null;
+    }
+  }
+
+  /**
+   * 注文情報を取得し、システム内部のOrder型に変換する
+   * @param orderId 取引所の注文ID
+   * @param symbol 銘柄（例: 'SOL/USDT'）
+   * @returns システム内部のOrder型に変換された注文情報、またはnull
+   */
+  public async fetchOrderAndConvert(orderId: string, symbol: string): Promise<Order | null> {
+    const ccxtOrder = await this.fetchOrder(orderId, symbol);
+    if (!ccxtOrder) {
+      return null;
+    }
+
+    // CCXT注文をシステム内部のOrder型に変換
+    return this.convertCcxtOrderToInternalOrder(ccxtOrder);
+  }
+
+  /**
+   * CCXT注文オブジェクトをシステム内部のOrder型に変換する
+   * @param ccxtOrder CCXT注文オブジェクト
+   * @returns システム内部のOrder型
+   */
+  private convertCcxtOrderToInternalOrder(ccxtOrder: ccxt.Order): Order {
+    // 注文タイプが存在する場合は変換、ない場合はデフォルトでLIMIT
+    const orderType = ccxtOrder.type 
+      ? this.mapCCXTToOrderType(ccxtOrder.type) 
+      : OrderType.LIMIT;
+
+    return {
+      exchangeOrderId: ccxtOrder.id,
+      symbol: ccxtOrder.symbol,
+      type: orderType,
+      side: ccxtOrder.side as OrderSide,
+      price: ccxtOrder.price,
+      amount: ccxtOrder.amount,
+      status: this.mapCcxtStatusToOrderStatus(ccxtOrder.status),
+      timestamp: ccxtOrder.timestamp
+    };
+  }
+
+  /**
+   * CCXT注文ステータスをOrderStatusに変換する
+   * @param ccxtStatus CCXT注文ステータス
+   * @returns OrderStatus
+   */
+  private mapCcxtStatusToOrderStatus(ccxtStatus?: string): OrderStatus {
+    if (!ccxtStatus) return OrderStatus.OPEN;
+
+    switch (ccxtStatus.toLowerCase()) {
+      case 'open':
+        return OrderStatus.PLACED;
+      case 'closed':
+      case 'filled':
+        return OrderStatus.FILLED;
+      case 'canceled':
+        return OrderStatus.CANCELED;
+      case 'rejected':
+        return OrderStatus.REJECTED;
+      default:
+        return OrderStatus.OPEN;
     }
   }
 

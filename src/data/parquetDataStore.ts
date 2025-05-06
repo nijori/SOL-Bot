@@ -27,14 +27,14 @@ interface Path {
 // モジュールをrequireで読み込み
 const fs = require('fs') as FileSystem;
 const path = require('path') as Path;
-import { Candle } from '../core/types';
+import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types';
 import logger from '../utils/logger';
 
 // duckdbの型定義
 interface DuckDBConnection {
   exec(sql: string): any;
   prepare(sql: string): DuckDBStatement;
-  close(): void;
+  all(): any[];
 }
 
 interface DuckDBStatement {
@@ -202,7 +202,17 @@ export class ParquetDataStore {
       `);
 
       // データを取得
-      const result = this.conn.prepare(`SELECT * FROM ${tableName} ORDER BY timestamp`).all();
+      const result = this.conn.exec(`
+        SELECT 
+          timestamp,
+          open,
+          high,
+          low,
+          close,
+          volume
+        FROM ${tableName}
+        ORDER BY timestamp ASC;
+      `).all();
 
       // ビューを削除
       this.conn.exec(`DROP VIEW ${tableName};`);
@@ -217,7 +227,7 @@ export class ParquetDataStore {
         volume: Number(row.volume)
       }));
 
-      logger.info(`Parquetファイルから${candles.length}件のローソク足データを読み込みました: ${filePath}`);
+      logger.info(`${filePath}から${candles.length}件のローソク足データを読み込みました`);
       return candles;
     } catch (error) {
       logger.error(`Parquet読み込みエラー: ${error instanceof Error ? error.message : String(error)}`);
@@ -226,11 +236,11 @@ export class ParquetDataStore {
   }
 
   /**
-   * 複数のParquetファイルから条件に一致するデータを検索して結合
-   * @param symbol 銘柄シンボル (例: 'SOL_USDT')
+   * 特定の時間範囲のデータをクエリする
+   * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
    * @param timeframe 時間枠 (例: '1h')
-   * @param startTimestamp 開始タイムスタンプ（ミリ秒）
-   * @param endTimestamp 終了タイムスタンプ（ミリ秒）
+   * @param startTimestamp 開始タイムスタンプ
+   * @param endTimestamp 終了タイムスタンプ
    * @returns ローソク足データの配列
    */
   public async queryCandles(
@@ -240,136 +250,207 @@ export class ParquetDataStore {
     endTimestamp?: number
   ): Promise<Candle[]> {
     try {
-      const formattedSymbol = symbol.replace('/', '_');
-      
-      // ファイル名のパターンを調整（厳格なパターンからゆるいパターンへ）
-      const files = fs.readdirSync(PARQUET_DIR)
-        .filter((file: string) => {
-          // SOLUSDT_1h で始まるすべてのParquetファイルを検索
-          return file.startsWith(`${formattedSymbol}_${timeframe}`) && file.endsWith('.parquet');
-        });
-
-      if (files.length === 0) {
-        logger.warn(`${formattedSymbol}_${timeframe}*.parquetに一致するファイルが見つかりません。対象ディレクトリ: ${PARQUET_DIR}`);
-        return [];
-      }
-
-      // デバッグ情報を追加
-      logger.info(`以下のファイルが検索条件に一致しました: ${files.join(', ')}`);
-
-      // ファイルパスをカンマ区切りで結合
-      const filesList = files.map((file: string) => `'${path.join(PARQUET_DIR, file)}'`).join(', ');
+      // ファイルパターンの作成
+      const filePattern = `${symbol.replace('/', '_')}_${timeframe}_*.parquet`;
+      const globPattern = path.join(PARQUET_DIR, filePattern);
       
       // テーブル名を設定
       const tableName = `temp_query_${Date.now()}`;
-
-      try {
-        // 一時テーブルを作成
-        this.conn.exec(`
-          CREATE TABLE ${tableName} AS 
-          SELECT * FROM read_parquet([${filesList}]);
-        `);
-
-        // テーブルの行数を確認
-        const countResult = this.conn.prepare(`SELECT COUNT(*) as count FROM ${tableName}`).all();
-        const count = countResult && countResult[0] ? countResult[0].count : 0;
-        logger.info(`テーブル ${tableName} に ${count} 行のデータが読み込まれました`);
-
-        // クエリを構築
-        let query = `SELECT * FROM ${tableName}`;
-        const conditions = [];
-        
-        if (startTimestamp) {
-          conditions.push(`timestamp >= ${startTimestamp}`);
-        }
-        
-        if (endTimestamp) {
-          conditions.push(`timestamp <= ${endTimestamp}`);
-        }
-        
-        if (conditions.length > 0) {
-          query += ` WHERE ${conditions.join(' AND ')}`;
-        }
-        
-        query += ` ORDER BY timestamp`;
-
-        // デバッグ情報: 実行されるSQLを表示
-        logger.info(`実行クエリ: ${query}`);
-
-        // クエリを実行 - エラーハンドリングを強化
-        let resultRows;
-        try {
-          const statement = this.conn.prepare(query);
-          resultRows = statement.all();
-        } catch (queryError) {
-          logger.error(`クエリ実行エラー: ${queryError instanceof Error ? queryError.message : String(queryError)}`);
-          
-          // シンプルなクエリを試す
-          try {
-            logger.info(`シンプルなクエリでリトライします: SELECT * FROM ${tableName} LIMIT 10`);
-            resultRows = this.conn.prepare(`SELECT * FROM ${tableName} LIMIT 10`).all();
-          } catch (retryError) {
-            logger.error(`シンプルクエリも失敗: ${retryError instanceof Error ? retryError.message : String(retryError)}`);
-            return [];
-          }
-        }
-        
-        // 結果が配列であることを確認
-        if (!Array.isArray(resultRows)) {
-          logger.error(`クエリ結果が配列ではありません: ${typeof resultRows}, 値: ${JSON.stringify(resultRows)}`);
-          return [];
-        }
-
-        if (resultRows.length === 0) {
-          logger.warn(`クエリ結果が0件です`);
-          return [];
-        }
-
-        logger.info(`クエリが ${resultRows.length} 件のデータを返しました`);
-
-        // 結果をCandle配列に変換
-        const candles: Candle[] = [];
-        
-        for (let i = 0; i < resultRows.length; i++) {
-          const row = resultRows[i];
-          if (row && typeof row === 'object') {
-            try {
-              const candle: Candle = {
-                timestamp: Number(row.timestamp),
-                open: Number(row.open),
-                high: Number(row.high),
-                low: Number(row.low),
-                close: Number(row.close),
-                volume: Number(row.volume)
-              };
-              candles.push(candle);
-            } catch (convError) {
-              logger.error(`${i}番目の行の変換エラー: ${JSON.stringify(row)}, エラー: ${convError instanceof Error ? convError.message : String(convError)}`);
-            }
-          } else {
-            logger.warn(`${i}番目の行が不正な形式です: ${JSON.stringify(row)}`);
-          }
-        }
-
-        logger.info(`${files.length}ファイルから${candles.length}件のローソク足データを取得しました`);
-        return candles;
-      } finally {
-        // 一時テーブルを削除（エラーの有無にかかわらず実行）
-        try {
-          this.conn.exec(`DROP TABLE IF EXISTS ${tableName}`);
-        } catch (dropError) {
-          logger.warn(`一時テーブル削除エラー: ${dropError instanceof Error ? dropError.message : String(dropError)}`);
-        }
+      
+      // すべての対象ファイルを探す
+      const files = fs.readdirSync(PARQUET_DIR)
+        .filter(file => file.startsWith(`${symbol.replace('/', '_')}_${timeframe}_`))
+        .map(file => path.join(PARQUET_DIR, file));
+      
+      if (files.length === 0) {
+        logger.warn(`パターン${globPattern}に一致するファイルが見つかりません`);
+        return [];
       }
+      
+      // 複数のParquetファイルからデータを読み込むクエリを構築
+      const filesStr = files.map(f => `'${f}'`).join(', ');
+      
+      // ファイルリストからテーブルを作成
+      this.conn.exec(`
+        CREATE VIEW ${tableName} AS 
+        SELECT * FROM read_parquet([${filesStr}]);
+      `);
+      
+      // データを取得するクエリ（タイムスタンプ制約付き）
+      let query = `
+        SELECT 
+          timestamp,
+          open,
+          high,
+          low,
+          close,
+          volume
+        FROM ${tableName}
+      `;
+      
+      // 時間範囲の制約を追加
+      const timeConstraints = [];
+      
+      if (startTimestamp) {
+        timeConstraints.push(`timestamp >= ${startTimestamp}`);
+      }
+      if (endTimestamp) {
+        timeConstraints.push(`timestamp <= ${endTimestamp}`);
+      }
+      
+      if (timeConstraints.length > 0) {
+        query += ` WHERE ${timeConstraints.join(' AND ')}`;
+      }
+      
+      query += ` ORDER BY timestamp ASC;`;
+      
+      // クエリを実行
+      const result = this.conn.exec(query).all();
+      
+      // ビューを削除
+      this.conn.exec(`DROP VIEW ${tableName};`);
+      
+      // 結果をCandle配列に変換
+      const candles: Candle[] = result.map((row: CandleRecord) => ({
+        timestamp: Number(row.timestamp),
+        open: Number(row.open),
+        high: Number(row.high),
+        low: Number(row.low),
+        close: Number(row.close),
+        volume: Number(row.volume)
+      }));
+      
+      logger.info(`${timeframe}のデータを${candles.length}件取得しました（${startTimestamp ? new Date(startTimestamp).toISOString() : '最初'}〜${endTimestamp ? new Date(endTimestamp).toISOString() : '最後'}）`);
+      return candles;
     } catch (error) {
       logger.error(`Parquetクエリエラー: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   }
+  
+  /**
+   * タイムフレームごとの最新データを取得する（マルチタイムフレーム対応）
+   * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
+   * @param timeframes 取得する時間枠の配列 (例: ['1m', '15m', '1h', '1d'])
+   * @param limit 各時間枠で取得するデータの件数
+   * @returns 時間枠ごとのローソク足データのマップ
+   */
+  public async getLatestDataForAllTimeframes(
+    symbol: string,
+    timeframes: string[],
+    limit: number = 100
+  ): Promise<Record<string, Candle[]>> {
+    const result: Record<string, Candle[]> = {};
+    
+    for (const timeframe of timeframes) {
+      try {
+        // 最新データを取得
+        const candles = await this.getLatestCandles(symbol, timeframe, limit);
+        result[timeframe] = candles;
+        
+        logger.info(`${symbol}の${timeframe}データを${candles.length}件取得しました`);
+      } catch (error) {
+        logger.error(`${timeframe}データ取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+        result[timeframe] = [];
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * 特定のタイムフレームの最新データを取得する
+   * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
+   * @param timeframe 時間枠 (例: '1h')
+   * @param limit 取得するデータの件数
+   * @returns ローソク足データの配列
+   */
+  public async getLatestCandles(
+    symbol: string,
+    timeframe: string,
+    limit: number = 100
+  ): Promise<Candle[]> {
+    try {
+      // ファイルパターンの作成
+      const filePattern = `${symbol.replace('/', '_')}_${timeframe}_*.parquet`;
+      
+      // すべての対象ファイルを探す
+      const files = fs.readdirSync(PARQUET_DIR)
+        .filter(file => file.startsWith(`${symbol.replace('/', '_')}_${timeframe}_`))
+        .sort() // ファイル名でソート
+        .reverse() // 新しいものから順に
+        .map(file => path.join(PARQUET_DIR, file));
+      
+      if (files.length === 0) {
+        logger.warn(`${symbol}の${timeframe}データが見つかりません`);
+        return [];
+      }
+      
+      // 最新のファイルから順に処理
+      let remainingLimit = limit;
+      const allCandles: Candle[] = [];
+      
+      for (const filePath of files) {
+        if (remainingLimit <= 0) break;
+        
+        // テーブル名を設定
+        const tableName = `temp_latest_${Date.now()}`;
+        
+        // Parquetファイルからデータを読み込み
+        this.conn.exec(`
+          CREATE VIEW ${tableName} AS SELECT * FROM read_parquet('${filePath}');
+        `);
+        
+        // 最新のデータを取得
+        const query = `
+          SELECT 
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume
+          FROM ${tableName}
+          ORDER BY timestamp DESC
+          LIMIT ${remainingLimit};
+        `;
+        
+        const result = this.conn.exec(query).all();
+        
+        // ビューを削除
+        this.conn.exec(`DROP VIEW ${tableName};`);
+        
+        // 結果をCandle配列に変換
+        const candles: Candle[] = result.map((row: CandleRecord) => ({
+          timestamp: Number(row.timestamp),
+          open: Number(row.open),
+          high: Number(row.high),
+          low: Number(row.low),
+          close: Number(row.close),
+          volume: Number(row.volume)
+        }));
+        
+        // 結果を追加
+        allCandles.push(...candles);
+        remainingLimit -= candles.length;
+        
+        if (remainingLimit <= 0) break;
+      }
+      
+      // タイムスタンプで昇順ソート - normalizeTimestamp関数を使用してタイムスタンプの型安全性を確保
+      allCandles.sort((a, b) => normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp));
+      
+      logger.info(`${symbol}の${timeframe}最新データを${allCandles.length}件取得しました`);
+      return allCandles;
+    } catch (error) {
+      logger.error(`Parquet最新データ取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
+  }
 
   /**
-   * バックテスト用にローソク足データを取得
-   * @param options バックテスト用データ取得オプション
+   * 任意の日時範囲のデータを取得する
+   * @param options オプション（シンボル、時間枠(時間単位)、開始日、終了日）
    * @returns ローソク足データの配列
    */
   public async getCandleData(options: {
@@ -378,32 +459,27 @@ export class ParquetDataStore {
     startDate: Date;
     endDate: Date;
   }): Promise<Candle[]> {
-    try {
-      const { symbol, timeframeHours, startDate, endDate } = options;
-      
-      // 時間枠を文字列に変換 (例: 1 -> '1h')
-      const timeframe = `${timeframeHours}h`;
-      
-      // タイムスタンプに変換
-      const startTimestamp = startDate.getTime();
-      const endTimestamp = endDate.getTime();
-      
-      logger.info(`バックテスト用データ取得: ${symbol} ${timeframe} (${startDate.toISOString()} - ${endDate.toISOString()})`);
-      
-      // queryCandles を使用してデータを取得
-      const candles = await this.queryCandles(symbol, timeframe, startTimestamp, endTimestamp);
-      
-      if (candles.length === 0) {
-        logger.warn(`${symbol} ${timeframe} の期間 ${startDate.toISOString()} - ${endDate.toISOString()} のデータが見つかりません`);
-      } else {
-        logger.info(`${candles.length}件のローソク足データを取得しました`);
-      }
-      
-      return candles;
-    } catch (error) {
-      logger.error(`バックテストデータ取得エラー: ${error instanceof Error ? error.message : String(error)}`);
-      return [];
+    const { symbol, timeframeHours, startDate, endDate } = options;
+    
+    // 時間枠の文字列を構築
+    let timeframe: string;
+    if (timeframeHours < 1) {
+      // 分単位の場合
+      const minutes = timeframeHours * 60;
+      timeframe = `${minutes}m`;
+    } else if (timeframeHours === 24) {
+      // 日単位の場合
+      timeframe = '1d';
+    } else {
+      // 時間単位の場合
+      timeframe = `${timeframeHours}h`;
     }
+    
+    // タイムスタンプに変換
+    const startTimestamp = startDate.getTime();
+    const endTimestamp = endDate.getTime();
+    
+    return await this.queryCandles(symbol, timeframe, startTimestamp, endTimestamp);
   }
 
   /**
@@ -411,11 +487,65 @@ export class ParquetDataStore {
    */
   public close(): void {
     try {
-      this.conn.close();
-      this.db.close();
-      logger.info('ParquetDataStoreを終了しました');
+      // DuckDB接続を閉じる
+      if (this.conn) {
+        this.conn.exec('DROP ALL;'); // すべての一時テーブルをクリア
+      }
+      if (this.db) {
+        this.db.close();
+        logger.info('DuckDB接続をクローズしました');
+      }
     } catch (error) {
-      logger.error(`ParquetDataStore終了エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(`DuckDB終了エラー: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * 指定したシンボルと時間足の利用可能なデータファイルを一覧表示
+   * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
+   * @param timeframe 時間枠 (例: '1h')、省略すると全時間足
+   * @returns 利用可能なデータファイルの情報（日付、ファイルサイズ）
+   */
+  public listAvailableData(symbol?: string, timeframe?: string): { file: string, date: string, size: number }[] {
+    try {
+      const files = fs.readdirSync(PARQUET_DIR);
+      let filteredFiles = files;
+      
+      // シンボルでフィルタリング
+      if (symbol) {
+        const symbolPrefix = symbol.replace('/', '_');
+        filteredFiles = filteredFiles.filter(file => file.startsWith(symbolPrefix));
+      }
+      
+      // 時間足でフィルタリング
+      if (timeframe) {
+        filteredFiles = filteredFiles.filter(file => file.includes(`_${timeframe}_`));
+      }
+      
+      // ファイル情報を取得
+      const fileInfos = filteredFiles.map(file => {
+        // ファイル名からデータを抽出（例: binance_SOL_USDT_1h_20250901.parquet）
+        const parts = file.split('_');
+        const datePart = parts[parts.length - 1].split('.')[0]; // 20250901
+        
+        // ファイルサイズを取得（バイト単位）
+        const filePath = path.join(PARQUET_DIR, file);
+        const stats = require('fs').statSync(filePath);
+        
+        return {
+          file,
+          date: datePart,
+          size: stats.size
+        };
+      });
+      
+      // 日付の降順でソート
+      fileInfos.sort((a, b) => b.date.localeCompare(a.date));
+      
+      return fileInfos;
+    } catch (error) {
+      logger.error(`データファイル一覧取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
     }
   }
 } 

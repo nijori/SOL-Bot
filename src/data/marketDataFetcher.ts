@@ -10,7 +10,7 @@ declare const process: any;
 declare const module: any;
 
 import ccxt from 'ccxt';
-import { Candle } from '../core/types';
+import { Candle, normalizeTimestamp } from '../core/types';
 import { DataRepository } from './dataRepository';
 import { ParquetDataStore } from './parquetDataStore';
 import logger from '../utils/logger';
@@ -87,7 +87,8 @@ export class MarketDataFetcher {
         
         // レスポンスを標準形式に変換
         const candles: Candle[] = ohlcv.map((candle: number[]) => ({
-          timestamp: candle[0],
+          // タイムスタンプはnumber型として統一
+          timestamp: candle[0], 
           open: candle[1],
           high: candle[2],
           low: candle[3],

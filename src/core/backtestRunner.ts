@@ -8,9 +8,10 @@ import { ParquetDataStore } from '../data/parquetDataStore';
 import { TradingEngine } from './tradingEngine';
 import { applyParameters } from '../config/parameterService';
 import { BACKTEST_PARAMETERS } from '../config/parameters';
-import { Candle } from './types';
+import { Candle, normalizeTimestamp } from './types';
 import logger from '../utils/logger';
 import { OrderManagementSystem } from './orderManagementSystem';
+import { MemoryMonitor } from '../utils/memoryMonitor';
 
 /**
  * バックテスト設定インターフェース
@@ -26,6 +27,9 @@ export interface BacktestConfig {
   slippage?: number;        // スリッページ
   commissionRate?: number;  // 取引手数料率
   quiet?: boolean;          // ログ出力を抑制するモード
+  batchSize?: number;       // データ処理バッチサイズ
+  memoryMonitoring?: boolean; // メモリ監視を有効にするか
+  gcInterval?: number;      // ガベージコレクション実行間隔（キャンドル数）
 }
 
 /**
@@ -44,6 +48,8 @@ export interface BacktestResult {
     averageLoss: number;
     maxConsecutiveWins: number;
     maxConsecutiveLosses: number;
+    peakMemoryUsageMB?: number; // 最大メモリ使用量
+    processingTimeMS?: number;  // 処理時間
   };
   trades: any[];
   equity: {
@@ -55,51 +61,65 @@ export interface BacktestResult {
 
 export class BacktestRunner {
   private config: BacktestConfig;
+  private dataStore: ParquetDataStore;
+  private memoryMonitor: MemoryMonitor | null = null;
   
   constructor(config: BacktestConfig) {
+    // デフォルト値の設定
     this.config = {
       ...config,
-      // デフォルト値を設定
-      initialBalance: config.initialBalance || 10000,
-      parameters: config.parameters || {},
-      slippage: config.slippage || BACKTEST_PARAMETERS.DEFAULT_SLIPPAGE || 0,
-      commissionRate: config.commissionRate || BACKTEST_PARAMETERS.DEFAULT_COMMISSION_RATE || 0,
-      quiet: config.quiet || false // デフォルトはfalse（通常モード）
+      batchSize: config.batchSize || 5000,     // デフォルトのバッチサイズ
+      memoryMonitoring: config.memoryMonitoring !== undefined ? config.memoryMonitoring : !config.quiet, // quietモードでなければデフォルトで有効
+      gcInterval: config.gcInterval || 10000   // デフォルトのGC間隔
     };
+    
+    this.dataStore = new ParquetDataStore();
+
+    // メモリモニターの初期化
+    if (this.config.memoryMonitoring) {
+      this.memoryMonitor = new MemoryMonitor('backtest', !config.quiet);
+    }
   }
   
   /**
    * バックテストを実行
    */
   async run(): Promise<BacktestResult> {
+    // 処理時間計測開始
+    const startTime = Date.now();
+    
+    // メモリモニタリングを開始
+    if (this.memoryMonitor) {
+      this.memoryMonitor.startMonitoring(2000); // 2秒ごとにスナップショット
+    }
+    
     // quietモードでない場合のみログを出力
     if (!this.config.quiet) {
-      console.log(`[BacktestRunner] バックテスト開始: ${this.config.symbol} (${this.config.startDate} - ${this.config.endDate})`);
-      console.log(`[BacktestRunner] スリッページ: ${(this.config.slippage ?? 0) * 100}%, 取引手数料: ${(this.config.commissionRate ?? 0) * 100}%`);
-      
-      // スモークテストモードであることを明示的に表示
-      if (this.config.isSmokeTest) {
-        console.log(`[BacktestRunner] スモークテストモードが有効です`);
-      }
-      
-      // quietモードの状態を表示
-      if (this.config.quiet) {
-        console.log(`[BacktestRunner] Quietモードが有効です（詳細ログ出力は抑制されます）`);
-      }
+      logger.info(`
+=== バックテスト実行開始 ===
+シンボル: ${this.config.symbol}
+期間: ${this.config.startDate} - ${this.config.endDate}
+タイムフレーム: ${this.config.timeframeHours}時間
+初期残高: ${this.config.initialBalance}
+スモークテスト: ${this.config.isSmokeTest ? "有効" : "無効"}
+バッチサイズ: ${this.config.batchSize}
+メモリ監視: ${this.config.memoryMonitoring ? "有効" : "無効"}
+GC間隔: ${this.config.gcInterval}キャンドルごと
+      `);
     }
 
     try {
       // データの読み込み
       const candles = await this.loadData();
       if (!this.config.quiet) {
-        console.log(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+        logger.debug(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
       }
       
       // カスタムパラメータの適用
       if (this.config.parameters && Object.keys(this.config.parameters).length > 0) {
         applyParameters(this.config.parameters);
         if (!this.config.quiet) {
-          console.log(`[BacktestRunner] カスタムパラメータを適用: ${Object.keys(this.config.parameters).length}個のパラメータ`);
+          logger.debug(`[BacktestRunner] カスタムパラメータを適用: ${Object.keys(this.config.parameters).length}個のパラメータ`);
         }
       }
       
@@ -121,32 +141,108 @@ export class BacktestRunner {
       
       // エンジン設定の確認ログ
       if (!this.config.quiet) {
-        console.log(`[BacktestRunner] エンジン初期化完了: スモークテストモード=${this.config.isSmokeTest ? "有効" : "無効"}`);
+        logger.debug(`[BacktestRunner] エンジン初期化完了: スモークテストモード=${this.config.isSmokeTest ? "有効" : "無効"}`);
       }
       
       // すべてのローソク足でシミュレーション実行
       const equityHistory: {timestamp: string, equity: number}[] = [];
       const allTrades: any[] = [];
       
-      if (!this.config.quiet) {
-        console.log(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
-      }
+      // 取引の重複を防ぐために最後のトレードのインデックスを追跡
+      let lastTradeIndex = 0;
+      // トレードIDのセットを使用して重複チェック（安全策）
+      const processedTradeIds = new Set<string>();
       
-      for (const candle of candles) {
-        // キャンドルでエンジンを更新
-        await engine.update(candle);
+      if (!this.config.quiet) {
+        logger.debug(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
+      }
+
+      // バッチ処理のための設定
+      const batchSize = this.config.batchSize || 5000; // デフォルト値を設定
+      const totalBatches = Math.ceil(candles.length / batchSize);
+      
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * batchSize;
+        const end = Math.min(start + batchSize, candles.length);
+        const currentBatch = candles.slice(start, end);
         
-        // エクイティ履歴を記録
-        equityHistory.push({
-          timestamp: new Date(candle.timestamp).toISOString(),
-          equity: engine.getEquity()
-        });
+        if (!this.config.quiet) {
+          logger.debug(`[BacktestRunner] バッチ処理 ${batchIndex + 1}/${totalBatches}: ${currentBatch.length}本のキャンドル`);
+        }
         
-        // 完了した取引を取得
-        const completedTrades = engine.getCompletedTrades();
-        if (completedTrades.length > 0 && !this.config.quiet) {
-          console.log(`[BacktestRunner] 取引完了: ${completedTrades.length}件`);
-          allTrades.push(...completedTrades);
+        for (let i = 0; i < currentBatch.length; i++) {
+          const candle = currentBatch[i];
+          
+          // キャンドルでエンジンを更新
+          await engine.update(candle);
+          
+          // エクイティ履歴を記録 - normalizeTimestamp関数を使用して型安全性を確保
+          // 過剰なメモリ使用を避けるため、10本ごとまたはバッチの最後のキャンドルでのみ記録
+          if (i % 10 === 0 || i === currentBatch.length - 1) {
+            equityHistory.push({
+              timestamp: new Date(normalizeTimestamp(candle.timestamp)).toISOString(),
+              equity: engine.getEquity()
+            });
+          }
+          
+          // 完了した取引を取得
+          const completedTrades = engine.getCompletedTrades();
+          
+          // 新しい取引のみを追加（重複を防止）
+          if (completedTrades.length > lastTradeIndex) {
+            const newTrades = completedTrades.slice(lastTradeIndex);
+            // ユニークIDの付与と重複チェック
+            const uniqueNewTrades = newTrades.filter(trade => {
+              // 各トレードにユニークIDを付与（なければ）
+              if (!trade.id) {
+                trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
+              }
+              
+              // 既に処理済みのIDかチェック
+              if (processedTradeIds.has(trade.id)) {
+                if (!this.config.quiet) {
+                  logger.warn(`[BacktestRunner] 重複トレードをスキップ: ID=${trade.id}, 時刻=${new Date(normalizeTimestamp(trade.exitTime)).toISOString()}`);
+                }
+                return false;
+              }
+              
+              // 処理済みセットに追加
+              processedTradeIds.add(trade.id);
+              return true;
+            });
+            
+            if (uniqueNewTrades.length > 0 && !this.config.quiet) {
+              logger.info(`[BacktestRunner] 新規取引完了: ${uniqueNewTrades.length}件（合計${processedTradeIds.size}件）`);
+              if (uniqueNewTrades.length !== newTrades.length) {
+                logger.debug(`[BacktestRunner] 重複トレードを${newTrades.length - uniqueNewTrades.length}件検出し除外しました`);
+              }
+            }
+            
+            allTrades.push(...uniqueNewTrades);
+            lastTradeIndex = completedTrades.length;
+          }
+          
+          // 定期的なガベージコレクション実行（大量のデータ処理時のメモリ使用量削減）
+          const totalProcessed = start + i + 1;
+          if (global.gc && this.config.gcInterval && totalProcessed % this.config.gcInterval === 0) {
+            if (!this.config.quiet) {
+              logger.debug(`[BacktestRunner] メモリ最適化: ${totalProcessed}/${candles.length}本処理後にGC実行`);
+            }
+            global.gc();
+          }
+        }
+        
+        // バッチ処理後のメモリ状況レポート（最適化のための情報収集）
+        if (this.memoryMonitor && !this.config.quiet) {
+          const memSnapshot = this.memoryMonitor.takeSnapshot();
+          if (memSnapshot) {
+            logger.debug(`[BacktestRunner] バッチ${batchIndex + 1}完了後のメモリ: ${memSnapshot.heapUsed.toFixed(2)}MB / ${memSnapshot.heapTotal.toFixed(2)}MB (${(memSnapshot.heapUsed / memSnapshot.heapTotal * 100).toFixed(1)}%)`);
+          }
+        }
+        
+        // バッチ処理間でのガベージコレクション（バッチ処理間でのメモリ解放）
+        if (global.gc && totalBatches > 1) {
+          global.gc();
         }
       }
       
@@ -155,31 +251,112 @@ export class BacktestRunner {
       
       // 最終的な完了取引を取得
       const finalCompletedTrades = engine.getCompletedTrades();
-      if (!this.config.quiet) {
-        console.log(`[BacktestRunner] 最終取引総数: ${finalCompletedTrades.length}件`);
+      
+      // 最後のクローズで新しい取引があれば追加
+      if (finalCompletedTrades.length > lastTradeIndex) {
+        const newTrades = finalCompletedTrades.slice(lastTradeIndex);
+        // ユニークIDの付与と重複チェック
+        const uniqueNewTrades = newTrades.filter(trade => {
+          // 各トレードにユニークIDを付与（なければ）
+          if (!trade.id) {
+            trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
+          }
+          
+          // 既に処理済みのIDかチェック
+          if (processedTradeIds.has(trade.id)) {
+            if (!this.config.quiet) {
+              logger.warn(`[BacktestRunner] 最終処理で重複トレードをスキップ: ID=${trade.id}`);
+            }
+            return false;
+          }
+          
+          // 処理済みセットに追加
+          processedTradeIds.add(trade.id);
+          return true;
+        });
+        
+        if (uniqueNewTrades.length > 0 && !this.config.quiet) {
+          logger.info(`[BacktestRunner] 最終取引完了: ${uniqueNewTrades.length}件の新規取引`);
+          if (uniqueNewTrades.length !== newTrades.length) {
+            logger.debug(`[BacktestRunner] 最終処理で重複トレードを${newTrades.length - uniqueNewTrades.length}件検出し除外しました`);
+          }
+        }
+        
+        allTrades.push(...uniqueNewTrades);
       }
       
+      if (!this.config.quiet) {
+        logger.info(`[BacktestRunner] 最終取引総数: ${allTrades.length}件（重複チェック済み）`);
+      }
+      
+      // タイムスタンプでソート（トレード実行順に並べる）
+      allTrades.sort((a, b) => {
+        if (!a.timestamp || !b.timestamp) return 0;
+        return normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp);
+      });
+      
+      // メモリモニタリングを停止
+      let peakMemoryUsageMB = 0;
+      if (this.memoryMonitor) {
+        this.memoryMonitor.stopMonitoring();
+        peakMemoryUsageMB = this.memoryMonitor.getMaxHeapUsed();
+        
+        if (!this.config.quiet) {
+          this.memoryMonitor.logSummary();
+        }
+      }
+      
+      // 処理時間計測終了
+      const processingTimeMS = Date.now() - startTime;
+      
       // 完了したバックテストの結果を取得して評価
-      const metrics = this.calculateMetrics(finalCompletedTrades, equityHistory);
+      const metrics = this.calculateMetrics(allTrades, equityHistory);
+      
+      // メモリ使用量と処理時間をメトリクスに追加
+      metrics.peakMemoryUsageMB = peakMemoryUsageMB;
+      metrics.processingTimeMS = processingTimeMS;
       
       const result: BacktestResult = {
         metrics,
-        trades: finalCompletedTrades,
+        trades: allTrades,
         equity: equityHistory,
         parameters: {
           ...this.config.parameters,
           slippage: this.config.slippage,
-          commissionRate: this.config.commissionRate
+          commissionRate: this.config.commissionRate,
+          batchSize: this.config.batchSize
         }
       };
       
       if (!this.config.quiet) {
-        console.log(`[BacktestRunner] バックテスト完了: トータルリターン=${metrics.totalReturn.toFixed(2)}%, シャープレシオ=${metrics.sharpeRatio.toFixed(2)}`);
+        logger.info(`
+=== バックテスト完了 ===
+実行時間: ${(processingTimeMS / 1000).toFixed(1)}秒
+最大メモリ使用量: ${peakMemoryUsageMB.toFixed(2)}MB
+トータルリターン: ${metrics.totalReturn.toFixed(2)}%
+シャープレシオ: ${metrics.sharpeRatio.toFixed(2)}
+最大ドローダウン: ${(metrics.maxDrawdown * 100).toFixed(2)}%
+勝率: ${(metrics.winRate * 100).toFixed(2)}%
+取引数: ${allTrades.length}件
+        `);
       }
+      
+      // リソース解放
+      this.dataStore.close();
+      
       return result;
       
     } catch (error) {
-      console.error(`[BacktestRunner] バックテスト実行エラー:`, error);
+      // エラー発生時もメモリモニタリングを停止
+      if (this.memoryMonitor) {
+        this.memoryMonitor.stopMonitoring();
+      }
+      
+      logger.error(`[BacktestRunner] バックテスト実行エラー:`, error);
+      
+      // リソース解放
+      this.dataStore.close();
+      
       throw error;
     }
   }
@@ -193,18 +370,19 @@ export class BacktestRunner {
       const dataStore = new ParquetDataStore();
       
       // 期間とシンボル、タイムフレーム情報を詳細にログ出力
-      console.log(`[BacktestRunner] データ検索条件: ${this.config.symbol}, ${this.config.timeframeHours}h時間足, 期間=${this.config.startDate} - ${this.config.endDate}`);
+      if (!this.config.quiet) {
+        logger.debug(`[BacktestRunner] データ検索条件: ${this.config.symbol}, ${this.config.timeframeHours}h時間足, 期間=${this.config.startDate} - ${this.config.endDate}`);
+      }
       
       // データディレクトリの内容を確認して表示
-      const fs = require('fs');
-      const path = require('path');
+      // すでにインポートしているfsとpathを使用（再requireしない）
       const dataDir = path.join(process.cwd(), 'data/candles');
       
-      if (fs.existsSync(dataDir)) {
+      if (!this.config.quiet && fs.existsSync(dataDir)) {
         const files = fs.readdirSync(dataDir);
-        console.log(`[BacktestRunner] データディレクトリ内のファイル: ${files.join(', ')}`);
-      } else {
-        console.log(`[BacktestRunner] データディレクトリが見つかりません: ${dataDir}`);
+        logger.debug(`[BacktestRunner] データディレクトリ内のファイル: ${files.join(', ')}`);
+      } else if (!this.config.quiet) {
+        logger.debug(`[BacktestRunner] データディレクトリが見つかりません: ${dataDir}`);
       }
       
       const candles = await dataStore.getCandleData({
@@ -217,11 +395,15 @@ export class BacktestRunner {
       // データストアを閉じる
       dataStore.close();
       
-      console.log(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+      if (!this.config.quiet) {
+        logger.debug(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+      }
       
       if (candles.length === 0 && this.config.isSmokeTest) {
         // スモークテスト用の最小限のサンプルデータ生成（改善版）
-        console.log(`[BacktestRunner] スモークテスト用のサンプルデータを生成します`);
+        if (!this.config.quiet) {
+          logger.info(`[BacktestRunner] スモークテスト用のサンプルデータを生成します`);
+        }
         
         const now = new Date().getTime();
         const sampleData: Candle[] = [];
@@ -329,7 +511,7 @@ export class BacktestRunner {
       
       return candles;
     } catch (error) {
-      console.error(`[BacktestRunner] データ読み込みエラー:`, error);
+      logger.error(`[BacktestRunner] データ読み込みエラー:`, error);
       throw new Error(`データ読み込みに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -465,6 +647,182 @@ export class BacktestRunner {
       maxConsecutiveLosses
     };
   }
+
+  /**
+   * コマンドライン引数から設定を解析してバックテストを実行
+   */
+  static async runFromCli(): Promise<void> {
+    const args = process.argv.slice(2);
+    
+    // スモークテストフラグ
+    const isSmokeTest = args.includes('--smoke-test');
+    
+    // テスト日数（スモークテストで使用）
+    let days = 5; // デフォルト5日間
+    const daysIndex = args.indexOf('--days');
+    if (daysIndex !== -1 && args.length > daysIndex + 1) {
+      days = parseInt(args[daysIndex + 1], 10);
+    }
+    
+    // スモークテストモードの場合は、現在から指定日数分の期間を設定
+    if (isSmokeTest) {
+      const quietMode = args.includes('--quiet');
+      if (!quietMode) {
+        logger.info(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+      } else {
+        console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+      }
+      
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      // スモークテスト用の設定
+      const config: BacktestConfig = {
+        symbol: 'SOLUSDT',
+        timeframeHours: 1,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        initialBalance: 10000,
+        isSmokeTest: true,
+        quiet: quietMode
+      };
+      
+      // 各種オプションのパース
+      // スリッページ
+      const slippageIndex = args.indexOf('--slippage');
+      if (slippageIndex !== -1 && args.length > slippageIndex + 1) {
+        config.slippage = parseFloat(args[slippageIndex + 1]);
+      }
+      
+      // 手数料
+      const commissionRateIndex = args.indexOf('--commission-rate');
+      if (commissionRateIndex !== -1 && args.length > commissionRateIndex + 1) {
+        config.commissionRate = parseFloat(args[commissionRateIndex + 1]);
+      }
+      
+      // バッチサイズ (メモリ最適化用)
+      const batchSizeIndex = args.indexOf('--batch-size');
+      if (batchSizeIndex !== -1 && args.length > batchSizeIndex + 1) {
+        config.batchSize = parseInt(args[batchSizeIndex + 1], 10);
+      }
+      
+      // GC間隔
+      const gcIntervalIndex = args.indexOf('--gc-interval');
+      if (gcIntervalIndex !== -1 && args.length > gcIntervalIndex + 1) {
+        config.gcInterval = parseInt(args[gcIntervalIndex + 1], 10);
+      }
+      
+      // メモリモニタリングフラグ
+      config.memoryMonitoring = !args.includes('--no-memory-monitor');
+      
+      if (!quietMode) {
+        logger.info(`[BacktestRunner] 設定:`, config);
+      }
+      
+      // バックテスト実行
+      const runner = new BacktestRunner(config);
+      await runner.run();
+      return;
+    }
+    
+    // 通常のバックテスト実行の場合: 引数からパラメータを解析
+    let symbol = 'SOLUSDT';
+    let timeframeHours = 1;
+    let startDate = '2023-01-01T00:00:00Z';
+    let endDate = '2023-12-31T23:59:59Z';
+    let initialBalance = 10000;
+    let slippage: number | undefined;
+    let commissionRate: number | undefined;
+    let quiet = false;
+    let batchSize: number | undefined;
+    let gcInterval: number | undefined;
+    let memoryMonitoring = true;
+    
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      
+      if (arg === '--symbol' && i + 1 < args.length) {
+        symbol = args[++i];
+      } else if (arg === '--timeframe' && i + 1 < args.length) {
+        timeframeHours = parseFloat(args[++i]);
+      } else if (arg === '--start-date' && i + 1 < args.length) {
+        startDate = args[++i];
+      } else if (arg === '--end-date' && i + 1 < args.length) {
+        endDate = args[++i];
+      } else if (arg === '--initial-balance' && i + 1 < args.length) {
+        initialBalance = parseFloat(args[++i]);
+      } else if (arg === '--slippage' && i + 1 < args.length) {
+        slippage = parseFloat(args[++i]);
+      } else if (arg === '--commission-rate' && i + 1 < args.length) {
+        commissionRate = parseFloat(args[++i]);
+      } else if (arg === '--quiet') {
+        quiet = true;
+      } else if (arg === '--batch-size' && i + 1 < args.length) {
+        batchSize = parseInt(args[++i], 10);
+      } else if (arg === '--gc-interval' && i + 1 < args.length) {
+        gcInterval = parseInt(args[++i], 10);
+      } else if (arg === '--no-memory-monitor') {
+        memoryMonitoring = false;
+      } else if (arg === '--help') {
+        console.log(`
+バックテスト実行コマンド:
+  ts-node src/core/backtestRunner.ts [オプション]
+
+オプション:
+  --symbol <シンボル>              取引ペア (デフォルト: SOLUSDT)
+  --timeframe <時間>              時間枠（時間単位、例: 1, 4, 12） (デフォルト: 1)
+  --start-date <開始日>           開始日時 (デフォルト: 2023-01-01T00:00:00Z)
+  --end-date <終了日>             終了日時 (デフォルト: 2023-12-31T23:59:59Z)
+  --initial-balance <残高>        初期残高 (デフォルト: 10000)
+  --slippage <値>                 スリッページ率 (0.001 = 0.1%)
+  --commission-rate <値>          手数料率 (0.001 = 0.1%)
+  --quiet                         詳細ログを表示しない
+  --smoke-test                    スモークテストモード
+  --days <日数>                   スモークテスト時の日数 (デフォルト: 5)
+  
+  // メモリ最適化オプション
+  --batch-size <数>               バッチサイズ（キャンドル数） (デフォルト: 5000)
+  --gc-interval <数>              ガベージコレクション間隔（キャンドル数） (デフォルト: 10000)
+  --no-memory-monitor             メモリモニタリングを無効化
+  
+  --help                          ヘルプの表示
+
+例:
+  ts-node src/core/backtestRunner.ts --symbol SOLUSDT --timeframe 1 --start-date 2023-01-01 --end-date 2023-06-30
+  ts-node src/core/backtestRunner.ts --smoke-test --days 10
+  ts-node src/core/backtestRunner.ts --batch-size 2000 --gc-interval 5000
+        `);
+        process.exit(0);
+      }
+    }
+    
+    // 設定を作成してバックテストを実行
+    const config: BacktestConfig = {
+      symbol,
+      timeframeHours,
+      startDate,
+      endDate,
+      initialBalance,
+      slippage,
+      commissionRate,
+      quiet,
+      batchSize,
+      gcInterval,
+      memoryMonitoring
+    };
+    
+    if (!quiet) {
+      logger.info(`バックテスト設定:`, config);
+    }
+    
+    const runner = new BacktestRunner(config);
+    const result = await runner.run();
+    
+    if (!quiet) {
+      console.log(JSON.stringify(result, null, 2));
+    }
+  }
 }
 
 /**
@@ -495,60 +853,86 @@ async function main() {
   const args = parseCommandLineArgs();
   
   // 日付処理
-  let startDate = args['start-date'] as string || '';
-  let endDate = args['end-date'] as string || '';
-  
-  // スモークテストモード
-  const isSmokeTest = args['smoke-test'] === true;
-  const days = parseInt(args['days'] as string || '3');
+  let startDateStr = args['start-date'] as string || '';
+  let endDateStr = args['end-date'] as string || '';
   
   // quietモードの検出
   const quiet = args['quiet'] === true;
   
-  if (isSmokeTest) {
-    if (!quiet) console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
-    endDate = new Date().toISOString();
-    const start = new Date();
-    start.setDate(start.getDate() - days);
-    startDate = start.toISOString();
-  } else if (!startDate || !endDate) {
-    // デフォルト：過去3ヶ月
-    endDate = new Date().toISOString();
-    const start = new Date();
-    start.setMonth(start.getMonth() - 3);
-    startDate = start.toISOString();
-  }
-  
-  const config: BacktestConfig = {
-    symbol: args['symbol'] as string || 'SOLUSDT',
-    timeframeHours: parseInt(args['timeframe'] as string || '1'),
-    startDate,
-    endDate,
-    initialBalance: parseFloat(args['balance'] as string || '10000'),
-    isSmokeTest,
-    quiet
-  };
-  
-  if (!quiet) console.log(`[BacktestRunner] 設定:`, config);
-  
-  const runner = new BacktestRunner(config);
-  try {
-    const result = await runner.run();
+  if (!startDateStr || !endDateStr) {
+    // デフォルトは過去30日
+    const days = Number(args['days'] as string) || 30;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
     
-    if (args['output']) {
-      const outputPath = args['output'] as string;
-      fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
-      if (!quiet) console.log(`[BacktestRunner] 結果を保存: ${outputPath}`);
+    if (!quiet) {
+      logger.info(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+    } else {
+      console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
     }
     
-    process.exit(0);
-  } catch (error) {
-    console.error(`[BacktestRunner] エラー:`, error);
-    process.exit(1);
+    endDateStr = endDate.toISOString();
+    startDateStr = startDate.toISOString();
+  }
+  
+  // 追加パラメータの処理
+  const paramStrings = args['params'] ? (args['params'] as string).split(',') : [];
+  const parameters: Record<string, any> = {};
+  
+  for (const paramString of paramStrings) {
+    const [key, value] = paramString.split('=');
+    if (key && value) {
+      // 数値に変換可能な場合は数値化
+      const numValue = Number(value);
+      parameters[key] = isNaN(numValue) ? value : numValue;
+    }
+  }
+  
+  // スモークテスト
+  const isSmokeTest = args['smoke-test'] === true;
+  
+  // 設定オブジェクトの作成
+  const config: BacktestConfig = {
+    symbol: args['symbol'] as string || 'SOL/USDT',
+    timeframeHours: parseFloat(args['timeframe'] as string || '1'),
+    startDate: startDateStr,
+    endDate: endDateStr,
+    initialBalance: parseFloat(args['balance'] as string || '10000'),
+    isSmokeTest,
+    quiet,
+    parameters
+  };
+  
+  // スリッページと手数料があれば設定
+  if (args['slippage']) {
+    config.slippage = parseFloat(args['slippage'] as string);
+  }
+  
+  if (args['commission']) {
+    config.commissionRate = parseFloat(args['commission'] as string);
+  }
+  
+  if (!quiet) {
+    logger.info(`[BacktestRunner] 設定:`, config);
+  }
+  
+  const runner = new BacktestRunner(config);
+  const result = await runner.run();
+  
+  // 結果のJSON出力
+  const outputPath = args['output'] as string || `./backtest-result-${new Date().toISOString().replace(/:/g, '-')}.json`;
+  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+  
+  if (!quiet) {
+    logger.info(`[BacktestRunner] 結果を保存: ${outputPath}`);
   }
 }
 
-// エントリーポイント - コマンドライン実行の場合
+// スクリプトが直接実行された場合はCLIモードで実行
 if (require.main === module) {
-  main();
+  BacktestRunner.runFromCli().catch(err => {
+    console.error('バックテスト実行エラー:', err);
+    process.exit(1);
+  });
 } 

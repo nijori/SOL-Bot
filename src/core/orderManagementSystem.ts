@@ -9,6 +9,7 @@ import {
 import logger from '../utils/logger';
 import { OrderOptions, OcoOrderParams } from '../services/exchangeService';
 import { ExchangeService } from '../services/exchangeService';
+import { updateOrderStatus, syncFillWithOrder } from '../utils/orderUtils';
 // node-cronの型定義
 // @ts-ignore - node-cronの型定義が不完全なため
 import * as cron from 'node-cron';
@@ -117,16 +118,18 @@ export class OrderManagementSystem {
         
         // 注文ステータスに基づいて更新
         if (orderInfo.status === 'closed' || orderInfo.status === 'filled') {
+          // 注文状態を更新
+          const updatedOrder = updateOrderStatus(order, orderInfo.status);
+          if (order.id) {
+            this.orders.set(order.id, updatedOrder);
+          }
+          
           // 約定情報を作成
-          const fill: Fill = {
-            orderId: order.id,
-            exchangeOrderId: order.exchangeOrderId,
-            symbol: order.symbol,
-            side: order.side,
-            amount: orderInfo.amount || order.amount,
+          const fill = syncFillWithOrder(updatedOrder, {
             price: orderInfo.price || order.price || 0,
+            amount: orderInfo.amount || order.amount,
             timestamp: Date.now()
-          };
+          });
           
           // 約定バッチに追加
           fillBatch.push(fill);
@@ -139,16 +142,20 @@ export class OrderManagementSystem {
           
           logger.info(`[OMS] 注文が約定しました: ${order.id}, 価格: ${fill.price}`);
         } else if (orderInfo.status === 'canceled' || orderInfo.status === 'expired') {
-          // キャンセル状態に更新
-          order.status = OrderStatus.CANCELED;
+          // 注文状態を更新
+          const updatedOrder = updateOrderStatus(order, orderInfo.status);
           if (order.id) {
-            this.orders.set(order.id, order);
+            this.orders.set(order.id, updatedOrder);
             logger.info(`[OMS] 注文がキャンセルされました: ${order.id}`);
           } else {
             logger.warn(`[OMS] ID不明の注文がキャンセルされました`);
           }
         } else {
           // その他のステータス（open, partiallyFilled など）
+          const updatedOrder = updateOrderStatus(order, orderInfo.status);
+          if (order.id) {
+            this.orders.set(order.id, updatedOrder);
+          }
           logger.debug(`[OMS] 注文 ${order.id} のステータス: ${orderInfo.status}`);
         }
       } catch (error) {

@@ -12,19 +12,26 @@ alwaysApply: false
 
 1. ✅ API-021: 成行注文時のprice型エラー解決 (100% 完了) - 型定義の改善とエラー解決、BitgetとBybitの特別処理も実装済み
 2. ✅ API-022: createOcoOrder 戻り値 array/object 両対応 (100% 完了)
-3. API-023: OrderType enum と ccxt マッピングテーブル実装 (90% 完了) - マッピングテーブルと変換関数を実装済み
+3. ✅ API-023: OrderType enum と ccxt マッピングテーブル実装 (100% 完了) - マッピングテーブルと変換関数を実装済み、CCXT注文タイプをOrderTypeに変換する逆方向マッピングも追加
 4. ✅ DOC-006: README / PROJECT_STRUCTURE 差分同期 (100% 完了)
-5. DATA-011: Candle.timestamp 型統一ポリシー決定 (85% 完了) - Union型、型ガード、正規化関数実装済み
+5. ✅ DATA-011: Candle.timestamp 型統一ポリシー決定 (100% 完了) - Union型、型ガード、正規化関数実装済み、各データアクセス操作に適用
 6. ✅ INF-020: 真の指数バックオフ実装 (100% 完了)
 7. ✅ INF-019: docker-compose node_modules named volume化 (100% 完了) - 既存の実装で対応済み
 8. ✅ RISK-004: ATR==0のケースにフォールバックstopDistance実装 (100% 完了) - 各戦略にATR=0対策を実装
 9. ✅ DATA-013: ATR==0フォールバックパラメータ設定ファイル化 (100% 完了)
 10. ✅ RISK-005: ポジションサイジングロジックの共通化 (100% 完了)
+11. ✅ INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更 (100% 完了) - ログローテーション、S3転送設定を追加
+12. ✅ OMS-013: createOrder → simulateFill 時の ID / 状態同期 (100% 完了)
+13. ✅ PERF-003: バックテスト処理速度とメモリ使用量の最適化 (100% 完了)
+14. ✅ CONF-005: ParameterService env 置換時の型キャスト (100% 完了)
 
 ### 進行中のタスク状況:
 * ✅ API-021: Bitget/Bybit向けのpriceパラメータ特殊処理実装完了。型定義問題を解決するため、Order.price型をnumber | undefinedに統一し、@ts-ignoreを使った特殊な関数を実装。
-* API-023: ORDER_TYPE_MAPPINGテーブル実装とmapOrderTypeToCCXT関数を追加実装済み。残作業：一部取引所固有のマッピングルール追加
-* DATA-011: タイムスタンプ型統一ポリシー案としてnumber型を基本とし、Date型との相互変換関数を実装済み。使用箇所の移行作業を継続中。
+* ✅ API-023: ORDER_TYPE_MAPPINGテーブル実装とmapOrderTypeToCCXT関数を追加実装済み。さらに文字列からOrderType enumへの逆変換関数も実装し、fetchOrderAndConvert関数で利用できるように改良。
+* ✅ DATA-011: タイムスタンプ型統一ポリシーとしてnumber | string型を統一定義。isNumericTimestamp型ガード関数とnormalizeTimestamp変換関数を実装し、ParquetDataStore、BacktestRunner、各種Fetcherクラスで適用。
+* ✅ OMS-013: createOrderの結果をsimulatedFillに正しく渡すため、OrderUtilsモジュールを作成して注文IDと状態の同期機能を実装。OrderStatusの統一的な更新と取引所状態のマッピングも実装。
+* ✅ PERF-003: バックテスト処理のメモリ最適化を実装。MemoryMonitorクラスの作成、バックテストのバッチ処理化、メモリ使用量の監視と自動GC呼び出し、最適化されたバックテスト実行用のスクリプトとコマンドラインオプション、メモリ使用量レポート機能を追加。大量データ処理時のメモリ問題を解決。
+* ✅ CONF-005: ParameterServiceの環境変数置換時に型キャストを行う機能を実装。数値、真偽値、文字列の明示的な型指定が可能になり、さらに自動型推論も追加。型ヒント構文も導入し、単体テストも実装完了。
 
 ### 完了したタスク:
 * API-022: createOcoOrder戻り値のarray/object両対応を完了。Binanceと他取引所の違いに対応するロジックを実装。
@@ -34,6 +41,12 @@ alwaysApply: false
 * RISK-004: ATR==0問題に対するフォールバック機能を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、marketState.tsのIncrementalATRクラスすべてに対応。DEFAULT_ATR_PERCENTAGEとMIN_STOP_DISTANCE_PERCENTAGEのパラメータ化も実装。
 * DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動。risk.defaultAtrPercentage、risk.minStopDistancePercentage、risk.minAtrValueをparameters.yamlに追加し、各戦略から共通で参照できるよう実装。
 * RISK-005: 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
+* API-023: OrderTypeとccxt注文タイプの相互変換機能を実装。mapOrderTypeToCCXT関数とmapCCXTToOrderType関数を実装し、fetchOrderAndConvert関数で活用。
+* DATA-011: Candle.timestamp型統一ポリシーを実装し、すべての主要データアクセス箇所で型ガード関数とnormalizeTimestamp関数を適用。
+* INF-021: docker-composeのロギング設定を改善。ログローテーション設定とS3への自動バックアップ機能を追加し、cron設定も整備。
+* OMS-013: createOrderの結果をsimulatedFillに正しく渡すため、OrderUtilsモジュールを作成して注文IDと状態の同期機能を実装。OrderStatusの統一的な更新と取引所状態のマッピングも実装。
+* PERF-003: バックテスト処理のメモリ最適化を実装。MemoryMonitorクラスの作成、バックテストのバッチ処理化、メモリ使用量の監視と自動GC呼び出し、最適化されたバックテスト実行用のスクリプトとコマンドラインオプション、メモリ使用量レポート機能を追加。大量データ処理時のメモリ問題を解決。
+* CONF-005: ParameterServiceの環境変数置換時の型キャスト機能を実装。環境変数値を適切な型（数値、真偽値、文字列）に自動変換する機能を追加。${VAR:number:123}などの型ヒントも導入し、単体テストでカバレッジを確保。YAMLファイル内での型指定と自動変換が可能になり、ユーザー設定の利便性が向上。
 
 ## 新たに検出された問題点:
 1. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動（優先度：中）~~
@@ -44,23 +57,23 @@ alwaysApply: false
    - リスク制限、最大ポジションサイズの統一的な適用
 
 ## 次週のスプリント候補:
-1. API-023: OrderType enum と ccxt マッピングテーブル実装（完了に向けて継続）
-2. DATA-011: Candle.timestamp 型統一ポリシー決定（引き続き作業継続）
-3. INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更
+1. ~~API-023: OrderType enum と ccxt マッピングテーブル実装（完了に向けて継続）~~
+2. ~~DATA-011: Candle.timestamp 型統一ポリシー決定（引き続き作業継続）~~
+3. ~~INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更~~
 4. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動~~
-5. RISK-005: ポジションサイジングロジックの共通化（優先度：中）
-   - 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
-   - リスク制限、最大ポジションサイズの統一的な適用
+5. ~~RISK-005: ポジションサイジングロジックの共通化（優先度：中）~~
+   ~~- 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動~~
+   ~~- リスク制限、最大ポジションサイズの統一的な適用~~
 
 ### 個別タスク詳細:
 
 - [x] RISK-004: ATR==0のケースにフォールバックstopDistance実装
-      - 📅 Due        : 2024-02-01
+      - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug / feat
+      - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : 異常に小さいATR値への対応を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、IncrementalATRにフォールバック機能を追加
+      - ✎ Notes      : 市場の低ボラティリティでATR=0となるケースでのstopDistance計算クラッシュ防止。IncrementalATRクラスと各戦略に実装済み。DEFAULT_ATR_PERCENTAGE、MIN_STOP_DISTANCE_PERCENTAGE、MIN_ATR_VALUEをパラメータ化
 
 - [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
       - 📅 Due        : 2024-02-05
@@ -69,6 +82,14 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータをriskセクションに追加
+
+- [x] INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更
+      - 📅 Due        : 2024-02-08
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : docker-composeにloggingセクションを追加し、ローテーション設定を適用。S3同期スクリプトとcron設定を追加して自動バックアップ機能を実装
 
 ## 🗓 2026-W06 スプリント計画 (2月5日〜2月11日)
 
@@ -80,12 +101,12 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : 市場の低ボラティリティでATR=0となるケースでのstopDistance計算クラッシュ防止。固定値または過去N期間の平均ATRからの最小値をフォールバックとして実装
 
-- [ ] TYPE-001: OrderType・OrderSide変換ヘルパー関数の導入
+- [x] TYPE-001: OrderType・OrderSide変換ヘルパー関数の導入
       - 📅 Due        : 2026-02-11
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : OrderType/OrderSideからstring、stringからEnum値への安全な変換関数を実装。型推論の強化と一貫性確保が目的
 
 ## 🗓 2026-W05 スプリント計画 (1月29日〜2月4日)
@@ -114,37 +135,29 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : ccxt取引所によってcreateOCOOrderの戻り値がarray（Binance）とobject（KuCoin）で異なる問題を修正。配列とオブジェクト両形式に対応するロジックを実装
 
-- [ ] API-023: OrderType enum ↔ ccxt マッピングテーブル実装
+- [x] API-023: OrderType enum ↔ ccxt マッピングテーブル実装
       - 📅 Due        : 2026-02-03
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 90%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : ORDER_TYPE_MAPPINGテーブルとmapOrderTypeToCCXT関数を実装。取引所ごとの特殊な注文タイプ命名規則に対応した拡張マッピングが必要。残り作業：index.tsなど他の呼び出し箇所でも注文タイプ変換関数を利用するよう修正。
 
-- [ ] INF-018: 監視ダッシュボードの構築
+- [x] INF-018: 監視ダッシュボードの構築
       - 📅 Due        : 2026-02-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
-
-- [ ] DATA-011: Candle.timestamp 型統一ポリシー決定 & 全呼び出し修正
-      - 📅 Due        : 2026-02-05
-      - 👤 Owner      : @data_gov
-      - 🏷️  Label      : data
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 85%
-      - ✎ Notes      : Union型（number | string）へ変更し型ガード関数（isNumericTimestamp）と正規化関数（normalizeTimestamp）を実装。残作業：ParquetDataStore、計算ロジック、バックテスト処理など全ての呼び出し箇所で型ガードとnormalizeTimestampを使用するように修正
-
-- [x] INF-020: fetchWithExponentialBackoff を真の指数バックオフ + cap
-      - 📅 Due        : 2026-02-05
-      - 👤 Owner      : @operator
-      - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : 固定のBACKOFF_DELAYS配列を廃止し、INITIAL_BACKOFF_MS、BACKOFF_FACTOR、MAX_BACKOFF_MSをパラメータとした真の指数バックオフを実装
+      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードを構築。メトリクスエクスポーターを実装し、Discord Webhookアラートを設定。システムリソースとトレーディングパフォーマンスの監視が可能に。
+
+- [x] OMS-013: createOrder → simulateFill 時の ID / 状態同期
+      - 📅 Due        : 2026-02-03
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : createOrderを修正してIDを返すように変更し、TradingEngineのprocessSignalsメソッドでsimulatedFillにIDを渡すよう実装。OrderUtilsモジュールで注文状態の同期とマッピングを実装。
 
 ## 🗓 2026-W04 スプリント (1月22日〜1月28日)
 
@@ -157,21 +170,21 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装完了
 
-- [ ] ALG-036: BacktestRunner の重複 trade 集計修正
+- [x] ALG-036: BacktestRunnerの重複trade集計修正
       - 📅 Due        : 2026-01-29
       - 👤 Owner      : @assistant
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : lastTradeIndex を保持して新規分のみ metrics へ、timestamp も昇順 sort
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : lastTradeIndexの追跡によるトレード重複防止、ユニークIDの付与と重複チェック機能を追加。タイムスタンプによる昇順ソートも実装。
 
-- [ ] REF-018: 二重 require / console.log ガード除去
+- [x] REF-018: 二重require / console.logガード除去
       - 📅 Due        : 2026-01-29
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : backtestRunner.ts 内部の fs/path shadow, quiet ログ漏れ
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : backtestRunner.ts内のconsole.logをlogger.infoとlogger.debugに置き換え、quietモードチェックも強化。コンソール出力を統一。
 
 - [x] DOC-006: README / PROJECT_STRUCTURE 差分同期
       - 📅 Due        : 2026-01-28
@@ -215,7 +228,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
+      - 📊 Progress   : 0%
       - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
 
 ## 🗓 2026-W01 スプリント
@@ -307,6 +320,27 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、キャンドル数が不足していても強制的にシグナルを生成するように対応。スモークテスト実行で120件の取引が生成されることを確認。
+
+## 次回スプリントの候補:
+1. PERF-003: バックテスト処理速度とメモリ使用量の最適化
+2. CONF-005: ParameterService env 置換時の型キャスト
+3. PERF-001: 指標計算の最適化（インクリメンタル実装拡張）
+4. PERF-004: console.log の quiet モード対応強化
+5. SEC-001: API キー漏洩防止のための環境変数検証強化
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

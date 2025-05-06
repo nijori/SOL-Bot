@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# Alertmanagerの設定
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # Alertmanagerのエンドポイント
+          - alertmanager:9093
+
+# アラートルールの読み込み設定
+rule_files:
+  - "alert_rules.yml"
+
+# メトリクス収集対象の設定
+scrape_configs:
+  # SOL-Botアプリケーションのメトリクス
+  - job_name: 'solbot'
+    static_configs:
+      - targets: ['solbot:9100']
+        labels:
+          instance: 'solbot'
+          service: 'trading_bot'
+
+  # Node Exporterのメトリクス（ホストマシンのリソース監視）
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'host'
+          service: 'system'
+
+  # Prometheusの自身のメトリクス
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus'
+          service: 'monitoring'
+
+  # cAdvisorのメトリクス（コンテナリソース監視）
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'cadvisor'
+          service: 'container_metrics' 

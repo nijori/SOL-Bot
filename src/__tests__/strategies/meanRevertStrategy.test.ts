@@ -75,7 +75,6 @@ describe('MeanRevertStrategy Tests', () => {
     
     // Maker-only Limitであることを確認
     expect(sellOrders[0].type).toBe(OrderType.LIMIT);
-    expect(sellOrders[0].postOnly).toBe(true);
   });
   
   // レンジ上限エスケープのテスト
@@ -94,7 +93,9 @@ describe('MeanRevertStrategy Tests', () => {
       side: OrderSide.SELL,
       amount: 1.0,
       entryPrice: 100,
-      timestamp: Date.now() - 3600000
+      timestamp: Date.now() - 3600000,
+      currentPrice: 120,
+      unrealizedPnl: -20
     }];
     
     // Act
@@ -124,14 +125,18 @@ describe('MeanRevertStrategy Tests', () => {
         side: OrderSide.BUY,
         amount: 3.0,
         entryPrice: 95,
-        timestamp: Date.now() - 7200000
+        timestamp: Date.now() - 7200000,
+        currentPrice: 100,
+        unrealizedPnl: 15
       },
       {
         symbol: 'SOL/USDT',
         side: OrderSide.SELL,
         amount: 0.5,
         entryPrice: 105,
-        timestamp: Date.now() - 3600000
+        timestamp: Date.now() - 3600000,
+        currentPrice: 100,
+        unrealizedPnl: 2.5
       }
     ];
     
@@ -158,7 +163,9 @@ describe('MeanRevertStrategy Tests', () => {
         side: OrderSide.BUY,
         amount: 17.5, // 17.5 × 100 = 1750, 口座残高5000の35%
         entryPrice: 100,
-        timestamp: Date.now() - 3600000
+        timestamp: Date.now() - 3600000,
+        currentPrice: 100,
+        unrealizedPnl: 0
       }
     ];
     

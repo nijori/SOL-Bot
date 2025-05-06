@@ -75,7 +75,57 @@ export const parameterSpace: IParameterSpace = {
     max: 0.2,
     step: 0.01,
     default: 0.15,
-    description: 'ブラックスワン判定の価格変動率閾値（%）'
+    description: 'ブラックスワン判定の価格変動率閾値'
+  },
+  
+  // EMA傾き計算の高ボラティリティ閾値
+  SLOPE_HIGH_VOL_THRESHOLD: {
+    type: ParameterType.FLOAT,
+    min: 6.0,
+    max: 10.0,
+    step: 0.5,
+    default: 8.0,
+    description: '高ボラティリティ判定のATR%閾値'
+  },
+  
+  // EMA傾き計算の低ボラティリティ閾値
+  SLOPE_LOW_VOL_THRESHOLD: {
+    type: ParameterType.FLOAT,
+    min: 2.0,
+    max: 4.0,
+    step: 0.2,
+    default: 3.0,
+    description: '低ボラティリティ判定のATR%閾値'
+  },
+  
+  // EMA傾き計算のデフォルト期間
+  SLOPE_PERIODS_DEFAULT: {
+    type: ParameterType.INTEGER,
+    min: 3,
+    max: 8,
+    step: 1,
+    default: 5,
+    description: 'EMA傾き計算のデフォルト期間'
+  },
+  
+  // 高ボラティリティ時の期間値
+  SLOPE_HIGH_VOL_VALUE: {
+    type: ParameterType.INTEGER,
+    min: 2,
+    max: 5,
+    step: 1,
+    default: 3,
+    description: '高ボラティリティ時のEMA傾き計算期間'
+  },
+  
+  // 低ボラティリティ時の期間値
+  SLOPE_LOW_VOL_VALUE: {
+    type: ParameterType.INTEGER,
+    min: 6,
+    max: 10,
+    step: 1,
+    default: 8,
+    description: '低ボラティリティ時のEMA傾き計算期間'
   }
 };
 

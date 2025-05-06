@@ -5,6 +5,8 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 NODE_ENV=production
+S3_BUCKET=solbot-logs
+AWS_REGION=ap-northeast-1
 
 # ログ出力先
 MAILTO=""
@@ -22,4 +24,10 @@ MAILTO=""
 0 4 * * 0 docker pull node:18-slim && cd /opt/solbot/current && docker-compose build solbot-prod && docker-compose up -d solbot-prod
 
 # 毎月1日にディスク使用量レポート作成
-0 5 1 * * du -sh /opt/solbot/* > /opt/solbot/logs/disk_usage_$(date +\%Y\%m).log 2>&1 
+0 5 1 * * du -sh /opt/solbot/* > /opt/solbot/logs/disk_usage_$(date +\%Y\%m).log 2>&1
+
+# 毎時30分にS3にログファイルを同期
+30 * * * * cd /opt/solbot/current && ./scripts/sync-logs-to-s3.sh >> /opt/solbot/logs/s3_sync.log 2>&1
+
+# 毎週月曜の午前1時に古いログファイルをS3 Glacierに移行
+0 1 * * 1 aws s3 cp s3://$S3_BUCKET/logs/ s3://$S3_BUCKET-archive/logs/ --recursive --exclude "*" --include "*.log.*" --include "*.json.*" --storage-class GLACIER 

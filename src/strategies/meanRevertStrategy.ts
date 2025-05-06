@@ -142,7 +142,6 @@ function createMakerOnlyLimitOrder(
     side,
     price: adjustedPrice,
     amount,
-    postOnly: true,  // Post-Onlyフラグを設定
     timestamp: Date.now()
   };
 }

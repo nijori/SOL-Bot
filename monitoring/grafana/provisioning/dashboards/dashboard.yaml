@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'SOL-Bot Dashboards'
+    orgId: 1
+    folder: 'SOL-Bot'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards 

@@ -1,0 +1,67 @@
+groups:
+  - name: solbot_alerts
+    rules:
+      # システムリソース関連のアラート
+      - alert: HighCPUUsage
+        expr: (100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率が高い: {{ $labels.instance }}"
+          description: "{{ $labels.instance }}のCPU使用率が85%を超えています (現在値: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "メモリ使用率が高い: {{ $labels.instance }}"
+          description: "{{ $labels.instance }}のメモリ使用率が90%を超えています (現在値: {{ $value }}%)"
+
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes{mountpoint="/"} - node_filesystem_free_bytes{mountpoint="/"}) / node_filesystem_size_bytes{mountpoint="/"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ディスク使用率が高い: {{ $labels.instance }}"
+          description: "{{ $labels.instance }}のディスク使用率が85%を超えています (現在値: {{ $value }}%)"
+
+      # SOL-Bot アプリケーション固有のアラート
+      - alert: SOLBotDown
+        expr: up{job="solbot"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SOL-Botがダウンしています"
+          description: "取引システムが応答していません。すぐに確認してください。"
+
+      - alert: HighErrorRate
+        expr: rate(solbot_error_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "エラー率が高い: {{ $labels.instance }}"
+          description: "SOL-Botのエラー率が高くなっています (現在値: {{ $value }} errors/秒)"
+
+      - alert: TradingVolumeAnomalies
+        expr: abs(rate(solbot_trade_volume_total[1h]) - avg_over_time(rate(solbot_trade_volume_total[1h])[6h:1h])) / avg_over_time(rate(solbot_trade_volume_total[1h])[6h:1h]) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "取引量の異常: {{ $labels.instance }}"
+          description: "取引量が通常と比べて50%以上変動しています"
+
+      - alert: DailyLossLimitApproaching
+        expr: solbot_daily_loss_percentage > 4
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "日次損失制限に近づいています"
+          description: "SOL-Botの日次損失が4%を超えています（5%で自動停止します）" 
