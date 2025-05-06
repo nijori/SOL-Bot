@@ -456,6 +456,28 @@ export class TradingEngine {
           }
           break;
           
+        case StrategyType.MEAN_REVERT:
+          // ミーンリバース戦略を実行
+          try {
+            const { executeMeanRevertStrategy } = require('../strategies/meanRevertStrategy');
+            result = executeMeanRevertStrategy(
+              this.latestCandles,
+              this.symbol,
+              positions,
+              this.account.balance
+            );
+            logger.info(`[TradingEngine] ミーンリバース戦略を実行: ${result.signals.length}件のシグナル生成`);
+          } catch (error) {
+            logger.error(`[TradingEngine] ミーンリバース戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+            // エラー時はデフォルトの空シグナルを返す
+            result = {
+              strategy: StrategyType.MEAN_REVERT,
+              signals: [],
+              timestamp: Date.now()
+            };
+          }
+          break;
+          
         case StrategyType.EMERGENCY:
           // 緊急戦略を実行
           result = this.executeEmergencyStrategy();
@@ -474,7 +496,6 @@ export class TradingEngine {
             );
           } catch (error) {
             logger.error(`[TradingEngine] デフォルト戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
-            // エラー時は空のシグナルを返す
             result = {
               strategy: StrategyType.TREND_FOLLOWING,
               signals: [],

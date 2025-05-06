@@ -35,6 +35,7 @@ export enum MarketEnvironment {
 export enum StrategyType {
   TREND_FOLLOWING = 'trend_following',
   RANGE_TRADING = 'range_trading',
+  MEAN_REVERT = 'mean_revert',
   EMERGENCY = 'emergency',
 }
 

@@ -355,6 +355,44 @@ function calculateAtrPercentage(atr: number, closePrice: number): number {
 }
 
 /**
+ * VWAP（Volume Weighted Average Price）を計算
+ * @param candles ローソク足データ
+ * @param period 期間（省略時は全期間）
+ * @returns VWAP値
+ */
+export function calculateVWAP(candles: Candle[], period?: number): number {
+  if (!candles || candles.length === 0) {
+    return 0;
+  }
+  
+  // 計算に使用するデータを取得
+  const dataToUse = period && period < candles.length 
+    ? candles.slice(-period) 
+    : candles;
+  
+  // 累積の（価格×ボリューム）と累積ボリュームを計算
+  let cumulativePV = 0;
+  let cumulativeVolume = 0;
+  
+  for (const candle of dataToUse) {
+    // 各ローソク足の典型的な価格（(high + low + close) / 3）
+    const typicalPrice = (candle.high + candle.low + candle.close) / 3;
+    const volumePrice = typicalPrice * candle.volume;
+    
+    cumulativePV += volumePrice;
+    cumulativeVolume += candle.volume;
+  }
+  
+  // ボリュームが0の場合は現在の価格を返す
+  if (cumulativeVolume === 0) {
+    return dataToUse[dataToUse.length - 1].close;
+  }
+  
+  // VWAP = 累積(価格×ボリューム) / 累積ボリューム
+  return cumulativePV / cumulativeVolume;
+}
+
+/**
  * 市場環境を分析する
  * @param candles ローソク足データ
  * @param timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
@@ -588,7 +626,21 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
     } else {
       // レンジ相場
       environment = MarketEnvironment.RANGE;
-      recommendedStrategy = StrategyType.RANGE_TRADING;
+      
+      // ミーンリバース戦略の条件：
+      // 1. 明確なレンジ環境（スロープが小さい）
+      // 2. 適度なボラティリティ（ATR%が閾値内かつゼロでない）
+      // 3. ADXが20未満（弱いトレンド）
+      if (Math.abs(shortTermSlopeAngle) < 0.15 && 
+          atrPercentage >= 3.0 && atrPercentage <= 8.0 && 
+          adxValue < 20) {
+        // 適度なボラティリティを持つレンジ相場 → ミーンリバース戦略
+        recommendedStrategy = StrategyType.MEAN_REVERT;
+        console.log(`[MarketState] ミーンリバース戦略を推奨: ATR%=${atrPercentage.toFixed(2)}%, ADX=${adxValue.toFixed(2)}, Slope=${shortTermSlopeAngle.toFixed(2)}`);
+      } else {
+        // 他のレンジ条件 → 通常のレンジ戦略
+        recommendedStrategy = StrategyType.RANGE_TRADING;
+      }
     }
     
     // 高ボラティリティ環境では緊急戦略を推奨
