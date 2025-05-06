@@ -82,16 +82,16 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : adjustSlopePeriods閾値8/3をYAML外出しし、Optunaの最適化対象に追加
+      - 📊 Progress   : 95%
+      - ✎ Notes      : adjustSlopePeriods閾値をYAML外出しし、Optunaの最適化対象に追加。パラメータサービスから取得するように実装。テスト実行は未確認
 
 - [ ] ALG-032: EMERGENCY戦略の解除ロジック追加
       - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装
+      - 📊 Progress   : 95%
+      - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装。テスト実行は未確認
 
 - [ ] DAT-009: マルチタイムフレームデータ取得の実装
       - 📅 Due        : 2026-01-08
@@ -184,6 +184,15 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
+
+- [x] TST-003: スモークテストの取引シグナル生成対応
+      - 📅 Due        : 2025-12-18
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-016
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト時に適切なシグナルを生成するよう実装、BacktestRunnerのサンプルデータ生成も強化し明確なトレンドパターンを生成するよう改良
 
 ## 仕上げチェックリスト
 
