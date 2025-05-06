@@ -14,14 +14,22 @@ alwaysApply: false
       - 🩺 Health     : 🚑
       - ✎ Notes      : .todo/*.mdcのフォーマット統一、すべてのタスクにラベル付与、GitHub Actionsでラベル必須チェック
 
-## P1 - 設計ズレ/仕様不足
+## P1 - CI/CD構築
 
-- [ ] INF-012: バックテストスモークテストの自動化
-      - 📅 Due        : 2025-10-08
+- [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-11-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - ✎ Notes      : npm run backtest:smokeコマンドを追加し、3-day勢いテストをCIで自動実行
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー、PR時に.todo/*.mdcの未完チェック
+
+- [ ] CICD-001: Jestと.todo未完チェックのマージガード
+      - 📅 Due        : 2025-11-30
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-006
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : GitHub Actionsでの自動テストと.todoタスク未完チェックによるマージガード実装
 
 ## P2 - コード品質改善
 
@@ -40,14 +48,6 @@ alwaysApply: false
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - ✎ Notes      : 本番ビルド用のマルチステージDockerfile作成。node:20-slim→FROM、RUN npm ci --prodを記述
-
-- [ ] ALG-024: ウォークフォワード検証システムの実装
-      - 📅 Due        : 2025-11-10
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-023
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : backtest/runner.tsで3M Train→1M Testのループを実装し、CIでOptuna最適化のsmoke-test
 
 ## 仕上げチェックリスト
 
