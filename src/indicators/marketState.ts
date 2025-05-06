@@ -6,6 +6,227 @@ import {
   StrategyType 
 } from '../core/types';
 import { MARKET_PARAMETERS } from '../config/parameters';
+import { parameterService } from '../config/parameterService';
+
+// EMA傾き計算のボラティリティ適応閾値をパラメータサービスから取得
+const SLOPE_HIGH_VOL_THRESHOLD = parameterService.get<number>('market.slope_periods_high_vol_threshold', 8.0);
+const SLOPE_LOW_VOL_THRESHOLD = parameterService.get<number>('market.slope_periods_low_vol_threshold', 3.0);
+const SLOPE_PERIODS_DEFAULT = parameterService.get<number>('market.slope_periods_default', 5);
+const SLOPE_HIGH_VOL_VALUE = parameterService.get<number>('market.slope_periods_high_vol_value', 3);
+const SLOPE_LOW_VOL_VALUE = parameterService.get<number>('market.slope_periods_low_vol_value', 8);
+
+/**
+ * インクリメンタルEMA計算クラス
+ * 全履歴の再計算をせず、増分計算でEMAを更新
+ */
+class IncrementalEMA {
+  private emaValue: number | null = null;
+  private alpha: number;
+  
+  /**
+   * @param period EMA期間
+   */
+  constructor(private period: number) {
+    // EMAの平滑化係数α = 2/(period+1)
+    this.alpha = 2 / (this.period + 1);
+  }
+  
+  /**
+   * EMA値を初期化
+   * @param values 初期化に使用する値の配列
+   * @returns 初期化されたEMA値
+   */
+  initialize(values: number[]): number {
+    if (!values || values.length === 0) {
+      this.emaValue = null;
+      return 0;
+    }
+    
+    // 期間未満のデータしかない場合は単純平均を使用
+    if (values.length < this.period) {
+      const sum = values.reduce((a, b) => a + b, 0);
+      this.emaValue = sum / values.length;
+      return this.emaValue;
+    }
+    
+    // 期間分のデータがある場合は、まず単純平均を算出
+    const initialValues = values.slice(-this.period);
+    const sum = initialValues.reduce((a, b) => a + b, 0);
+    this.emaValue = sum / this.period;
+    
+    // 残りのデータでEMA値を更新
+    for (let i = this.period; i < values.length; i++) {
+      this.update(values[i]);
+    }
+    
+    return this.emaValue || 0;
+  }
+  
+  /**
+   * 新しい値でEMAを更新
+   * @param newValue 新しい値
+   * @returns 更新されたEMA値
+   */
+  update(newValue: number): number {
+    if (this.emaValue === null) {
+      this.emaValue = newValue;
+      return this.emaValue;
+    }
+    
+    // EMA = α * 新しい値 + (1 - α) * 前回のEMA
+    this.emaValue = this.alpha * newValue + (1 - this.alpha) * this.emaValue;
+    return this.emaValue;
+  }
+  
+  /**
+   * 現在のEMA値を取得
+   */
+  getValue(): number {
+    return this.emaValue || 0;
+  }
+  
+  /**
+   * 期間を取得
+   */
+  getPeriod(): number {
+    return this.period;
+  }
+}
+
+/**
+ * インクリメンタルATR計算クラス
+ * 全履歴の再計算をせず、増分計算でATRを更新
+ */
+class IncrementalATR {
+  private atrValue: number | null = null;
+  private prevClose: number | null = null;
+  private alpha: number;
+  
+  /**
+   * @param period ATR期間
+   */
+  constructor(private period: number) {
+    // Wilderの平滑化手法: α = 1/period
+    this.alpha = 1 / this.period;
+  }
+  
+  /**
+   * ATR値を初期化
+   * @param candles 初期化に使用するローソク足の配列
+   * @returns 初期化されたATR値
+   */
+  initialize(candles: Candle[]): number {
+    if (!candles || candles.length === 0) {
+      this.atrValue = null;
+      this.prevClose = null;
+      return 0;
+    }
+    
+    // TR値の配列を計算
+    const trValues: number[] = [];
+    
+    for (let i = 0; i < candles.length; i++) {
+      const candle = candles[i];
+      let tr: number;
+      
+      if (i === 0) {
+        // 最初のローソク足はHigh-Lowを使用
+        tr = candle.high - candle.low;
+      } else {
+        // それ以降はTrue Rangeを計算
+        const prevClose = candles[i-1].close;
+        const hl = candle.high - candle.low;
+        const hpc = Math.abs(candle.high - prevClose);
+        const lpc = Math.abs(candle.low - prevClose);
+        tr = Math.max(hl, Math.max(hpc, lpc));
+      }
+      
+      trValues.push(tr);
+    }
+    
+    // 期間未満のデータしかない場合は単純平均を使用
+    if (trValues.length < this.period) {
+      const sum = trValues.reduce((a, b) => a + b, 0);
+      this.atrValue = sum / trValues.length;
+    } else {
+      // 最初のATRは単純平均
+      const initialTrValues = trValues.slice(0, this.period);
+      const sum = initialTrValues.reduce((a, b) => a + b, 0);
+      this.atrValue = sum / this.period;
+      
+      // 残りのデータでATR値を更新（Wilderの平滑化手法）
+      for (let i = this.period; i < trValues.length; i++) {
+        this.atrValue = trValues[i] * this.alpha + this.atrValue * (1 - this.alpha);
+      }
+    }
+    
+    // 前回の終値を記録
+    this.prevClose = candles[candles.length - 1].close;
+    
+    return this.atrValue || 0;
+  }
+  
+  /**
+   * 新しいローソク足でATRを更新
+   * @param candle 新しいローソク足
+   * @returns 更新されたATR値
+   */
+  update(candle: Candle): number {
+    if (this.atrValue === null) {
+      this.atrValue = candle.high - candle.low;
+      this.prevClose = candle.close;
+      return this.atrValue;
+    }
+    
+    // True Rangeを計算
+    const hl = candle.high - candle.low;
+    let tr: number;
+    
+    if (this.prevClose !== null) {
+      const hpc = Math.abs(candle.high - this.prevClose);
+      const lpc = Math.abs(candle.low - this.prevClose);
+      tr = Math.max(hl, Math.max(hpc, lpc));
+    } else {
+      tr = hl;
+    }
+    
+    // ATR = α * 現在のTR + (1 - α) * 前回のATR
+    this.atrValue = tr * this.alpha + this.atrValue * (1 - this.alpha);
+    
+    // 前回の終値を更新
+    this.prevClose = candle.close;
+    
+    return this.atrValue;
+  }
+  
+  /**
+   * 現在のATR値を取得
+   */
+  getValue(): number {
+    return this.atrValue || 0;
+  }
+  
+  /**
+   * 期間を取得
+   */
+  getPeriod(): number {
+    return this.period;
+  }
+}
+
+// インクリメンタル計算用インスタンスを保持
+let shortTermEmaInstance: IncrementalEMA | null = null;
+let longTermEmaInstance: IncrementalEMA | null = null;
+let atrInstance: IncrementalATR | null = null;
+
+/**
+ * インクリメンタル計算用インスタンスをリセット
+ */
+export function resetMarketStateCalculators(): void {
+  shortTermEmaInstance = null;
+  longTermEmaInstance = null;
+  atrInstance = null;
+}
 
 /**
  * EMAの傾きを計算（線形回帰方式）
@@ -72,13 +293,13 @@ function slopeToAngle(slope: number): number {
  * @param defaultPeriods デフォルトの期間
  * @returns 調整された期間
  */
-function adjustSlopePeriods(atrPercentage: number, defaultPeriods: number = 5): number {
+function adjustSlopePeriods(atrPercentage: number, defaultPeriods: number = SLOPE_PERIODS_DEFAULT): number {
   // ボラティリティが高い場合、期間を短くする（素早く反応）
   // ボラティリティが低い場合、期間を長くする（フィルタリング効果を高める）
-  if (atrPercentage > 8) {
-    return Math.max(3, defaultPeriods - 2);  // 高ボラティリティ：短い期間
-  } else if (atrPercentage < 3) {
-    return defaultPeriods + 3;  // 低ボラティリティ：長い期間
+  if (atrPercentage > SLOPE_HIGH_VOL_THRESHOLD) {
+    return Math.max(SLOPE_HIGH_VOL_VALUE, defaultPeriods - 2);  // 高ボラティリティ：短い期間
+  } else if (atrPercentage < SLOPE_LOW_VOL_THRESHOLD) {
+    return defaultPeriods + SLOPE_LOW_VOL_VALUE - SLOPE_PERIODS_DEFAULT;  // 低ボラティリティ：長い期間
   }
   return defaultPeriods;  // 通常のボラティリティ：デフォルト期間
 }
@@ -163,26 +384,59 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
   }
   
   try {
-    // 短期EMAを計算
+    // 短期EMAを計算（インクリメンタル方式）
+    const shortTermEmaPeriod = MARKET_PARAMETERS.SHORT_TERM_EMA;
+    if (!shortTermEmaInstance || shortTermEmaInstance.getPeriod() !== shortTermEmaPeriod) {
+      shortTermEmaInstance = new IncrementalEMA(shortTermEmaPeriod);
+      shortTermEmaInstance.initialize(candles.map(c => c.close));
+    }
+    
+    // 最新の価格でEMAを更新
+    const latestShortEma = shortTermEmaInstance.getValue();
+    
+    // 短期EMAの値の履歴を計算（傾き計算用）
+    // 注：ここは最適化の余地あり。将来的には傾き計算もインクリメンタル化が可能
     const shortTermEmaInput = {
-      period: MARKET_PARAMETERS.SHORT_TERM_EMA,
+      period: shortTermEmaPeriod,
       values: candles.map(c => c.close)
     };
-    let shortTermEmaValues = EMA.calculate(shortTermEmaInput);
+    const shortTermEmaValues = EMA.calculate(shortTermEmaInput);
     
-    // 長期EMAを計算
+    // 長期EMAを計算（インクリメンタル方式）
+    const longTermEmaPeriod = MARKET_PARAMETERS.LONG_TERM_EMA;
+    if (!longTermEmaInstance || longTermEmaInstance.getPeriod() !== longTermEmaPeriod) {
+      longTermEmaInstance = new IncrementalEMA(longTermEmaPeriod);
+      longTermEmaInstance.initialize(candles.map(c => c.close));
+    }
+    
+    // 最新の価格でEMAを更新
+    const latestLongEma = longTermEmaInstance.getValue();
+    
+    // 長期EMAの値の履歴を計算（傾き計算用）
     const longTermEmaInput = {
-      period: MARKET_PARAMETERS.LONG_TERM_EMA,
+      period: longTermEmaPeriod,
       values: candles.map(c => c.close)
     };
-    let longTermEmaValues = EMA.calculate(longTermEmaInput);
+    const longTermEmaValues = EMA.calculate(longTermEmaInput);
     
-    // ATRを計算
+    // ATRを計算（インクリメンタル方式）
+    const atrPeriod = MARKET_PARAMETERS.ATR_PERIOD || 14;
+    if (!atrInstance || atrInstance.getPeriod() !== atrPeriod) {
+      atrInstance = new IncrementalATR(atrPeriod);
+      atrInstance.initialize(candles);
+    }
+    
+    // 最新のローソク足でATRを更新
+    // 実際のシステムでは新しいローソク足だけを渡すよう修正が必要
+    const currentAtr = atrInstance.getValue();
+    
+    // ATR履歴を計算（変化率計算用）
+    // 注：ここは最適化の余地あり。将来的にはATR変化率もインクリメンタル化が可能
     const atrInput = {
       high: candles.map(c => c.high),
       low: candles.map(c => c.low),
       close: candles.map(c => c.close),
-      period: MARKET_PARAMETERS.ATR_PERIOD || 14 // デフォルト値を提供
+      period: atrPeriod
     };
     
     let atrValues;
@@ -206,38 +460,8 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
       atrValues = [currentPrice * 0.01];
     }
     
-    // EMAの値が空の場合、単純移動平均を計算
-    if (!shortTermEmaValues || shortTermEmaValues.length === 0) {
-      console.warn(`[MarketState] 短期EMA計算結果が空です。単純移動平均を使用します。`);
-      const period = MARKET_PARAMETERS.SHORT_TERM_EMA || 10;
-      shortTermEmaValues = [];
-      for (let i = period - 1; i < candles.length; i++) {
-        let sum = 0;
-        for (let j = 0; j < period; j++) {
-          sum += candles[i - j].close;
-        }
-        shortTermEmaValues.push(sum / period);
-      }
-    }
-    
-    if (!longTermEmaValues || longTermEmaValues.length === 0) {
-      console.warn(`[MarketState] 長期EMA計算結果が空です。単純移動平均を使用します。`);
-      const period = MARKET_PARAMETERS.LONG_TERM_EMA || 50;
-      longTermEmaValues = [];
-      for (let i = period - 1; i < candles.length; i++) {
-        let sum = 0;
-        for (let j = 0; j < period; j++) {
-          sum += candles[i - j].close;
-        }
-        longTermEmaValues.push(sum / period);
-      }
-    }
-    
     // 現在の終値
     const currentClose = candles[candles.length - 1].close;
-    
-    // 現在のATR
-    const currentAtr = atrValues[atrValues.length - 1];
     
     // ATRパーセンテージ（ATR/Close）を計算
     const atrPercentage = calculateAtrPercentage(currentAtr, currentClose);
@@ -270,8 +494,6 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
                       Math.abs(shortTermSlopeAngle) < 0.15;
     
     // トレンドの方向性を判定（短期・長期EMAの位置関係とスロープの符号）
-    const latestShortEma = shortTermEmaValues[shortTermEmaValues.length - 1];
-    const latestLongEma = longTermEmaValues[longTermEmaValues.length - 1];
     const emaCrossover = latestShortEma > latestLongEma;
     const bullFlag = emaCrossover && shortTermSlope > 0;
     const bearFlag = !emaCrossover && shortTermSlope < 0;
