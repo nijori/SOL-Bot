@@ -1,0 +1,90 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手動デプロイの理由'
+        required: true
+        default: '定期メンテナンス'
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v3
+        
+      - name: Node.jsセットアップ
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: 依存関係のインストール
+        run: npm ci
+        
+      - name: ESLintによるコード検証
+        run: npm run lint
+        
+      - name: Jestによるテスト実行
+        run: npm test
+        
+      - name: TypeScriptのビルド
+        run: npm run build
+        
+      - name: デプロイ準備 - 環境ファイル作成
+        run: |
+          echo "NODE_ENV=production" > .env
+          echo "アクセスキーなど機密情報は GitHub Secrets から設定します"
+        
+      - name: EC2インスタンスへのデプロイ
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: ".,!node_modules,!.git,!__tests__,!logs"
+          target: "/opt/solbot/releases/${{ github.sha }}"
+          strip_components: 0
+          
+      - name: デプロイスクリプト実行
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/solbot/releases/${{ github.sha }}
+            chmod +x scripts/deploy.sh
+            export NODE_ENV=production
+            export EXCHANGE_API_KEY="${{ secrets.EXCHANGE_API_KEY }}"
+            export EXCHANGE_SECRET_KEY="${{ secrets.EXCHANGE_SECRET_KEY }}"
+            export DISCORD_WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}"
+            ./scripts/deploy.sh
+            
+            # 成功したらcurrentシンボリックリンクを更新
+            if [ $? -eq 0 ]; then
+              echo "デプロイ成功: currentシンボリックリンクを更新します"
+              ln -sfn /opt/solbot/releases/${{ github.sha }} /opt/solbot/current
+              echo "デプロイ完了: $(date)"
+            else
+              echo "デプロイ失敗: $(date)"
+              exit 1
+            fi
+            
+      - name: Discordへの通知
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "SOL-Bot プロダクションデプロイ"
+          description: |
+            リポジトリ: ${{ github.repository }}
+            コミット: ${{ github.sha }}
+            トリガー: ${{ github.actor }}
+            ${{ github.event_name == 'workflow_dispatch' && format('理由: {0}', github.event.inputs.reason) || '' }} 

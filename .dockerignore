@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.github
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Node.js
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Build directories
+dist
+build
+.out
+
+# Editor specific
+.vscode
+.idea
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+__tests__
+coverage
+.nyc_output
+jest.config.js
+
+# Development
+.env
+.env.local
+.env.development
+.env.test
+
+# Data directories
+data/candles
+data/orders
+data/metrics
+data/optimization
+
+# Logs
+logs
+*.log
+
+# Project specific
+README.md
+LICENSE
+.todo
+plan.md
+SOLUSDT_Algo_Strategy_Design 

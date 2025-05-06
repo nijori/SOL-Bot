@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # 開発環境用サービス
+  solbot-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: solbot-dev
+    volumes:
+      # ソースコードをボリュームマウントして、コード変更を即時反映
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./logs:/app/logs
+      # node_modulesはコンテナ内のものを使用
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - TZ=UTC
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # 本番環境用サービス
+  solbot-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: solbot-prod
+    volumes:
+      # データと設定、ログのみをボリュームマウント
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - TZ=UTC
+    ports:
+      - "3000:3000"
+    restart: always
+    # ヘルスチェックを追加
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s 

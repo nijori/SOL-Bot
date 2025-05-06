@@ -1,0 +1,25 @@
+# SOL-Bot 本番環境のcrontab設定
+# 以下のコマンドでインストール: crontab /path/to/this/file
+
+# 環境変数の設定
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+NODE_ENV=production
+
+# ログ出力先
+MAILTO=""
+
+# 毎時5分に監視スクリプトを実行
+5 * * * * cd /opt/solbot/current && ./scripts/monitor.sh >> /opt/solbot/logs/cron.log 2>&1
+
+# 毎日午前2時にログローテーション（7日以上前のログファイルを削除）
+0 2 * * * find /opt/solbot/logs -name "*.log" -type f -mtime +7 -delete
+
+# 毎日午前3時にデータバックアップ
+0 3 * * * tar -czf /opt/solbot/backups/data_$(date +\%Y\%m\%d).tar.gz -C /opt/solbot/current data
+
+# 毎週日曜日の午前4時にシステムアップデート
+0 4 * * 0 docker pull node:18-slim && cd /opt/solbot/current && docker-compose build solbot-prod && docker-compose up -d solbot-prod
+
+# 毎月1日にディスク使用量レポート作成
+0 5 1 * * du -sh /opt/solbot/* > /opt/solbot/logs/disk_usage_$(date +\%Y\%m).log 2>&1 

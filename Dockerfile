@@ -1,0 +1,54 @@
+# SOL-Bot Dockerfile
+# Multi-stage build
+
+# Build stage
+FROM node:18-slim AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build TypeScript code
+RUN npm run build
+
+# Production stage
+FROM node:18-slim AS production
+
+# Create app directory
+WORKDIR /app
+
+# Create a non-root user and group
+RUN groupadd -r solbot && useradd -r -g solbot solbot
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Create necessary data directories
+RUN mkdir -p data/candles data/orders data/metrics data/optimization logs
+RUN chown -R solbot:solbot /app
+
+# Switch to non-root user
+USER solbot
+
+# Environment variables
+ENV NODE_ENV=production
+ENV TZ=UTC
+
+# Command to run the application
+CMD ["node", "dist/index.js"]
+
+# Expose API port (if needed)
+EXPOSE 3000 
