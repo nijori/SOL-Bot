@@ -639,12 +639,12 @@ export class TradingEngine {
    */
   private applySlippageAndCommission(order: Order): void {
     // 成行注文など価格がない場合は、最新の価格を使用
-    if (!order.price && this.latestCandles.length > 0) {
+    if (order.price === undefined && this.latestCandles.length > 0) {
       order.price = this.latestCandles[this.latestCandles.length - 1].close;
       logger.debug(`[TradingEngine] 価格なし注文に現在価格を設定: ${order.price}`);
     }
     
-    if (!order.price) {
+    if (order.price === undefined) {
       logger.warn(`[TradingEngine] 注文に価格が設定されていません: ${order.id}`);
       return; // 価格がない場合はスキップ
     }
@@ -667,11 +667,11 @@ export class TradingEngine {
     // 注文に価格がない場合（成行注文など）、最新の価格を設定
     let fillPrice: number;
     
-    if (!order.price && this.latestCandles.length > 0) {
+    if (order.price === undefined && this.latestCandles.length > 0) {
       fillPrice = this.latestCandles[this.latestCandles.length - 1].close;
       order.price = fillPrice; // 注文自体にも価格を設定
       logger.debug(`[TradingEngine] 約定処理: 成行注文に現在価格を設定 - ${fillPrice}`);
-    } else if (order.price) {
+    } else if (order.price !== undefined) {
       // 価格が存在する場合はその価格を使用
       fillPrice = order.price;
     } else {

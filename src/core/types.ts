@@ -4,12 +4,26 @@
 
 // ローソク足データの型
 export interface Candle {
-  timestamp: number;
+  timestamp: number | string;  // ISO文字列またはUNIXタイムスタンプ（ミリ秒）
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
+}
+
+// タイムスタンプの型ガード関数
+export function isNumericTimestamp(timestamp: number | string): timestamp is number {
+  return typeof timestamp === 'number';
+}
+
+// ISO文字列タイムスタンプをミリ秒数値に変換する関数
+export function normalizeTimestamp(timestamp: number | string): number {
+  if (isNumericTimestamp(timestamp)) {
+    return timestamp;
+  }
+  // ISO文字列からDateオブジェクトを生成し、ミリ秒タイムスタンプに変換
+  return new Date(timestamp).getTime();
 }
 
 // 取引所から取得した市場データの型
@@ -70,7 +84,7 @@ export interface Order {
   symbol: string;         // 取引ペア
   type: OrderType;        // 注文タイプ
   side: OrderSide;        // 買い/売り
-  price?: number;         // 価格（成行注文の場合は不要）
+  price?: number | undefined;    // 価格（成行注文の場合はundefined）
   amount: number;         // 数量
   status?: OrderStatus;   // 注文ステータス
   timestamp?: number;     // タイムスタンプ

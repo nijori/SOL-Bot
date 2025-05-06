@@ -41,13 +41,28 @@ export interface ExchangeError extends Error {
 }
 
 /**
+ * OrderType enumとCCXT注文タイプのマッピング
+ * 取引所ごとに異なる注文タイプの文字列表現を正規化する
+ */
+const ORDER_TYPE_MAPPING: Record<OrderType, string> = {
+  [OrderType.MARKET]: 'market',
+  [OrderType.LIMIT]: 'limit',
+  [OrderType.STOP]: 'stop',
+  [OrderType.STOP_LIMIT]: 'stop_limit',  // 一部の取引所では 'STOP_LIMIT' や他の表現が使われる
+  [OrderType.STOP_MARKET]: 'stop_market' // 一部の取引所では 'STOP_MARKET' や他の表現が使われる
+};
+
+/**
  * 取引所サービスクラス
  */
 export class ExchangeService {
   private exchange!: ccxt.Exchange; // 初期化は initialize() で行うため ! を使用
   private isInitialized: boolean = false;
-  private readonly MAX_RETRIES = 7; // 最大再試行回数を5から7に増加
-  private readonly BACKOFF_DELAYS = [1, 2, 4, 8, 16, 32, 64]; // 再試行待機時間（秒）- より長い待機時間を追加
+  private readonly MAX_RETRIES = 7; // 最大再試行回数
+  // 固定値ではなく、真の指数バックオフのパラメータを定義
+  private readonly INITIAL_BACKOFF_MS = 1000; // 初期バックオフ時間（ミリ秒）
+  private readonly MAX_BACKOFF_MS = 64000;   // 最大バックオフ時間（ミリ秒）
+  private readonly BACKOFF_FACTOR = 2;       // バックオフ係数（2倍ずつ増加）
 
   /**
    * 取引所サービスを初期化する
@@ -144,7 +159,12 @@ export class ExchangeService {
             throw error;
           }
           
-          const delay = this.BACKOFF_DELAYS[retry] * 1000;
+          // 真の指数バックオフ計算: min(初期値 * 係数^試行回数, 最大値)
+          const delay = Math.min(
+            this.INITIAL_BACKOFF_MS * Math.pow(this.BACKOFF_FACTOR, retry),
+            this.MAX_BACKOFF_MS
+          );
+          
           const errorCode = lastError.code || '';
           const errorType = lastError.name || (lastError.message && lastError.message.includes('429') ? 'レート制限' : 
                            (lastError.message && /50\d/.test(lastError.message) ? 'サーバーエラー' : 'ネットワークエラー'));
@@ -207,7 +227,8 @@ export class ExchangeService {
     }
 
     try {
-      const type = order.type.toLowerCase();
+      // OrderType enumとCCXTの注文タイプをマッピング
+      const ccxtOrderType = this.mapOrderTypeToCCXT(order.type);
       const side = order.side.toLowerCase();
       const amount = order.amount;
       let price = order.price;
@@ -215,9 +236,9 @@ export class ExchangeService {
 
       const params: Record<string, unknown> = {};
       
-      // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
-      // MARKET, STOP_MARKET など "MARKET" で終わる注文タイプすべてに対応
+      // 成行系注文の場合、priceパラメータを明示的にundefinedに設定または削除
       if (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) {
+        // 成行注文の場合はpriceをundefinedに設定（ccxtの型定義に合わせる）
         price = undefined;
         logger.debug(`[ExchangeService] 成行系注文のためpriceパラメータを削除: ${order.type} ${side} ${amount} ${symbol}`);
       }
@@ -248,9 +269,33 @@ export class ExchangeService {
         }
       }
 
-      const result = await this.fetchWithExponentialBackoff(() => 
-        this.exchange.createOrder(symbol, type, side, amount, price, params)
-      );
+      const result = await this.fetchWithExponentialBackoff(() => {
+        // 取引所がBitgetまたはBybitの場合、成行注文時は特別な処理が必要
+        if (price === undefined && 
+            (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) &&
+            (this.exchange.id === 'bitget' || this.exchange.id === 'bybit')) {
+          // 成行注文のパラメータに明示的にpriceキーがないことを確認する
+          const marketOrderParams = { ...params };
+          logger.debug(`[ExchangeService] ${this.exchange.id}向け成行注文特殊処理: priceパラメータ省略`);
+          
+          // TS互換性のため型アサーションを使用し、any型の中間関数経由で呼び出す
+          const createMarketOrder = (
+            symbol: string, 
+            type: string, 
+            side: string, 
+            amount: number, 
+            params: any
+          ) => {
+            // @ts-ignore: ccxtの型定義問題を回避するためにignore
+            return this.exchange.createOrder(symbol, type, side, amount, undefined, params);
+          };
+          
+          return createMarketOrder(symbol, ccxtOrderType, side, amount, marketOrderParams);
+        }
+        
+        // 通常の処理
+        return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, price === null ? undefined : price, params);
+      });
 
       logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
       
@@ -268,6 +313,21 @@ export class ExchangeService {
   }
 
   /**
+   * OrderTypeをCCXTの注文タイプ文字列に変換する
+   * @param orderType 注文タイプEnum
+   * @returns CCXTで使用する注文タイプ文字列
+   */
+  private mapOrderTypeToCCXT(orderType: OrderType): string {
+    // マッピングテーブルに存在する場合はそれを使用
+    if (orderType in ORDER_TYPE_MAPPING) {
+      return ORDER_TYPE_MAPPING[orderType];
+    }
+    
+    // 存在しない場合は小文字に変換（後方互換性）
+    return orderType.toLowerCase();
+  }
+
+  /**
    * OCO注文（One-Cancels-the-Other）を作成
    * 利確と損切りを同時に注文し、どちらかが約定すると他方はキャンセルされる
    * @param params OCO注文のパラメータ
@@ -280,9 +340,8 @@ export class ExchangeService {
     }
     
     try {
-      // 取引所がOCO注文をサポートしているか確認（'createOCO'または'createOCOOrder'の両方をチェック）
-      const hasOcoSupport = 
-        (this.exchange.has && (this.exchange.has['createOCO'] || this.exchange.has['createOCOOrder']));
+      // 取引所がOCO注文をサポートしているか確認
+      const hasOcoSupport = this.supportsOCO();
       
       if (hasOcoSupport) {
         // ネイティブOCO注文をサポートしている場合
@@ -313,13 +372,30 @@ export class ExchangeService {
         
         logger.info(`OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`);
         
-        // resultの安全な処理
-        if (result && typeof result === 'object' && 'id' in result && result.id) {
-          return result.id;
-        } else {
-          logger.warn('OCO注文は成功しましたが、注文IDが取得できませんでした');
+        // resultの安全な処理 - 取引所によって戻り値が異なる可能性に対応
+        if (!result) {
+          logger.warn('OCO注文結果がnullまたはundefinedでした');
           return null;
         }
+        
+        // Binanceなど配列を返す取引所への対応
+        if (Array.isArray(result)) {
+          logger.debug(`OCO注文結果が配列形式で返されました (${this.exchange.id})`);
+          if (result.length > 0 && result[0] && typeof result[0] === 'object' && 'id' in result[0]) {
+            return result[0].id as string;
+          }
+        }
+        // KuCoinなどオブジェクトを返す取引所への対応
+        else if (typeof result === 'object') {
+          logger.debug(`OCO注文結果がオブジェクト形式で返されました (${this.exchange.id})`);
+          if ('id' in result && result.id) {
+            return result.id as string;
+          }
+        }
+        
+        // いずれの形式にも該当しない場合
+        logger.warn(`OCO注文は成功しましたが、想定外の形式でした: ${JSON.stringify(result).substring(0, 200)}...`);
+        return null;
       } else {
         // OCOをサポートしていない場合は個別に注文を出す
         logger.warn(`取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`);
@@ -430,7 +506,26 @@ export class ExchangeService {
       return false;
     }
     
+    // OCO関連の機能は特別な処理を行う
+    if (feature === 'createOCO' || feature === 'createOCOOrder') {
+      return this.supportsOCO();
+    }
+    
     return Boolean(this.exchange.has[feature]);
+  }
+
+  /**
+   * 取引所がOCO注文をサポートしているかどうかをチェックする
+   * この関数は両方の可能なキー名をチェックします
+   * @returns OCO注文がサポートされているかどうか
+   */
+  public supportsOCO(): boolean {
+    if (!this.isInitialized || !this.exchange.has) {
+      return false;
+    }
+    
+    // 両方のキー名をチェック（'createOCO'と'createOCOOrder'）
+    return Boolean(this.exchange.has['createOCO'] || this.exchange.has['createOCOOrder']);
   }
 
   /**
