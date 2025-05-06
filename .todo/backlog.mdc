@@ -24,6 +24,30 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了、次回スプリント終了時にアーカイブ予定
 
+- [ ] UTIL-001: ATR/Fallback重複排除ユーティリティ
+      - 📅 Due        : 2026-02-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 25%
+      - ✎ Notes      : DonchianBreakoutStrategy/trendFollowStrategy/rangeStrategyでの重複したATRフォールバックロジックをutils/atrUtils.tsに共通化。スプリントに移動済み。
+
+- [ ] ALG-037: trendFollowStrategy SAR シグナル修正
+      - 📅 Due        : 2026-02-09
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 10%
+      - ✎ Notes      : isSARBuySignal/isSARSellSignalの論理バグを修正。parabolicSAR.isUptrendと前バーの状態を比較するよう修正。スプリントに移動済み。
+
+- [ ] TST-004: backlog/sprint todo-lint Jestルール
+      - 📅 Due        : 2026-02-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 5%
+      - ✎ Notes      : .todo/**/*.mdcをYAMLパースして整合性チェックするtodoLint.test.tsを実装。スプリントに移動済み。
+
 ## P1 - CI/CD構築と重要バグ修正
 
 - [x] INF-006: GitHub Actions CI/CDパイプラインの構築
@@ -209,13 +233,13 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : backtestRunner.ts内のconsole.logをlogger.*に統一し、quietモードチェックを強化。スプリントに移動済み。
 
-- [x] RISK-004: ATR==0 フォールバック stopDistance 実装
+- [x] RISK-004: ATR==0のケースにフォールバックstopDistance実装
       - 📅 Due        : 2026-02-01
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : ATR未計算時のフォールバック実装が完了し、スプリントに移動。IncrementalATRクラスと各戦略にフォールバック機能を追加
+      - ✎ Notes      : 市場の低ボラティリティでATR=0となるケースでのstopDistance計算クラッシュ防止。IncrementalATRクラスと各戦略に実装済み。DEFAULT_ATR_PERCENTAGE、MIN_STOP_DISTANCE_PERCENTAGE、MIN_ATR_VALUEをパラメータ化
 
 - [x] OMS-013: createOrder → simulateFill 時の ID / 状態同期
       - 📅 Due        : 2026-02-03
@@ -283,12 +307,20 @@ alwaysApply: false
       - ✎ Notes      : GitHub Actions で trivy + dependabot weekly を追加
 
 - [ ] PERF-004: console.log の quiet モード対応強化
-      - 📅 Due        : 2026-02-03
+      - 📅 Due        : 2026-02-13
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換
+      - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換。スプリントに移動済み。
+
+- [ ] SEC-002: Secrets Scanner pre-commit hook
+      - 📅 Due        : 2026-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : gitleaks で key / token push をブロック。スプリントに移動済み。
 
 - [ ] BT-007: マルチエクスチェンジ統合テスト
       - 📅 Due        : 2026-02-12
@@ -306,14 +338,6 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : 90 日超ファイルを S3→ Glacier に lifecycle 移行 (cron + aws cli)
-
-- [ ] SEC-002: Secrets Scanner pre-commit hook
-      - 📅 Due        : 2026-02-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : gitleaks で key / token push をブロック
 
 - [x] TST-003: スモークテストの取引シグナル生成対応
       - 📅 Due        : 2025-12-18
@@ -473,21 +497,14 @@ alwaysApply: false
 
 ## 優先度中
 
-- [ ] PERF-001: 指標計算の最適化
-      - 📅 Due        : 2024-02-25
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : perf
+- [ ] TST-007: trendFollowStrategy ユニットテスト
+      - 📅 Due        : 2026-02-09
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-037
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : インジケーター計算のインクリメンタル実装を全指標に拡張、キャッシュ戦略の最適化
-
-- [ ] OPT-002: ベイズ最適化メトリクス拡張
-      - 📅 Due        : 2024-03-01
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Optuna最適化の評価メトリクスをカスタマイズ可能に変更、ロス関数をパラメータとして渡せるよう拡張
+      - ✎ Notes      : タスクIDが重複していたため、TST-007に変更してスプリントに移動済み。
 
 ## 優先度低
 
@@ -517,26 +534,18 @@ alwaysApply: false
 
 ## 新規タスク
 
-- [ ] PERF-005: OrderTypeUtilsのキャッシュ最適化
-      - 📅 Due        : 2026-02-20
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : perf
+- [ ] TST-010: orderUtils関数のユニットテスト
+      - 📅 Due        : 2026-02-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 頻繁に使用される変換関数の結果をキャッシュし、パフォーマンスを向上。特にisMarketOrder等の判定関数の高速化。
+      - ✎ Notes      : syncOrderForSimulateFill、syncFillWithOrder、updateOrderStatusなどの関数のテスト。モックオブジェクトを使用。スプリントに移動済み。
 
-- [ ] TYPE-002: TypeScriptのstrictNullChecks対応強化
-      - 📅 Due        : 2026-02-25
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : refactor
+- [ ] TST-011: マルチシンボルバックテスト検証テスト
+      - 📅 Due        : 2026-02-14
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : tsconfig.jsonでstrictNullChecksを有効化し、nullとundefinedのチェックを厳密化。コードベース全体での型安全性強化。
-
-- [ ] DOCS-008: ユーティリティ関数のJSDoc強化とAPIドキュメント
-      - 📅 Due        : 2026-03-01
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : doc
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 新規追加されたユーティリティ関数のJSDocを強化し、読みやすいAPIドキュメントを生成。例を含む使用方法の詳細解説も追加。
+      - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。

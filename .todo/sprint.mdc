@@ -3,103 +3,234 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # SOL-Bot スプリント
 
-## 🗓 スプリント進捗 (2月1日現在)
+## 🗓 スプリント進捗 (2月6日現在)
 
 ### 今週のスプリント計画と優先順位:
-現在W5スプリントが進行中です。更新された優先順位は以下の通りです：
+現在W6スプリントが進行中です（テスト駆動開発重点スプリント）。更新された優先順位は以下の通りです：
 
-1. ✅ API-021: 成行注文時のprice型エラー解決 (100% 完了) - 型定義の改善とエラー解決、BitgetとBybitの特別処理も実装済み
-2. ✅ API-022: createOcoOrder 戻り値 array/object 両対応 (100% 完了)
-3. ✅ API-023: OrderType enum と ccxt マッピングテーブル実装 (100% 完了) - マッピングテーブルと変換関数を実装済み、CCXT注文タイプをOrderTypeに変換する逆方向マッピングも追加
-4. ✅ DOC-006: README / PROJECT_STRUCTURE 差分同期 (100% 完了)
-5. ✅ DATA-011: Candle.timestamp 型統一ポリシー決定 (100% 完了) - Union型、型ガード、正規化関数実装済み、各データアクセス操作に適用
-6. ✅ INF-020: 真の指数バックオフ実装 (100% 完了)
-7. ✅ INF-019: docker-compose node_modules named volume化 (100% 完了) - 既存の実装で対応済み
-8. ✅ RISK-004: ATR==0のケースにフォールバックstopDistance実装 (100% 完了) - 各戦略にATR=0対策を実装
-9. ✅ DATA-013: ATR==0フォールバックパラメータ設定ファイル化 (100% 完了)
-10. ✅ RISK-005: ポジションサイジングロジックの共通化 (100% 完了)
-11. ✅ INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更 (100% 完了) - ログローテーション、S3転送設定を追加
-12. ✅ OMS-013: createOrder → simulateFill 時の ID / 状態同期 (100% 完了)
-13. ✅ PERF-003: バックテスト処理速度とメモリ使用量の最適化 (100% 完了)
-14. ✅ CONF-005: ParameterService env 置換時の型キャスト (100% 完了)
+1. ⏳ UTIL-001: ATR/Fallback重複排除ユーティリティ (25% 進行中) - 共通ユーティリティの実装前にテストケースを先行作成中
+2. ⏳ ALG-037: trendFollowStrategy SAR シグナル修正 (10% 調査中) - 論理バグの原因特定中
+3. ⏳ TST-004: backlog/sprint todo-lint Jestルール (5% 設計中) - タスク一貫性検証ロジックを設計中
+4. ⏳ PERF-004: console.log の quiet モード対応強化 (0% 未着手) - スプリントに追加
+5. ⏳ SEC-002: Secrets Scanner pre-commit hook (0% 未着手) - スプリントに追加
+6. ⏳ REF-019: parameterService DI化 (0% 未着手) - テスト優先度に基づき後回し
+7. ⏳ METR-001: metrics.ts 拡張実装 (0% 未着手) - 後半実装予定
+8. ⏳ OMS-014: OrderSizingService MVP実装 (0% 未着手) - マルチアセット対応第一段階として重要
+
+### テスト駆動開発（TDD）アプローチの強化:
+今スプリントではTDDを徹底し、各タスクはまずテストを作成してから実装を進めます。これにより:
+- リグレッション（機能後退）の早期発見
+- コードの品質と保守性の向上
+- 仕様に忠実な実装
+- リファクタリングの安全性担保
+
+さらに、**レビュータイミングの最適化**として:
+- テストを先に実行して潜在的な問題を事前に発見
+- エラー箇所を実装前に特定して修正
+- 小さな単位での継続的なテスト実行によるフィードバックループの短縮
+
+テストカバレッジ目標:
+- 新規コード: 90%以上
+- 既存修正コード: 75%以上
+- エッジケース（ゼロ値、極小値、境界値）の網羅的テスト
+
+### テスト戦略ノート:
+
+**テストカバレッジ目標**: 
+- 新規実装コードは90%以上
+- 既存修正コードは75%以上
+
+**テスト優先度**:
+1. 論理バグ修正（SARシグナル）
+2. 共通ユーティリティ（ATRフォールバック）
+3. タスク管理ツール（todo-lint）
+4. インフラ改善（DI化、メトリクス拡張）
+
+**CI/CD統合**:
+- GitHub Actions でPR時に自動テスト実行
+- `npm test:smoke` だけでなく `npm test:unit` も追加
+- コードカバレッジレポートの自動生成
+
+**スプリントレビュー指標**:
+- テストによって発見された潜在的バグの数
+- リファクタリングにより削減されたコード行数
+- カバレッジ向上率
+
+### マルチアセット対応計画:
+マルチアセット対応（SOL/USDTだけでなく他のペアもサポート）のための準備を開始します:
+
+1. **OrderSizingService**: TDD方式で実装
+   - 各ペアの取引単位と最小ロットサイズの適切な計算
+   - 高額通貨（BTC, ETH）と小額通貨の両方で精度対応
+   - リスク金額からの注文量適切変換
+
+2. **テスト先行の徹底**:
+   - マルチアセット関連の全機能でテストを先に作成
+   - 異なるボラティリティ特性を持つ通貨ペアのエッジケースを網羅
+   - リスク管理・注文サイズ計算の精度テスト
+
+3. **CI統合**:
+   - 複数通貨ペアでのバックテスト検証テスト
+   - CIパイプラインでのマルチアセット自動テスト
+
+### Todoタスク管理の改善点:
+- タスクIDの重複チェック機能実装予定
+- Progress率とHealth状態の整合性検証実装予定
+- 期限切れタスクの自動検出機能を実装予定
+
+これらはTST-004タスクを通じて解決予定です。
 
 ### 進行中のタスク状況:
-* ✅ API-021: Bitget/Bybit向けのpriceパラメータ特殊処理実装完了。型定義問題を解決するため、Order.price型をnumber | undefinedに統一し、@ts-ignoreを使った特殊な関数を実装。
-* ✅ API-023: ORDER_TYPE_MAPPINGテーブル実装とmapOrderTypeToCCXT関数を追加実装済み。さらに文字列からOrderType enumへの逆変換関数も実装し、fetchOrderAndConvert関数で利用できるように改良。
-* ✅ DATA-011: タイムスタンプ型統一ポリシーとしてnumber | string型を統一定義。isNumericTimestamp型ガード関数とnormalizeTimestamp変換関数を実装し、ParquetDataStore、BacktestRunner、各種Fetcherクラスで適用。
-* ✅ OMS-013: createOrderの結果をsimulatedFillに正しく渡すため、OrderUtilsモジュールを作成して注文IDと状態の同期機能を実装。OrderStatusの統一的な更新と取引所状態のマッピングも実装。
-* ✅ PERF-003: バックテスト処理のメモリ最適化を実装。MemoryMonitorクラスの作成、バックテストのバッチ処理化、メモリ使用量の監視と自動GC呼び出し、最適化されたバックテスト実行用のスクリプトとコマンドラインオプション、メモリ使用量レポート機能を追加。大量データ処理時のメモリ問題を解決。
-* ✅ CONF-005: ParameterServiceの環境変数置換時に型キャストを行う機能を実装。数値、真偽値、文字列の明示的な型指定が可能になり、さらに自動型推論も追加。型ヒント構文も導入し、単体テストも実装完了。
+* ⏳ UTIL-001: 各戦略に散らばっているATRフォールバックロジックの共通化を設計中。テストケース作成からスタートし、TDDアプローチで品質を確保。
+* ⏳ ALG-037: SAR信号検出ロジックのバグを調査中。問題の根本原因を特定し、テストケースで検証してから修正予定。
+* ⏳ TST-004: タスク一貫性検証ロジックを設計中。タスクIDの重複、進捗とHealthの不整合、期限切れチェックを実装予定。
+* ⏳ PERF-004: すべてのconsole.logをlogger.*に置き換え、quietモード対応を強化
+* ⏳ SEC-002: APIキーなどの機密情報が誤ってコミットされないようgitleaksを設定
 
-### 完了したタスク:
-* API-022: createOcoOrder戻り値のarray/object両対応を完了。Binanceと他取引所の違いに対応するロジックを実装。
-* INF-020: 固定値のバックオフ配列を廃止し、真の指数バックオフアルゴリズムを実装。
-* INF-019: docker-compose内のnode_modules named volume化が既に実装されていることを確認し、タスクを完了としてマーク。
-* DOC-006: READMEとPROJECT_STRUCTUREの差分を同期し、最新情報に更新。
-* RISK-004: ATR==0問題に対するフォールバック機能を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、marketState.tsのIncrementalATRクラスすべてに対応。DEFAULT_ATR_PERCENTAGEとMIN_STOP_DISTANCE_PERCENTAGEのパラメータ化も実装。
-* DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動。risk.defaultAtrPercentage、risk.minStopDistancePercentage、risk.minAtrValueをparameters.yamlに追加し、各戦略から共通で参照できるよう実装。
-* RISK-005: 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
-* API-023: OrderTypeとccxt注文タイプの相互変換機能を実装。mapOrderTypeToCCXT関数とmapCCXTToOrderType関数を実装し、fetchOrderAndConvert関数で活用。
-* DATA-011: Candle.timestamp型統一ポリシーを実装し、すべての主要データアクセス箇所で型ガード関数とnormalizeTimestamp関数を適用。
-* INF-021: docker-composeのロギング設定を改善。ログローテーション設定とS3への自動バックアップ機能を追加し、cron設定も整備。
-* OMS-013: createOrderの結果をsimulatedFillに正しく渡すため、OrderUtilsモジュールを作成して注文IDと状態の同期機能を実装。OrderStatusの統一的な更新と取引所状態のマッピングも実装。
-* PERF-003: バックテスト処理のメモリ最適化を実装。MemoryMonitorクラスの作成、バックテストのバッチ処理化、メモリ使用量の監視と自動GC呼び出し、最適化されたバックテスト実行用のスクリプトとコマンドラインオプション、メモリ使用量レポート機能を追加。大量データ処理時のメモリ問題を解決。
-* CONF-005: ParameterServiceの環境変数置換時の型キャスト機能を実装。環境変数値を適切な型（数値、真偽値、文字列）に自動変換する機能を追加。${VAR:number:123}などの型ヒントも導入し、単体テストでカバレッジを確保。YAMLファイル内での型指定と自動変換が可能になり、ユーザー設定の利便性が向上。
+## 個別タスク詳細:
 
-## 新たに検出された問題点:
-1. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動（優先度：中）~~
-   ~~- DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で統一すべき値を設定ファイルに移動。~~
-   ~~- 現在はparameterServiceから各ファイルで個別に取得しているが、共通化すべき。~~
-2. RISK-005: ポジションサイジングロジックの共通化（優先度：中）
-   - 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
-   - リスク制限、最大ポジションサイズの統一的な適用
-
-## 次週のスプリント候補:
-1. ~~API-023: OrderType enum と ccxt マッピングテーブル実装（完了に向けて継続）~~
-2. ~~DATA-011: Candle.timestamp 型統一ポリシー決定（引き続き作業継続）~~
-3. ~~INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更~~
-4. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動~~
-5. ~~RISK-005: ポジションサイジングロジックの共通化（優先度：中）~~
-   ~~- 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動~~
-   ~~- リスク制限、最大ポジションサイズの統一的な適用~~
-
-### 個別タスク詳細:
-
-- [x] RISK-004: ATR==0のケースにフォールバックstopDistance実装
+- [ ] UTIL-001: ATR/Fallback重複排除ユーティリティ
       - 📅 Due        : 2026-02-10
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 市場の低ボラティリティでATR=0となるケースでのstopDistance計算クラッシュ防止。IncrementalATRクラスと各戦略に実装済み。DEFAULT_ATR_PERCENTAGE、MIN_STOP_DISTANCE_PERCENTAGE、MIN_ATR_VALUEをパラメータ化
-
-- [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
-      - 📅 Due        : 2024-02-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータをriskセクションに追加
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 25%
+      - ✎ Notes      : DonchianBreakoutStrategy/trendFollowStrategy/rangeStrategyでの重複したATRフォールバックロジックをutils/atrUtils.tsに共通化。TDD方式でテスト先行実装中。
 
-- [x] INF-021: docker-compose のロギング設定をTailingファイル+S3保存式に変更
-      - 📅 Due        : 2024-02-08
-      - 👤 Owner      : @operator
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : docker-composeにloggingセクションを追加し、ローテーション設定を適用。S3同期スクリプトとcron設定を追加して自動バックアップ機能を実装
-
-## 🗓 2026-W06 スプリント計画 (2月5日〜2月11日)
-
-- [ ] RISK-004: ATR==0のケースにフォールバックstopDistance実装
-      - 📅 Due        : 2026-02-10
+- [ ] ALG-037: trendFollowStrategy SAR シグナル修正
+      - 📅 Due        : 2026-02-09
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
       - 🩺 Health     : ⏳
+      - 📊 Progress   : 10%
+      - ✎ Notes      : isSARBuySignal/isSARSellSignalの論理バグを修正。parabolicSAR.isUptrendと前バーの状態を比較するよう修正
+
+- [ ] TST-004: backlog/sprint todo-lint Jestルール
+      - 📅 Due        : 2026-02-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 5%
+      - ✎ Notes      : .todo/**/*.mdcファイルをパースして以下のチェックを行うテスト実装: 1)タスクID重複検出、2)進捗/Health一貫性検証、3)期限切れ警告、4)Depends-on参照整合性。Jest+js-yaml使用。
+
+- [ ] TST-005: ATRフォールバックのユニットテスト
+      - 📅 Due        : 2026-02-08
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : UTIL-001
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 15%
+      - ✎ Notes      : utils/atrUtils.tsの共通フォールバックロジックに対するテストケースを網羅（ATR=0ケース、極小値ケース、通常値ケース）
+
+- [ ] TST-007: trendFollowStrategy ユニットテスト
+      - 📅 Due        : 2026-02-09
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-037
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 市場の低ボラティリティでATR=0となるケースでのstopDistance計算クラッシュ防止。固定値または過去N期間の平均ATRからの最小値をフォールバックとして実装
+      - ✎ Notes      : SAR信号検出ロジックおよびriskUnit計算のテストを追加し、stopPrice==undefinedのケースも対応
+
+- [ ] REF-019: parameterService DI化
+      - 📅 Due        : 2026-02-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 並列バックテスト(Optuna x multi-process)でのレース問題を解決するためにDI化を実装。テスト用モックの挿入も容易になる設計に。
+
+- [ ] TST-006: parameterService DI版のユニットテスト
+      - 📅 Due        : 2026-02-10
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-019
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : DIパターンを活用したモック注入でのテスト。シングルトンパターンからの移行検証も含む。
+
+- [ ] METR-001: metrics.ts 拡張実装
+      - 📅 Due        : 2026-02-11
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : order_latency_seconds(Histogram)、exchange_error_total{code}(Counter)、engine_loop_duration_seconds(Summary)の追加
+
+- [ ] TST-009: metrics.ts拡張のユニットテスト
+      - 📅 Due        : 2026-02-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : METR-001
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Prometheusメトリクス更新関数のテスト。モックメトリクスレジストリを使った単体テスト。
+
+- [ ] INF-022: Grafana panel 追加 PR
+      - 📅 Due        : 2026-02-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : METR-001
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 新規メトリクスを可視化するGrafanaダッシュボードパネルを追加
+
+- [ ] OMS-014: OrderSizingService MVP実装
+      - 📅 Due        : 2026-02-11
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : マルチアセット対応の第一歩として、symbol/riskAmount/stopDistanceからロットサイズを計算するサービスを実装。TDD実践のためテスト先行開発。
+
+- [ ] TST-008: OrderSizingServiceのユニットテスト
+      - 📅 Due        : 2026-02-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-014
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 様々な通貨ペアでの最小ロットサイズ、精度対応のテスト。BTC/USDTや小額通貨のエッジケースも検証。
+
+- [ ] PERF-004: console.log の quiet モード対応強化
+      - 📅 Due        : 2026-02-13
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換。テストも追加。
+
+- [ ] SEC-002: Secrets Scanner pre-commit hook
+      - 📅 Due        : 2026-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : gitleaks で key / token push をブロック。APIキーや認証情報の漏洩を防止。
+
+- [ ] TST-010: orderUtils関数のユニットテスト
+      - 📅 Due        : 2026-02-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : syncOrderForSimulateFill、syncFillWithOrder、updateOrderStatusなどの関数のテスト。モックオブジェクトを使用。
+
+- [ ] TST-011: マルチシンボルバックテスト検証テスト
+      - 📅 Due        : 2026-02-14
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。
+
+## 最近完了したタスク:
 
 - [x] TYPE-001: OrderType・OrderSide変換ヘルパー関数の導入
       - 📅 Due        : 2026-02-11
@@ -109,347 +240,27 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : OrderType/OrderSideからstring、stringからEnum値への安全な変換関数を実装。型推論の強化と一貫性確保が目的
 
-## 🗓 2026-W05 スプリント計画 (1月29日〜2月4日)
-
-- [x] DOC-006: README / PROJECT_STRUCTURE 差分同期
-      - 📅 Due        : 2026-01-28
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : doc
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ファイル名ゆれ(tradingEngine/backtest)・meanReversionStrategy を README に反映
-
-- [ ] API-021: executeOrder price undefined -> null / key delete
-      - 📅 Due        : 2026-02-01
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 85%
-      - ✎ Notes      : BitgetとBybit用の特殊処理を実装。成行注文時はmarketOrderParamsを作成し、priceをundefinedに設定。型互換性のためTypeScriptの型アサーションを一部使用。型定義問題の最終解決は別途検討中。
-
-- [x] API-022: createOcoOrder 戻り値 array/object 両対応
-      - 📅 Due        : 2026-02-01
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ccxt取引所によってcreateOCOOrderの戻り値がarray（Binance）とobject（KuCoin）で異なる問題を修正。配列とオブジェクト両形式に対応するロジックを実装
-
-- [x] API-023: OrderType enum ↔ ccxt マッピングテーブル実装
-      - 📅 Due        : 2026-02-03
+- [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
+      - 📅 Due        : 2024-02-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : ORDER_TYPE_MAPPINGテーブルとmapOrderTypeToCCXT関数を実装。取引所ごとの特殊な注文タイプ命名規則に対応した拡張マッピングが必要。残り作業：index.tsなど他の呼び出し箇所でも注文タイプ変換関数を利用するよう修正。
+      - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータを一元管理。parameters.yamlのriskセクションに追加完了。
 
-- [x] INF-018: 監視ダッシュボードの構築
-      - 📅 Due        : 2026-02-05
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードを構築。メトリクスエクスポーターを実装し、Discord Webhookアラートを設定。システムリソースとトレーディングパフォーマンスの監視が可能に。
-
-- [x] OMS-013: createOrder → simulateFill 時の ID / 状態同期
-      - 📅 Due        : 2026-02-03
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : createOrderを修正してIDを返すように変更し、TradingEngineのprocessSignalsメソッドでsimulatedFillにIDを渡すよう実装。OrderUtilsモジュールで注文状態の同期とマッピングを実装。
-
-## 🗓 2026-W04 スプリント (1月22日〜1月28日)
-
-- [x] ALG-035: レンジ/ミーンリバースエンジン実装
-      - 📅 Due        : 2026-01-25
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-033
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装完了
-
-- [x] ALG-036: BacktestRunnerの重複trade集計修正
-      - 📅 Due        : 2026-01-29
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : lastTradeIndexの追跡によるトレード重複防止、ユニークIDの付与と重複チェック機能を追加。タイムスタンプによる昇順ソートも実装。
-
-- [x] REF-018: 二重require / console.logガード除去
-      - 📅 Due        : 2026-01-29
+- [x] RISK-005: ポジションサイジングロジックの共通化
+      - 📅 Due        : 2024-02-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : backtestRunner.ts内のconsole.logをlogger.infoとlogger.debugに置き換え、quietモードチェックも強化。コンソール出力を統一。
-
-- [x] DOC-006: README / PROJECT_STRUCTURE 差分同期
-      - 📅 Due        : 2026-01-28
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : doc
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ファイル名ゆれ(tradingEngine/backtest)・meanReversionStrategy を README に反映
-
-## 🗓 2026-W03 スプリント (1月15日〜1月21日)
-
-- [x] ALG-034: トレンドフォローエンジン実装
-      - 📅 Due        : 2026-01-20
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-033
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic SARによる追従、トレイリングストップの実装完了
-
-## 🗓 2026-W02 スプリント
-
-- [x] ALG-033: レジーム判定ロジックの実装強化
-      - 📅 Due        : 2026-01-12
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : MA-Slope、ATR%、ADX、Price Locationを組み合わせた強化レジーム判定アルゴリズムを実装し、トレンド環境の検出精度を向上
-
-- [x] SEC-001: API Key Secret Manager対応
-      - 📅 Due        : 2026-01-10
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : security
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : AWS Parameter Store、GCP Secret Manager、環境変数、ファイルベースなど複数バックエンドに対応した抽象シークレットマネージャーを実装
-
-- [ ] ALG-018: 新しい戦略パラメータの実装
-      - 📅 Due        : 2026-01-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
-
-## 🗓 2026-W01 スプリント
-
-- [x] DAT-009: マルチタイムフレームデータ取得の実装
-      - 📅 Due        : 2026-01-08
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 1m、15m、1h、1d全てのタイムフレームデータを取得し、Parquet形式で保存する機能を実装。テストコードも作成。
-
-- [x] PERF-001: EMA/ATR計算のインクリメンタル化
-      - 📅 Due        : 2026-01-05
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : perf
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
-
-## 🗓 2025-W52 スプリント
-
-- [x] INF-005: 本番環境の構築準備
-      - 📅 Due        : 2025-12-27
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。デプロイスクリプト、監視スクリプト、初期セットアップスクリプトを実装完了。
-
-- [x] INF-007: 本番用Dockerfileの作成
-      - 📅 Due        : 2025-12-28
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : node:18-slim, non-root user, multi-stage buildでRUN npm ci --prod対応
-
-- [x] CICD-002: TodoフォーマットのGitHub Actionsチェック
-      - 📅 Due        : 2025-12-30
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : PR時のTodoタスク検証、フォーマットチェック、PRマージ時の自動ステータス更新を実装。PRテンプレートも作成し、Todoタスク参照を強制
-
-## 🗓 2025-W51 スプリント
-
-- [x] CONF-004b: adjustSlopePeriods閾値の外部設定化
-      - 📅 Due        : 2025-12-20
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : adjustSlopePeriods閾値をYAML外出しし、Optunaの最適化対象に追加。パラメータサービスから取得するように実装。スモークテストで機能動作を確認完了。
-
-- [x] ALG-032: EMERGENCY戦略の解除ロジック追加
-      - 📅 Due        : 2025-12-20
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装。スモークテストで機能動作を確認完了。
-
-- [x] TST-002: Jest+ts-jestで戦略ユニットテスト80%
-      - 📅 Due        : 2025-12-25
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : trendStrategy.test.tsとrangeStrategy.test.tsを実装。モックデータ生成関数を作成し、各戦略のすべての条件分岐をテスト。100%のテストカバレッジを達成。
-
-## 🗓 2025-W50 スプリント
-
-- [x] OMS-012: 注文実行エンジンの完成
-      - 📅 Due        : 2025-12-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-015
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 実際の注文処理エンジン実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
-
-- [x] TST-003: スモークテストの取引シグナル生成対応
-      - 📅 Due        : 2025-12-18
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-016
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、キャンドル数が不足していても強制的にシグナルを生成するように対応。スモークテスト実行で120件の取引が生成されることを確認。
-
-## 次回スプリントの候補:
-1. PERF-003: バックテスト処理速度とメモリ使用量の最適化
-2. CONF-005: ParameterService env 置換時の型キャスト
-3. PERF-001: 指標計算の最適化（インクリメンタル実装拡張）
-4. PERF-004: console.log の quiet モード対応強化
-5. SEC-001: API キー漏洩防止のための環境変数検証強化
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      - ✎ Notes      : 各戦略で実装されていたcalculateRiskBasedPositionSize関数をsrc/utils/positionSizing.tsに共通化。すべての戦略から参照するよう変更完了。
+
+## 次回スプリント候補:
+
+1. CLI-001: CLI引数インターフェース拡張とマルチシンボル対応
+2. CONF-006: 設定ファイル構造変更とシンボル別設定対応
+3. UTIL-002: 通貨ペア情報取得ユーティリティ
+4. ALG-040: ATR%自動キャリブレーション
+5. DAT-014: データストアマルチシンボル拡張
+6. BT-007: マルチエクスチェンジ統合テスト
