@@ -72,6 +72,11 @@ export class BacktestRunner {
   async run(): Promise<BacktestResult> {
     console.log(`[BacktestRunner] バックテスト開始: ${this.config.symbol} (${this.config.startDate} - ${this.config.endDate})`);
     console.log(`[BacktestRunner] スリッページ: ${(this.config.slippage ?? 0) * 100}%, 取引手数料: ${(this.config.commissionRate ?? 0) * 100}%`);
+    
+    // スモークテストモードであることを明示的に表示
+    if (this.config.isSmokeTest) {
+      console.log(`[BacktestRunner] スモークテストモードが有効です`);
+    }
 
     try {
       // データの読み込み
@@ -95,13 +100,18 @@ export class BacktestRunner {
         isBacktest: true,
         slippage: this.config.slippage,
         commissionRate: this.config.commissionRate,
-        isSmokeTest: this.config.isSmokeTest,
+        isSmokeTest: this.config.isSmokeTest, // スモークテストフラグを明示的に渡す
         oms: oms // OMSを注入
       });
+      
+      // エンジン設定の確認ログ
+      console.log(`[BacktestRunner] エンジン初期化完了: スモークテストモード=${this.config.isSmokeTest ? "有効" : "無効"}`);
       
       // すべてのローソク足でシミュレーション実行
       const equityHistory: {timestamp: string, equity: number}[] = [];
       const allTrades: any[] = [];
+      
+      console.log(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
       
       for (const candle of candles) {
         // キャンドルでエンジンを更新
@@ -116,6 +126,7 @@ export class BacktestRunner {
         // 完了した取引を取得
         const completedTrades = engine.getCompletedTrades();
         if (completedTrades.length > 0) {
+          console.log(`[BacktestRunner] 取引完了: ${completedTrades.length}件`);
           allTrades.push(...completedTrades);
         }
       }
@@ -123,12 +134,16 @@ export class BacktestRunner {
       // 最終的なすべての取引をクローズ
       await engine.closeAllPositions();
       
+      // 最終的な完了取引を取得
+      const finalCompletedTrades = engine.getCompletedTrades();
+      console.log(`[BacktestRunner] 最終取引総数: ${finalCompletedTrades.length}件`);
+      
       // 完了したバックテストの結果を取得して評価
-      const metrics = this.calculateMetrics(allTrades, equityHistory);
+      const metrics = this.calculateMetrics(finalCompletedTrades, equityHistory);
       
       const result: BacktestResult = {
         metrics,
-        trades: allTrades,
+        trades: finalCompletedTrades,
         equity: equityHistory,
         parameters: {
           ...this.config.parameters,
@@ -189,30 +204,80 @@ export class BacktestRunner {
         const sampleData: Candle[] = [];
         
         // 技術指標計算のために十分なデータを生成（最低でも60本）
-        const candleCount = 60;
+        const candleCount = 120; // より多くのデータポイントを生成
         const hoursPerCandle = this.config.timeframeHours;
         
-        // トレンドのあるデータを生成
+        // より明確なトレンドパターンを生成
         let basePrice = 100;
-        const trend = Math.random() > 0.5 ? 1 : -1; // 上昇または下降トレンド
+        
+        // 4つのセグメントに分けて異なるトレンドを作成（より明確な取引シグナルを生成するため）
+        const segments = [
+          { length: 30, trend: 1.2, volatility: 0.2 },  // 強い上昇トレンド
+          { length: 25, trend: -1.0, volatility: 0.3 }, // 下降トレンド 
+          { length: 35, trend: 0.1, volatility: 0.1 },  // レンジ相場
+          { length: 30, trend: 0.9, volatility: 0.2 }   // 再度上昇トレンド
+        ];
+        
+        let segmentIndex = 0;
+        let positionInSegment = 0;
         
         for (let i = 0; i < candleCount; i++) {
           // 時間はcandleCount*hoursPerCandle時間前から現在までの間隔で均等に配置
           const timestamp = now - (candleCount - i) * hoursPerCandle * 60 * 60 * 1000;
           
-          // トレンドを加えた価格（周期的な変動も追加）
-          const trendComponent = trend * (i * 0.2); // 弱いトレンド
-          const cycleComponent = Math.sin(i / 10) * 3; // 周期的な変動
-          const randomComponent = (Math.random() - 0.5) * 2; // ランダム要素
+          // 現在のセグメントを決定
+          const currentSegment = segments[segmentIndex];
           
-          const price = basePrice + trendComponent + cycleComponent + randomComponent;
+          // トレンドの強さを調整（セグメント内での位置に基づく）
+          const positionRatio = positionInSegment / currentSegment.length;
           
-          // ローソク足データ生成
-          const open = price - 0.5 + Math.random();
-          const close = price;
-          const high = Math.max(open, close) + 0.5 + Math.random();
-          const low = Math.min(open, close) - 0.5 - Math.random();
-          const volume = 5000 + Math.random() * 5000;
+          // トレンドを加えた価格（より明確なパターンを作成）
+          const trendComponent = currentSegment.trend * positionRatio * 2;
+          
+          // サイクル成分（ウェーブパターンを追加）
+          const cycleComponent = Math.sin(i / 8) * 1.5;
+          
+          // ランダム成分（ノイズ）- トレンドをより明確にするため減らす
+          const randomComponent = (Math.random() - 0.5) * currentSegment.volatility;
+          
+          // 価格変動の計算
+          const priceChange = trendComponent + cycleComponent + randomComponent;
+          const price = basePrice * (1 + priceChange / 100);
+          
+          // ローソク足データ生成（トレンド方向に沿ったオープン・クローズ）
+          let open, close;
+          if (currentSegment.trend > 0) {
+            // 上昇トレンドではクローズ > オープンが多い
+            if (Math.random() < 0.7) {
+              open = price * (1 - Math.random() * 0.01);
+              close = price;
+            } else {
+              open = price;
+              close = price * (1 - Math.random() * 0.005);
+            }
+          } else if (currentSegment.trend < 0) {
+            // 下降トレンドではクローズ < オープンが多い
+            if (Math.random() < 0.7) {
+              open = price;
+              close = price * (1 - Math.random() * 0.01);
+            } else {
+              open = price * (1 - Math.random() * 0.005);
+              close = price;
+            }
+          } else {
+            // レンジ相場ではランダム
+            open = price * (1 + (Math.random() - 0.5) * 0.01);
+            close = price;
+          }
+          
+          // 高値と安値を設定（トレンド方向に強調）
+          const highLowSpread = Math.max(Math.abs(currentSegment.trend) * 0.01, 0.005);
+          const high = Math.max(open, close) * (1 + Math.random() * highLowSpread);
+          const low = Math.min(open, close) * (1 - Math.random() * highLowSpread);
+          
+          // トレンド方向に合わせてボリュームを調整（トレンド強い時は取引量増加）
+          const trendStrength = Math.abs(currentSegment.trend);
+          const volume = 5000 + Math.random() * 5000 + trendStrength * 3000;
           
           sampleData.push({
             timestamp,
@@ -223,11 +288,19 @@ export class BacktestRunner {
             volume
           });
           
+          // セグメント内の位置を更新
+          positionInSegment++;
+          
+          // セグメントが終了したら次のセグメントへ
+          if (positionInSegment >= currentSegment.length) {
+            segmentIndex = Math.min(segmentIndex + 1, segments.length - 1);
+            positionInSegment = 0;
+          }
+          
           // 次の基準価格を更新
           basePrice = close;
         }
         
-        console.log(`[BacktestRunner] ${sampleData.length}件のサンプルデータを生成しました`);
         return sampleData;
       }
       
