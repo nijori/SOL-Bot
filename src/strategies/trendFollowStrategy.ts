@@ -30,6 +30,10 @@ const BREAKEVEN_MOVE_THRESHOLD = parameterService.get<number>('trendFollowStrate
 const PROFIT_LOCK_THRESHOLD = parameterService.get<number>('trendFollowStrategy.profitLockThreshold', 3.0);
 const PROFIT_LOCK_PERCENTAGE = parameterService.get<number>('trendFollowStrategy.profitLockPercentage', 0.5);
 
+// ATR==0の場合のフォールバック設定
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>('risk.minStopDistancePercentage', 0.01);
+const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
+
 /**
  * Donchianチャネルを計算する関数
  * @param candles ローソク足データ
@@ -79,7 +83,18 @@ function calculateATR(candles: Candle[], period: number): number {
   
   try {
     const atrValues = ATR.calculate(atrInput);
-    return atrValues[atrValues.length - 1];
+    const currentAtr = atrValues[atrValues.length - 1];
+    
+    // ATRが0または非常に小さい値の場合のフォールバック
+    if (currentAtr === 0 || currentAtr < candles[candles.length - 1].close * 0.0001) {
+      console.warn('[TrendFollowStrategy] ATR値が0または非常に小さいため、フォールバック値を使用');
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[TrendFollowStrategy] フォールバックATR: ${fallbackAtr} (${DEFAULT_ATR_PERCENTAGE * 100}%)`);
+      return fallbackAtr;
+    }
+    
+    return currentAtr;
   } catch (error) {
     console.error('ATR計算エラー:', error);
     
@@ -91,7 +106,17 @@ function calculateATR(candles: Candle[], period: number): number {
       totalRange += (candle.high - candle.low);
     }
     
-    return totalRange / period;
+    const calculatedAtr = totalRange / period;
+    
+    // 計算されたATRが0または非常に小さい場合もフォールバックを使用
+    if (calculatedAtr === 0 || calculatedAtr < candles[candles.length - 1].close * 0.0001) {
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[TrendFollowStrategy] 計算されたATRが小さすぎるため、フォールバック使用: ${fallbackAtr}`);
+      return fallbackAtr;
+    }
+    
+    return calculatedAtr;
   }
 }
 
@@ -110,11 +135,14 @@ function calculateRiskBasedPositionSize(
   riskPercentage: number = MAX_RISK_PER_TRADE
 ): number {
   // ストップ距離を計算
-  const stopDistance = Math.abs(entryPrice - stopPrice);
+  let stopDistance = Math.abs(entryPrice - stopPrice);
   
-  // 停止距離が0に近い場合（ほぼ同じ価格）は最小ポジションを返す
-  if (stopDistance < entryPrice * 0.0001) {
-    return 0.01; // 最小ポジションサイズ
+  // ストップ距離が非常に小さい、あるいは0の場合のフォールバック
+  if (stopDistance < entryPrice * 0.001) {
+    console.warn('[TrendFollowStrategy] ストップ距離が非常に小さいため、フォールバック値を使用: 元の値=', stopDistance);
+    // 最小ストップ距離として価格の1%を使用
+    stopDistance = entryPrice * MIN_STOP_DISTANCE_PERCENTAGE;
+    console.log(`[TrendFollowStrategy] フォールバックストップ距離: ${stopDistance} (${MIN_STOP_DISTANCE_PERCENTAGE * 100}%)`);
   }
   
   // リスク許容額を計算

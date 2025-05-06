@@ -17,6 +17,10 @@ const RANGE_MULTIPLIER = parameterService.get<number>('rangeStrategy.rangeMultip
 const MIN_SPREAD_PERCENTAGE = parameterService.get<number>('rangeStrategy.minSpreadPercentage', 0.3);
 const ESCAPE_THRESHOLD = parameterService.get<number>('rangeStrategy.escapeThreshold', 0.02);
 
+// ATR==0の場合のフォールバック設定
+const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
+const MIN_ATR_VALUE = parameterService.get<number>('risk.minAtrValue', 0.0001);
+
 /**
  * 特定期間の高値と安値を計算
  * @param candles ローソク足データ
@@ -53,6 +57,12 @@ function calculateRangeBoundaries(candles: Candle[], period: number): { high: nu
  * @returns ATR値
  */
 function calculateATR(candles: Candle[], period: number): number {
+  if (candles.length < period) {
+    console.warn('[RangeStrategy] ATR計算に必要なローソク足データが不足しています');
+    // デフォルト値として現在価格の2%を返す
+    return candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+  }
+
   const atrInput = {
     high: candles.map(c => c.high),
     low: candles.map(c => c.low),
@@ -60,8 +70,43 @@ function calculateATR(candles: Candle[], period: number): number {
     period
   };
   
-  const atrValues = ATR.calculate(atrInput);
-  return atrValues[atrValues.length - 1];
+  try {
+    const atrValues = ATR.calculate(atrInput);
+    const currentAtr = atrValues[atrValues.length - 1];
+    
+    // ATRが0または非常に小さい値の場合のフォールバック
+    if (currentAtr === 0 || currentAtr < candles[candles.length - 1].close * MIN_ATR_VALUE) {
+      console.warn('[RangeStrategy] ATR値が0または非常に小さいため、フォールバック値を使用');
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[RangeStrategy] フォールバックATR: ${fallbackAtr} (${DEFAULT_ATR_PERCENTAGE * 100}%)`);
+      return fallbackAtr;
+    }
+    
+    return currentAtr;
+  } catch (error) {
+    console.error('[RangeStrategy] ATR計算エラー:', error);
+    
+    // エラーの場合は簡易計算（ローソク足の実体平均）で代用
+    const recentCandles = candles.slice(-period);
+    let totalRange = 0;
+    
+    for (const candle of recentCandles) {
+      totalRange += (candle.high - candle.low);
+    }
+    
+    const calculatedAtr = totalRange / period;
+    
+    // 計算されたATRが0または非常に小さい場合もフォールバックを使用
+    if (calculatedAtr === 0 || calculatedAtr < candles[candles.length - 1].close * MIN_ATR_VALUE) {
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[RangeStrategy] 計算されたATRが小さすぎるため、フォールバック使用: ${fallbackAtr}`);
+      return fallbackAtr;
+    }
+    
+    return calculatedAtr;
+  }
 }
 
 /**
@@ -71,6 +116,12 @@ function calculateATR(candles: Candle[], period: number): number {
  * @returns ATRパーセンテージ
  */
 function calculateAtrPercentage(atr: number, closePrice: number): number {
+  // 0除算防止
+  if (closePrice === 0 || isNaN(closePrice)) {
+    console.warn('[RangeStrategy] ATR%計算の分母（closePrice）が0またはNaNです');
+    return DEFAULT_ATR_PERCENTAGE * 100; // デフォルト値として2%を返す
+  }
+  
   return (atr / closePrice) * 100;
 }
 

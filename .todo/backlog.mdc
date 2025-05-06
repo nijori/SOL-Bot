@@ -168,14 +168,14 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic SARによる追従、トレイリングストップの実装完了
 
-- [ ] ALG-035: レンジ/ミーンリバースエンジン実装
+- [x] ALG-035: レンジ/ミーンリバースエンジン実装
       - 📅 Due        : 2026-01-25
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : ALG-033
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装完了
 
 - [ ] INF-018: 監視ダッシュボードの構築
       - 📅 Due        : 2026-02-05
@@ -184,6 +184,136 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
+
+- [ ] PERF-003: バックテスト処理速度とメモリ使用量の最適化
+      - 📅 Due        : 2026-02-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : backtest ラン 1M rows で heap 使用量計測、--max-old-space-size 調整
+
+- [ ] ALG-036: BacktestRunner の重複 trade 集計修正
+      - 📅 Due        : 2026-01-29
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : lastTradeIndex を保持して新規分のみ metrics へ、timestamp も昇順 sort
+
+- [ ] REF-018: 二重 require / console.log ガード除去
+      - 📅 Due        : 2026-01-29
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : backtestRunner.ts 内部の fs/path shadow, quiet ログ漏れ
+
+- [ ] RISK-004: ATR==0 フォールバック stopDistance 実装
+      - 📅 Due        : 2026-02-01
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ATR 未計算時は stopDistance = price * 0.01 など安全サイドの fallback
+
+- [ ] OMS-013: createOrder → simulateFill 時の ID / 状態同期
+      - 📅 Due        : 2026-02-03
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : createOrder 返り値を使い、simulateFill() に渡す；または createOrder の戻り Order を返すように修正
+
+- [ ] CONF-005: ParameterService env 置換時の型キャスト
+      - 📅 Due        : 2026-02-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : processEnvVariables で Number() or parseFloat 自動キャスト、boolean も
+
+- [x] INF-019: docker-compose node_modules を named volume 化
+      - 📅 Due        : 2026-02-05
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : docker-compose.ymlで既にnode_modulesがnamed volumeとして設定されていることを確認。`volumes: node_modules:`の定義も完了
+
+- [ ] ALG-018: 新しい戦略パラメータの実装
+      - 📅 Due        : 2026-01-15
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
+
+- [ ] DAT-008: リアルタイムデータ処理の改善
+      - 📅 Due        : 2026-01-20
+      - 👤 Owner      : @assistant
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 40%
+      - ✎ Notes      : ストリーミングデータのより効率的な処理方法の実装
+
+- [ ] OMS-009: 複数取引所対応
+      - 📅 Due        : 2026-02-01
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-008
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 複数取引所での同時取引に対応するためのインターフェース拡張
+
+- [ ] DOC-004: ユーザーマニュアルの作成
+      - 📅 Due        : 2026-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : doc
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : エンドユーザー向けの詳細な操作マニュアル作成
+
+- [ ] INF-021: CI 依存脆弱性スキャン & Dependabot
+      - 📅 Due        : 2026-02-02
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : GitHub Actions で trivy + dependabot weekly を追加
+
+- [ ] PERF-004: console.log の quiet モード対応強化
+      - 📅 Due        : 2026-02-03
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換
+
+- [ ] BT-007: マルチエクスチェンジ統合テスト
+      - 📅 Due        : 2026-02-12
+      - 👤 Owner      : @qa-team
+      - 🔗 Depends-on : OMS-009
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Binance / Bybit / KuCoin stub を用いた end-to-end backtest
+
+- [ ] INF-022: 古い Parquet/Log 自動ローテーション
+      - 📅 Due        : 2026-02-14
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 90 日超ファイルを S3→ Glacier に lifecycle 移行 (cron + aws cli)
+
+- [ ] SEC-002: Secrets Scanner pre-commit hook
+      - 📅 Due        : 2026-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : gitleaks で key / token push をブロック
 
 - [x] TST-003: スモークテストの取引シグナル生成対応
       - 📅 Due        : 2025-12-18
@@ -235,6 +365,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : Node.jsとnpmをインストールし、依存関係をセットアップしてサンプルデータ生成と検証を実行可能にする
 
 - [x] OMS-007: isRetryable関数の追加とエラーハンドリング強化
@@ -243,6 +374,7 @@ alwaysApply: false
       - 🔗 Depends-on : INF-011
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
 
 - [x] OMS-008: フィル更新と未決済監視タスクの実装
@@ -251,6 +383,7 @@ alwaysApply: false
       - 🔗 Depends-on : OMS-006
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : OrderManagementSystemにWebhook/RESTでの約定検知と定期的な未決済注文監視機能を追加
 
 - [x] OMS-012: 注文実行エンジンの完成
@@ -267,6 +400,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : トレンド戦略のトレイリングストップ更新判定条件(entryPrice-ATR*F < newStopPrice)が常に真になる問題。position.stopPriceを保持して比較するよう修正
 
 - [x] RISK-003: リスクフィルター停止距離考慮の実装
@@ -274,6 +408,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : リスク計算にストップロス距離を考慮するよう修正。risk = orderAmount × stopDistanceの計算式を実装
 
 - [x] INF-013: .envファイル設定の作成
@@ -282,6 +417,7 @@ alwaysApply: false
       - 🔗 Depends-on : DAT-002
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : .envと.env.exampleにUSE_PARQUET、PARQUET_STORAGE_PATH、DUCKDB_設定を追加
 
 - [x] DEP-001: Parquet+DuckDBパッケージのインストール
@@ -290,36 +426,8 @@ alwaysApply: false
       - 🔗 Depends-on : INF-013
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : package.jsonにapache-arrow, duckdb, parquetjs, js-yamlパッケージを追加
-
-- [ ] ALG-017: パフォーマンス最適化の検討
-      - 📅 Due        : 2026-01-10
-      - 👤 Owner      : @assistant
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : バックテスト処理速度とメモリ使用量の最適化
-
-- [ ] ALG-018: 新しい戦略パラメータの実装
-      - 📅 Due        : 2026-01-15
-      - 👤 Owner      : @nijor
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
-
-- [ ] DAT-008: リアルタイムデータ処理の改善
-      - 📅 Due        : 2026-01-20
-      - 👤 Owner      : @assistant
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : ストリーミングデータのより効率的な処理方法の実装
-
-- [ ] OMS-009: 複数取引所対応
-      - 📅 Due        : 2026-02-01
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : OMS-008
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : 複数取引所での同時取引に対応するためのインターフェース拡張
 
 - [x] INF-005: 本番環境の構築準備
       - 📅 Due        : 2025-12-27
@@ -328,26 +436,3 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。デプロイスクリプト、監視スクリプト、初期セットアップスクリプトを実装完了。
-
-- [ ] INF-006: モニタリングダッシュボードの実装
-      - 📅 Due        : 2026-02-10
-      - 👤 Owner      : @assistant
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : リアルタイムパフォーマンス監視用のダッシュボード構築
-
-- [ ] DOC-004: ユーザーマニュアルの作成
-      - 📅 Due        : 2026-02-15
-      - 👤 Owner      : @nijor
-      - 🏷️ Label      : doc
-      - 🩺 Health     : ⏳
-      - ✎ Notes      : エンドユーザー向けの詳細な操作マニュアル作成
-
-
-
-
-
-
-
-      
-      

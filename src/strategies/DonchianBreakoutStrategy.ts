@@ -10,6 +10,11 @@ import {
 } from '../core/types';
 import { TREND_PARAMETERS, RISK_PARAMETERS } from '../config/parameters';
 import logger from '../utils/logger';
+import { parameterService } from '../config/parameterService';
+
+// ATR==0の場合のフォールバック設定
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>('risk.minStopDistancePercentage', 0.01);
+const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
 
 /**
  * ドンチャンチャネルを計算する関数
@@ -67,8 +72,43 @@ function calculateATR(candles: Candle[], period: number): number {
     period
   };
   
-  const atrValues = ATR.calculate(atrInput);
-  return atrValues[atrValues.length - 1];
+  try {
+    const atrValues = ATR.calculate(atrInput);
+    const currentAtr = atrValues[atrValues.length - 1];
+    
+    // ATRが0または非常に小さい値の場合のフォールバック
+    if (currentAtr === 0 || currentAtr < candles[candles.length - 1].close * 0.0001) {
+      logger.warn('[DonchianStrategy] ATR値が0または非常に小さいため、フォールバック値を使用');
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      logger.info(`[DonchianStrategy] フォールバックATR: ${fallbackAtr} (${DEFAULT_ATR_PERCENTAGE * 100}%)`);
+      return fallbackAtr;
+    }
+    
+    return currentAtr;
+  } catch (error) {
+    logger.error('[DonchianStrategy] ATR計算エラー:', error);
+    
+    // エラー時は簡易計算（過去n期間の高値-安値の平均）を使用
+    const recentCandles = candles.slice(-period);
+    let totalRange = 0;
+    
+    for (const candle of recentCandles) {
+      totalRange += (candle.high - candle.low);
+    }
+    
+    const calculatedAtr = totalRange / period;
+    
+    // 計算されたATRが0または非常に小さい場合もフォールバックを使用
+    if (calculatedAtr === 0 || calculatedAtr < candles[candles.length - 1].close * 0.0001) {
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      logger.info(`[DonchianStrategy] 計算されたATRが小さすぎるため、フォールバック使用: ${fallbackAtr}`);
+      return fallbackAtr;
+    }
+    
+    return calculatedAtr;
+  }
 }
 
 /**
@@ -84,11 +124,14 @@ function calculateRiskBasedPositionSize(
   stopPrice: number
 ): number {
   // リスク距離（エントリーからストップまでの距離）
-  const riskDistance = Math.abs(entryPrice - stopPrice);
+  let riskDistance = Math.abs(entryPrice - stopPrice);
   
-  // 距離がゼロの場合はデフォルト値を返す
-  if (riskDistance === 0) {
-    return 0;
+  // 距離が非常に小さい、または0の場合はフォールバック値を使用
+  if (riskDistance < entryPrice * 0.001) {
+    logger.warn('[DonchianStrategy] リスク距離が非常に小さいため、フォールバック値を使用: 元の値=', riskDistance);
+    // 最小リスク距離として価格の一定割合を使用
+    riskDistance = entryPrice * MIN_STOP_DISTANCE_PERCENTAGE;
+    logger.info(`[DonchianStrategy] フォールバックリスク距離: ${riskDistance} (${MIN_STOP_DISTANCE_PERCENTAGE * 100}%)`);
   }
   
   // 許容リスク額（口座残高の一定割合）

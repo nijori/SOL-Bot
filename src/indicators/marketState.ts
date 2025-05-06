@@ -15,6 +15,10 @@ const SLOPE_PERIODS_DEFAULT = parameterService.get<number>('market.slope_periods
 const SLOPE_HIGH_VOL_VALUE = parameterService.get<number>('market.slope_periods_high_vol_value', 3);
 const SLOPE_LOW_VOL_VALUE = parameterService.get<number>('market.slope_periods_low_vol_value', 8);
 
+// ATR==0の場合のフォールバック設定
+const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
+const MIN_ATR_VALUE = parameterService.get<number>('risk.minAtrValue', 0.0001);
+
 /**
  * インクリメンタルEMA計算クラス
  * 全履歴の再計算をせず、増分計算でEMAを更新
@@ -160,6 +164,14 @@ class IncrementalATR {
       }
     }
     
+    // フォールバックチェック：ATRが0または非常に小さい場合
+    if (this.atrValue === 0 || this.atrValue < candles[candles.length - 1].close * MIN_ATR_VALUE) {
+      console.warn('[IncrementalATR] 初期化時のATRが0または極小値です。フォールバック値を使用します。');
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      this.atrValue = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[IncrementalATR] フォールバックATR: ${this.atrValue}`);
+    }
+    
     // 前回の終値を記録
     this.prevClose = candles[candles.length - 1].close;
     
@@ -192,6 +204,14 @@ class IncrementalATR {
     
     // ATR = α * 現在のTR + (1 - α) * 前回のATR
     this.atrValue = tr * this.alpha + this.atrValue * (1 - this.alpha);
+    
+    // フォールバックチェック：ATRが0または非常に小さい場合
+    if (this.atrValue === 0 || this.atrValue < candle.close * MIN_ATR_VALUE) {
+      console.warn('[IncrementalATR] 更新後のATRが0または極小値です。フォールバック値を使用します。');
+      // 現在価格のデフォルトパーセンテージをATRとして使用
+      this.atrValue = candle.close * DEFAULT_ATR_PERCENTAGE;
+      console.log(`[IncrementalATR] フォールバックATR: ${this.atrValue}`);
+    }
     
     // 前回の終値を更新
     this.prevClose = candle.close;
