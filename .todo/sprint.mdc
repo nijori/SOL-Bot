@@ -369,6 +369,13 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - ✎ Notes      : npm run backtest:smokeコマンドを追加し、GitHub Actionsワークフローでスモークテスト実行を自動化
 
+- [ ] DOC-005: スプリント再編とラベル必須化
+      - 📅 Due        : 2025-11-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ⏳
+      - ✎ Notes      : .todo/*.mdcのフォーマット統一、すべてのタスクにラベル付与、GitHub Actionsでラベル必須チェック
+
 ## 🗓 完了したタスク
 
 - [x] INF-002: プロジェクトのフォルダ構造設定

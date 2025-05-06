@@ -7,13 +7,6 @@ alwaysApply: false
 
 ## P0 - 本番ブレイク級バグ（最優先）
 
-- [ ] DOC-005: スプリント再編とラベル必須化
-      - 📅 Due        : 2025-09-28
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : doc
-      - 🩺 Health     : 🚑
-      - ✎ Notes      : .todo/*.mdcのフォーマット統一、すべてのタスクにラベル付与、GitHub Actionsでラベル必須チェック
-
 ## P1 - CI/CD構築
 
 - [ ] INF-006: GitHub Actions CI/CDパイプラインの構築
