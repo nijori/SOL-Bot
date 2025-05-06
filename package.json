@@ -12,6 +12,7 @@
     "optimize": "ts-node src/optimizer/runOptimization.ts",
     "generate-sample-data": "ts-node src/data/generateSampleData.ts",
     "backtest": "ts-node src/core/backtestRunner.ts",
+    "backtest:smoke": "ts-node src/core/backtestRunner.ts --smoke-test --days 3",
     "validate-sample-data": "ts-node src/data/runSampleTest.ts"
   },
   "dependencies": {
