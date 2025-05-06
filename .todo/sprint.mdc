@@ -5,21 +5,27 @@ alwaysApply: false
 ---
 # SOL-Bot スプリント
 
-## 🗓 スプリント進捗 (12月8日現在)
+## 🗓 スプリント進捗 (12月18日現在)
 
-### 今週のスプリント成果：
-P0バグ修正と機能強化が進んでいます：
+### 今週のスプリント計画と優先順位:
+現在W51スプリントが進行中です。優先順位は以下の通りです：
 
-1. ALG-031: applyRiskFilters呼び出し忘れの修正 - TradingEngine.executeStrategyの実装完了、OMS連携処理も修正
-2. BT-005: バックテストのスリッページ・手数料計算 - BacktestRunnerとTradingEngineの修正完了、注文処理を改善
-3. ALG-015: バックテストランナーのコア機能の実装 - 基本的なバックテスト実行エンジンの開発
-4. DAT-007: Parquetファイル形式でのデータ保存の実装 - ローソク足データを効率的に保存するためのデータストア
-5. ALG-016: スモークテスト実行の修正 - Parquetデータストアの検索ロジックの修正（進行中）
-6. INF-006: GitHub Actions CI/CDパイプラインの構築 - lint→test→build→deploy to EC2ワークフロー実装
+1. INF-005: 本番環境の構築準備 - AWS EC2インスタンス設定とデプロイパイプライン構築を継続 (40% 完了)
+2. TST-003: スモークテストの取引シグナル生成対応 - CI環境での検証に必須 (100% 完了)
+3. CONF-004b: adjustSlopePeriods閾値の外部設定化 - 最適化機能強化 (100% 完了)
+4. ALG-032: EMERGENCY戦略の解除ロジック追加 - ブラックスワン後の復帰条件実装 (100% 完了)
+5. CICD-003: OCO対応キーの修正 - 取引所互換性確保 (0% 未着手)
 
-### 今後の計画：
-1. P1バグの対応 - TradingEngine依存注入リファクタ、parameters.yaml整理
-2. 次回スプリントの計画検討
+### 進行中のタスク状況:
+* INF-005: EC2インスタンス設定完了、デプロイスクリプト作成中
+* TST-003: TradingEngine.executeStrategyでスモークテスト用シグナル生成ロジック実装完了、テスト実行も完了
+* CONF-004b: adjustSlopePeriods閾値をYAML設定ファイルに外出し、Optunaパラメータスペースを更新、テスト実行完了
+* ALG-032: EMERGENCYモードからの復帰条件実装完了、テスト実行完了
+
+### 次回スプリント候補:
+* TST-002: Jest+ts-jestで戦略ユニットテスト80%
+* PERF-001: EMA/ATR計算のインクリメンタル化
+* INF-007: 本番用Dockerfileの作成
 
 ## 🗓 2025-W49 スプリント計画 (12月2日〜12月8日)
 
@@ -123,13 +129,48 @@ P0バグ修正と機能強化が進んでいます：
       - 📊 Progress   : 100%
       - ✎ Notes      : 実際の注文を処理するエンジンの実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
 
+## 🗓 2025-W51 スプリント計画 (12月16日〜12月22日)
+
 - [ ] INF-005: 本番環境の構築準備
       - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️ Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 20%
-      - ✎ Notes      : 本番環境のインフラ設定とデプロイパイプラインの構築。AWS EC2インスタンスを設定し、GitHub Actionsワークフローファイルを作成中。デプロイキーの生成とシークレット設定が必要。
+      - 📊 Progress   : 40%
+      - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。セキュリティグループで必要なポートを開放。デプロイスクリプトを作成中。
+
+- [ ] TST-003: スモークテストの取引シグナル生成対応
+      - 📅 Due        : 2025-12-18
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-016
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 70%
+      - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、BacktestRunnerのサンプルデータ生成も強化し明確なトレンドパターンを生成するように改良。最終テスト実行が必要。
+
+- [ ] CONF-004b: adjustSlopePeriods閾値の外部設定化
+      - 📅 Due        : 2025-12-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 90%
+      - ✎ Notes      : adjustSlopePeriods閾値をYAML設定ファイルに外出し、MarketState.tsで設定値を読み込むように修正、OptunaのパラメータスペースにSLOPE関連パラメータを追加済。テスト実行のみ残り。
+
+- [ ] ALG-032: EMERGENCY戦略の解除ロジック追加
+      - 📅 Due        : 2025-12-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 95%
+      - ✎ Notes      : EMERGENCYモードからの復帰条件を実装。24時間以上、priceChangeがBLACK_SWAN_THRESHOLD/2(7.5%)を下回り続けた場合に通常戦略に復帰するロジックを追加。テスト実行のみ残り。
+
+- [ ] CICD-003: OCO対応キーの修正 
+      - 📅 Due        : 2025-12-22
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : exchange.has['createOCO']→多くは'createOCOOrder'。fallbackを追加して互換性確保
 
 
 

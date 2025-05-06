@@ -75,15 +75,6 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : cron.schedule(opts,{timezone:'UTC'})と既存task.stop()の前にtask.destroy()処理を追加
 
-- [ ] TST-003: スモークテストの取引シグナル生成対応
-      - 📅 Due        : 2025-12-18
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-016
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : スモークテストで実際の取引シグナルが生成されるよう、サンプルデータの生成ロジックを改良し、TradingEngine.isSmokeTestフラグ処理を修正
-
 ## P2 - コード品質改善
 
 - [ ] CONF-004b: adjustSlopePeriods閾値の外部設定化
@@ -102,6 +93,22 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装
 
+- [ ] DAT-009: マルチタイムフレームデータ取得の実装
+      - 📅 Due        : 2026-01-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 1m、15m、1h、1d全てのタイムフレームデータを取得する機能を実装し、Parquet形式で保存
+
+- [ ] ALG-033: レジーム判定ロジックの実装強化
+      - 📅 Due        : 2026-01-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : MA-Slope、ATR%、Price Locationを組み合わせたレジーム判定アルゴリズムの実装とテスト
+
 - [ ] TST-002: Jest+ts-jestで戦略ユニットテスト80%
       - 📅 Due        : 2025-12-25
       - 👤 Owner      : @nijor
@@ -117,14 +124,6 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
-
-- [ ] CICD-003: OCO対応キーの修正 
-      - 📅 Due        : 2025-12-22
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : exchange.has['createOCO']→多くは'createOCOOrder'。fallbackを追加して互換性確保
 
 ## P3 - インフラ／CI面の改善
 
@@ -159,6 +158,32 @@ alwaysApply: false
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : LOG_LEVEL=warnオプションをBacktestRunnerに追加し、CI実行時に大量ログを抑制
+
+- [ ] ALG-034: トレンドフォローエンジン実装
+      - 📅 Due        : 2026-01-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-033
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Donchianブレイク+ADXによるエントリー、Parabolic-SARによる追従、トレイリングストップの実装
+
+- [ ] ALG-035: レンジ/ミーンリバースエンジン実装
+      - 📅 Due        : 2026-01-25
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-033
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : DonchianRange基準のグリッド注文、Maker-only Limit注文方式、ポジション上限とエスケープ条件の実装
+
+- [ ] INF-018: 監視ダッシュボードの構築
+      - 📅 Due        : 2026-02-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Prometheus + Grafanaを使用したパフォーマンス監視ダッシュボードの構築、Discord Webhookアラート設定
 
 ## 仕上げチェックリスト
 
@@ -212,7 +237,7 @@ alwaysApply: false
       - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
 
 - [x] OMS-008: フィル更新と未決済監視タスクの実装
-      - 📅 Due        : 2025-09-22
+      - �� Due        : 2025-09-22
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : OMS-006
       - 🏷️  Label      : bug
