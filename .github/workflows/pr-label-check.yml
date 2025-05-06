@@ -1,0 +1,32 @@
+name: PR Todoタスク参照チェック
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-todo-reference:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: PRタイトルとDescriptionでTodoタスクID参照チェック
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        PR_BODY="${{ github.event.pull_request.body }}"
+        
+        echo "PRタイトル: $PR_TITLE"
+        
+        # タスクIDのパターン [A-Z]{3}-[0-9]{3}
+        TASK_ID_PATTERN="[A-Z]{3}-[0-9]{3}"
+        
+        if [[ $PR_TITLE =~ $TASK_ID_PATTERN || $PR_BODY =~ $TASK_ID_PATTERN ]]; then
+          echo "✅ PRはTodoタスクIDを参照しています。"
+        else
+          echo "❌ エラー: PRタイトルまたは説明文にTodoタスクIDが含まれていません。"
+          echo "PRタイトルに「XXX-000: 変更内容」の形式でタスクIDを含めるか、"
+          echo "PR説明文に「Fixes XXX-000」または「Closes XXX-000」の形式でタスクIDを含めてください。"
+          echo "例: ALG-001, INF-005, DOC-003"
+          exit 1
+        fi 

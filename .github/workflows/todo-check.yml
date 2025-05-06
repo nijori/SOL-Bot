@@ -1,0 +1,53 @@
+name: Todo項目ラベル必須チェック
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - '.todo/**'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - '.todo/**'
+
+jobs:
+  check-todo-format:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: ラベル必須チェック
+      run: |
+        echo "Todoファイルのラベル必須チェックを実行しています..."
+        # ラベルが欠落している行を検索
+        MISSING_LABELS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "🏷️  Label      :")
+        
+        if [ -n "$MISSING_LABELS" ]; then
+          echo "エラー: 以下のTodo項目にラベルが設定されていません:"
+          echo "$MISSING_LABELS"
+          echo ""
+          echo "各Todo項目には以下のフォーマットでラベルを設定してください:"
+          echo "- [ ] TASK-ID: タイトル"
+          echo "      - 🏷️  Label      : feat / bug / infra / doc / test"
+          exit 1
+        else
+          echo "すべてのTodo項目に適切なラベルが設定されています。"
+        fi
+
+    - name: タスクIDフォーマットチェック
+      run: |
+        echo "タスクIDのフォーマットチェックを実行しています..."
+        # 正しくないタスクIDフォーマットを検索
+        INVALID_IDS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v -E "^\s*- \[([ x])\] [A-Z]{3}-[0-9]{3}:")
+        
+        if [ -n "$INVALID_IDS" ]; then
+          echo "エラー: 以下のTodo項目のタスクIDフォーマットが正しくありません:"
+          echo "$INVALID_IDS"
+          echo ""
+          echo "各Todo項目のタスクIDは「3文字のカテゴリ接頭辞 + ハイフン + 3桁の連番」の形式にしてください:"
+          echo "例: ALG-001, INF-005, DOC-003"
+          exit 1
+        else
+          echo "すべてのTodo項目のタスクIDフォーマットが正しいです。"
+        fi 
