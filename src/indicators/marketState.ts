@@ -1,4 +1,4 @@
-import { EMA, ATR } from 'technicalindicators';
+import { EMA, ATR, ADX } from 'technicalindicators';
 import { 
   Candle, 
   MarketEnvironment, 
@@ -484,15 +484,6 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
     // ATRの変化率を計算
     const atrChange = calculateAtrChange(atrValues);
     
-    // 市場環境を判定するフラグ
-    const strongTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 1.5;
-    const trendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD;
-    const weakTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7;
-    
-    // 低ボラティリティ判定（ATR%が閾値未満 かつ EMA勾配が0.15°未満）
-    const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD && 
-                      Math.abs(shortTermSlopeAngle) < 0.15;
-    
     // トレンドの方向性を判定（短期・長期EMAの位置関係とスロープの符号）
     const emaCrossover = latestShortEma > latestLongEma;
     const bullFlag = emaCrossover && shortTermSlope > 0;
@@ -500,6 +491,47 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
     
     // 傾きの一致（短期と長期の傾きの方向が一致するか）
     const slopesAligned = (shortTermSlope > 0 && longTermSlope > 0) || (shortTermSlope < 0 && longTermSlope < 0);
+    
+    // 価格のロケーション判定（中長期のMA位置と現在価格の相対位置）
+    const priceLocationRatio = currentClose / latestLongEma;
+    const isPriceAboveLongMa = priceLocationRatio > 1.0;
+    const isPriceFarAboveLongMa = priceLocationRatio > 1.05; // 5%以上上方
+    const isPriceFarBelowLongMa = priceLocationRatio < 0.95; // 5%以上下方
+    
+    // ADXを計算（トレンドの強さを測定）
+    const adxInput = {
+      high: candles.map(c => c.high),
+      low: candles.map(c => c.low),
+      close: candles.map(c => c.close),
+      period: MARKET_PARAMETERS.ADX_PERIOD || 14
+    };
+    
+    // ADX計算
+    let adxValue = 0;
+    try {
+      const adxResult = ADX.calculate(adxInput);
+      adxValue = adxResult[adxResult.length - 1].adx;
+    } catch (error) {
+      console.warn(`[MarketState] ADX計算エラー: ${error instanceof Error ? error.message : String(error)}`);
+      // ADX計算エラー時はデフォルト値を使用
+      adxValue = 15; // 中程度のトレンド強度をデフォルト値とする
+    }
+    
+    // 強いトレンドフラグ（ADXと傾きの両方で判定）
+    const strongAdxTrendFlag = adxValue > 25;
+    const modestAdxTrendFlag = adxValue > 20 && adxValue <= 25;
+    const weakAdxTrendFlag = adxValue > 15 && adxValue <= 20;
+    
+    // 市場環境を判定するフラグ（MA-Slopeのみに依存しない改良版）
+    const strongTrendFlag = (Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 1.5) || 
+                           (Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD && strongAdxTrendFlag);
+    const trendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD || 
+                     (Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.8 && modestAdxTrendFlag);
+    const weakTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7 || weakAdxTrendFlag;
+    
+    // 低ボラティリティ判定（ATR%が閾値未満 かつ EMA勾配が小さい）
+    const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD && 
+                      Math.abs(shortTermSlopeAngle) < 0.15;
     
     // 市場環境を判定（改良版ロジック）
     let environment = MarketEnvironment.RANGE;
@@ -510,13 +542,25 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
       environment = MarketEnvironment.RANGE;
       recommendedStrategy = StrategyType.RANGE_TRADING;
     } else if (bullFlag && strongTrendFlag && slopesAligned) {
-      // 強い上昇トレンド
+      // 強い上昇トレンド（スロープ、ADX、価格位置を考慮）
       environment = MarketEnvironment.STRONG_UPTREND;
       recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      
+      // 価格がMAから大きく離れている場合は注意
+      if (isPriceFarAboveLongMa && adxValue < 30) {
+        // 過熱の可能性があるがまだ強いトレンド
+        environment = MarketEnvironment.UPTREND;
+      }
     } else if (bearFlag && strongTrendFlag && slopesAligned) {
-      // 強い下降トレンド
+      // 強い下降トレンド（スロープ、ADX、価格位置を考慮）
       environment = MarketEnvironment.STRONG_DOWNTREND;
       recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      
+      // 価格がMAから大きく離れている場合は注意
+      if (isPriceFarBelowLongMa && adxValue < 30) {
+        // 過熱の可能性があるがまだ強いトレンド
+        environment = MarketEnvironment.DOWNTREND;
+      }
     } else if (bullFlag && trendFlag) {
       // 通常の上昇トレンド
       environment = MarketEnvironment.UPTREND;
@@ -533,8 +577,14 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
         environment = MarketEnvironment.WEAK_DOWNTREND;
       }
       
-      // 戦略選択：弱いトレンドでもトレンドフォロー
-      recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      // 弱いトレンドでの戦略選択 - 価格位置で微調整
+      if ((shortTermSlope > 0 && isPriceAboveLongMa) || (shortTermSlope < 0 && !isPriceAboveLongMa)) {
+        // 価格位置がトレンド方向と一致 → トレンドフォロー
+        recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      } else {
+        // 価格位置とトレンド方向が不一致 → レンジ戦略
+        recommendedStrategy = StrategyType.RANGE_TRADING;
+      }
     } else {
       // レンジ相場
       environment = MarketEnvironment.RANGE;
@@ -560,6 +610,8 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
         shortTermSlopeAngle,
         longTermSlope,
         longTermSlopeAngle,
+        adx: adxValue,
+        priceLocationRatio,
         slopePeriods: adjustedPeriods
       },
       timestamp: Date.now()

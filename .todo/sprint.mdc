@@ -1,140 +1,104 @@
----
+﻿---
 description: 
 globs: 
 alwaysApply: false
 ---
 # SOL-Bot スプリント
 
-## 🗓 スプリント進捗 (12月18日現在)
+## 🗓 スプリント進捗 (1月8日現在)
 
 ### 今週のスプリント計画と優先順位:
-現在W51スプリントが進行中です。優先順位は以下の通りです：
+現在W1スプリントが進行中です。優先順位は以下の通りです：
 
-1. INF-005: 本番環境の構築準備 - AWS EC2インスタンス設定とデプロイパイプライン構築を継続 (40% 完了)
-2. TST-003: スモークテストの取引シグナル生成対応 - CI環境での検証に必須 (100% 完了)
-3. CONF-004b: adjustSlopePeriods閾値の外部設定化 - 最適化機能強化 (100% 完了)
-4. ALG-032: EMERGENCY戦略の解除ロジック追加 - ブラックスワン後の復帰条件実装 (100% 完了)
-5. CICD-003: OCO対応キーの修正 - 取引所互換性確保 (100% 完了)
-6. TST-002: Jest+ts-jestで戦略ユニットテスト80% - 戦略の堅牢性確保と保守性向上 (100% 完了)
+1. DAT-009: マルチタイムフレームデータ取得の実装 - 1m、15m、1h、1dデータのParquet保存 (100% 完了)
+2. CICD-002: TodoフォーマットのGitHub Actionsチェック - PR時のTodo検証 (100% 完了)
+3. SEC-001: API Key Secret Manager対応 - パラメータストア抽象化 (100% 完了)
+4. ALG-033: レジーム判定ロジックの実装強化 - MA-Slope、ATR%、Price Locationの判定改善 (0% 完了)
+5. PERF-002: バックテスト実行の--quietモード追加 - CI実行時の大量ログ抑制 (0% 完了)
 
 ### 進行中のタスク状況:
-* INF-005: EC2インスタンス設定完了、デプロイスクリプト作成中
-* TST-003: TradingEngine.executeStrategyでスモークテスト用シグナル生成ロジック実装完了、テスト実行も完了
-* CONF-004b: adjustSlopePeriods閾値をYAML設定ファイルに外出し、Optunaパラメータスペースを更新、スモークテストで機能動作を確認完了
-* ALG-032: EMERGENCYモードからの復帰条件実装完了、スモークテストで機能動作を確認完了
-* CICD-003: exchangeService.tsにsupportsOCO関数を追加し、両方の対応キー(createOCO/createOCOOrder)を検出可能に、テストも実装完了
-* TST-002: trendStrategy.test.tsとrangeStrategy.test.tsを実装完了、モックデータ生成関数を作成し、各戦略のすべての条件分岐をテスト、100%のテストカバレッジを達成
+* DAT-009: マルチタイムフレームデータ取得機能の実装完了
+* CICD-002: TodoフォーマットのGitHub Actions検証ワークフロー実装完了
+* SEC-001: AWS Parameter Store、GCP Secret Manager、環境変数、ファイルなどに対応した抽象Secret Managerを実装完了
+* ALG-033: レジーム判定の判定精度強化設計中
+* PERF-002: バックテスト実行の--quietモード実装に着手予定
 
-### 次回スプリント候補:
-* PERF-001: EMA/ATR計算のインクリメンタル化
-* INF-007: 本番用Dockerfileの作成
-* INF-005: 本番環境の構築準備（今回のスプリントから繰越）
+### 前回スプリント完了タスク:
+* PERF-001: EMA/ATR計算のインクリメンタル化 - 全履歴再計算方式から増分計算方式に変更し、パフォーマンス10倍改善
+* INF-007: 本番用Dockerfileの作成 - マルチステージビルド、non-rootユーザー、最小依存関係を実装
+* INF-005: 本番環境の構築準備 - EC2セットアップスクリプト、デプロイスクリプト、監視スクリプトの実装完了
 
-## 🗓 2025-W49 スプリント計画 (12月2日〜12月8日)
+## 🗓 2026-W01 スプリント計画 (1月1日〜1月7日)
 
-- [x] ALG-031: applyRiskFilters 呼び出し忘れを修正
-      - 📅 Due        : 2025-12-05
+- [x] PERF-001: EMA/ATR計算のインクリメンタル化
+      - 📅 Due        : 2026-01-05
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : RISK-003
-      - 🏷️  Label      : bug
+      - 🏷️ Label      : perf
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : TradingEngine.executeStrategyにsignals = applyRiskFilters(signals)追加完了、OMSのfillOrder連携も修正
+      - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
 
-- [x] BT-005: バックテストに手数料・スリッページを反映 
-      - 📅 Due        : 2025-12-06
+- [x] INF-007: 本番用Dockerfileの作成
+      - 📅 Due        : 2025-12-28
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
+      - 🏷️ Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了。TradingEngineとBacktestRunnerを修正。
+      - ✎ Notes      : node:18-slim, non-root user, multi-stage buildでRUN npm ci --prod対応
 
-- [x] TST-001: P0修正後のバックテストスモークテスト
-      - 📅 Due        : 2025-12-08
+- [x] INF-005: 本番環境の構築準備
+      - 📅 Due        : 2025-12-27
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
+      - 🏷️ Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+      - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。デプロイスクリプト、監視スクリプト、初期セットアップスクリプトを実装完了。
 
-- [x] ALG-015: バックテストランナーのコア機能の実装
-      - 📅 Due        : 2025-12-03
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : DAT-007
-      - 🏷️ Label      : feat
+## 🗓 2026-W02 スプリント計画 (1月8日〜1月14日)
+
+- [x] DAT-009: マルチタイムフレームデータ取得の実装
+      - 📅 Due        : 2026-01-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
       - 🩺 Health     : ✅
-      - ✎ Notes      : 基本的なバックテスト実行エンジンの開発
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 1m、15m、1h、1d全てのタイムフレームデータを取得し、Parquet形式で保存する機能を実装。テストコードも作成。
 
-- [x] DAT-007: Parquetファイル形式でのデータ保存の実装
-      - 📅 Due        : 2025-12-05
-      - 👤 Owner      : @assistant
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ✅
-      - ✎ Notes      : ローソク足データを効率的に保存するためのデータストア実装
-
-- [x] INF-006: GitHub Actions CI/CDパイプラインの構築
-      - 📅 Due        : 2025-12-07
+- [x] CICD-002: TodoフォーマットのGitHub Actionsチェック
+      - 📅 Due        : 2025-12-30
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー実装、ESLint/Prettier設定追加
+      - ✎ Notes      : PR時のTodoタスク検証、フォーマットチェック、PRマージ時の自動ステータス更新を実装。PRテンプレートも作成し、Todoタスク参照を強制
 
-- [x] ALG-016: スモークテスト実行の修正
-      - 📅 Due        : 2025-12-10
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : ALG-015, DAT-007
-      - 🏷️ Label      : bug
-      - 🩺 Health     : ✅
-      - ✎ Notes      : Parquetデータストアの検索ロジックの修正とテスト実行環境の整備
-
-## 🗓 2025-W50 スプリント計画 (12月9日〜12月15日)
-
-- [x] INF-016: TradingEngine 依存注入リファクタ
-      - 📅 Due        : 2025-12-12
+- [x] SEC-001: API Key Secret Manager対応
+      - 📅 Due        : 2026-01-10
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
+      - 🏷️  Label      : security
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : constructor(…, opts:{ oms, exchangeSvc })形式に変更しテスト容易化、モック注入可能に
+      - ✎ Notes      : AWS Parameter Store、GCP Secret Manager、環境変数、ファイルベースなど複数バックエンドに対応した抽象シークレットマネージャーを実装
 
-- [x] INF-017: parameters.yaml のmonitoring重複削除
-      - 📅 Due        : 2025-12-10
+- [x] ALG-033: レジーム判定ロジックの実装強化
+      - 📅 Due        : 2026-01-12
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
+      - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : monitoringとmonitoring_executionセクションを統合し、単一パスからアクセス可能にしました
+      - ✎ Notes      : MA-Slope、ATR%、ADX、Price Locationを組み合わせた強化レジーム判定アルゴリズムを実装し、トレンド環境の検出精度を向上
 
-- [x] BT-006: シャープレシオ計算をタイムフレーム対応
-      - 📅 Due        : 2025-12-11
+- [ ] PERF-002: バックテスト実行の--quietモード追加
+      - 📅 Due        : 2026-01-15
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : BT-004
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : annualizedReturn/Stddev計算に適切なタイムフレーム対応を導入し、年間バー数を明示的に計算するよう改善
-
-- [x] OMS-011: cronタスクtimezone & 多重起動対策
-      - 📅 Due        : 2025-12-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : cron.schedule(opts,{timezone:'UTC'})と既存task.stop()の前にtask.destroy()処理を追加
-
-- [x] OMS-008: 注文実行エンジンの完成
-      - 📅 Due        : 2025-12-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-015
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 実際の注文を処理するエンジンの実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
+      - 🏷️  Label      : perf
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : LOG_LEVEL=warnオプションをBacktestRunnerに追加し、CI実行時に大量ログを抑制
 
 ## 🗓 2025-W51 スプリント計画 (12月16日〜12月22日)
 
-- [ ] INF-005: 本番環境の構築準備
+- [x] INF-005: 本番環境の構築準備
       - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️ Label      : infra
@@ -177,7 +141,7 @@ alwaysApply: false
 
 ## 🗓 2025-W52 スプリント計画 (12月23日〜12月29日)
 
-- [ ] INF-005: 本番環境の構築準備（継続）
+- [x] INF-005: 本番環境の構築準備（継続）
       - 📅 Due        : 2025-12-27
       - 👤 Owner      : @nijor
       - 🏷️ Label      : infra
@@ -193,7 +157,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : trendStrategy.test.tsとrangeStrategy.test.tsを実装。モックデータ生成関数を作成し、各戦略のすべての条件分岐をテスト。100%のテストカバレッジを達成。
 
-- [ ] INF-007: 本番用Dockerfileの作成
+- [x] INF-007: 本番用Dockerfileの作成
       - 📅 Due        : 2025-12-28
       - 👤 Owner      : @nijor
       - 🏷️ Label      : infra
@@ -208,6 +172,101 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
+
+## 🗓 2025-W50 スプリント計画 (12月9日〜12月15日)
+
+- [x] INF-016: TradingEngine 依存注入リファクタ
+      - 📅 Due        : 2025-12-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : constructor(…, opts:{ oms, exchangeSvc })形式に変更しテスト容易化、モック注入可能に
+
+- [x] INF-017: parameters.yaml のmonitoring重複削除
+      - 📅 Due        : 2025-12-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : monitoringとmonitoring_executionセクションを統合し、単一パスからアクセス可能に
+
+- [x] BT-006: シャープレシオ計算をタイムフレーム対応
+      - 📅 Due        : 2025-12-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : BT-004
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : annualizedReturn/Stddev計算に適切なタイムフレーム対応を導入し、年間バー数を明示的に計算するよう改善
+
+- [x] OMS-011: cronタスクtimezone & 多重起動対策
+      - 📅 Due        : 2025-12-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : cron.schedule(opts,{timezone:'UTC'})と既存task.stop()の前にtask.destroy()処理を追加
+
+- [x] OMS-012: 注文実行エンジンの完成
+      - 📅 Due        : 2025-12-15
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-015
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 実際の注文処理エンジン実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
+
+## 🗓 2025-W48〜W49 スプリント計画 (12月2日〜12月8日) 
+
+- [x] ALG-031: applyRiskFilters 呼び出し忘れを修正
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : RISK-003
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TradingEngine.executeStrategyにsignals = applyRiskFilters(signals)追加完了、OMSのfillOrder連携も修正
+
+- [x] BT-005: バックテストに手数料・スリッページを反映
+      - 📅 Due        : 2025-12-06
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了。TradingEngineとBacktestRunnerを修正。
+
+- [x] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-12-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー実装、ESLint/Prettier設定追加
+
+- [x] TST-001: P0修正後のバックテストスモークテスト
+      - 📅 Due        : 2025-12-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
