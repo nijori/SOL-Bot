@@ -415,10 +415,45 @@ export class TradingEngine {
       switch (this.activeStrategy) {
         case StrategyType.TREND_FOLLOWING:
           // 通常、トレンドフォロー戦略を実行
+          try {
+            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy');
+            result = executeTrendFollowStrategy(
+              this.latestCandles,
+              this.symbol, 
+              positions,
+              this.account.balance
+            );
+            logger.info(`[TradingEngine] トレンドフォロー戦略を実行: ${result.signals.length}件のシグナル生成`);
+          } catch (error) {
+            logger.error(`[TradingEngine] トレンドフォロー戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+            // エラー時はデフォルトの空シグナルを返す
+            result = {
+              strategy: StrategyType.TREND_FOLLOWING,
+              signals: [],
+              timestamp: Date.now()
+            };
+          }
           break;
           
         case StrategyType.RANGE_TRADING:
           // レンジ相場用の戦略を実行
+          try {
+            const { executeRangeStrategy } = require('../strategies/rangeStrategy');
+            result = executeRangeStrategy(
+              this.latestCandles,
+              this.symbol,
+              positions
+            );
+            logger.info(`[TradingEngine] レンジ戦略を実行: ${result.signals.length}件のシグナル生成`);
+          } catch (error) {
+            logger.error(`[TradingEngine] レンジ戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+            // エラー時はデフォルトの空シグナルを返す
+            result = {
+              strategy: StrategyType.RANGE_TRADING,
+              signals: [],
+              timestamp: Date.now()
+            };
+          }
           break;
           
         case StrategyType.EMERGENCY:
@@ -428,6 +463,24 @@ export class TradingEngine {
           
         default:
           // デフォルトでトレンドフォロー戦略を実行
+          logger.warn(`[TradingEngine] 未知の戦略タイプ: ${this.activeStrategy}、デフォルトのトレンドフォロー戦略を使用`);
+          try {
+            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy');
+            result = executeTrendFollowStrategy(
+              this.latestCandles,
+              this.symbol,
+              positions,
+              this.account.balance
+            );
+          } catch (error) {
+            logger.error(`[TradingEngine] デフォルト戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+            // エラー時は空のシグナルを返す
+            result = {
+              strategy: StrategyType.TREND_FOLLOWING,
+              signals: [],
+              timestamp: Date.now()
+            };
+          }
           break;
       }
       
