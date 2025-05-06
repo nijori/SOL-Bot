@@ -88,13 +88,13 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : MA-Slope、ATR%、ADX、Price Locationを組み合わせた強化レジーム判定アルゴリズムを実装し、トレンド環境の検出精度を向上
 
-- [ ] PERF-002: バックテスト実行の--quietモード追加
-      - 📅 Due        : 2026-01-15
+- [x] PERF-002: バックテスト実行の--quietモード追加
+      - 📅 Due        : 2026-01-12
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : LOG_LEVEL=warnオプションをBacktestRunnerに追加し、CI実行時に大量ログを抑制
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : バックテスト実行時のログ出力を抑制する--quietオプションを追加し、TradingEngine含め全機能に対応
 
 ## 🗓 2025-W51 スプリント計画 (12月16日〜12月22日)
 
@@ -251,6 +251,9 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+
+
+
 
 
 

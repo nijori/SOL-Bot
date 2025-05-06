@@ -25,6 +25,7 @@ export interface BacktestConfig {
   isSmokeTest?: boolean;
   slippage?: number;        // スリッページ
   commissionRate?: number;  // 取引手数料率
+  quiet?: boolean;          // ログ出力を抑制するモード
 }
 
 /**
@@ -61,8 +62,9 @@ export class BacktestRunner {
       // デフォルト値を設定
       initialBalance: config.initialBalance || 10000,
       parameters: config.parameters || {},
-      slippage: config.slippage || BACKTEST_PARAMETERS.slippage || 0.001,         // デフォルト0.1%のスリッページ
-      commissionRate: config.commissionRate || BACKTEST_PARAMETERS.commission_rate || 0.001  // デフォルト0.1%の取引手数料
+      slippage: config.slippage || BACKTEST_PARAMETERS.DEFAULT_SLIPPAGE || 0,
+      commissionRate: config.commissionRate || BACKTEST_PARAMETERS.DEFAULT_COMMISSION_RATE || 0,
+      quiet: config.quiet || false // デフォルトはfalse（通常モード）
     };
   }
   
@@ -70,23 +72,35 @@ export class BacktestRunner {
    * バックテストを実行
    */
   async run(): Promise<BacktestResult> {
-    console.log(`[BacktestRunner] バックテスト開始: ${this.config.symbol} (${this.config.startDate} - ${this.config.endDate})`);
-    console.log(`[BacktestRunner] スリッページ: ${(this.config.slippage ?? 0) * 100}%, 取引手数料: ${(this.config.commissionRate ?? 0) * 100}%`);
-    
-    // スモークテストモードであることを明示的に表示
-    if (this.config.isSmokeTest) {
-      console.log(`[BacktestRunner] スモークテストモードが有効です`);
+    // quietモードでない場合のみログを出力
+    if (!this.config.quiet) {
+      console.log(`[BacktestRunner] バックテスト開始: ${this.config.symbol} (${this.config.startDate} - ${this.config.endDate})`);
+      console.log(`[BacktestRunner] スリッページ: ${(this.config.slippage ?? 0) * 100}%, 取引手数料: ${(this.config.commissionRate ?? 0) * 100}%`);
+      
+      // スモークテストモードであることを明示的に表示
+      if (this.config.isSmokeTest) {
+        console.log(`[BacktestRunner] スモークテストモードが有効です`);
+      }
+      
+      // quietモードの状態を表示
+      if (this.config.quiet) {
+        console.log(`[BacktestRunner] Quietモードが有効です（詳細ログ出力は抑制されます）`);
+      }
     }
 
     try {
       // データの読み込み
       const candles = await this.loadData();
-      console.log(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+      if (!this.config.quiet) {
+        console.log(`[BacktestRunner] データ読み込み完了: ${candles.length}件のローソク足`);
+      }
       
       // カスタムパラメータの適用
       if (this.config.parameters && Object.keys(this.config.parameters).length > 0) {
         applyParameters(this.config.parameters);
-        console.log(`[BacktestRunner] カスタムパラメータを適用: ${Object.keys(this.config.parameters).length}個のパラメータ`);
+        if (!this.config.quiet) {
+          console.log(`[BacktestRunner] カスタムパラメータを適用: ${Object.keys(this.config.parameters).length}個のパラメータ`);
+        }
       }
       
       // OrderManagementSystemのインスタンスを作成
@@ -101,17 +115,22 @@ export class BacktestRunner {
         slippage: this.config.slippage,
         commissionRate: this.config.commissionRate,
         isSmokeTest: this.config.isSmokeTest, // スモークテストフラグを明示的に渡す
-        oms: oms // OMSを注入
+        oms: oms, // OMSを注入
+        quiet: this.config.quiet // quietモードを伝播
       });
       
       // エンジン設定の確認ログ
-      console.log(`[BacktestRunner] エンジン初期化完了: スモークテストモード=${this.config.isSmokeTest ? "有効" : "無効"}`);
+      if (!this.config.quiet) {
+        console.log(`[BacktestRunner] エンジン初期化完了: スモークテストモード=${this.config.isSmokeTest ? "有効" : "無効"}`);
+      }
       
       // すべてのローソク足でシミュレーション実行
       const equityHistory: {timestamp: string, equity: number}[] = [];
       const allTrades: any[] = [];
       
-      console.log(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
+      if (!this.config.quiet) {
+        console.log(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
+      }
       
       for (const candle of candles) {
         // キャンドルでエンジンを更新
@@ -125,7 +144,7 @@ export class BacktestRunner {
         
         // 完了した取引を取得
         const completedTrades = engine.getCompletedTrades();
-        if (completedTrades.length > 0) {
+        if (completedTrades.length > 0 && !this.config.quiet) {
           console.log(`[BacktestRunner] 取引完了: ${completedTrades.length}件`);
           allTrades.push(...completedTrades);
         }
@@ -136,7 +155,9 @@ export class BacktestRunner {
       
       // 最終的な完了取引を取得
       const finalCompletedTrades = engine.getCompletedTrades();
-      console.log(`[BacktestRunner] 最終取引総数: ${finalCompletedTrades.length}件`);
+      if (!this.config.quiet) {
+        console.log(`[BacktestRunner] 最終取引総数: ${finalCompletedTrades.length}件`);
+      }
       
       // 完了したバックテストの結果を取得して評価
       const metrics = this.calculateMetrics(finalCompletedTrades, equityHistory);
@@ -152,7 +173,9 @@ export class BacktestRunner {
         }
       };
       
-      console.log(`[BacktestRunner] バックテスト完了: トータルリターン=${metrics.totalReturn.toFixed(2)}%, シャープレシオ=${metrics.sharpeRatio.toFixed(2)}`);
+      if (!this.config.quiet) {
+        console.log(`[BacktestRunner] バックテスト完了: トータルリターン=${metrics.totalReturn.toFixed(2)}%, シャープレシオ=${metrics.sharpeRatio.toFixed(2)}`);
+      }
       return result;
       
     } catch (error) {
@@ -479,8 +502,11 @@ async function main() {
   const isSmokeTest = args['smoke-test'] === true;
   const days = parseInt(args['days'] as string || '3');
   
+  // quietモードの検出
+  const quiet = args['quiet'] === true;
+  
   if (isSmokeTest) {
-    console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+    if (!quiet) console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
     endDate = new Date().toISOString();
     const start = new Date();
     start.setDate(start.getDate() - days);
@@ -499,10 +525,11 @@ async function main() {
     startDate,
     endDate,
     initialBalance: parseFloat(args['balance'] as string || '10000'),
-    isSmokeTest
+    isSmokeTest,
+    quiet
   };
   
-  console.log(`[BacktestRunner] 設定:`, config);
+  if (!quiet) console.log(`[BacktestRunner] 設定:`, config);
   
   const runner = new BacktestRunner(config);
   try {
@@ -511,7 +538,7 @@ async function main() {
     if (args['output']) {
       const outputPath = args['output'] as string;
       fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
-      console.log(`[BacktestRunner] 結果を保存: ${outputPath}`);
+      if (!quiet) console.log(`[BacktestRunner] 結果を保存: ${outputPath}`);
     }
     
     process.exit(0);

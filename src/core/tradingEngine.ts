@@ -31,6 +31,7 @@ export interface TradingEngineOptions {
   slippage?: number;
   commissionRate?: number;
   isSmokeTest?: boolean;
+  quiet?: boolean;       // ログ出力を抑制するモード
 
   // 依存サービス
   oms?: OrderManagementSystem;
@@ -57,6 +58,7 @@ export class TradingEngine {
   private commissionRate: number = 0; // 取引手数料率
   private completedTrades: any[] = []; // 完了した取引履歴
   private isSmokeTest: boolean = false;
+  private quiet: boolean = false; // ログ出力抑制モード
   // 将来的に追加する可能性のある依存サービス
   private exchangeService: any | null = null;
   // EMERGENCY戦略関連のプロパティ
@@ -70,6 +72,7 @@ export class TradingEngine {
     this.slippage = options.slippage || 0;
     this.commissionRate = options.commissionRate || 0;
     this.isSmokeTest = options.isSmokeTest || false;
+    this.quiet = options.quiet || false;
     
     this.account = {
       balance: options.initialBalance || 10000,
@@ -85,10 +88,13 @@ export class TradingEngine {
     
     // 初期残高を設定
     this.dailyStartingBalance = this.account.balance;
-    logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${this.symbol}, タイムフレーム ${this.timeframeHours}h`);
     
-    if (this.isBacktest) {
-      logger.info(`[TradingEngine] バックテストモード: スリッページ=${this.slippage * 100}%, 手数料=${this.commissionRate * 100}%`);
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] エンジンを初期化しました: シンボル ${this.symbol}, タイムフレーム ${this.timeframeHours}h`);
+      
+      if (this.isBacktest) {
+        logger.info(`[TradingEngine] バックテストモード: スリッページ=${this.slippage * 100}%, 手数料=${this.commissionRate * 100}%`);
+      }
     }
   }
   
