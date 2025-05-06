@@ -18,6 +18,7 @@ alwaysApply: false
 6. ✅ INF-020: 真の指数バックオフ実装 (100% 完了)
 7. ✅ INF-019: docker-compose node_modules named volume化 (100% 完了) - 既存の実装で対応済み
 8. ✅ RISK-004: ATR==0のケースにフォールバックstopDistance実装 (100% 完了) - 各戦略にATR=0対策を実装
+9. ✅ DATA-013: ATR==0フォールバックパラメータ設定ファイル化 (100% 完了)
 
 ### 進行中のタスク状況:
 * API-021: Bitget/Bybit向けにnull/undefinedの特別処理を実装。ccxt.Exchangeの型定義問題には暫定対応として、TypeScriptの型アサーションを利用。最終的にはccxtの型定義との互換性がベストプラクティスを探索中。
@@ -30,17 +31,21 @@ alwaysApply: false
 * INF-019: docker-compose内のnode_modules named volume化が既に実装されていることを確認し、タスクを完了としてマーク。
 * DOC-006: READMEとPROJECT_STRUCTUREの差分を同期し、最新情報に更新。
 * RISK-004: ATR==0問題に対するフォールバック機能を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、marketState.tsのIncrementalATRクラスすべてに対応。DEFAULT_ATR_PERCENTAGEとMIN_STOP_DISTANCE_PERCENTAGEのパラメータ化も実装。
+* DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動。risk.defaultAtrPercentage、risk.minStopDistancePercentage、risk.minAtrValueをparameters.yamlに追加し、各戦略から共通で参照できるよう実装。
 
 ## 新たに検出された問題点:
-1. DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動（優先度：中）
-   - DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で統一すべき値を設定ファイルに移動。
-   - 現在はparameterServiceから各ファイルで個別に取得しているが、共通化すべき。
+1. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動（優先度：中）~~
+   ~~- DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で統一すべき値を設定ファイルに移動。~~
+   ~~- 現在はparameterServiceから各ファイルで個別に取得しているが、共通化すべき。~~
+2. RISK-005: ポジションサイジングロジックの共通化（優先度：中）
+   - 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
+   - リスク制限、最大ポジションサイズの統一的な適用
 
 ## 次週のスプリント候補:
 1. API-021: 成行注文時のprice型エラー解決（残り作業）
 2. API-023: OrderType enum と ccxt マッピングテーブル実装（残り作業）
 3. DATA-011: Candle.timestamp 型統一ポリシー決定（残り作業）
-4. DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
+4. ~~DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動~~
 5. RISK-005: ポジションサイジングロジックの共通化（優先度：中）
    - 各戦略で実装されているcalculateRiskBasedPositionSize関数を共通ユーティリティに移動
    - リスク制限、最大ポジションサイズの統一的な適用
@@ -54,6 +59,14 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : 異常に小さいATR値への対応を実装。trendFollowStrategy、DonchianBreakoutStrategy、rangeStrategy、IncrementalATRにフォールバック機能を追加
+
+- [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
+      - 📅 Due        : 2024-02-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータをriskセクションに追加
 
 ## 🗓 2026-W06 スプリント計画 (2月5日〜2月11日)
 
@@ -292,6 +305,7 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、キャンドル数が不足していても強制的にシグナルを生成するように対応。スモークテスト実行で120件の取引が生成されることを確認。
+
 
 
 

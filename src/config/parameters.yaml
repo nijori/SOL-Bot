@@ -12,6 +12,13 @@ market:
   trend_slope_threshold: 0.2             # EMAの傾きがこの値より大きいとトレンド判定
   volatility_threshold: 2.0              # ATRがこの値倍以上に増えると高ボラティリティ判定
   atr_percentage_threshold: ${ATR_PERCENTAGE_THRESHOLD:-6.0}  # ATR%がこの値未満だとLOW_VOL判定
+  
+  # EMA傾き計算のボラティリティ適応閾値
+  slope_periods_high_vol_threshold: ${SLOPE_HIGH_VOL_THRESHOLD:-8.0}  # この値より高いATR%では短い期間を使用
+  slope_periods_low_vol_threshold: ${SLOPE_LOW_VOL_THRESHOLD:-3.0}    # この値より低いATR%では長い期間を使用
+  slope_periods_default: ${SLOPE_PERIODS_DEFAULT:-5}                  # デフォルトの傾き計算期間
+  slope_periods_high_vol_value: ${SLOPE_HIGH_VOL_VALUE:-3}            # 高ボラティリティ時の期間
+  slope_periods_low_vol_value: ${SLOPE_LOW_VOL_VALUE:-8}              # 低ボラティリティ時の期間
 
 # トレンド戦略用パラメータ
 trend:
@@ -38,6 +45,13 @@ risk:
   max_daily_loss: ${MAX_DAILY_LOSS:-0.05}           # 1日の最大損失（口座の5%）
   emergency_gap_threshold: 0.15                     # 15%の急落を緊急事態とみなす
   emergency_position_reduction: 0.5                 # 緊急時にポジションを50%削減
+  emergency_recovery_threshold: 0.075              # BLACK_SWAN_THRESHOLD/2（7.5%）未満の変動が続くと通常戦略に復帰
+  emergency_recovery_hours: 24                     # この時間（時間単位）、閾値未満の変動が続くと通常戦略に復帰
+  
+  # ATR==0フォールバック設定
+  defaultAtrPercentage: ${DEFAULT_ATR_PERCENTAGE:-0.02}    # ATRが0または極小時に使用するデフォルト値（価格の2%）
+  minStopDistancePercentage: ${MIN_STOP_DISTANCE_PERCENTAGE:-0.01}  # 最小ストップ距離（価格の1%）
+  minAtrValue: ${MIN_ATR_VALUE:-0.0001}                   # ATRの最小有効値（価格の0.01%）
 
 # ログと監視パラメータ
 monitoring:
