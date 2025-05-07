@@ -186,22 +186,22 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : 新規メトリクスを可視化するGrafanaダッシュボードパネルを追加
 
-- [ ] OMS-014: OrderSizingService MVP実装
+- [x] OMS-014: OrderSizingService MVP実装
       - 📅 Due        : 2026-02-11
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : マルチアセット対応の第一歩として、symbol/riskAmount/stopDistanceからロットサイズを計算するサービスを実装。TDD実践のためテスト先行開発。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : マルチアセット対応の第一歩として、symbol/riskAmount/stopDistanceからロットサイズを計算するサービスを実装。取引所の最小ロットサイズ、最小コスト制約、数量精度に対応。ExchangeServiceを拡張してgetMarketInfoとfetchTickerメソッドも追加。TDDアプローチでテストも実装。
 
-- [ ] TST-008: OrderSizingServiceのユニットテスト
+- [x] TST-008: OrderSizingServiceのユニットテスト
       - 📅 Due        : 2026-02-11
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : OMS-014
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 様々な通貨ペアでの最小ロットサイズ、精度対応のテスト。BTC/USDTや小額通貨のエッジケースも検証。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 様々な通貨ペアでの最小ロットサイズ、精度対応のテストを実装。BTC/USDT、SOL/USDT、ETH/USDTの各ペアの制約テストとエラーケースを網羅的にカバー。fetchTickerのモック化とマーケット情報のシミュレーションも実装。
 
 - [x] PERF-004: console.log の quiet モード対応強化
       - 📅 Due        : 2026-02-13
@@ -227,13 +227,13 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : syncOrderForSimulateFill、syncFillWithOrder、updateOrderStatusなどの関数のテスト。モックオブジェクトを使用。
 
-- [ ] TST-011: マルチシンボルバックテスト検証テスト
+- [x] TST-011: マルチシンボルバックテスト検証テスト
       - 📅 Due        : 2026-02-14
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : BTC/USDT、ETH/USDT、SOL/USDT、XRP/USDTなど異なる価格帯・ボラティリティの通貨ペアに対応したバックテスト検証テストを実装。OrderSizingServiceのマルチシンボル対応確認と、取引所の制約（最小ロットサイズ、精度、最小注文額）を考慮した計算検証。モック使用で高価格シンボル（BTC）から低価格シンボル（XRP）まで幅広く対応。
 
 ## 最近完了したタスク:
 
@@ -269,4 +269,6 @@ alwaysApply: false
 4. ALG-040: ATR%自動キャリブレーション
 5. DAT-014: データストアマルチシンボル拡張
 6. BT-007: マルチエクスチェンジ統合テスト
+
+
 
