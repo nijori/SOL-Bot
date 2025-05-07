@@ -139,29 +139,12 @@ alwaysApply: false
       - ✎ Notes      : docker-compose.ymlで既にnode_modulesがnamed volumeとして設定されていることを確認。`volumes: node_modules:`の定義も完了
 
 - [ ] ALG-018: 新しい戦略パラメータの実装
-      - 📅 Due        : 2026-01-15
+      - 📅 Due        : 2026-03-15
       - 👤 Owner      : @nijor
       - 🏷️ Label      : feat
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
-
-- [ ] DAT-008: リアルタイムデータ処理の改善
-      - 📅 Due        : 2026-01-20
-      - 👤 Owner      : @assistant
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 40%
-      - ✎ Notes      : ストリーミングデータのより効率的な処理方法の実装
-
-- [ ] OMS-009: 複数取引所対応
-      - 📅 Due        : 2026-02-01
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on    : OMS-008
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 複数取引所での同時取引に対応するためのインターフェース拡張
 
 - [ ] DOC-004: ユーザーマニュアルの作成
       - 📅 Due        : 2026-02-15
@@ -181,7 +164,7 @@ alwaysApply: false
 
 // SEC-002タスクはアーカイブまたはスプリントに既に存在するため削除しました
 - [ ] BT-007: マルチエクスチェンジ統合テスト
-      - 📅 Due        : 2026-02-12
+      - 📅 Due        : 2026-03-12
       - 👤 Owner      : @qa-team
       - 🔗 Depends-on : OMS-009
       - 🏷️  Label      : test
@@ -205,6 +188,14 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : ATR_THRESHOLD、TrailingStopFactor、GridATRMultiplierをOptunaに追加し最適化フレームワーク実装完了
+
+- [x] DATA-011: Candle.timestamp型統一
+      - 📅 Due        : 2024-02-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Candle.timestamp型をnumber | stringに統一し、isNumericTimestamp型ガード関数とnormalizeTimestamp変換関数を実装。ISO文字列とUNIXタイムスタンプの両方に対応。
 
 ## 完了済みタスク
 
@@ -232,13 +223,6 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : 全コンポーネントのJSDocコメントを統一フォーマットで整理（ライブラリ出力にも対応）
-
-- [x] DATA-011: Candle.timestamp型統一
-      - 📅 Due        : 2024-02-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
 
 
       - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。
