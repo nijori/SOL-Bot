@@ -1,4 +1,4 @@
-import { ADX, Highest, Lowest, ATR } from 'technicalindicators';
+import { ADX, Highest, Lowest } from 'technicalindicators';
 import { 
   Candle, 
   Order, 
@@ -13,6 +13,7 @@ import logger from '../utils/logger';
 import { parameterService } from '../config/parameterService';
 import { ParameterService } from '../config/parameterService';
 import { calculateRiskBasedPositionSize } from '../utils/positionSizing';
+import { calculateATR } from '../utils/atrUtils';
 
 // ATR==0の場合のフォールバック設定
 const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>('risk.minStopDistancePercentage', 0.01);
@@ -57,17 +58,172 @@ export function calculateDonchian(candles: Candle[], period: number): { upper: n
 }
 
 /**
- * ATRを計算する関数
+ * ドンチャンブレイクアウト戦略の実行
+ * @param candles ローソク足データ
+ * @param symbol シンボル名
+ * @param currentPositions 現在のポジション情報
+ * @param accountBalance 口座残高
+ * @returns 戦略の実行結果
+ */
+export function executeDonchianBreakoutStrategy(
+  candles: Candle[],
+  symbol: string,
+  currentPositions: Position[],
+  accountBalance: number = 10000
+): StrategyResult {
+  // シグナルを格納する配列
+  const signals: Order[] = [];
+  
+  // ドンチャン期間とADX期間
+  const donchianPeriod = TREND_PARAMETERS.DONCHIAN_PERIOD;
+  const adxPeriod = TREND_PARAMETERS.ADX_PERIOD;
+  const atrPeriod = TREND_PARAMETERS.ATR_PERIOD;
+  
+  // データが十分にあるか確認
+  if (candles.length < donchianPeriod) {
+    logger.warn(`[DonchianStrategy] 十分なデータがありません: ${candles.length} < ${donchianPeriod}`);
+    return {
+      strategy: StrategyType.DONCHIAN_BREAKOUT,
+      signals: [],
+      timestamp: Date.now()
+    };
+  }
+  
+  // 現在の価格
+  const currentPrice = candles[candles.length - 1].close;
+  
+  // 前回の価格
+  const previousPrice = candles.length > 1 ? candles[candles.length - 2].close : currentPrice;
+  
+  // ドンチャンチャネルの計算
+  const donchian = calculateDonchian(candles, donchianPeriod);
+  
+  // ADXの計算
+  const adxResult = calculateADX(candles, adxPeriod);
+  
+  // ATRの計算
+  const atr = calculateATR(candles, atrPeriod, 'DonchianStrategy');
+  
+  // ブレイクアウトかどうかの判定
+  const isUpperBreakout = currentPrice > donchian.upper && previousPrice <= donchian.upper;
+  const isLowerBreakout = currentPrice < donchian.lower && previousPrice >= donchian.lower;
+  
+  // ADXが高いかどうかの判定
+  const isStrongTrend = adxResult > TREND_PARAMETERS.ADX_THRESHOLD;
+  
+  // 現在のポジションを確認
+  const hasPosition = currentPositions.some(p => p.symbol === symbol);
+  
+  // ポジションがなく、上方ブレイクアウトが発生した場合（強いトレンドがあれば優先）
+  if (!hasPosition && isUpperBreakout && isStrongTrend) {
+    // ATRベースのストップロス
+    const stopLossPrice = currentPrice - (atr * TREND_PARAMETERS.ATR_MULTIPLIER);
+    
+    // リスクに基づいたポジションサイズの計算
+    const riskAmount = accountBalance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
+    const riskDistance = currentPrice - stopLossPrice;
+    
+    // ポジションサイズの計算
+    const positionSize = calculateRiskBasedPositionSize(
+      accountBalance,
+      currentPrice,
+      stopLossPrice,
+      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+      'DonchianStrategy'
+    );
+    
+    // 買い注文を生成
+    signals.push({
+      symbol,
+      type: OrderType.MARKET,
+      side: OrderSide.BUY,
+      amount: positionSize,
+      timestamp: Date.now(),
+      stopPrice: stopLossPrice // ストップロス価格を設定
+    });
+    
+    logger.info(`[DonchianStrategy] 上方ブレイクアウト検出: 買い注文生成 ${positionSize} @ ${currentPrice}, ストップロス: ${stopLossPrice}`);
+  }
+  
+  // ポジションがなく、下方ブレイクアウトが発生した場合（強いトレンドがあれば優先）
+  else if (!hasPosition && isLowerBreakout && isStrongTrend) {
+    // ATRベースのストップロス
+    const stopLossPrice = currentPrice + (atr * TREND_PARAMETERS.ATR_MULTIPLIER);
+    
+    // リスクに基づいたポジションサイズの計算
+    const riskAmount = accountBalance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
+    const riskDistance = stopLossPrice - currentPrice;
+    
+    // ポジションサイズの計算
+    const positionSize = calculateRiskBasedPositionSize(
+      accountBalance,
+      currentPrice,
+      stopLossPrice,
+      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+      'DonchianStrategy'
+    );
+    
+    // 売り注文を生成
+    signals.push({
+      symbol,
+      type: OrderType.MARKET,
+      side: OrderSide.SELL,
+      amount: positionSize,
+      timestamp: Date.now(),
+      stopPrice: stopLossPrice // ストップロス価格を設定
+    });
+    
+    logger.info(`[DonchianStrategy] 下方ブレイクアウト検出: 売り注文生成 ${positionSize} @ ${currentPrice}, ストップロス: ${stopLossPrice}`);
+  }
+  
+  // トレイリングストップの更新
+  currentPositions.forEach(position => {
+    if (position.symbol !== symbol || !position.stopPrice) return;
+    
+    // ロングポジションの場合
+    if (position.side === OrderSide.BUY) {
+      // ATRベースの新しいストップ価格を計算
+      const newStopPrice = currentPrice - (atr * TREND_PARAMETERS.TRAILING_STOP_FACTOR);
+      
+      // 現在のストップより高い場合のみ更新
+      if (newStopPrice > position.stopPrice) {
+        // 実際のシステムではここでストップ注文を更新する
+        logger.info(`[DonchianStrategy] ロングポジションのトレイリングストップを更新: ${position.stopPrice} -> ${newStopPrice}`);
+      }
+    }
+    // ショートポジションの場合
+    else if (position.side === OrderSide.SELL) {
+      // ATRベースの新しいストップ価格を計算
+      const newStopPrice = currentPrice + (atr * TREND_PARAMETERS.TRAILING_STOP_FACTOR);
+      
+      // 現在のストップより低い場合のみ更新
+      if (newStopPrice < position.stopPrice) {
+        // 実際のシステムではここでストップ注文を更新する
+        logger.info(`[DonchianStrategy] ショートポジションのトレイリングストップを更新: ${position.stopPrice} -> ${newStopPrice}`);
+      }
+    }
+  });
+  
+  return {
+    strategy: StrategyType.DONCHIAN_BREAKOUT,
+    signals,
+    timestamp: Date.now()
+  };
+}
+
+/**
+ * ADXの計算
  * @param candles ローソク足データ
  * @param period 期間
- * @returns ATR値
+ * @returns ADX値
  */
-function calculateATR(candles: Candle[], period: number): number {
-  if (candles.length < period) {
+function calculateADX(candles: Candle[], period: number): number {
+  if (candles.length < period * 2) {
+    logger.warn(`[DonchianStrategy] ADX計算のためのデータが不足しています: ${candles.length} < ${period * 2}`);
     return 0;
   }
   
-  const atrInput = {
+  const adxInput = {
     high: candles.map(c => c.high),
     low: candles.map(c => c.low),
     close: candles.map(c => c.close),
@@ -75,236 +231,10 @@ function calculateATR(candles: Candle[], period: number): number {
   };
   
   try {
-    const atrValues = ATR.calculate(atrInput);
-    const currentAtr = atrValues[atrValues.length - 1];
-    
-    // ATRが0または非常に小さい値の場合のフォールバック
-    if (currentAtr === 0 || currentAtr < candles[candles.length - 1].close * 0.0001) {
-      logger.warn('[DonchianStrategy] ATR値が0または非常に小さいため、フォールバック値を使用');
-      // 現在価格のデフォルトパーセンテージをATRとして使用
-      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
-      logger.info(`[DonchianStrategy] フォールバックATR: ${fallbackAtr} (${DEFAULT_ATR_PERCENTAGE * 100}%)`);
-      return fallbackAtr;
-    }
-    
-    return currentAtr;
+    const adxResult = ADX.calculate(adxInput);
+    return adxResult[adxResult.length - 1].adx;
   } catch (error) {
-    logger.error('[DonchianStrategy] ATR計算エラー:', error);
-    
-    // エラー時は簡易計算（過去n期間の高値-安値の平均）を使用
-    const recentCandles = candles.slice(-period);
-    let totalRange = 0;
-    
-    for (const candle of recentCandles) {
-      totalRange += (candle.high - candle.low);
-    }
-    
-    const calculatedAtr = totalRange / period;
-    
-    // 計算されたATRが0または非常に小さい場合もフォールバックを使用
-    if (calculatedAtr === 0 || calculatedAtr < candles[candles.length - 1].close * 0.0001) {
-      // 現在価格のデフォルトパーセンテージをATRとして使用
-      const fallbackAtr = candles[candles.length - 1].close * DEFAULT_ATR_PERCENTAGE;
-      logger.info(`[DonchianStrategy] 計算されたATRが小さすぎるため、フォールバック使用: ${fallbackAtr}`);
-      return fallbackAtr;
-    }
-    
-    return calculatedAtr;
+    logger.error('[DonchianStrategy] ADX計算エラー:', error);
+    return 0;
   }
-}
-
-/**
- * リスクベースのポジションサイズを計算する関数
- * @param accountBalance 口座残高
- * @param entryPrice エントリー価格
- * @param stopPrice ストップ価格
- * @returns ポジションサイズ
- */
-// このfunction定義を削除し、共通ユーティリティを使用するように置き換えました
-// (関数は完全に削除し、代わりにpositionSizing.tsからimportしています)
-
-/**
- * Donchianブレイクアウト戦略を実行する関数
- * @param candles ローソク足データ
- * @param symbol 銘柄シンボル
- * @param currentPositions 現在のポジション
- * @param accountBalance 口座残高
- * @returns 戦略の実行結果
- */
-export function executeDonchianBreakoutStrategy(
-  candles: Candle[], 
-  symbol: string, 
-  currentPositions: Position[],
-  accountBalance: number
-): StrategyResult {
-  // 必要なデータが不足している場合は空の結果を返す
-  const requiredPeriod = Math.max(
-    TREND_PARAMETERS.DONCHIAN_PERIOD,
-    TREND_PARAMETERS.ADX_PERIOD
-  ) + 10;
-  
-  if (candles.length < requiredPeriod) {
-    logger.warn(`[DonchianStrategy] 必要なデータが不足しています: ${candles.length} < ${requiredPeriod}`);
-    return {
-      strategy: StrategyType.TREND_FOLLOWING,
-      signals: [],
-      timestamp: Date.now()
-    };
-  }
-  
-  // Donchianチャネルを計算
-  const donchian = calculateDonchian(candles, TREND_PARAMETERS.DONCHIAN_PERIOD);
-  
-  // ATRを計算（ストップロス、ポジションサイズの計算に使用）
-  const currentATR = calculateATR(candles, TREND_PARAMETERS.ADX_PERIOD);
-  
-  // ADXを計算（トレンドの強さを確認）
-  const adxInput = {
-    high: candles.map(c => c.high),
-    low: candles.map(c => c.low),
-    close: candles.map(c => c.close),
-    period: TREND_PARAMETERS.ADX_PERIOD
-  };
-  
-  const adxValues = ADX.calculate(adxInput);
-  const currentADX = adxValues[adxValues.length - 1].adx;
-  
-  // 現在と前回の価格
-  const currentPrice = candles[candles.length - 1].close;
-  const previousPrice = candles[candles.length - 2].close;
-  
-  // シグナルを格納する配列
-  const signals: Order[] = [];
-  
-  // 現在のポジションを確認
-  const longPosition = currentPositions.find(p => p.symbol === symbol && p.side === OrderSide.BUY);
-  const shortPosition = currentPositions.find(p => p.symbol === symbol && p.side === OrderSide.SELL);
-  
-  // トレンドの強さが十分かチェック
-  const isStrongTrend = currentADX > TREND_PARAMETERS.ADX_THRESHOLD;
-  
-  // 上昇ブレイクアウトを検出（前回の価格がチャネル上限以下、現在の価格がチャネル上限より上）
-  const isBreakingUp = previousPrice <= donchian.upper && currentPrice > donchian.upper;
-  
-  // 下降ブレイクアウトを検出（前回の価格がチャネル下限以上、現在の価格がチャネル下限より下）
-  const isBreakingDown = previousPrice >= donchian.lower && currentPrice < donchian.lower;
-  
-  // 上昇ブレイクアウトで強いトレンドがあり、ロングポジションがない場合
-  if (isBreakingUp && isStrongTrend && !longPosition) {
-    // ATRベースのストップロス価格
-    const stopPrice = currentPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
-    
-    // リスクベースのポジションサイズを計算
-    const positionSize = calculateRiskBasedPositionSize(
-      accountBalance,
-      currentPrice,
-      stopPrice,
-      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
-      'DonchianBreakout'
-    );
-    
-    // 買いシグナル（エントリー注文）
-    signals.push({
-      symbol,
-      type: OrderType.MARKET,
-      side: OrderSide.BUY,
-      amount: positionSize,
-      timestamp: Date.now()
-    });
-    
-    // ストップロス注文
-    signals.push({
-      symbol,
-      type: OrderType.STOP,
-      side: OrderSide.SELL,
-      amount: positionSize,
-      stopPrice,
-      timestamp: Date.now()
-    });
-    
-    logger.info(`[DonchianStrategy] 上昇ブレイクアウト検出: ${symbol} @ ${currentPrice}, ストップ: ${stopPrice}`);
-  }
-  
-  // 下降ブレイクアウトで強いトレンドがあり、ショートポジションがない場合
-  if (isBreakingDown && isStrongTrend && !shortPosition) {
-    // ATRベースのストップロス価格
-    const stopPrice = currentPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
-    
-    // リスクベースのポジションサイズを計算
-    const positionSize = calculateRiskBasedPositionSize(
-      accountBalance,
-      currentPrice,
-      stopPrice,
-      RISK_PARAMETERS.MAX_RISK_PER_TRADE,
-      'DonchianBreakout'
-    );
-    
-    // 売りシグナル（エントリー注文）
-    signals.push({
-      symbol,
-      type: OrderType.MARKET,
-      side: OrderSide.SELL,
-      amount: positionSize,
-      timestamp: Date.now()
-    });
-    
-    // ストップロス注文
-    signals.push({
-      symbol,
-      type: OrderType.STOP,
-      side: OrderSide.BUY,
-      amount: positionSize,
-      stopPrice,
-      timestamp: Date.now()
-    });
-    
-    logger.info(`[DonchianStrategy] 下降ブレイクアウト検出: ${symbol} @ ${currentPrice}, ストップ: ${stopPrice}`);
-  }
-  
-  // 既存のポジションがある場合のトレーリングストップ更新
-  if (longPosition) {
-    // 利益が1R以上になった場合、トレーリングストップを更新
-    const profitR = (currentPrice - longPosition.entryPrice) / currentATR;
-    
-    if (profitR >= 1) {
-      const newStopPrice = currentPrice - (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
-      
-      signals.push({
-        symbol,
-        type: OrderType.STOP,
-        side: OrderSide.SELL,
-        amount: longPosition.amount,
-        stopPrice: newStopPrice,
-        timestamp: Date.now()
-      });
-      
-      logger.info(`[DonchianStrategy] ロングポジションのトレーリングストップ更新: ${symbol} @ ${newStopPrice}`);
-    }
-  }
-  
-  if (shortPosition) {
-    // 利益が1R以上になった場合、トレーリングストップを更新
-    const profitR = (shortPosition.entryPrice - currentPrice) / currentATR;
-    
-    if (profitR >= 1) {
-      const newStopPrice = currentPrice + (currentATR * TREND_PARAMETERS.ATR_TRAILING_STOP_MULTIPLIER);
-      
-      signals.push({
-        symbol,
-        type: OrderType.STOP,
-        side: OrderSide.BUY,
-        amount: shortPosition.amount,
-        stopPrice: newStopPrice,
-        timestamp: Date.now()
-      });
-      
-      logger.info(`[DonchianStrategy] ショートポジションのトレーリングストップ更新: ${symbol} @ ${newStopPrice}`);
-    }
-  }
-  
-  return {
-    strategy: StrategyType.TREND_FOLLOWING,
-    signals,
-    timestamp: Date.now()
-  };
 } 

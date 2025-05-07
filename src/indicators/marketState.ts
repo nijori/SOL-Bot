@@ -587,6 +587,10 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
                      (Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.8 && modestAdxTrendFlag);
     const weakTrendFlag = Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 0.7 || weakAdxTrendFlag;
     
+    // ドンチャンブレイクアウト戦略の条件:
+    // 非常に強いADX + 明確なトレンド + 加速したトレンド(急激なスロープ)
+    const veryStrongTrendFlag = adxValue > 30 && Math.abs(shortTermSlopeAngle) > MARKET_PARAMETERS.TREND_SLOPE_THRESHOLD * 2;
+    
     // 低ボラティリティ判定（ATR%が閾値未満 かつ EMA勾配が小さい）
     const lowVolFlag = atrPercentage < MARKET_PARAMETERS.ATR_PERCENTAGE_THRESHOLD && 
                       Math.abs(shortTermSlopeAngle) < 0.15;
@@ -602,7 +606,14 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
     } else if (bullFlag && strongTrendFlag && slopesAligned) {
       // 強い上昇トレンド（スロープ、ADX、価格位置を考慮）
       environment = MarketEnvironment.STRONG_UPTREND;
-      recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      
+      // 非常に強いトレンド時はドンチャンブレイクアウト戦略を推奨
+      if (veryStrongTrendFlag) {
+        recommendedStrategy = StrategyType.DONCHIAN_BREAKOUT;
+        console.log(`[MarketState] ドンチャンブレイクアウト戦略を推奨: ADX=${adxValue.toFixed(2)}, Slope=${shortTermSlopeAngle.toFixed(2)}`);
+      } else {
+        recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      }
       
       // 価格がMAから大きく離れている場合は注意
       if (isPriceFarAboveLongMa && adxValue < 30) {
@@ -612,7 +623,14 @@ export function analyzeMarketState(candles: Candle[], timeframeHours: number = 4
     } else if (bearFlag && strongTrendFlag && slopesAligned) {
       // 強い下降トレンド（スロープ、ADX、価格位置を考慮）
       environment = MarketEnvironment.STRONG_DOWNTREND;
-      recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      
+      // 非常に強いトレンド時はドンチャンブレイクアウト戦略を推奨
+      if (veryStrongTrendFlag) {
+        recommendedStrategy = StrategyType.DONCHIAN_BREAKOUT;
+        console.log(`[MarketState] ドンチャンブレイクアウト戦略を推奨: ADX=${adxValue.toFixed(2)}, Slope=${shortTermSlopeAngle.toFixed(2)}`);
+      } else {
+        recommendedStrategy = StrategyType.TREND_FOLLOWING;
+      }
       
       // 価格がMAから大きく離れている場合は注意
       if (isPriceFarBelowLongMa && adxValue < 30) {

@@ -18,24 +18,49 @@ import 'dotenv/config';
 const yaml = require('js-yaml');
 
 /**
+ * IParameterServiceインターフェース
+ * DI対応のためのインターフェース定義
+ */
+export interface IParameterService {
+  getAllParameters(): Record<string, any>;
+  get<T>(path: string, defaultValue?: T): T;
+  getMarketParameters(): any;
+  getTrendParameters(): any;
+  getRangeParameters(): any;
+  getRiskParameters(): any;
+  getMonitoringParameters(): any;
+  getBacktestParameters(): any;
+  getOperationMode(): string;
+}
+
+/**
  * パラメータサービスクラス
  * YAMLファイルからパラメータを読み込み、環境変数で上書き可能
  */
-export class ParameterService {
+export class ParameterService implements IParameterService {
   private static instance: ParameterService;
   private parameters: Record<string, any> = {};
   private yamlPath: string;
 
   /**
-   * コンストラクタ - シングルトンパターンのため、直接インスタンス化せずgetInstance()を使用
+   * コンストラクタ
+   * @param customYamlPath カスタムYAMLファイルパス（テスト用）
+   * @param initialParameters 初期パラメータ（テスト用）
    */
-  private constructor() {
-    this.yamlPath = path.join(process.cwd(), 'src', 'config', 'parameters.yaml');
-    this.loadParameters();
+  constructor(customYamlPath?: string, initialParameters?: Record<string, any>) {
+    this.yamlPath = customYamlPath || path.join(process.cwd(), 'src', 'config', 'parameters.yaml');
+    
+    if (initialParameters) {
+      this.parameters = initialParameters;
+      logger.info('初期パラメータを設定しました');
+    } else {
+      this.loadParameters();
+    }
   }
 
   /**
-   * シングルトンインスタンスを取得
+   * シングルトンインスタンスを取得（後方互換性のため）
+   * @deprecated 直接インスタンス化するか、DIコンテナを使用してください
    * @returns ParameterServiceのインスタンス
    */
   public static getInstance(): ParameterService {
@@ -43,6 +68,18 @@ export class ParameterService {
       ParameterService.instance = new ParameterService();
     }
     return ParameterService.instance;
+  }
+
+  /**
+   * シングルトンインスタンスをリセット（主にテスト用）
+   * @param parameters 新しいパラメータ
+   */
+  public static resetInstance(parameters?: Record<string, any>): void {
+    if (parameters) {
+      ParameterService.instance = new ParameterService(undefined, parameters);
+    } else {
+      ParameterService.instance = new ParameterService();
+    }
   }
 
   /**
@@ -233,66 +270,53 @@ export class ParameterService {
   public getOperationMode(): string {
     return this.get('operation.mode', 'simulation');
   }
+  
+  /**
+   * パラメータを更新する（部分的に）
+   * 主に最適化やテスト用
+   * @param params 更新するパラメータ
+   */
+  public updateParameters(params: Record<string, any>): void {
+    // ディープマージ関数
+    const deepMerge = (target: any, source: any) => {
+      for (const key in source) {
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          if (!target[key]) target[key] = {};
+          deepMerge(target[key], source[key]);
+        } else {
+          target[key] = source[key];
+        }
+      }
+      return target;
+    };
+    
+    // パラメータをマージ
+    this.parameters = deepMerge(this.parameters, params);
+    logger.debug('パラメータを更新しました');
+  }
 }
 
-// 外部からのアクセス用のエクスポート
+// 後方互換性のためのシングルトンインスタンス
 export const parameterService = ParameterService.getInstance();
+
+/**
+ * テスト用のモックパラメータサービスを作成する関数
+ * @param mockParams モックパラメータ
+ * @returns モックパラメータサービス
+ */
+export function createMockParameterService(mockParams: Record<string, any> = {}): IParameterService {
+  return new ParameterService(undefined, mockParams);
+}
 
 /**
  * 最適化のためにパラメータを一時的に適用する
  * @param params 適用するパラメータのオブジェクト
+ * @param service 対象のパラメータサービス（省略時はシングルトンインスタンス）
  */
-export function applyParameters(params: Record<string, any>): void {
-  const service = ParameterService.getInstance();
-  const allParams = service.getAllParameters();
-  
-  // パラメータを適用
-  Object.entries(params).forEach(([key, value]) => {
-    // ATR_PERCENTAGE_THRESHOLDなどの全大文字のパラメータはmarket.atr_percentageなどに変換
-    if (key === 'ATR_PERCENTAGE_THRESHOLD') {
-      if (!allParams.market) allParams.market = {};
-      allParams.market.atr_percentage = value;
-    }
-    else if (key === 'TRAILING_STOP_FACTOR') {
-      if (!allParams.trend) allParams.trend = {};
-      allParams.trend.trailing_stop_factor = value;
-    }
-    else if (key === 'GRID_ATR_MULTIPLIER') {
-      if (!allParams.range) allParams.range = {};
-      allParams.range.grid_atr_multiplier = value;
-    }
-    else if (key === 'EMA_SLOPE_THRESHOLD') {
-      if (!allParams.market) allParams.market = {};
-      allParams.market.ema_slope_threshold = value;
-    }
-    else if (key === 'ADDON_POSITION_R_THRESHOLD') {
-      if (!allParams.trend) allParams.trend = {};
-      allParams.trend.addon_position_r_threshold = value;
-    }
-    else if (key === 'ADDON_POSITION_SIZE_FACTOR') {
-      if (!allParams.trend) allParams.trend = {};
-      allParams.trend.addon_position_size_factor = value;
-    }
-    else if (key === 'BLACK_SWAN_THRESHOLD') {
-      if (!allParams.risk) allParams.risk = {};
-      allParams.risk.black_swan_threshold = value;
-    }
-    else {
-      // その他のパラメータはそのまま適用
-      // 階層構造のパラメータ（例: market.xxx）に対応
-      const parts = key.toLowerCase().split('.');
-      let current = allParams;
-      
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
-          current[parts[i]] = {};
-        }
-        current = current[parts[i]];
-      }
-      
-      current[parts[parts.length - 1]] = value;
-    }
-  });
-  
-  logger.info(`${Object.keys(params).length}個のパラメータを一時的に適用しました`);
+export function applyParameters(params: Record<string, any>, service: IParameterService = parameterService): void {
+  if (service instanceof ParameterService) {
+    service.updateParameters(params);
+  } else {
+    logger.warn('提供されたサービスはParameterServiceのインスタンスではなく、updateParametersメソッドがありません');
+  }
 } 

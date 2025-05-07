@@ -14,6 +14,10 @@ const DEFAULT_MEMORY_LIMIT = 4096; // MB単位
 const DEFAULT_BATCH_SIZE = 5000;
 const DEFAULT_GC_INTERVAL = 10000;
 
+// quietモードの解析
+const isQuiet = args.includes('--quiet');
+// quietモードの場合は引数からquiet引数を削除せず、子プロセスにも伝播させる
+
 // メモリ制限の解析
 let memoryLimit = DEFAULT_MEMORY_LIMIT;
 const memoryArgIndex = args.findIndex(arg => arg === '--memory' || arg === '-m');
@@ -89,15 +93,17 @@ const nodeArgs = [
   ...args
 ];
 
-// コマンドの表示
-console.log(`\n実行コマンド:`);
-console.log(`node ${nodeArgs.join(' ')}`);
-console.log(`\n設定情報:`);
-console.log(`- メモリ制限: ${memoryLimit}MB`);
-console.log(`- バッチサイズ: ${batchSize}キャンドル`);
-console.log(`- GC間隔: ${gcInterval}キャンドルごと`);
-console.log(`- メモリモニタリング: ${memoryMonitoring ? '有効' : '無効'}`);
-console.log(`\n${isDryRun ? '[DRY RUN] 実行はスキップします' : '最適化バックテストを開始します...'}\n`);
+// quietモードでない場合のみログを出力
+if (!isQuiet) {
+  console.log(`\n実行コマンド:`);
+  console.log(`node ${nodeArgs.join(' ')}`);
+  console.log(`\n設定情報:`);
+  console.log(`- メモリ制限: ${memoryLimit}MB`);
+  console.log(`- バッチサイズ: ${batchSize}キャンドル`);
+  console.log(`- GC間隔: ${gcInterval}キャンドルごと`);
+  console.log(`- メモリモニタリング: ${memoryMonitoring ? '有効' : '無効'}`);
+  console.log(`\n${isDryRun ? '[DRY RUN] 実行はスキップします' : '最適化バックテストを開始します...'}\n`);
+}
 
 // DRY_RUNモードでなければ実際にコマンドを実行
 if (!isDryRun) {
@@ -109,7 +115,9 @@ if (!isDryRun) {
   });
 
   child.on('exit', (code) => {
-    console.log(`\nプロセスが終了しました（終了コード: ${code}）`);
+    if (!isQuiet) {
+      console.log(`\nプロセスが終了しました（終了コード: ${code}）`);
+    }
     process.exit(code);
   });
 } 

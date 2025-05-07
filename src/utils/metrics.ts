@@ -72,6 +72,32 @@ const sharpeRatio = new client.Gauge({
   registers: [register]
 });
 
+// 注文レイテンシヒストグラム（新規追加）
+const orderLatency = new client.Histogram({
+  name: 'solbot_order_latency_seconds',
+  help: '注文の送信から約定までの経過時間',
+  labelNames: ['exchange', 'order_type', 'symbol'],
+  buckets: [0.1, 0.5, 1, 2, 5, 10, 30, 60], // 0.1秒から60秒までのバケット
+  registers: [register]
+});
+
+// 取引所エラーカウンター（新規追加）
+const exchangeErrorCount = new client.Counter({
+  name: 'solbot_exchange_error_total',
+  help: '取引所APIから返されたエラーの総数',
+  labelNames: ['exchange', 'code', 'endpoint'],
+  registers: [register]
+});
+
+// エンジンループ処理時間サマリー（新規追加）
+const engineLoopDuration = new client.Summary({
+  name: 'solbot_engine_loop_duration_seconds',
+  help: 'トレーディングエンジンの1ループあたりの処理時間',
+  labelNames: ['strategy'],
+  percentiles: [0.5, 0.9, 0.95, 0.99], // 50%, 90%, 95%, 99%パーセンタイル
+  registers: [register]
+});
+
 /**
  * メトリクス更新関数
  */
@@ -107,6 +133,39 @@ export const updateMetrics = {
   // エラー記録
   recordError: (type: string) => {
     errorCount.inc({ type });
+  },
+  
+  // 注文レイテンシ記録（新規追加）
+  recordOrderLatency: (
+    latencySeconds: number, 
+    exchange: string, 
+    orderType: string, 
+    symbol: string
+  ) => {
+    orderLatency.observe({ exchange, order_type: orderType, symbol }, latencySeconds);
+  },
+  
+  // 取引所エラー記録（新規追加）
+  recordExchangeError: (
+    exchange: string, 
+    errorCode: string, 
+    endpoint: string
+  ) => {
+    exchangeErrorCount.inc({ exchange, code: errorCode, endpoint });
+  },
+  
+  // エンジンループ処理時間記録（新規追加）
+  recordEngineLoopDuration: (
+    durationSeconds: number, 
+    strategy: string
+  ) => {
+    engineLoopDuration.observe({ strategy }, durationSeconds);
+  },
+  
+  // エンジンループ処理時間計測用タイマー（新規追加）
+  startEngineLoopTimer: (strategy: string): () => void => {
+    const end = engineLoopDuration.startTimer({ strategy });
+    return end; // 終了時に呼び出す関数を返す
   }
 };
 
@@ -139,7 +198,22 @@ export const initMetricsServer = (port: number = 9100): void => {
   });
 };
 
+/**
+ * テスト用のレジストリリセット
+ * 主にユニットテスト時に使用
+ */
+export const resetRegistry = (): void => {
+  // 新しいレジストリを作成
+  const newRegistry = new client.Registry();
+  
+  // デフォルトメトリクスを追加
+  client.collectDefaultMetrics({ register: newRegistry });
+  
+  // 既存のメトリクス定義をコピー（実装省略、必要に応じて実装）
+};
+
 export default {
   initMetricsServer,
-  updateMetrics
+  updateMetrics,
+  resetRegistry
 }; 

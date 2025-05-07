@@ -2,7 +2,15 @@
  * ParameterService型変換テスト
  */
 
-import { ParameterService } from '../../config/parameterService';
+import { 
+  ParameterService, 
+  parameterService, 
+  IParameterService, 
+  createMockParameterService,
+  applyParameters
+} from '../../config/parameterService';
+import fs from 'fs';
+import path from 'path';
 
 // privateメソッドをテストするためのハック
 // @ts-ignore - privateメソッドにアクセス
@@ -11,8 +19,56 @@ const originalProcessEnvVariables = ParameterService.getInstance()['processEnvVa
 // 環境変数をモック
 const originalEnv = process.env;
 
+// モック設定
+jest.mock('fs');
+jest.mock('../../utils/logger', () => ({
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+}));
+
 describe('ParameterService', () => {
+  // テスト用のモックYAMLデータ
+  const mockYamlContent = `
+market:
+  atr_period: 14
+  donchian_period: 20
+  ema_period: 200
+  atr_percentage: 5.0
+  ema_slope_threshold: 0.1
+  adjust_slope_periods: 5
+
+trend:
+  trailing_stop_factor: 2.0
+  addon_position_r_threshold: 1.0
+  addon_position_size_factor: 0.5
+
+range:
+  grid_atr_multiplier: 0.5
+  atr_volatility_threshold: 3.0
+  grid_levels: 5
+
+risk:
+  max_risk_per_trade: 0.02
+  max_position_percentage: 0.1
+  black_swan_threshold: 0.15
+  min_stop_distance_percentage: 1.0
+  
+operation:
+  mode: simulation
+  `;
+
   beforeEach(() => {
+    // fsモックをリセット
+    jest.clearAllMocks();
+    
+    // readFileSyncモックを設定
+    (fs.readFileSync as jest.Mock).mockReturnValue(mockYamlContent);
+    
+    // シングルトンインスタンスをリセット
+    ParameterService.resetInstance();
+
     // 環境変数を初期化
     process.env = { ...originalEnv };
   });
@@ -200,6 +256,156 @@ describe('ParameterService', () => {
       // 古い形式のデフォルト値も機能することを確認
       expect(result.oldFormat).toBe('legacy default');
       expect(typeof result.oldFormat).toBe('string');
+    });
+  });
+
+  describe('シングルトンパターンでの動作', () => {
+    it('getInstance()は同じインスタンスを返す', () => {
+      const instance1 = ParameterService.getInstance();
+      const instance2 = ParameterService.getInstance();
+      expect(instance1).toBe(instance2);
+    });
+
+    it('parameterServiceエクスポートはシングルトンインスタンスを参照している', () => {
+      expect(parameterService).toBe(ParameterService.getInstance());
+    });
+
+    it('シングルトンインスタンスから値を取得できる', () => {
+      expect(parameterService.get('market.atr_period')).toBe(14);
+    });
+  });
+
+  describe('DI対応後のテスト', () => {
+    it('直接インスタンス化すると新しいインスタンスが作成される', () => {
+      const directInstance = new ParameterService();
+      expect(directInstance).not.toBe(ParameterService.getInstance());
+    });
+
+    it('カスタムYAMLパスで初期化できる', () => {
+      const customYamlPath = path.join(process.cwd(), 'custom', 'params.yaml');
+      const customInstance = new ParameterService(customYamlPath);
+      
+      // readFileSyncが正しいパスで呼ばれたことを確認
+      expect(fs.readFileSync).toHaveBeenCalledWith(customYamlPath, 'utf8');
+    });
+
+    it('初期パラメータを使用して初期化できる', () => {
+      const initialParams = {
+        custom: {
+          param1: 'value1',
+          param2: 42
+        }
+      };
+      
+      const instance = new ParameterService(undefined, initialParams);
+      
+      // 初期パラメータが設定されていることを確認
+      expect(instance.get('custom.param1')).toBe('value1');
+      expect(instance.get('custom.param2')).toBe(42);
+      
+      // YAMLファイルが読み込まれていないことを確認
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+    });
+
+    it('createMockParameterService関数でモックインスタンスを作成できる', () => {
+      const mockParams = {
+        test: {
+          value: 'mocked'
+        }
+      };
+      
+      const mockService = createMockParameterService(mockParams);
+      
+      // インターフェースを実装していることを確認
+      expect(mockService.get('test.value')).toBe('mocked');
+    });
+    
+    it('updateParameters関数で設定を更新できる', () => {
+      const instance = new ParameterService(undefined, {
+        market: {
+          atr_period: 14
+        }
+      });
+      
+      instance.updateParameters({
+        market: {
+          atr_period: 21,
+          new_param: 'test'
+        }
+      });
+      
+      expect(instance.get('market.atr_period')).toBe(21);
+      expect(instance.get('market.new_param')).toBe('test');
+    });
+    
+    it('applyParameters関数でインスタンスを指定して更新できる', () => {
+      const instance = new ParameterService(undefined, {
+        market: {
+          atr_period: 14
+        }
+      });
+      
+      applyParameters({ 
+        'market.atr_period': 28,
+        'market.new_value': 'applied'
+      }, instance);
+      
+      expect(instance.get('market.atr_period')).toBe(28);
+      expect(instance.get('market.new_value')).toBe('applied');
+    });
+  });
+
+  describe('並列バックテスト時のレース条件対策', () => {
+    it('複数のバックテストプロセスでそれぞれの設定が分離される', () => {
+      // 2つの異なるバックテストプロセスをシミュレート
+      const bt1Service = new ParameterService(undefined, {
+        backtest: { id: 'backtest1' },
+        market: { atr_period: 10 }
+      });
+      
+      const bt2Service = new ParameterService(undefined, {
+        backtest: { id: 'backtest2' },
+        market: { atr_period: 20 }
+      });
+      
+      // bt1の設定を変更
+      bt1Service.updateParameters({
+        market: { atr_period: 15 }
+      });
+      
+      // 設定が分離されていることを確認
+      expect(bt1Service.get('market.atr_period')).toBe(15);
+      expect(bt2Service.get('market.atr_period')).toBe(20);
+      expect(parameterService.get('market.atr_period')).toBe(14); // グローバルインスタンスは変更されない
+    });
+  });
+
+  describe('テスト用モック注入', () => {
+    it('戦略へのDI注入が機能する', () => {
+      // モックのパラメータサービス
+      const mockService = createMockParameterService({
+        trend: {
+          donchian_period: 25,
+          trailing_stop_factor: 3.0
+        }
+      });
+      
+      // 戦略クラスをシミュレート
+      class MockStrategy {
+        constructor(private paramService: IParameterService) {}
+        
+        getTrailingStopFactor(): number {
+          return this.paramService.get('trend.trailing_stop_factor');
+        }
+      }
+      
+      // 実際のインスタンスとモックインスタンスをテスト
+      const realStrategy = new MockStrategy(parameterService);
+      const mockedStrategy = new MockStrategy(mockService);
+      
+      // それぞれ異なる値を返すことを確認
+      expect(realStrategy.getTrailingStopFactor()).toBe(2.0); // シングルトンの元の値
+      expect(mockedStrategy.getTrailingStopFactor()).toBe(3.0); // モックの値
     });
   });
 }); 

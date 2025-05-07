@@ -480,6 +480,28 @@ export class TradingEngine {
           }
           break;
           
+        case StrategyType.DONCHIAN_BREAKOUT:
+          // ドンチャンブレイクアウト戦略を実行
+          try {
+            const { executeDonchianBreakoutStrategy } = require('../strategies/DonchianBreakoutStrategy');
+            result = executeDonchianBreakoutStrategy(
+              this.latestCandles,
+              this.symbol,
+              positions,
+              this.account.balance
+            );
+            logger.info(`[TradingEngine] ドンチャンブレイクアウト戦略を実行: ${result.signals.length}件のシグナル生成`);
+          } catch (error) {
+            logger.error(`[TradingEngine] ドンチャンブレイクアウト戦略実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+            // エラー時はデフォルトの空シグナルを返す
+            result = {
+              strategy: StrategyType.DONCHIAN_BREAKOUT,
+              signals: [],
+              timestamp: Date.now()
+            };
+          }
+          break;
+          
         case StrategyType.EMERGENCY:
           // 緊急戦略を実行
           result = this.executeEmergencyStrategy();

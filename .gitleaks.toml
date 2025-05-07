@@ -1,0 +1,187 @@
+title = "SOL_bot用Gitleaks設定"
+
+# デフォルトのgitleaks設定を拡張する
+[extend]
+useDefault = true
+# Binance APIキーは比較的短いため、誤検出を避けるために無効化
+disabledRules = ["generic-api-key"]
+
+# Binance API Key & Secret
+[[rules]]
+id = "binance-api-key"
+description = "Binance API Key"
+regex = '''[a-zA-Z0-9]{64}'''
+secretGroup = 0
+entropy = 4.5
+keywords = [
+    "binance",
+    "BINANCE",
+    "api_key",
+    "apiKey",
+    "api-key",
+]
+
+[[rules]]
+id = "binance-api-secret"
+description = "Binance API Secret"
+regex = '''[a-zA-Z0-9]{64}'''
+secretGroup = 0
+entropy = 4.5
+keywords = [
+    "binance",
+    "BINANCE",
+    "api_secret",
+    "apiSecret",
+    "secret_key",
+    "secretKey",
+]
+
+# Coinbase API Key & Secret
+[[rules]]
+id = "coinbase-api-key"
+description = "Coinbase API Key"
+regex = '''[a-f0-9]{32}'''
+secretGroup = 0
+entropy = 4.0
+keywords = [
+    "coinbase",
+    "COINBASE",
+    "api_key",
+    "apiKey",
+]
+
+[[rules]]
+id = "coinbase-api-secret"
+description = "Coinbase API Secret"
+regex = '''[a-zA-Z0-9+/]{64}'''
+secretGroup = 0
+entropy = 4.3
+keywords = [
+    "coinbase",
+    "COINBASE",
+    "api_secret",
+    "apiSecret",
+    "secret",
+]
+
+# Kraken API Key & Secret
+[[rules]]
+id = "kraken-api-key"
+description = "Kraken API Key"
+regex = '''[a-zA-Z0-9/]{56}'''
+secretGroup = 0
+entropy = 4.0
+keywords = [
+    "kraken",
+    "KRAKEN",
+    "api_key",
+    "apiKey",
+]
+
+[[rules]]
+id = "kraken-api-secret"
+description = "Kraken API Secret"
+regex = '''[a-zA-Z0-9+/=]{88}'''
+secretGroup = 0
+entropy = 4.2
+keywords = [
+    "kraken",
+    "KRAKEN",
+    "api_secret",
+    "apiSecret",
+    "private_key",
+    "privateKey",
+]
+
+# 共通の暗号通貨シークレット
+[[rules]]
+id = "crypto-wallet-seed"
+description = "暗号通貨ウォレットのシードフレーズ"
+regex = '''(\b(?:[a-z]+\s){11,23}[a-z]+\b)'''
+secretGroup = 0
+entropy = 3.0
+keywords = [
+    "seed",
+    "mnemonic",
+    "wallet",
+    "recovery",
+    "phrase",
+    "シード",
+    "シードフレーズ",
+    "ウォレット",
+]
+
+[[rules]]
+id = "crypto-private-key"
+description = "暗号通貨の秘密鍵"
+regex = '''[a-fA-F0-9]{64}|[5KL][1-9a-km-zA-HJ-NP-Z]{50,51}'''
+secretGroup = 0
+entropy = 4.0
+keywords = [
+    "private",
+    "key",
+    "secret",
+    "wallet",
+    "秘密鍵",
+    "ウォレット",
+]
+
+# AWS認証情報 (SOL-botがAWSを使用する場合)
+[[rules]]
+id = "aws-access-key-id"
+description = "AWS Access Key ID"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+secretGroup = 0
+keywords = [
+    "aws",
+    "amazon",
+    "access_key",
+    "accessKey",
+]
+
+[[rules]]
+id = "aws-secret-access-key"
+description = "AWS Secret Access Key"
+regex = '''(?i)aws(.{0,20})?(?-i)['\"][0-9a-zA-Z\/+]{40}['\"]'''
+secretGroup = 0
+keywords = [
+    "aws",
+    "amazon",
+    "secret",
+]
+
+# ソラナ固有の設定
+[[rules]]
+id = "solana-private-key"
+description = "Solana Private Key"
+regex = '''[1-9A-HJ-NP-Za-km-z]{43,44}'''
+secretGroup = 0
+entropy = 4.2
+keywords = [
+    "solana",
+    "private",
+    "key",
+    "wallet",
+    "secret",
+]
+
+# テスト用ファイルを除外する
+[[allowlists]]
+description = "テストデータやフィクスチャーを除外"
+paths = [
+    '''test/fixtures/.*''',
+    '''__mocks__/.*''',
+    '''.*\.test\.ts''',
+    '''.*\.spec\.ts''',
+]
+
+# 例や文書の標準的なダミーAPI keyを除外する
+[[allowlists]]
+description = "ドキュメントのサンプルキーを除外"
+regexes = [
+    '''samplekey123''',
+    '''example_key''',
+    '''YOUR_API_KEY''',
+    '''your-api-key-here''',
+    '''your_api_key_here''',
+] 

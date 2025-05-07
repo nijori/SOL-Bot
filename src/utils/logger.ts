@@ -1,4 +1,4 @@
-import winston from 'winston';
+import * as winston from 'winston';
 // 循環参照を避けるため、parametersからの直接インポートを削除
 // import { MONITORING_PARAMETERS } from '../config/parameters';
 

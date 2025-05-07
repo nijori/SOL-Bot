@@ -15,9 +15,9 @@ alwaysApply: false
 ### 今週のスプリント計画と優先順位:
 現在W6スプリントが進行中です（テスト駆動開発重点スプリント）。更新された優先順位は以下の通りです：
 
-1. ⏳ UTIL-001: ATR/Fallback重複排除ユーティリティ (25% 進行中) - 共通ユーティリティの実装前にテストケースを先行作成中
-2. ⏳ ALG-037: trendFollowStrategy SAR シグナル修正 (10% 調査中) - 論理バグの原因特定中
-3. ⏳ TST-004: backlog/sprint todo-lint Jestルール (5% 設計中) - タスク一貫性検証ロジックを設計中
+1. ✅ UTIL-001: ATR/Fallback重複排除ユーティリティ (100% 完了) - 共通ユーティリティを実装し、各戦略に適用済み
+2. ✅ ALG-037: trendFollowStrategy SAR シグナル修正 (100% 完了) - 論理バグを修正し、テスト追加済み
+3. ✅ TST-004: backlog/sprint todo-lint Jestルール (100% 完了) - タスク一貫性検証ロジックを設計中
 4. ⏳ PERF-004: console.log の quiet モード対応強化 (0% 未着手) - スプリントに追加
 5. ⏳ SEC-002: Secrets Scanner pre-commit hook (0% 未着手) - スプリントに追加
 6. ⏳ REF-019: parameterService DI化 (0% 未着手) - テスト優先度に基づき後回し
@@ -88,88 +88,93 @@ alwaysApply: false
 これらはTST-004タスクを通じて解決予定です。
 
 ### 進行中のタスク状況:
-* ⏳ UTIL-001: 各戦略に散らばっているATRフォールバックロジックの共通化を設計中。テストケース作成からスタートし、TDDアプローチで品質を確保。
-* ⏳ ALG-037: SAR信号検出ロジックのバグを調査中。問題の根本原因を特定し、テストケースで検証してから修正予定。
-* ⏳ TST-004: タスク一貫性検証ロジックを設計中。タスクIDの重複、進捗とHealthの不整合、期限切れチェックを実装予定。
-* ⏳ PERF-004: すべてのconsole.logをlogger.*に置き換え、quietモード対応を強化
-* ⏳ SEC-002: APIキーなどの機密情報が誤ってコミットされないようgitleaksを設定
+* ✅ UTIL-001: 各戦略に散らばっているATRフォールバックロジックの共通化完了。utils/atrUtils.tsに実装し、既存戦略に適用完了。
+* ✅ ALG-037: SAR信号検出ロジックのバグを修正完了。トレンド転換を前回と現在のローソク足のisUptrendフラグ変化に基づいて判定するよう改善し、テスト追加済み。
+* ✅ TST-004: Todoファイル検証ツール実装完了。todoValidator.tsにタスクID重複、進捗とHealthの不整合、期限切れチェック、依存参照の整合性等の実装済み。todo-lintコマンドラインツールも実装完了。
+* ✅ PERF-004: optimizedBacktest.jsとsmokeTest.tsを改修し、--quietフラグでログ出力を制御するよう実装。console.logをlogger.*に置換完了。
+* ✅ SEC-002: gitleaksによるシークレットスキャン機能を実装。.pre-commit-config.yaml、.gitleaks.toml設定ファイル作成、インストールスクリプト実装完了。
+* ✅ TST-007: trendFollowStrategy用のユニットテスト実装完了。SAR信号検出ロジック、トレイリングストップ調整、stopPrice==undefinedケースをカバー。
+* ✅ REF-019: parameterServiceのDI化実装完了。IParameterServiceインターフェースを導入し、依存性注入パターンに対応。
+* ✅ TST-006: parameterService DI版のユニットテスト実装完了。モック注入、並列バックテストでのレース条件対策テスト実装。
+* ✅ METR-001: metrics.ts拡張実装完了。order_latency_seconds、exchange_error_total、engine_loop_duration_secondsを追加。
+* ✅ TST-009: metrics.ts拡張のユニットテスト完了。メトリクス更新関数のテストを実装。
 
 ## 個別タスク詳細:
 
-- [ ] UTIL-001: ATR/Fallback重複排除ユーティリティ
+- [x] UTIL-001: ATR/Fallback重複排除ユーティリティ
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
-      - ✎ Notes      : DonchianBreakoutStrategy/trendFollowStrategy/rangeStrategyでの重複したATRフォールバックロジックをutils/atrUtils.tsに共通化。TDD方式でテスト先行実装中。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : DonchianBreakoutStrategy/trendFollowStrategy/rangeStrategyでの重複したATRフォールバックロジックをutils/atrUtils.tsに共通化。TDD方式でテスト完了。各戦略で利用するよう実装済み。
 
-- [ ] ALG-037: trendFollowStrategy SAR シグナル修正
+- [x] ALG-037: trendFollowStrategy SAR シグナル修正
       - 📅 Due        : 2026-02-09
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 10%
-      - ✎ Notes      : isSARBuySignal/isSARSellSignalの論理バグを修正。parabolicSAR.isUptrendと前バーの状態を比較するよう修正
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : isSARBuySignal/isSARSellSignalの論理バグを修正。前回と現在のローソク足のisUptrendフラグ変化に基づいてシグナルを検出するよう変更。テスト追加済み。
 
-- [ ] TST-004: backlog/sprint todo-lint Jestルール
+- [x] TST-004: backlog/sprint todo-lint Jestルール
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 5%
-      - ✎ Notes      : .todo/**/*.mdcファイルをパースして以下のチェックを行うテスト実装: 1)タスクID重複検出、2)進捗/Health一貫性検証、3)期限切れ警告、4)Depends-on参照整合性。Jest+js-yaml使用。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : todoValidator.tsとtodo-lint.tsを実装し、タスクID重複、進捗/Health一貫性、期限切れ、依存参照整合性などを検証。--quiet, --fix, --format=jsonオプションにも対応。テスト成功。
 
-- [ ] TST-005: ATRフォールバックのユニットテスト
+- [x] TST-005: ATRフォールバックのユニットテスト
       - 📅 Due        : 2026-02-08
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : UTIL-001
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 15%
-      - ✎ Notes      : utils/atrUtils.tsの共通フォールバックロジックに対するテストケースを網羅（ATR=0ケース、極小値ケース、通常値ケース）
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : utils/atrUtils.tsの共通フォールバックロジックに対するテストケースを実装完了。ATR=0ケース、極小値ケース、通常値ケースをカバー。
 
-- [ ] TST-007: trendFollowStrategy ユニットテスト
+- [x] TST-007: trendFollowStrategy ユニットテスト
       - 📅 Due        : 2026-02-09
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : ALG-037
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : SAR信号検出ロジックおよびriskUnit計算のテストを追加し、stopPrice==undefinedのケースも対応
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : SAR信号検出ロジック、エントリーおよび決済シグナル生成、トレイリングストップ調整、stopPrice==undefinedケースの対応など、網羅的なテストケースを追加完了
 
-- [ ] REF-019: parameterService DI化
+- [x] REF-019: parameterService DI化
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 並列バックテスト(Optuna x multi-process)でのレース問題を解決するためにDI化を実装。テスト用モックの挿入も容易になる設計に。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : IParameterServiceインターフェースを導入し、依存性注入パターンに対応。外部からのインスタンス注入、テスト用モック作成、シングルトンパターンからの移行などを実装。後方互換性も維持。
 
-- [ ] TST-006: parameterService DI版のユニットテスト
+- [x] TST-006: parameterService DI版のユニットテスト
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : REF-019
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : DIパターンを活用したモック注入でのテスト。シングルトンパターンからの移行検証も含む。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : DIパターンを活用したモック注入でのテスト実装完了。シングルトンパターンからの移行検証、複数バックテストでのレース条件対策テスト、戦略への注入テストなど包括的にカバー。
 
-- [ ] METR-001: metrics.ts 拡張実装
+- [x] METR-001: metrics.ts 拡張実装
       - 📅 Due        : 2026-02-11
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : order_latency_seconds(Histogram)、exchange_error_total{code}(Counter)、engine_loop_duration_seconds(Summary)の追加
 
-- [ ] TST-009: metrics.ts拡張のユニットテスト
+- [x] TST-009: metrics.ts拡張のユニットテスト
       - 📅 Due        : 2026-02-11
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : METR-001
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : Prometheusメトリクス更新関数のテスト。モックメトリクスレジストリを使った単体テスト。
 
 - [ ] INF-022: Grafana panel 追加 PR
@@ -198,21 +203,21 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : 様々な通貨ペアでの最小ロットサイズ、精度対応のテスト。BTC/USDTや小額通貨のエッジケースも検証。
 
-- [ ] PERF-004: console.log の quiet モード対応強化
+- [x] PERF-004: console.log の quiet モード対応強化
       - 📅 Due        : 2026-02-13
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換。テストも追加。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : optimizedBacktest.jsとsmokeTest.tsを改修し、--quietフラグでログ出力を制御するよう実装。console.logをlogger.*に置換も完了。quietモード時のエラー出力改善も追加。
 
-- [ ] SEC-002: Secrets Scanner pre-commit hook
+- [x] SEC-002: Secrets Scanner pre-commit hook
       - 📅 Due        : 2026-02-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : gitleaks で key / token push をブロック。APIキーや認証情報の漏洩を防止。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : gitleaksによるシークレットスキャン機能を実装。.pre-commit-config.yaml、.gitleaks.toml設定ファイル作成、docs/gitleaks-setup.mdドキュメント作成、scripts/install-pre-commit.shスクリプト実装完了。
 
 - [ ] TST-010: orderUtils関数のユニットテスト
       - 📅 Due        : 2026-02-12

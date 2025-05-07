@@ -156,7 +156,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       if (!this.config.quiet) {
         logger.debug(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
       }
-
+      
       // バッチ処理のための設定
       const batchSize = this.config.batchSize || 5000; // デフォルト値を設定
       const totalBatches = Math.ceil(candles.length / batchSize);
@@ -173,20 +173,20 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
         for (let i = 0; i < currentBatch.length; i++) {
           const candle = currentBatch[i];
           
-          // キャンドルでエンジンを更新
-          await engine.update(candle);
-          
-          // エクイティ履歴を記録 - normalizeTimestamp関数を使用して型安全性を確保
+        // キャンドルでエンジンを更新
+        await engine.update(candle);
+        
+        // エクイティ履歴を記録 - normalizeTimestamp関数を使用して型安全性を確保
           // 過剰なメモリ使用を避けるため、10本ごとまたはバッチの最後のキャンドルでのみ記録
           if (i % 10 === 0 || i === currentBatch.length - 1) {
-            equityHistory.push({
-              timestamp: new Date(normalizeTimestamp(candle.timestamp)).toISOString(),
-              equity: engine.getEquity()
-            });
+        equityHistory.push({
+          timestamp: new Date(normalizeTimestamp(candle.timestamp)).toISOString(),
+          equity: engine.getEquity()
+        });
           }
-          
-          // 完了した取引を取得
-          const completedTrades = engine.getCompletedTrades();
+        
+        // 完了した取引を取得
+        const completedTrades = engine.getCompletedTrades();
           
           // 新しい取引のみを追加（重複を防止）
           if (completedTrades.length > lastTradeIndex) {
@@ -303,7 +303,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
         
         if (!this.config.quiet) {
           this.memoryMonitor.logSummary();
-        }
+      }
       }
       
       // 処理時間計測終了
@@ -918,11 +918,11 @@ async function main() {
   }
   
   const runner = new BacktestRunner(config);
-  const result = await runner.run();
-  
+    const result = await runner.run();
+    
   // 結果のJSON出力
   const outputPath = args['output'] as string || `./backtest-result-${new Date().toISOString().replace(/:/g, '-')}.json`;
-  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+      fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
   
   if (!quiet) {
     logger.info(`[BacktestRunner] 結果を保存: ${outputPath}`);

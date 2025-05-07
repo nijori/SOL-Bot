@@ -299,7 +299,7 @@ alwaysApply: false
       - ✎ Notes      : エンドユーザー向けの詳細な操作マニュアル作成
 
 - [ ] INF-021: CI 依存脆弱性スキャン & Dependabot
-      - 📅 Due        : 2026-02-02
+      - 📅 Due        : 2025-03-15
       - 👤 Owner      : @assistant
       - 🏷️  Label      : security
       - 🩺 Health     : ⏳
@@ -508,16 +508,8 @@ alwaysApply: false
 
 ## 優先度低
 
-- [ ] INF-021: CI/CDパイプラインの拡張
-      - 📅 Due        : 2024-03-15
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : GitHub Actionsによるテスト自動化と本番環境へのデプロイ
-
 - [ ] DOC-007: JSDOCコメント完全対応
-      - 📅 Due        : 2024-03-20
+      - 📅 Due        : 2025-03-20
       - 👤 Owner      : unassigned
       - 🏷️  Label      : doc
       - 🩺 Health     : ⏳
@@ -548,4 +540,24 @@ alwaysApply: false
       - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
+      - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。
+
+## 新規タスク候補
+
+- [ ] OMS-015: マルチタイムフレーム最適化
+      - 📅 Due        : 2026-02-28
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 1h/4h/1dの複数時間足を併用した戦略の実装と最適化。スプリントに移動済み。
+
+- [ ] BT-009: マルチアセット並列バックテスト
+      - 📅 Due        : 2026-02-25
+      - 👤 Owner      : unassigned
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+
+
       - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。

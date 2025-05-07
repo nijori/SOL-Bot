@@ -51,6 +51,7 @@ export enum StrategyType {
   RANGE_TRADING = 'range_trading',
   MEAN_REVERT = 'mean_revert',
   EMERGENCY = 'emergency',
+  DONCHIAN_BREAKOUT = 'donchian_breakout',
 }
 
 // 注文のタイプ
