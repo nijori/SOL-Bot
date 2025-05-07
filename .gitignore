@@ -56,4 +56,8 @@ data/metrics/
 
 # OS specific
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# ToDo backups
+.todo/*.bak
+.todo/backups/ 
