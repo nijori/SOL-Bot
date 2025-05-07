@@ -1,16 +1,47 @@
-# SOL-Bot: SOL/USDT 取引アルゴリズム
+# SOL-Bot: クリプト自動取引アルゴリズム
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue.svg)](https://www.typescriptlang.org/)
 [![Express](https://img.shields.io/badge/Express-4.18.2-green.svg)](https://expressjs.com/)
 [![CCXT](https://img.shields.io/badge/CCXT-4.0.0-orange.svg)](https://github.com/ccxt/ccxt)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-SOL/USDTペアのトレンドとレンジを自動検出し、適切な売買戦略を適用するアルゴリズムトレーディングシステムです。
+複数の暗号資産ペア（SOL/USDT, BTC/USDT, ETH/USDTなど）のトレンドとレンジを自動検出し、適切な売買戦略を適用するアルゴリズムトレーディングシステムです。
 
 ![SOL-Bot概要](https://via.placeholder.com/800x400?text=SOL-Bot+Overview)
 
+## 📊 主要サービス
+
+### OrderSizingService
+
+マルチアセット対応のリスクベースポジションサイズ計算サービス：
+
+- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアに対応
+- **取引所の制約に対応**: 各取引所の最小ロットサイズ、数量精度、最小注文金額などに自動対応
+- **リスク計算の統一**: シンボル、口座残高、ストップ距離から適切な注文サイズを算出
+
+```typescript
+// 使用例
+const orderSizingService = new OrderSizingService(exchangeService);
+const orderSize = await orderSizingService.calculateOrderSize(
+  'BTC/USDT',    // シンボル 
+  5000,          // 利用可能残高
+  1000,          // ストップ距離
+  50000,         // 現在価格
+  0.01           // リスク率 (1%)
+);
+```
+
+### ExchangeService
+
+複数取引所APIとの統合サービス：
+
+- **複数取引所対応**: Binance、Bybit、KuCoinなど主要取引所に対応
+- **マーケット情報取得**: 最小ロットサイズ、精度、ティッカー価格などの自動取得
+- **高度な注文タイプ**: Post-Only、Hidden、OCOなど複雑な注文タイプをサポート
+
 ## 🌟 特徴
 
+- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアでのトレーディング
 - **マルチレジーム対応**: トレンド/レンジを自動検出し最適な戦略を選択
 - **リスク管理**: ATRベースのポジションサイジングと動的ストップロス
 - **市場適応性**: ボラティリティに応じたパラメータ自動調整
@@ -24,6 +55,7 @@ SOL/USDTペアのトレンドとレンジを自動検出し、適切な売買戦
 - **CCXT**: 複数取引所との互換性
 - **Node.js**: サーバーサイド実行環境
 - **Express**: REST API提供
+- **Prometheus & Grafana**: システム監視とアラート
 
 ## 📊 戦略概要
 
@@ -96,6 +128,24 @@ MAX_RISK_PER_TRADE=0.01
 MAX_DAILY_LOSS=0.05
 ```
 
+## 📈 パフォーマンス
+
+主要通貨ペアでの直近3ヶ月のバックテスト結果：
+
+### SOL/USDT
+- **総取引数**: 142回
+- **勝率**: 59.8%
+- **利益率**: 24.5%
+- **最大ドローダウン**: 8.76%
+- **シャープレシオ**: 1.45
+
+### BTC/USDT
+- **総取引数**: 95回
+- **勝率**: 62.1%
+- **利益率**: 18.7%
+- **最大ドローダウン**: 7.32%
+- **シャープレシオ**: 1.58
+
 ## 🔌 API エンドポイント
 
 主要エンドポイント（詳細は`src/docs/APIEndpoints.md`を参照）：
@@ -111,15 +161,32 @@ MAX_DAILY_LOSS=0.05
 
 プロジェクトの詳細な構造については、[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)を参照してください。
 
-## 📈 パフォーマンス
+## 👀 監視システム
 
-SOL/USDTペアでの2024年4月〜6月のバックテスト結果：
+SOL-Botには包括的な監視機能が組み込まれています：
 
-- **総取引数**: 142回
-- **勝率**: 59.8%
-- **利益率**: 24.5%
-- **最大ドローダウン**: 8.76%
-- **シャープレシオ**: 1.45
+### 監視スタック
+
+- **Prometheus**: メトリクスの収集と保存
+- **Grafana**: データの可視化とダッシュボード 
+- **Alertmanager**: アラート管理とDiscord通知
+
+### 主要メトリクス
+
+- 取引残高推移、日次損益、勝率、最大ドローダウン
+- 取引数と取引量、エラー率、レイテンシ
+- CPU、メモリ、ディスク使用率
+
+### 起動方法
+
+```bash
+cd monitoring
+docker-compose up -d
+```
+
+アクセス方法：
+- Grafanaダッシュボード: http://localhost:3000 (admin/solbot123)
+- Prometheusコンソール: http://localhost:9090
 
 ## 🤝 貢献
 
@@ -132,73 +199,4 @@ SOL/USDTペアでの2024年4月〜6月のバックテスト結果：
 
 ## ⚠️ 免責事項
 
-このソフトウェアは教育目的で提供されています。実際の取引で使用する場合は、自己責任で行ってください。市場リスクを十分に理解し、損失に耐えられる資金でのみ取引を行うことをお勧めします。
-
-## 監視とモニタリング
-
-SOL-Botには監視ダッシュボード機能が組み込まれており、次のコンポーネントで構成されています。
-
-### 監視スタック
-
-- **Prometheus**: メトリクスの収集と保存
-- **Grafana**: データの可視化とダッシュボード
-- **Alertmanager**: アラート管理とDiscord通知
-- **Node Exporter**: ホストマシンのリソース監視
-- **cAdvisor**: コンテナメトリクスの収集
-
-### 主要メトリクス
-
-- 取引残高推移
-- 日次損益（金額・率）
-- 勝率
-- 最大ドローダウン
-- 取引数と取引量
-- エラー率
-- システムリソース使用状況
-
-### 起動方法
-
-監視スタックを起動するには以下のコマンドを実行します：
-
-```bash
-cd monitoring
-docker-compose up -d
-```
-
-アクセス方法：
-- Grafanaダッシュボード: http://localhost:3000 (ユーザー名: admin, パスワード: solbot123)
-- Prometheusコンソール: http://localhost:9090
-
-### アラート
-
-重要なアラートはDiscordに自動通知されます。アラートには以下が含まれます：
-
-- システムリソース（CPU、メモリ、ディスク）の高使用率
-- SOL-Botの稼働状態異常
-- 高エラー率
-- 取引量の異常な変動
-- 日次損失率が制限に近づいた場合 
-
-## Services
-
-### OrderSizingService
-
-新しく追加されたOrderSizingServiceは、リスクベースのポジションサイズ計算をより洗練された形で提供します：
-
-- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアに対応
-- **取引所の制約に対応**: 各取引所の最小ロットサイズ、数量精度、最小注文金額などに自動対応
-- **リスク計算の統一**: シンボル、口座残高、ストップ距離から適切な注文サイズを算出
-
-```typescript
-// 使用例
-const orderSizingService = new OrderSizingService(exchangeService);
-const orderSize = await orderSizingService.calculateOrderSize(
-  'BTC/USDT',    // シンボル 
-  5000,          // 利用可能残高
-  1000,          // ストップ距離
-  50000,         // 現在価格
-  0.01           // リスク率 (1%)
-);
-```
-
-TradingEngineとの統合も進行中で、今後すべての戦略で一貫した注文サイズ計算が可能になります。 
+このソフトウェアは教育目的で提供されています。実際の取引で使用する場合は、自己責任で行ってください。市場リスクを十分に理解し、損失に耐えられる資金でのみ取引を行うことをお勧めします。 
