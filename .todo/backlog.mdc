@@ -7,16 +7,16 @@ alwaysApply: false
 
 ## P0 - 本番ブレイク級バグ（最優先）
 
-- [x] ALG-031: applyRiskFilters 呼び出し忘れを修正
+- [x] ALG-031-1: applyRiskFilters 呼び出し忘れを修正
       - 📅 Due        : 2025-12-05
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : RISK-003
+      - 🔗 Depends-on : RISK-003-1
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : TradingEngine.executeStrategyにsignals = applyRiskFilters(signals)追加完了、次回スプリント終了時にアーカイブ予定
 
-- [x] BT-005: バックテストに手数料・スリッページを反映
+- [x] BT-005-1: バックテストに手数料・スリッページを反映
       - 📅 Due        : 2025-12-06
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -24,7 +24,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了、次回スプリント終了時にアーカイブ予定
 
-- [ ] UTIL-001: ATR/Fallback重複排除ユーティリティ
+- [ ] UTIL-001-1: ATR/Fallback重複排除ユーティリティ
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
@@ -32,15 +32,7 @@ alwaysApply: false
       - 📊 Progress   : 25%
       - ✎ Notes      : DonchianBreakoutStrategy/trendFollowStrategy/rangeStrategyでの重複したATRフォールバックロジックをutils/atrUtils.tsに共通化。スプリントに移動済み。
 
-- [ ] ALG-037: trendFollowStrategy SAR シグナル修正
-      - 📅 Due        : 2026-02-09
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 10%
-      - ✎ Notes      : isSARBuySignal/isSARSellSignalの論理バグを修正。parabolicSAR.isUptrendと前バーの状態を比較するよう修正。スプリントに移動済み。
-
-- [ ] TST-004: backlog/sprint todo-lint Jestルール
+- [ ] TST-004-1: backlog/sprint todo-lint Jestルール
       - 📅 Due        : 2026-02-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
@@ -50,7 +42,7 @@ alwaysApply: false
 
 ## P1 - CI/CD構築と重要バグ修正
 
-- [x] INF-006: GitHub Actions CI/CDパイプラインの構築
+- [x] INF-006-1: GitHub Actions CI/CDパイプラインの構築
       - 📅 Due        : 2025-12-07
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
@@ -58,7 +50,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー実装、ESLint/Prettier設定追加
 
-- [x] TST-001: P0修正後のバックテストスモークテスト
+- [x] TST-001-1: P0修正後のバックテストスモークテスト
       - 📅 Due        : 2025-12-08
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
@@ -66,7 +58,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
 
-- [x] INF-016: TradingEngine 依存注入リファクタ
+- [x] INF-016-1: TradingEngine 依存注入リファクタ
       - 📅 Due        : 2025-12-12
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
@@ -74,7 +66,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : constructor(…, opts:{ oms, exchangeSvc })形式に変更しテスト容易化、モック注入可能に
 
-- [x] INF-017: parameters.yaml のmonitoring重複削除
+- [x] INF-017-1: parameters.yaml のmonitoring重複削除
       - 📅 Due        : 2025-12-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -82,7 +74,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : monitoringとmonitoring_executionセクションを統合し、単一パスからアクセス可能に
 
-- [x] BT-006: シャープレシオ計算をタイムフレーム対応
+- [x] BT-006-1: シャープレシオ計算をタイムフレーム対応
       - 📅 Due        : 2025-12-11
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : BT-004
@@ -91,7 +83,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : annualizedReturn/Stddev計算に適切なタイムフレーム対応を導入し、年間バー数を明示的に計算するよう改善
 
-- [x] OMS-011: cronタスクtimezone & 多重起動対策
+- [x] OMS-011-1: cronタスクtimezone & 多重起動対策
       - 📅 Due        : 2025-12-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -101,7 +93,7 @@ alwaysApply: false
 
 ## P2 - コード品質改善
 
-- [x] CONF-004b: adjustSlopePeriods閾値の外部設定化
+- [x] CONF-004b-1: adjustSlopePeriods閾値の外部設定化
       - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
@@ -109,7 +101,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : adjustSlopePeriods閾値をYAML外出しし、Optunaの最適化対象に追加。パラメータサービスから取得するように実装。スモークテストで機能動作を確認完了。
 
-- [x] ALG-032: EMERGENCY戦略の解除ロジック追加
+- [x] ALG-032-1: EMERGENCY戦略の解除ロジック追加
       - 📅 Due        : 2025-12-20
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
@@ -133,7 +125,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : MA-Slope、ATR%、ADX、Price Locationを組み合わせた強化レジーム判定アルゴリズムを実装し、トレンド環境の検出精度を向上
 
-- [x] TST-002: Jest+ts-jestで戦略ユニットテスト80%
+- [x] TST-002-1: Jest+ts-jestで戦略ユニットテスト80%
       - 📅 Due        : 2025-12-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
@@ -141,7 +133,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : trendStrategy.test.tsとrangeStrategy.test.tsを実装。モックデータ生成関数を作成し、各戦略のすべての条件分岐をテスト。100%のテストカバレッジを達成。
 
-- [x] PERF-001: EMA/ATR計算のインクリメンタル化
+- [x] PERF-001-1: EMA/ATR計算のインクリメンタル化
       - 📅 Due        : 2026-01-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
@@ -151,7 +143,7 @@ alwaysApply: false
 
 ## P3 - インフラ／CI面の改善
 
-- [x] INF-007: 本番用Dockerfileの作成
+- [x] INF-007-1: 本番用Dockerfileの作成
       - 📅 Due        : 2025-12-28
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
@@ -284,7 +276,7 @@ alwaysApply: false
 - [ ] OMS-009: 複数取引所対応
       - 📅 Due        : 2026-02-01
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : OMS-008
+      - 🔗 Depends-on    : OMS-008
       - 🏷️ Label      : feat
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
@@ -306,7 +298,7 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : GitHub Actions で trivy + dependabot weekly を追加
 
-- [ ] PERF-004: console.log の quiet モード対応強化
+- [ ] PERF-004-1: console.log の quiet モード対応強化
       - 📅 Due        : 2026-02-13
       - 👤 Owner      : @nijor
       - 🏷️  Label      : perf
@@ -314,7 +306,7 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : すべての console.log を this.config.quiet ガード or logger.debug に置換。スプリントに移動済み。
 
-- [ ] SEC-002: Secrets Scanner pre-commit hook
+- [ ] SEC-002-1: Secrets Scanner pre-commit hook
       - 📅 Due        : 2026-02-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : security
@@ -331,7 +323,7 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : Binance / Bybit / KuCoin stub を用いた end-to-end backtest
 
-- [ ] INF-022: 古い Parquet/Log 自動ローテーション
+- [ ] INF-022-1: 古い Parquet/Log 自動ローテーション
       - 📅 Due        : 2026-02-14
       - 👤 Owner      : @operator
       - 🏷️  Label      : infra
@@ -339,7 +331,7 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : 90 日超ファイルを S3→ Glacier に lifecycle 移行 (cron + aws cli)
 
-- [x] TST-003: スモークテストの取引シグナル生成対応
+- [x] TST-003-1: スモークテストの取引シグナル生成対応
       - 📅 Due        : 2025-12-18
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : ALG-016
@@ -360,7 +352,7 @@ alwaysApply: false
 
 ## 完了済みタスク
 
-- [x] ALG-020: EMA傾き計算のタイムフレーム対応
+- [x] ALG-020-1: EMA傾き計算のタイムフレーム対応
       - 📅 Due        : 2025-12-01
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -368,7 +360,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : 年率換算係数から不要な "(periods/6)"を削除し、factor = (365*24/timeframeHours)の計算式に修正
 
-- [x] ALG-021: レンジ戦略のグリッド幅計算修正
+- [x] ALG-021-1: レンジ戦略のグリッド幅計算修正
       - 📅 Due        : 2025-12-03
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -376,7 +368,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : levelWidth計算式のバグで過剰グリッド生成。式をlevelWidth = (atrPercent/100) * GRID_ATR_MULTIPLIER * closePriceに修正
 
-- [x] INF-011b: HTTPリトライ設定の強化
+- [x] INF-011b-1: HTTPリトライ設定の強化
       - 📅 Due        : 2025-12-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -384,7 +376,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : MAX_RETRIES=5だとBinanceのban対策に不十分。MAX_RETRIES=7 / delays [1,2,4,8,16,32,64]秒に変更
 
-- [x] INF-015: Node.js開発環境の構築
+- [x] INF-015-1: Node.js開発環境の構築
       - 📅 Due        : 2025-11-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
@@ -392,25 +384,23 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : Node.jsとnpmをインストールし、依存関係をセットアップしてサンプルデータ生成と検証を実行可能にする
 
-- [x] OMS-007: isRetryable関数の追加とエラーハンドリング強化
+- [x] OMS-007-1: isRetryable関数の追加とエラーハンドリング強化
       - 📅 Due        : 2025-09-20
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-011
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
 
-- [x] OMS-008: フィル更新と未決済監視タスクの実装
+- [x] OMS-008-1: フィル更新と未決済監視タスクの実装
       - 📅 Due        : 2025-09-22
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : OMS-006
       - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : OrderManagementSystemにWebhook/RESTでの約定検知と定期的な未決済注文監視機能を追加
 
-- [x] OMS-012: 注文実行エンジンの完成
+- [x] OMS-012-1: 注文実行エンジンの完成
       - 📅 Due        : 2025-12-15
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : ALG-015
@@ -419,7 +409,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : 実際の注文処理エンジン実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
 
-- [x] ALG-016b: トレイリングストップ更新ロジック修正
+- [x] ALG-016b-1: トレイリングストップ更新ロジック修正
       - 📅 Due        : 2025-11-23
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -427,7 +417,7 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : トレンド戦略のトレイリングストップ更新判定条件(entryPrice-ATR*F < newStopPrice)が常に真になる問題。position.stopPriceを保持して比較するよう修正
 
-- [x] RISK-003: リスクフィルター停止距離考慮の実装
+- [x] RISK-003-1: リスクフィルター停止距離考慮の実装
       - 📅 Due        : 2025-11-24
       - 👤 Owner      : @nijor
       - 🏷️  Label      : bug
@@ -435,25 +425,24 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : リスク計算にストップロス距離を考慮するよう修正。risk = orderAmount × stopDistanceの計算式を実装
 
-- [x] INF-013: .envファイル設定の作成
+- [x] INF-013-1: .envファイル設定の作成
       - 📅 Due        : 2025-11-05
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : DAT-002
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : .envと.env.exampleにUSE_PARQUET、PARQUET_STORAGE_PATH、DUCKDB_設定を追加
 
-- [x] DEP-001: Parquet+DuckDBパッケージのインストール
+- [x] DEP-001-1: Parquet+DuckDBパッケージのインストール
       - 📅 Due        : 2025-11-06
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-013
+      - 🏷️  Label      : feat
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : package.jsonにapache-arrow, duckdb, parquetjs, js-yamlパッケージを追加
 
-- [x] INF-005: 本番環境の構築準備
+- [x] INF-005-1: 本番環境の構築準備
       - 📅 Due        : 2025-12-27
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
@@ -477,43 +466,6 @@ alwaysApply: false
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : OrderType enumとccxtの注文タイプ文字列の相互変換に対応する実装とテスト。ORDER_TYPE_MAPPINGとCCXT_TO_ORDER_TYPE_MAPPINGテーブルを実装し、変換関数を作成。fetchOrderAndConvert関数も追加。
-
-- [x] DATA-013: ATR==0のケースでのフォールバックパラメータを設定ファイルに移動
-      - 📅 Due        : 2024-02-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : DEFAULT_ATR_PERCENTAGE, MIN_STOP_DISTANCE_PERCENTAGE, MIN_ATR_VALUEなど、戦略間で共通のパラメータを一元管理。parameters.yamlのriskセクションに追加完了。
-
-- [x] RISK-005: ポジションサイジングロジックの共通化
-      - 📅 Due        : 2024-02-20
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 各戦略で実装されていたcalculateRiskBasedPositionSize関数をsrc/utils/positionSizing.tsに共通化。すべての戦略から参照するよう変更完了。
-
-## 優先度中
-
-- [ ] TST-007: trendFollowStrategy ユニットテスト
-      - 📅 Due        : 2026-02-09
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : ALG-037
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : タスクIDが重複していたため、TST-007に変更してスプリントに移動済み。
-
-## 優先度低
-
-- [ ] DOC-007: JSDOCコメント完全対応
-      - 📅 Due        : 2025-03-20
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : doc
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
       - ✎ Notes      : 全コンポーネントのJSDocコメントを統一フォーマットで整理（ライブラリ出力にも対応）
 
 - [x] DATA-011: Candle.timestamp型統一
@@ -522,42 +474,7 @@ alwaysApply: false
       - 🏷️  Label      : feat
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : Candle.timestampの型をnumber | string統一、型ガード関数と変換関数を実装、各呼び出し箇所を対応
-
-## 新規タスク
-
-- [ ] TST-010: orderUtils関数のユニットテスト
-      - 📅 Due        : 2026-02-12
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : syncOrderForSimulateFill、syncFillWithOrder、updateOrderStatusなどの関数のテスト。モックオブジェクトを使用。スプリントに移動済み。
-
-- [ ] TST-011: マルチシンボルバックテスト検証テスト
-      - 📅 Due        : 2026-02-14
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。
-
-## 新規タスク候補
-
-- [ ] OMS-015: マルチタイムフレーム最適化
-      - 📅 Due        : 2026-02-28
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 1h/4h/1dの複数時間足を併用した戦略の実装と最適化。スプリントに移動済み。
-
-- [ ] BT-009: マルチアセット並列バックテスト
-      - 📅 Due        : 2026-02-25
-      - 👤 Owner      : unassigned
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
 
 
       - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。
+
