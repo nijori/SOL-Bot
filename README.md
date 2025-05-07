@@ -178,3 +178,27 @@ docker-compose up -d
 - 高エラー率
 - 取引量の異常な変動
 - 日次損失率が制限に近づいた場合 
+
+## Services
+
+### OrderSizingService
+
+新しく追加されたOrderSizingServiceは、リスクベースのポジションサイズ計算をより洗練された形で提供します：
+
+- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアに対応
+- **取引所の制約に対応**: 各取引所の最小ロットサイズ、数量精度、最小注文金額などに自動対応
+- **リスク計算の統一**: シンボル、口座残高、ストップ距離から適切な注文サイズを算出
+
+```typescript
+// 使用例
+const orderSizingService = new OrderSizingService(exchangeService);
+const orderSize = await orderSizingService.calculateOrderSize(
+  'BTC/USDT',    // シンボル 
+  5000,          // 利用可能残高
+  1000,          // ストップ距離
+  50000,         // 現在価格
+  0.01           // リスク率 (1%)
+);
+```
+
+TradingEngineとの統合も進行中で、今後すべての戦略で一貫した注文サイズ計算が可能になります。 
