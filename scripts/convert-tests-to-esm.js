@@ -27,19 +27,19 @@ let skippedCount = 0;
  */
 const typePatterns = {
   // 変数宣言の型アノテーション
-  variableType: /(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+\s*=/g,
+  variableType: /(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+\s*=/g,
   
-  // 関数パラメータの型アノテーション
+  // 関数パラメータの型アノテーション (かっこ内の型を完全に除去)
   functionParams: /\(([^)]*)\)\s*=>/g,
   
   // 関数定義の戻り値型アノテーション
-  functionReturn: /function\s+(\w+)\s*\(([^)]*)\)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g,
+  functionReturn: /function\s+(\w+)\s*\(([^)]*)\)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g,
   
   // クラスメソッドの型アノテーション
-  classMethod: /(\w+)\s*\(([^)]*)\)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+\s*{/g,
+  classMethod: /(\w+)\s*\(([^)]*)\)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+\s*{/g,
   
   // asキャスト
-  asCast: /\s+as\s+[A-Za-z0-9_<>[\].,|&\s{}()?]+/g,
+  asCast: /\s+as\s+[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g,
   
   // ジェネリック型のコレクション
   genericCollections: [
@@ -54,25 +54,40 @@ const typePatterns = {
   ],
   
   // インラインのキャスト (例: <number>var や <string[]>array)
-  inlineCast: /<[A-Za-z0-9_<>[\].,|&\s{}()?]+>\s*\w+/g,
+  inlineCast: /<[A-Za-z0-9_<>[\].,|&\s{}()?!]+>\s*\w+/g,
   
   // インターフェース実装宣言
-  implements: /\s+implements\s+[A-Za-z0-9_<>[\].,|&\s{}()?]+/g,
+  implements: /\s+implements\s+[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g,
   
   // extendsジェネリック型
-  extendsGeneric: /extends\s+[A-Za-z0-9_<>[\].,|&\s{}()?]+/g,
+  extendsGeneric: /extends\s+[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g,
   
   // 型宣言
-  typeDeclaration: /type\s+[A-Za-z0-9_]+\s*=\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+;/g,
+  typeDeclaration: /type\s+[A-Za-z0-9_]+\s*=\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+;/g,
   
   // インターフェース宣言
-  interfaceDeclaration: /interface\s+[A-Za-z0-9_]+(\s+extends\s+[A-Za-z0-9_<>[\].,|&\s{}()?]+)?\s*{[^}]*}/g,
+  interfaceDeclaration: /interface\s+[A-Za-z0-9_]+(\s+extends\s+[A-Za-z0-9_<>[\].,|&\s{}()?!]+)?\s*{[^}]*}/g,
   
   // モック型パラメータ（jest.fn<戻り値型, パラメータ型>()）
   mockFnGeneric: /jest\.fn<[^>]+>\(\)/g,
   
   // jest.Mocked<>型
-  jestMocked: /jest\.Mocked<[^>]+>/g
+  jestMocked: /jest\.Mocked<[^>]+>/g,
+  
+  // 非nullアサーション演算子 (!)
+  nonNullAssertion: /(\w+)!/g,
+  
+  // アロー関数のパラメータの型アノテーション
+  arrowFunctionParams: /(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+\s*=>/g,
+  
+  // 関数呼び出しの型パラメータ
+  functionCallTypeParams: /(\w+)<[^>]*>\(/g,
+  
+  // Union型のパラメータ
+  unionTypeParams: /'[^']*'\s*\|\s*'[^']*'(\s*\|\s*'[^']*')*/g,
+  
+  // 関数パラメータ後の=演算子の修正
+  parameterWithEquals: /\)\s*=\s*\[/g
 };
 
 /**
@@ -101,38 +116,45 @@ function removeTypeAnnotations(content) {
   // 変数宣言の型アノテーションを削除
   result = result.replace(typePatterns.variableType, '$1 =');
   
+  // アロー関数のパラメータの型アノテーションを削除
+  result = result.replace(typePatterns.arrowFunctionParams, '$1 =>');
+  
   // 関数パラメータの型アノテーションを削除
   result = result.replace(typePatterns.functionParams, (match, params) => {
     // パラメータごとに型アノテーションを削除
-    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '$1')
-                                .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '...$1');
+    // 型アノテーション（: type）を完全に削除
+    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '$1')
+                               .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '...$1');
     return `(${cleanedParams}) =>`;
   });
   
   // 関数定義の型アノテーションを削除
   result = result.replace(typePatterns.functionReturn, (match, name, params) => {
     // パラメータごとに型アノテーションを削除
-    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '$1')
-                                .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '...$1');
+    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '$1')
+                               .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '...$1');
     return `function ${name}(${cleanedParams})`;
   });
   
   // クラスメソッドの型アノテーションを削除
   result = result.replace(typePatterns.classMethod, (match, name, params) => {
     // パラメータごとに型アノテーションを削除
-    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '$1')
-                                .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?]+/g, '...$1');
+    const cleanedParams = params.replace(/(\w+)\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '$1')
+                               .replace(/\.\.\.\w+\s*:\s*[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '...$1');
     return `${name}(${cleanedParams}) {`;
   });
   
   // asキャストを削除
   result = result.replace(typePatterns.asCast, '');
   
+  // 関数呼び出しの型パラメータを削除
+  result = result.replace(typePatterns.functionCallTypeParams, '$1(');
+  
   // ジェネリック型のコレクションを修正
   for (const pattern of typePatterns.genericCollections) {
     // ジェネリック部分を削除
     result = result.replace(pattern, (match) => {
-      return match.replace(/<[^>]+>/g, '()');
+      return match.replace(/<[^>]+>/g, '');
     });
   }
   
@@ -142,7 +164,7 @@ function removeTypeAnnotations(content) {
     return match.replace(/<[^>]+>\s*/, '');
   });
   
-  // implememts宣言を削除
+  // implements宣言を削除
   result = result.replace(typePatterns.implements, '');
   
   // extendsジェネリック型を簡略化
@@ -156,6 +178,22 @@ function removeTypeAnnotations(content) {
   
   // jest.Mocked<> 型を削除
   result = result.replace(typePatterns.jestMocked, '');
+  
+  // 非nullアサーション演算子 (!) を削除
+  result = result.replace(typePatterns.nonNullAssertion, '$1');
+  
+  // Union型のパラメータ修正
+  result = result.replace(/'[^']*'\s*\|\s*'[^']*'(\s*\|\s*'[^']*')*/g, (match) => {
+    // 最初の値だけを残す
+    const firstValue = match.match(/'[^']*'/);
+    return firstValue ? firstValue[0] : match;
+  });
+  
+  // 関数パラメータ後の=演算子の修正
+  result = result.replace(typePatterns.parameterWithEquals, ') {return [');
+  
+  // 行末のセミコロンが削除されている問題を修正する
+  result = result.replace(/}\n/g, '};\n');
   
   return result;
 }
@@ -310,6 +348,13 @@ async function convertFileToEsm(filePath) {
       `// ESM環境向けに変換されたテストファイル\n${fileComment}` +
       `import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';\n\n`;
     
+    // 循環参照の問題に対処するためのimportMetaポリフィルを追加
+    updatedContent += 
+      `// 循環参照対策のポリフィル\n` +
+      `if (typeof globalThis.__jest_import_meta_url === 'undefined') {\n` +
+      `  globalThis.__jest_import_meta_url = 'file:///';\n` +
+      `}\n\n`;
+    
     // インポート行を処理
     const contentWithProcessedImports = processImportStatements(content);
     const contentLines = contentWithProcessedImports.split('\n');
@@ -376,17 +421,6 @@ async function convertFileToEsm(filePath) {
     
     // 最終的なコンテンツを作成
     updatedContent += testCode;
-    
-    // 循環参照の問題に対処するためのimportMetapolyfillを追加
-    if (updatedContent.includes('TypeError: Cannot read') || 
-        updatedContent.includes('ReferenceError: Cannot access')) {
-      updatedContent = 
-        `// 循環参照対策のポリフィル\n` +
-        `if (typeof globalThis.__jest_import_meta_url === 'undefined') {\n` +
-        `  globalThis.__jest_import_meta_url = 'file:///';\n` +
-        `}\n\n` +
-        updatedContent;
-    }
     
     // .mjsファイルに書き込む
     const newFilePath = filePath.replace(/\.test\.ts$/, '.test.mjs');
