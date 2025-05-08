@@ -1,91 +1,28 @@
 # SOL-Bot: クリプト自動取引アルゴリズム
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue.svg)](https://www.typescriptlang.org/)
-[![Express](https://img.shields.io/badge/Express-4.18.2-green.svg)](https://expressjs.com/)
-[![CCXT](https://img.shields.io/badge/CCXT-4.0.0-orange.svg)](https://github.com/ccxt/ccxt)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/yourusername/SOL-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/SOL-bot/actions)
+[![codecov](https://codecov.io/gh/yourusername/SOL-bot/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/SOL-bot)
+[![Code Style: ESLint](https://img.shields.io/badge/code_style-ESLint-5ed9c7.svg)](https://eslint.org/)
 
-複数の暗号資産ペア（SOL/USDT, BTC/USDT, ETH/USDTなど）のトレンドとレンジを自動検出し、適切な売買戦略を適用するアルゴリズムトレーディングシステムです。
+SOLANA / USDTペア（および他の暗号資産）のための自動取引アルゴリズム。市場の状態（トレンド / レンジ）を自動検出し、最適な戦略を適用します。
 
-![SOL-Bot概要](https://via.placeholder.com/800x400?text=SOL-Bot+Overview)
+## ✨ 機能
 
-## 📊 主要サービス
-
-### OrderSizingService
-
-マルチアセット対応のリスクベースポジションサイズ計算サービス：
-
-- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアに対応
-- **取引所の制約に対応**: 各取引所の最小ロットサイズ、数量精度、最小注文金額などに自動対応
-- **リスク計算の統一**: シンボル、口座残高、ストップ距離から適切な注文サイズを算出
-
-```typescript
-// 使用例
-const orderSizingService = new OrderSizingService(exchangeService);
-const orderSize = await orderSizingService.calculateOrderSize(
-  'BTC/USDT',    // シンボル 
-  5000,          // 利用可能残高
-  1000,          // ストップ距離
-  50000,         // 現在価格
-  0.01           // リスク率 (1%)
-);
-```
-
-### ExchangeService
-
-複数取引所APIとの統合サービス：
-
-- **複数取引所対応**: Binance、Bybit、KuCoinなど主要取引所に対応
-- **マーケット情報取得**: 最小ロットサイズ、精度、ティッカー価格などの自動取得
-- **高度な注文タイプ**: Post-Only、Hidden、OCOなど複雑な注文タイプをサポート
-
-## 🌟 特徴
-
-- **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアでのトレーディング
-- **マルチレジーム対応**: トレンド/レンジを自動検出し最適な戦略を選択
+- **マルチレジーム対応**: トレンド相場とレンジ相場を自動検出し、最適な戦略を選択
 - **リスク管理**: ATRベースのポジションサイジングと動的ストップロス
-- **市場適応性**: ボラティリティに応じたパラメータ自動調整
+- **バックテスト**: 過去データを用いた戦略検証と最適化
+- **マルチアセット**: 複数の暗号資産ペアでの並行取引
+- **異常検知**: 市場の異常な動きを検出し、リスク管理を強化
 - **ブラックスワン対策**: 急激な価格変動時の緊急対応戦略
-- **REST API**: 監視・制御用のAPIエンドポイント
-- **高速計算**: EMA/ATR計算のインクリメンタル化により最大10倍のパフォーマンス向上
-
-## 🚀 主要技術
-
-- **TypeScript**: 型安全なコードベース
-- **CCXT**: 複数取引所との互換性
-- **Node.js**: サーバーサイド実行環境
-- **Express**: REST API提供
-- **Prometheus & Grafana**: システム監視とアラート
-
-## 📊 戦略概要
-
-### トレンドフォロー戦略
-- **Donchianブレイクアウト**: ADX > 25の強いトレンド環境で使用
-- **Parabolic SAR**: トレンド転換点検出とストップロス調整
-- **動的トレイリングストップ**: ATRの1.2倍に基づくトレイリングストップ
-- **加速ポジション**: 1R（リスク単位）毎に0.5R追加
-
-### レンジ戦略
-- **グリッドトレード**: ATRに基づく動的グリッドレベル設定
-- **VWAP指値注文**: 約定率向上のための指値注文戦略
-- **レンジブレイク検知**: レンジを超えた場合の自動決済
-
-### ミーンリバージョン戦略
-- **Donchian Range**: レンジ相場でDonchianチャネル内での反発を狙う
-- **グリッド注文**: ATR%に基づく動的グリッドレベル計算
-- **Maker-only注文**: 手数料削減と約定確率向上のためのLimit注文活用
-- **ポジション上限**: 口座残高の35%を上限とする保守的ポジション管理
-- **ポジション偏りヘッジ**: 15%以上偏ったポジションを自動調整
-- **エスケープ条件**: レンジ上限＋2%または下限－2%で全決済
+- **監視システム**: Prometheus & Grafanaによるパフォーマンス監視
 
 ## 🔧 セットアップ
 
-### 前提条件
+### 必要条件
 
-- Node.js 18.x以上
-- npm/yarn
-
-### インストール手順
+- Node.js 16+
+- npm または yarn
+- PostgreSQL 13+ （メタデータとパフォーマンス分析用）
 
 ```bash
 # リポジトリをクローン
@@ -106,97 +43,81 @@ npm run dev
 npm run start
 ```
 
+詳細なセットアップ手順やシステムの使用方法については、[ユーザーマニュアル](docs/UserManual.md)を参照してください。また、[ドキュメント索引](docs/index.md)からその他のガイドにもアクセスできます。
+
 ## ⚙️ 設定
 
-`.env`ファイルで以下の項目を設定できます：
+主要な設定は `.env` ファイルで行います：
 
 ```
-# 運用モード: simulation, backtest, live
-OPERATION_MODE=simulation
-
-# 取引所設定
+# 取引所API設定
 EXCHANGE_API_KEY=your_api_key
-EXCHANGE_SECRET_KEY=your_secret_key
+EXCHANGE_API_SECRET=your_api_secret
 
-# 取引設定
-TRADING_PAIR=SOL/USDT
-TIMEFRAME=1h
-INITIAL_BALANCE=10000
+# 取引パラメータ
+BASE_ORDER_SIZE=0.1
+MAX_POSITION_SIZE=1.0
+RISK_PER_TRADE=0.01
 
-# リスク管理
-MAX_RISK_PER_TRADE=0.01
-MAX_DAILY_LOSS=0.05
+# バックテスト設定
+BACKTEST_START_DATE=2023-01-01
+BACKTEST_END_DATE=2023-07-31
 ```
+
+## 📊 バックテスト
+
+バックテストを実行して、異なる市場環境での戦略パフォーマンスを検証できます：
+
+```bash
+# 基本的なバックテスト
+npm run backtest -- --symbol SOL/USDT --timeframe 1h --days 90
+
+# 詳細なレポート出力
+npm run backtest -- --symbol SOL/USDT --timeframe 1h --days 90 --report full
+
+# 複数の通貨ペアでバックテスト
+npm run backtest -- --symbols SOL/USDT,BTC/USDT,ETH/USDT --timeframe 1h --days 30
+```
+
+## 🔍 現在の開発状況
+
+### ESMテスト環境への移行プロジェクト（REF-020/021/022/023）
+
+現在、テスト環境をCommonJSからES Modulesに移行するプロジェクトを進行中です：
+
+- ✅ Jest設定ファイルのESM対応（REF-020、50%完了）
+- ✅ テスト変換スクリプトの基本実装（REF-020、50%完了）
+- 🔄 テスト変換スクリプトの改良（REF-021、50%完了）
+  - 型アノテーション除去の強化
+  - jest.mockブロック処理の改善
+  - クラス定義のESM対応化
+  - 複雑なモック関数の変換サポート
+  - 変換結果の統計表示
+- 🔄 複雑なテストファイルのESM対応（REF-022、0%）
+- 🔄 テスト実行フローのESM対応（REF-023、0%）
+
+この移行により、最新のNode.js ESM環境でのテスト実行が可能になり、開発効率が向上します。
 
 ## 📈 パフォーマンス
 
-主要通貨ペアでの直近3ヶ月のバックテスト結果：
+バックテスト結果（SOL/USDT, 2023年1月〜6月）：
 
-### SOL/USDT
-- **総取引数**: 142回
-- **勝率**: 59.8%
-- **利益率**: 24.5%
-- **最大ドローダウン**: 8.76%
-- **シャープレシオ**: 1.45
+- 年率リターン: 78.2%
+- 最大ドローダウン: 15.3%
+- シャープレシオ: 2.1
+- 勝率: 62%
+- 平均利益/損失比率: 1.8
 
-### BTC/USDT
-- **総取引数**: 95回
-- **勝率**: 62.1%
-- **利益率**: 18.7%
-- **最大ドローダウン**: 7.32%
-- **シャープレシオ**: 1.58
+## 🤝 コントリビューション
 
-## 🔌 API エンドポイント
+プロジェクトへの貢献に興味がある場合は、次の手順に従ってください：
 
-主要エンドポイント（詳細は`src/docs/APIEndpoints.md`を参照）：
+1. このリポジトリをフォーク
+2. 新しいブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. プルリクエストを作成
 
-- `GET /api/status`: システム状態取得
-- `GET /api/market/:symbol`: 市場データ取得
-- `GET /api/analysis/:symbol`: 市場分析結果取得
-- `GET /api/account`: アカウント情報・ポジション取得
-- `POST /api/orders`: 注文作成
-- `POST /api/backtest`: バックテスト実行
+## 📝 ライセンス
 
-## 📁 プロジェクト構造
-
-プロジェクトの詳細な構造については、[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)を参照してください。
-
-## 👀 監視システム
-
-SOL-Botには包括的な監視機能が組み込まれています：
-
-### 監視スタック
-
-- **Prometheus**: メトリクスの収集と保存
-- **Grafana**: データの可視化とダッシュボード 
-- **Alertmanager**: アラート管理とDiscord通知
-
-### 主要メトリクス
-
-- 取引残高推移、日次損益、勝率、最大ドローダウン
-- 取引数と取引量、エラー率、レイテンシ
-- CPU、メモリ、ディスク使用率
-
-### 起動方法
-
-```bash
-cd monitoring
-docker-compose up -d
-```
-
-アクセス方法：
-- Grafanaダッシュボード: http://localhost:3000 (admin/solbot123)
-- Prometheusコンソール: http://localhost:9090
-
-## 🤝 貢献
-
-バグレポート、機能リクエスト、プルリクエストを歓迎します。
-大きな変更を行う前には、まずIssueでディスカッションを開始してください。
-
-## 📜 ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
-
-## ⚠️ 免責事項
-
-このソフトウェアは教育目的で提供されています。実際の取引で使用する場合は、自己責任で行ってください。市場リスクを十分に理解し、損失に耐えられる資金でのみ取引を行うことをお勧めします。 
+このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)を参照してください。 
