@@ -13,6 +13,17 @@ alwaysApply: false
 // BT-006タスクはアーカイブまたはスプリントに既に存在するため削除しました
 // OMS-011タスクはアーカイブまたはスプリントに既に存在するため削除しました
 // ALG-032タスクはアーカイブまたはスプリントに既に存在するため削除しました
+// ALG-018タスクはスプリントW10に移動しました
+// DOC-004タスクはスプリントW10に移動しました
+// OMS-018タスクはスプリントW10に移動しました
+// TODO-CLIタスクはスプリントW10に移動しました
+// REF-020タスクはスプリントW10に移動しました
+// INF-021タスクはW9スプリントに移動したため削除しました
+
+## P2 - 機能追加・改善
+
+## P3 - ドキュメント・マイナー改修
+
 - [x] DAT-009: マルチタイムフレームデータ取得の実装
       - 📅 Due        : 2026-01-08
       - 👤 Owner      : @nijor
@@ -138,47 +149,9 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : docker-compose.ymlで既にnode_modulesがnamed volumeとして設定されていることを確認。`volumes: node_modules:`の定義も完了
 
-- [ ] ALG-018: 新しい戦略パラメータの実装
-      - 📅 Due        : 2026-03-15
-      - 👤 Owner      : @nijor
-      - 🏷️ Label      : feat
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加
-
-- [ ] DOC-004: ユーザーマニュアルの作成
-      - 📅 Due        : 2026-02-15
-      - 👤 Owner      : @nijor
-      - 🏷️ Label      : doc
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : エンドユーザー向けの詳細な操作マニュアル作成
-
-- [ ] INF-021: CI 依存脆弱性スキャン & Dependabot
-      - 📅 Due        : 2026-03-15
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : GitHub Actions で trivy + dependabot weekly を追加
-
 // SEC-002タスクはアーカイブまたはスプリントに既に存在するため削除しました
-- [ ] BT-007: マルチエクスチェンジ統合テスト
-      - 📅 Due        : 2026-03-12
-      - 👤 Owner      : @qa-team
-      - 🔗 Depends-on : OMS-009
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Binance / Bybit / KuCoin stub を用いた end-to-end backtest
 
-- [ ] INF-023: 古い Parquet/Log 自動ローテーション
-      - 📅 Due        : 2026-02-14
-      - 👤 Owner      : @operator
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 90 日超ファイルを S3→ Glacier に lifecycle 移行 (cron + aws cli)
+// INF-023タスクはW9スプリントに移動したため削除しました
 
 // TST-003タスクはアーカイブまたはスプリントに既に存在するため削除しました
 - [x] OPT-001: 高度戦略のOptunaスペース追加
@@ -197,17 +170,18 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : Candle.timestamp型をnumber | stringに統一し、isNumericTimestamp型ガード関数とnormalizeTimestamp変換関数を実装。ISO文字列とUNIXタイムスタンプの両方に対応。
 
-## 完了済みタスク
+## 新規追加タスク（レビュー対応）
 
-// ALG-020タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// ALG-021タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// INF-015タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// OMS-007タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// OMS-008タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// OMS-012タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// RISK-003タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// INF-013タスクはアーカイブまたはスプリントに既に存在するため削除しました
-// DEP-001タスクはアーカイブまたはスプリントに既に存在するため削除しました
+// CICD-004タスクはW8スプリントに移動したため削除しました
+// SEC-003タスクはW8スプリントに移動したため削除しました
+
+// TST-014タスクはW9スプリントに移動したため削除しました
+
+// PERF-006タスクはW9スプリントに移動したため削除しました
+
+// REF-019タスクはスプリントに移動したため削除しました
+
+// OMS-010タスクはアーカイブまたはスプリントに既に存在するため削除しました
 - [x] API-021: 成行注文時のprice=undefined問題
       - 📅 Due        : 2024-02-09
       - 👤 Owner      : @nijor
@@ -223,7 +197,6 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : 全コンポーネントのJSDocコメントを統一フォーマットで整理（ライブラリ出力にも対応）
-
 
       - ✎ Notes      : BTC、ETH、SOL、XRPなど複数通貨ペアでバックテストが正しく動作するかの検証テスト。通貨特性の違いを考慮。スプリントに移動済み。
 
