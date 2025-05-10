@@ -1,6 +1,6 @@
 import * as client from 'prom-client';
 import express from 'express';
-import logger from './logger';
+import logger from "./logger.js";
 
 // デフォルトのレジストリを初期化
 const register = new client.Registry();
@@ -115,8 +115,8 @@ export const updateMetrics = {
 
   // パフォーマンスメトリクス更新
   updatePerformanceMetrics: (
-    winRateValue: number, 
-    maxDrawdownValue: number, 
+    winRateValue: number,
+    maxDrawdownValue: number,
     sharpeRatioValue: number
   ) => {
     winRate.set(winRateValue);
@@ -134,36 +134,29 @@ export const updateMetrics = {
   recordError: (type: string) => {
     errorCount.inc({ type });
   },
-  
+
   // 注文レイテンシ記録（新規追加）
   recordOrderLatency: (
-    latencySeconds: number, 
-    exchange: string, 
-    orderType: string, 
+    latencySeconds: number,
+    exchange: string,
+    orderType: string,
     symbol: string
   ) => {
     orderLatency.observe({ exchange, order_type: orderType, symbol }, latencySeconds);
   },
-  
+
   // 取引所エラー記録（新規追加）
-  recordExchangeError: (
-    exchange: string, 
-    errorCode: string, 
-    endpoint: string
-  ) => {
+  recordExchangeError: (exchange: string, errorCode: string, endpoint: string) => {
     exchangeErrorCount.inc({ exchange, code: errorCode, endpoint });
   },
-  
+
   // エンジンループ処理時間記録（新規追加）
-  recordEngineLoopDuration: (
-    durationSeconds: number, 
-    strategy: string
-  ) => {
+  recordEngineLoopDuration: (durationSeconds: number, strategy: string) => {
     engineLoopDuration.observe({ strategy }, durationSeconds);
   },
-  
+
   // エンジンループ処理時間計測用タイマー（新規追加）
-  startEngineLoopTimer: (strategy: string): () => void => {
+  startEngineLoopTimer: (strategy: string): (() => void) => {
     const end = engineLoopDuration.startTimer({ strategy });
     return end; // 終了時に呼び出す関数を返す
   }
@@ -182,7 +175,9 @@ export const initMetricsServer = (port: number = 9100): void => {
       res.set('Content-Type', register.contentType);
       res.end(await register.metrics());
     } catch (error) {
-      logger.error(`[Metrics] メトリクス生成エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `[Metrics] メトリクス生成エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
       res.status(500).end();
     }
   });
@@ -205,10 +200,10 @@ export const initMetricsServer = (port: number = 9100): void => {
 export const resetRegistry = (): void => {
   // 新しいレジストリを作成
   const newRegistry = new client.Registry();
-  
+
   // デフォルトメトリクスを追加
   client.collectDefaultMetrics({ register: newRegistry });
-  
+
   // 既存のメトリクス定義をコピー（実装省略、必要に応じて実装）
 };
 
@@ -216,4 +211,4 @@ export default {
   initMetricsServer,
   updateMetrics,
   resetRegistry
-}; 
+};

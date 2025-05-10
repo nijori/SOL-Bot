@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -25,8 +25,17 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run unit tests
-        run: npm test
+      - name: Run basic ESM tests
+        run: |
+          mkdir -p data/test
+          mkdir -p data/test-e2e
+          mkdir -p .jest-cache
+          npm run test:esm -- --detectOpenHandles
+        env:
+          NODE_OPTIONS: "--experimental-vm-modules --max-old-space-size=4096"
+
+      - name: Run unit tests with coverage
+        run: npm test -- --coverage --coverageThreshold='{"global":{"lines":90,"functions":85,"statements":90}}'
 
       - name: Run smoke test
         run: npm run test:smoke
@@ -46,10 +55,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -61,10 +70,11 @@ jobs:
         run: npm run build
 
       - name: Archive production artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
+          retention-days: 30
 
   deploy:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
@@ -72,16 +82,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
 
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.7.0
+        uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -115,5 +125,14 @@ jobs:
 
       - name: Notify deployment
         if: success()
-        run: |
-          echo "Deployment to production completed successfully!" 
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "SOL-Bot デプロイ通知"
+          description: |
+            デプロイステータス: 成功 ✅
+            ブランチ: ${{ github.ref }}
+            コミット: ${{ github.sha }}
+            デプロイ日時: $(date)
+            デプロイユーザー: ${{ github.actor }} 

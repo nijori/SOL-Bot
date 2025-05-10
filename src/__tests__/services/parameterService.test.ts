@@ -2,13 +2,13 @@
  * ParameterService型変換テスト
  */
 
-import { 
-  ParameterService, 
-  parameterService, 
-  IParameterService, 
+import {
+  ParameterService,
+  parameterService,
+  IParameterService,
   createMockParameterService,
   applyParameters
-} from '../../config/parameterService';
+} from "../../config/parameterService.js";
 import fs from 'fs';
 import path from 'path';
 
@@ -25,7 +25,7 @@ jest.mock('../../utils/logger', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
-  error: jest.fn(),
+  error: jest.fn()
 }));
 
 describe('ParameterService', () => {
@@ -62,10 +62,10 @@ operation:
   beforeEach(() => {
     // fsモックをリセット
     jest.clearAllMocks();
-    
+
     // readFileSyncモックを設定
     (fs.readFileSync as jest.Mock).mockReturnValue(mockYamlContent);
-    
+
     // シングルトンインスタンスをリセット
     ParameterService.resetInstance();
 
@@ -252,7 +252,7 @@ operation:
       expect(typeof result.defaultBool).toBe('boolean');
       expect(result.defaultStr).toBe('default value');
       expect(typeof result.defaultStr).toBe('string');
-      
+
       // 古い形式のデフォルト値も機能することを確認
       expect(result.oldFormat).toBe('legacy default');
       expect(typeof result.oldFormat).toBe('string');
@@ -284,7 +284,7 @@ operation:
     it('カスタムYAMLパスで初期化できる', () => {
       const customYamlPath = path.join(process.cwd(), 'custom', 'params.yaml');
       const customInstance = new ParameterService(customYamlPath);
-      
+
       // readFileSyncが正しいパスで呼ばれたことを確認
       expect(fs.readFileSync).toHaveBeenCalledWith(customYamlPath, 'utf8');
     });
@@ -296,13 +296,13 @@ operation:
           param2: 42
         }
       };
-      
+
       const instance = new ParameterService(undefined, initialParams);
-      
+
       // 初期パラメータが設定されていることを確認
       expect(instance.get('custom.param1')).toBe('value1');
       expect(instance.get('custom.param2')).toBe(42);
-      
+
       // YAMLファイルが読み込まれていないことを確認
       expect(fs.readFileSync).not.toHaveBeenCalled();
     });
@@ -313,43 +313,46 @@ operation:
           value: 'mocked'
         }
       };
-      
+
       const mockService = createMockParameterService(mockParams);
-      
+
       // インターフェースを実装していることを確認
       expect(mockService.get('test.value')).toBe('mocked');
     });
-    
+
     it('updateParameters関数で設定を更新できる', () => {
       const instance = new ParameterService(undefined, {
         market: {
           atr_period: 14
         }
       });
-      
+
       instance.updateParameters({
         market: {
           atr_period: 21,
           new_param: 'test'
         }
       });
-      
+
       expect(instance.get('market.atr_period')).toBe(21);
       expect(instance.get('market.new_param')).toBe('test');
     });
-    
+
     it('applyParameters関数でインスタンスを指定して更新できる', () => {
       const instance = new ParameterService(undefined, {
         market: {
           atr_period: 14
         }
       });
-      
-      applyParameters({ 
-        'market.atr_period': 28,
-        'market.new_value': 'applied'
-      }, instance);
-      
+
+      applyParameters(
+        {
+          'market.atr_period': 28,
+          'market.new_value': 'applied'
+        },
+        instance
+      );
+
       expect(instance.get('market.atr_period')).toBe(28);
       expect(instance.get('market.new_value')).toBe('applied');
     });
@@ -362,17 +365,17 @@ operation:
         backtest: { id: 'backtest1' },
         market: { atr_period: 10 }
       });
-      
+
       const bt2Service = new ParameterService(undefined, {
         backtest: { id: 'backtest2' },
         market: { atr_period: 20 }
       });
-      
+
       // bt1の設定を変更
       bt1Service.updateParameters({
         market: { atr_period: 15 }
       });
-      
+
       // 設定が分離されていることを確認
       expect(bt1Service.get('market.atr_period')).toBe(15);
       expect(bt2Service.get('market.atr_period')).toBe(20);
@@ -389,23 +392,23 @@ operation:
           trailing_stop_factor: 3.0
         }
       });
-      
+
       // 戦略クラスをシミュレート
       class MockStrategy {
         constructor(private paramService: IParameterService) {}
-        
+
         getTrailingStopFactor(): number {
           return this.paramService.get('trend.trailing_stop_factor');
         }
       }
-      
+
       // 実際のインスタンスとモックインスタンスをテスト
       const realStrategy = new MockStrategy(parameterService);
       const mockedStrategy = new MockStrategy(mockService);
-      
+
       // それぞれ異なる値を返すことを確認
       expect(realStrategy.getTrailingStopFactor()).toBe(2.0); // シングルトンの元の値
       expect(mockedStrategy.getTrailingStopFactor()).toBe(3.0); // モックの値
     });
   });
-}); 
+});

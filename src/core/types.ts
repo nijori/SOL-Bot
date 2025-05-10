@@ -4,7 +4,7 @@
 
 // ローソク足データの型
 export interface Candle {
-  timestamp: number | string;  // ISO文字列またはUNIXタイムスタンプ（ミリ秒）
+  timestamp: number | string; // ISO文字列またはUNIXタイムスタンプ（ミリ秒）
   open: number;
   high: number;
   low: number;
@@ -42,7 +42,7 @@ export enum MarketEnvironment {
   WEAK_UPTREND = 'weak_uptrend',
   WEAK_DOWNTREND = 'weak_downtrend',
   RANGE = 'range',
-  UNKNOWN = 'unknown',
+  UNKNOWN = 'unknown'
 }
 
 // 取引戦略の種類
@@ -51,7 +51,7 @@ export enum StrategyType {
   RANGE_TRADING = 'range_trading',
   MEAN_REVERT = 'mean_revert',
   EMERGENCY = 'emergency',
-  DONCHIAN_BREAKOUT = 'donchian_breakout',
+  DONCHIAN_BREAKOUT = 'donchian_breakout'
 }
 
 // 注文のタイプ
@@ -60,38 +60,38 @@ export enum OrderType {
   LIMIT = 'limit',
   STOP = 'stop',
   STOP_LIMIT = 'stop_limit',
-  STOP_MARKET = 'stop_market',
+  STOP_MARKET = 'stop_market'
 }
 
 // 注文の方向
 export enum OrderSide {
   BUY = 'buy',
-  SELL = 'sell',
+  SELL = 'sell'
 }
 
 // 注文のステータス
 export enum OrderStatus {
-  OPEN = 'open',      // システム内で作成された注文（取引所送信前）
-  PLACED = 'placed',  // 取引所に送信され受け付けられた注文
-  FILLED = 'filled',  // 約定済みの注文
+  OPEN = 'open', // システム内で作成された注文（取引所送信前）
+  PLACED = 'placed', // 取引所に送信され受け付けられた注文
+  FILLED = 'filled', // 約定済みの注文
   CANCELED = 'canceled', // キャンセルされた注文
-  REJECTED = 'rejected', // 拒否された注文
+  REJECTED = 'rejected' // 拒否された注文
 }
 
 // 注文情報の型
 export interface Order {
-  id?: string;            // システム内部の注文ID
+  id?: string; // システム内部の注文ID
   exchangeOrderId?: string; // 取引所から返された注文ID
-  symbol: string;         // 取引ペア
-  type: OrderType;        // 注文タイプ
-  side: OrderSide;        // 買い/売り
-  price?: number | undefined;    // 価格（成行注文の場合はundefined）
-                          // 指値注文では必須、成行注文では省略またはundefined
-                          // ccxt互換性のため、null値は使用せずundefinedのみ使用する
-  amount: number;         // 数量
-  status?: OrderStatus;   // 注文ステータス
-  timestamp?: number;     // タイムスタンプ
-  stopPrice?: number;     // ストップ価格（ストップ注文の場合）
+  symbol: string; // 取引ペア
+  type: OrderType; // 注文タイプ
+  side: OrderSide; // 買い/売り
+  price?: number | undefined; // 価格（成行注文の場合はundefined）
+  // 指値注文では必須、成行注文では省略またはundefined
+  // ccxt互換性のため、null値は使用せずundefinedのみ使用する
+  amount: number; // 数量
+  status?: OrderStatus; // 注文ステータス
+  timestamp?: number; // タイムスタンプ
+  stopPrice?: number; // ストップ価格（ストップ注文の場合）
 }
 
 // ポジション情報の型
@@ -155,4 +155,36 @@ export interface PerformanceMetrics {
   sharpeRatio: number;
   totalReturn: number;
   annualizedReturn: number;
-} 
+}
+
+/**
+ * システムモード
+ */
+export enum SystemMode {
+  NORMAL = 'normal',
+  EMERGENCY = 'emergency',
+  KILL_SWITCH = 'kill_switch'
+}
+
+/**
+ * リスクレベル
+ */
+export enum RiskLevel {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high'
+}
+
+/**
+ * 戦略からの売買シグナル
+ */
+export interface Signal {
+  id: string;
+  symbol: string;
+  side: OrderSide;
+  type: OrderType;
+  price?: number;
+  amount: number;
+  stopLoss?: number;
+  takeProfit?: number;
+}

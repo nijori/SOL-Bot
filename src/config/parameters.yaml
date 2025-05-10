@@ -52,6 +52,16 @@ risk:
   defaultAtrPercentage: ${DEFAULT_ATR_PERCENTAGE:-0.02}    # ATRが0または極小時に使用するデフォルト値（価格の2%）
   minStopDistancePercentage: ${MIN_STOP_DISTANCE_PERCENTAGE:-0.01}  # 最小ストップ距離（価格の1%）
   minAtrValue: ${MIN_ATR_VALUE:-0.0001}                   # ATRの最小有効値（価格の0.01%）
+  
+  # ATR%自動キャリブレーション設定
+  minLookbackCandles: ${MIN_LOOKBACK_CANDLES:-30}        # キャリブレーションに必要な最小ロウソク足数
+  maxCalibrationLookback: ${MAX_CALIBRATION_LOOKBACK:-90}  # キャリブレーションに使用する最大ロウソク足数
+  calibrationCacheTTLHours: ${CALIBRATION_CACHE_TTL:-24}   # キャリブレーション結果キャッシュの有効期間（時間）
+  
+  # ボラティリティプロファイル閾値
+  volatilityLowThreshold: ${VOLATILITY_LOW_THRESHOLD:-2.0}       # 低ボラティリティの閾値（ATR%）
+  volatilityMediumThreshold: ${VOLATILITY_MEDIUM_THRESHOLD:-5.0}  # 中ボラティリティの閾値（ATR%）
+  volatilityHighThreshold: ${VOLATILITY_HIGH_THRESHOLD:-10.0}     # 高ボラティリティの閾値（ATR%）
 
 # ログと監視パラメータ
 monitoring:

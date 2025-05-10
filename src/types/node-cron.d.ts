@@ -31,4 +31,4 @@ declare module 'node-cron' {
    * @returns 有効な場合はtrue、無効な場合はfalse
    */
   export function validate(cronExpression: string): boolean;
-} 
+}

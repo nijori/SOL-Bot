@@ -112,4 +112,4 @@ export interface OptimizerConfig {
   startDate: string;
   endDate: string;
   initialBalance: number;
-} 
+}

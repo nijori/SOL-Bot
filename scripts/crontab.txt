@@ -6,6 +6,7 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 NODE_ENV=production
 S3_BUCKET=solbot-logs
+S3_ARCHIVE_BUCKET=solbot-archive
 AWS_REGION=ap-northeast-1
 
 # ログ出力先
@@ -31,3 +32,6 @@ MAILTO=""
 
 # 毎週月曜の午前1時に古いログファイルをS3 Glacierに移行
 0 1 * * 1 aws s3 cp s3://$S3_BUCKET/logs/ s3://$S3_BUCKET-archive/logs/ --recursive --exclude "*" --include "*.log.*" --include "*.json.*" --storage-class GLACIER 
+
+# 毎日午前4時にデータライフサイクル管理を実行（INF-023）
+0 4 * * * cd /opt/solbot/current && npm run data-lifecycle:now >> /opt/solbot/logs/data_lifecycle.log 2>&1 

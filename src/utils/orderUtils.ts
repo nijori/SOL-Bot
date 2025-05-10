@@ -1,10 +1,10 @@
-import { Order, OrderStatus, Fill } from '../core/types';
-import logger from './logger';
+import { Order, OrderStatus, Fill } from "../core/types.js";
+import logger from "./logger.js";
 
 /**
  * simulateFill処理用に注文オブジェクトを更新する
  * createOrderの結果をsimulatedFillに適切に渡すためのヘルパー関数
- * 
+ *
  * @param originalOrder 元の注文オブジェクト
  * @param updatedOrder 更新された注文オブジェクト（取引所APIからのレスポンス等）
  * @returns 同期された注文オブジェクト
@@ -18,10 +18,12 @@ export function syncOrderForSimulateFill(originalOrder: Order, updatedOrder: Ord
     symbol: updatedOrder.symbol || originalOrder.symbol,
     side: updatedOrder.side || originalOrder.side,
     type: updatedOrder.type || originalOrder.type,
-    amount: updatedOrder.amount || originalOrder.amount,
+    amount: updatedOrder.amount || originalOrder.amount
   };
 
-  logger.debug(`[OrderUtils] 注文同期: ID=${originalOrder.id || 'unknown'} → ${syncedOrder.id || 'unknown'}, ExchangeID=${syncedOrder.exchangeOrderId || 'unknown'}`);
+  logger.debug(
+    `[OrderUtils] 注文同期: ID=${originalOrder.id || 'unknown'} → ${syncedOrder.id || 'unknown'}, ExchangeID=${syncedOrder.exchangeOrderId || 'unknown'}`
+  );
 
   return syncedOrder;
 }
@@ -29,7 +31,7 @@ export function syncOrderForSimulateFill(originalOrder: Order, updatedOrder: Ord
 /**
  * 注文IDと約定情報を同期する
  * 取引所APIからの約定レスポンスと内部注文オブジェクトを一致させる
- * 
+ *
  * @param order 注文オブジェクト
  * @param fill 約定情報
  * @returns 同期された約定情報
@@ -45,14 +47,16 @@ export function syncFillWithOrder(order: Order, fill: Partial<Fill>): Fill {
     timestamp: fill.timestamp || Date.now()
   };
 
-  logger.debug(`[OrderUtils] 約定同期: OrderID=${order.id || 'unknown'}, ExchangeID=${order.exchangeOrderId || 'unknown'}`);
+  logger.debug(
+    `[OrderUtils] 約定同期: OrderID=${order.id || 'unknown'}, ExchangeID=${order.exchangeOrderId || 'unknown'}`
+  );
 
   return syncedFill;
 }
 
 /**
  * 注文状態を取引所の状態に基づいて更新する
- * 
+ *
  * @param order 更新する注文オブジェクト
  * @param exchangeStatus 取引所から返された状態文字列
  * @returns 更新された注文オブジェクト
@@ -87,8 +91,10 @@ export function updateOrderStatus(order: Order, exchangeStatus: string | undefin
       break;
     default:
       // 状態が不明な場合は変更しない
-      logger.warn(`[OrderUtils] 不明な注文状態: ${exchangeStatus}, 注文ID: ${order.id || 'unknown'}`);
+      logger.warn(
+        `[OrderUtils] 不明な注文状態: ${exchangeStatus}, 注文ID: ${order.id || 'unknown'}`
+      );
   }
 
   return updatedOrder;
-} 
+}

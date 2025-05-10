@@ -1,0 +1,48 @@
+# GitHub Actions用環境変数設定ファイル
+# REF-026: ESMテスト用CI/CD最適化
+
+# テスト環境設定
+test:
+  # ESMテスト用Node環境変数
+  node_options: "--experimental-vm-modules --max-old-space-size=4096"
+  
+  # テストのタイムアウト
+  timeout: 60000
+  
+  # テストディレクトリ設定
+  directories:
+    - src/__tests__/core
+    - src/__tests__/data
+    - src/__tests__/strategies
+    - src/__tests__/services
+    - src/__tests__/utils
+  
+  # カバレッジ閾値
+  coverage_threshold:
+    global:
+      lines: 90
+      functions: 85
+      statements: 90
+
+# ビルド環境設定
+build:
+  # ビルドディレクトリ
+  output_dir: dist
+  
+  # ビルドモード
+  mode: production
+  
+  # ビルド環境変数
+  env:
+    NODE_ENV: production
+
+# デプロイ設定
+deploy:
+  # アーティファクト保持期間（日）
+  retention_days: 30
+  
+  # EC2設定
+  ec2:
+    app_dir: /opt/solbot
+    releases_dir: /opt/solbot/releases
+    current_link: /opt/solbot/current 

@@ -10,13 +10,13 @@ declare const process: any;
 declare const module: any;
 
 import ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from '../core/types';
-import { DataRepository } from './dataRepository';
-import { ParquetDataStore } from './parquetDataStore';
-import logger from '../utils/logger';
+import { Candle, normalizeTimestamp } from "../core/types.js";
+import { DataRepository } from "./dataRepository.js";
+import { ParquetDataStore } from "./parquetDataStore.js";
+import logger from "../utils/logger.js";
 import cron from 'node-cron';
 import 'dotenv/config';
-import { OPERATION_MODE } from '../config/parameters';
+import { OPERATION_MODE } from "../config/parameters.js";
 
 // 取り込み設定
 const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
@@ -34,30 +34,34 @@ export class MarketDataFetcher {
 
   constructor() {
     this.dataRepository = new DataRepository();
-    
+
     // Parquet形式を使用する場合は初期化
     if (USE_PARQUET) {
       try {
         this.parquetDataStore = new ParquetDataStore();
         logger.info('Parquetデータストアを初期化しました');
       } catch (error) {
-        logger.error(`Parquetデータストア初期化エラー: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(
+          `Parquetデータストア初期化エラー: ${error instanceof Error ? error.message : String(error)}`
+        );
         this.parquetDataStore = null;
       }
     }
-    
+
     this.exchanges = new Map();
-    
+
     // 指定された取引所を初期化
     for (const exchangeId of EXCHANGES) {
       try {
         const exchange = new (ccxt as any)[exchangeId]({
-          enableRateLimit: true, // レート制限を有効化
+          enableRateLimit: true // レート制限を有効化
         });
         this.exchanges.set(exchangeId, exchange);
         logger.info(`取引所接続初期化: ${exchangeId}`);
       } catch (error) {
-        logger.error(`取引所初期化エラー (${exchangeId}): ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(
+          `取引所初期化エラー (${exchangeId}): ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -79,39 +83,41 @@ export class MarketDataFetcher {
     // 現在のUTCタイムスタンプ取得
     const now = Date.now();
     let retries = 0;
-    
+
     while (retries < RETRY_COUNT) {
       try {
         // ローソク足データを取得
         const ohlcv = await exchange.fetchOHLCV(symbol, timeframe, undefined, limit);
-        
+
         // レスポンスを標準形式に変換
         const candles: Candle[] = ohlcv.map((candle: number[]) => ({
           // タイムスタンプはnumber型として統一
-          timestamp: candle[0], 
+          timestamp: candle[0],
           open: candle[1],
           high: candle[2],
           low: candle[3],
           close: candle[4],
           volume: candle[5]
         }));
-        
-        logger.info(`${exchangeId}から${symbol}の${timeframe}足データを${candles.length}件取得しました`);
+
+        logger.info(
+          `${exchangeId}から${symbol}の${timeframe}足データを${candles.length}件取得しました`
+        );
         return candles;
       } catch (error) {
         retries++;
         const errorMessage = error instanceof Error ? error.message : String(error);
         logger.error(`取得エラー (${exchangeId}, 試行${retries}/${RETRY_COUNT}): ${errorMessage}`);
-        
+
         if (retries < RETRY_COUNT) {
           // 再試行前に一定時間待機
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         } else {
           throw new Error(`データ取得失敗 (${exchangeId}): ${errorMessage}`);
         }
       }
     }
-    
+
     return []; // コンパイルエラー回避のため（この行は実行されない）
   }
 
@@ -123,7 +129,7 @@ export class MarketDataFetcher {
     timeframe: string = DEFAULT_TIMEFRAME
   ): Promise<boolean> {
     if (this.isRunning) {
-      logger.warn("データ取得ジョブが既に実行中です");
+      logger.warn('データ取得ジョブが既に実行中です');
       return false;
     }
 
@@ -138,17 +144,19 @@ export class MarketDataFetcher {
           if (candles.length > 0) {
             // 取引所IDを含むファイル名で保存
             const symbolKey = `${exchangeId}_${symbol}`;
-            
+
             // Parquet形式で保存
             if (this.parquetDataStore && USE_PARQUET) {
               await this.parquetDataStore.saveCandles(symbolKey, timeframe, candles);
             }
-            
+
             // 従来のJSON形式でも保存（互換性のため）
             await this.dataRepository.saveCandles(symbolKey, timeframe, candles);
           }
         } catch (error) {
-          logger.error(`${exchangeId}からのデータ取得中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
+          logger.error(
+            `${exchangeId}からのデータ取得中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`
+          );
           success = false;
           // 一つの取引所の失敗で全体を中断せず、次の取引所へ進む
         }
@@ -166,10 +174,10 @@ export class MarketDataFetcher {
    */
   public startScheduledJob(cronExpression: string = '0 * * * *'): void {
     cron.schedule(cronExpression, async () => {
-      logger.info("定期データ取得ジョブを開始します");
+      logger.info('定期データ取得ジョブを開始します');
       await this.fetchAndSaveCandles();
     });
-    
+
     logger.info(`1時間足データ取得ジョブをスケジュールしました (${cronExpression})`);
     if (USE_PARQUET) {
       logger.info('データはParquet形式で保存されます');
@@ -190,7 +198,7 @@ export class MarketDataFetcher {
     logger.info(`${symbol}の${days}日分の${timeframe}足データを取得します`);
     return await this.fetchAndSaveCandles(symbol, timeframe);
   }
-  
+
   /**
    * リソースを解放する
    */
@@ -199,7 +207,9 @@ export class MarketDataFetcher {
       try {
         this.parquetDataStore.close();
       } catch (error) {
-        logger.error(`Parquetデータストアの終了中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(
+          `Parquetデータストアの終了中にエラーが発生: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
   }
@@ -212,11 +222,11 @@ if (typeof require !== 'undefined' && require.main === module) {
     await fetcher.manualFetch();
     // スケジュールされたジョブを開始
     fetcher.startScheduledJob();
-    
+
     // プロセス終了時にリソースを解放
     process.on('SIGINT', () => {
       fetcher.close();
       process.exit(0);
     });
   })();
-} 
+}

@@ -2,13 +2,13 @@
 /**
  * fetchHourlyData.ts
  * 1h足データ取り込みスクリプト
- * 
+ *
  * 使用方法:
  * npm run fetch-hourly -- --symbol SOL/USDT --days 7
  */
 
-import { MarketDataFetcher } from './marketDataFetcher';
-import logger from '../utils/logger';
+import { MarketDataFetcher } from "./marketDataFetcher.js";
+import logger from "../utils/logger.js";
 
 // コマンドライン引数の解析
 const args = process.argv.slice(2);
@@ -32,16 +32,16 @@ for (let i = 0; i < args.length; i++) {
 // メイン処理
 async function main() {
   logger.info(`${symbol}の${days}日間の1時間足データ取得を開始します`);
-  
+
   const fetcher = new MarketDataFetcher();
-  
+
   try {
     // データ取得実行
     const success = await fetcher.manualFetch(symbol, '1h', days);
-    
+
     if (success) {
       logger.info('データ取得が完了しました');
-      
+
       // スケジュールされたジョブを開始するかどうかを確認
       const shouldSchedule = args.includes('--schedule');
       if (shouldSchedule) {
@@ -49,20 +49,24 @@ async function main() {
         fetcher.startScheduledJob();
         logger.info('Ctrl+Cで終了するまでジョブが実行されます');
       } else {
-        logger.info('定期的なデータ取得をスケジュールするには --schedule オプションを使用してください');
+        logger.info(
+          '定期的なデータ取得をスケジュールするには --schedule オプションを使用してください'
+        );
       }
     } else {
       logger.error('データ取得中にエラーが発生しました');
       process.exit(1);
     }
   } catch (error) {
-    logger.error(`予期しないエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(
+      `予期しないエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`
+    );
     process.exit(1);
   }
 }
 
 // スクリプト実行
-main().catch(error => {
+main().catch((error) => {
   logger.error(`スクリプト実行エラー: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
-}); 
+});

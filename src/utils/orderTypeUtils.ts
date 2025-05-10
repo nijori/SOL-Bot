@@ -1,12 +1,12 @@
 /**
  * 注文タイプと注文サイド（売買方向）の変換ユーティリティ関数
- * 
+ *
  * このファイルはOrderTypeとOrderSideの間の安全な変換を提供し、
  * 型推論と型安全性を強化するためのヘルパー関数を提供します。
  */
 
-import { OrderType, OrderSide, OrderStatus } from '../core/types';
-import logger from './logger';
+import { OrderType, OrderSide, OrderStatus } from "../core/types.js";
+import logger from "./logger.js";
 
 /**
  * 文字列をOrderTypeに安全に変換する
@@ -16,7 +16,7 @@ import logger from './logger';
 export function stringToOrderType(typeStr: string): OrderType | undefined {
   // 大文字小文字を正規化
   const normalizedType = typeStr.toLowerCase();
-  
+
   // 直接一致するケース
   switch (normalizedType) {
     case 'market':
@@ -47,7 +47,7 @@ export function stringToOrderType(typeStr: string): OrderType | undefined {
         // デフォルトでSTOP_MARKETと解釈
         return OrderType.STOP_MARKET;
       }
-      
+
       // 一致するものが見つからない場合
       logger.warn(`未知の注文タイプ文字列: ${typeStr}`);
       return undefined;
@@ -62,7 +62,7 @@ export function stringToOrderType(typeStr: string): OrderType | undefined {
 export function stringToOrderSide(sideStr: string): OrderSide | undefined {
   // 大文字小文字を正規化
   const normalizedSide = sideStr.toLowerCase();
-  
+
   switch (normalizedSide) {
     case 'buy':
     case 'bid':
@@ -86,7 +86,7 @@ export function stringToOrderSide(sideStr: string): OrderSide | undefined {
 export function stringToOrderStatus(statusStr: string): OrderStatus | undefined {
   // 大文字小文字を正規化
   const normalizedStatus = statusStr.toLowerCase();
-  
+
   switch (normalizedStatus) {
     case 'open':
     case 'pending':
@@ -159,23 +159,23 @@ export const ORDER_TYPE_TO_CCXT_MAPPING: Record<OrderType, string> = {
   [OrderType.LIMIT]: 'limit',
   [OrderType.STOP]: 'stop',
   [OrderType.STOP_LIMIT]: 'stop_limit',
-  [OrderType.STOP_MARKET]: 'stop_market',
+  [OrderType.STOP_MARKET]: 'stop_market'
 };
 
 /**
  * ccxt注文タイプ文字列からOrderTypeへの変換マッピング
  */
 export const CCXT_TO_ORDER_TYPE_MAPPING: Record<string, OrderType> = {
-  'market': OrderType.MARKET,
-  'limit': OrderType.LIMIT,
-  'stop': OrderType.STOP,
-  'stop_limit': OrderType.STOP_LIMIT,
-  'stop_market': OrderType.STOP_MARKET,
+  market: OrderType.MARKET,
+  limit: OrderType.LIMIT,
+  stop: OrderType.STOP,
+  stop_limit: OrderType.STOP_LIMIT,
+  stop_market: OrderType.STOP_MARKET,
   // 取引所特有の名称にも対応
-  'STOP_LOSS': OrderType.STOP_MARKET,
-  'STOP_LOSS_LIMIT': OrderType.STOP_LIMIT,
-  'TAKE_PROFIT': OrderType.STOP_MARKET,
-  'TAKE_PROFIT_LIMIT': OrderType.STOP_LIMIT,
+  STOP_LOSS: OrderType.STOP_MARKET,
+  STOP_LOSS_LIMIT: OrderType.STOP_LIMIT,
+  TAKE_PROFIT: OrderType.STOP_MARKET,
+  TAKE_PROFIT_LIMIT: OrderType.STOP_LIMIT
 };
 
 /**
@@ -187,7 +187,7 @@ export function orderTypeToCcxt(orderType: OrderType): string {
   if (orderType in ORDER_TYPE_TO_CCXT_MAPPING) {
     return ORDER_TYPE_TO_CCXT_MAPPING[orderType];
   }
-  
+
   // マッピングにない場合は小文字にして返す（後方互換性）
   logger.warn(`マッピングにないOrderType: ${orderType}、小文字に変換します`);
   return orderType.toString().toLowerCase();
@@ -201,12 +201,12 @@ export function orderTypeToCcxt(orderType: OrderType): string {
 export function ccxtToOrderType(ccxtOrderType: string): OrderType {
   // 文字列の正規化（小文字に変換）
   const normalizedType = ccxtOrderType.toLowerCase();
-  
+
   // マッピングテーブルでの直接一致を最初に試みる
   if (normalizedType in CCXT_TO_ORDER_TYPE_MAPPING) {
     return CCXT_TO_ORDER_TYPE_MAPPING[normalizedType];
   }
-  
+
   // 直接一致しなかった場合、文字列の部分一致で判断
   if (normalizedType.includes('market')) {
     return OrderType.MARKET;
@@ -219,7 +219,7 @@ export function ccxtToOrderType(ccxtOrderType: string): OrderType {
   } else if (normalizedType.includes('stop')) {
     return OrderType.STOP_MARKET;
   }
-  
+
   // デフォルトはLIMITとする（最も安全なフォールバック）
   logger.warn(`未知のccxt注文タイプ: ${ccxtOrderType}、デフォルトでLIMITに変換します`);
   return OrderType.LIMIT;
@@ -249,7 +249,9 @@ export function isLimitOrder(orderType: OrderType): boolean {
  * @returns ストップ注文の場合はtrue
  */
 export function isStopOrder(orderType: OrderType): boolean {
-  return orderType === OrderType.STOP || 
-         orderType === OrderType.STOP_LIMIT || 
-         orderType === OrderType.STOP_MARKET;
-} 
+  return (
+    orderType === OrderType.STOP ||
+    orderType === OrderType.STOP_LIMIT ||
+    orderType === OrderType.STOP_MARKET
+  );
+}

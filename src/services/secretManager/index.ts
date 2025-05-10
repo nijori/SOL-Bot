@@ -1,6 +1,6 @@
 /**
  * シークレットマネージャーモジュール
- * 
+ *
  * API Key、秘密鍵などの機密情報を安全に管理するためのインターフェースを提供します。
  * 複数のバックエンド（ファイル、環境変数、AWS Parameter Store、GCP Secret Manager）に対応しています。
  */
@@ -15,14 +15,14 @@ export { AWSParameterStoreManager, AWSParameterStoreConfig } from './AWSParamete
 export { GCPSecretManager, GCPSecretManagerConfig } from './GCPSecretManager';
 
 // ファクトリー
-export { 
-  SecretManagerFactory, 
+export {
+  SecretManagerFactory,
   SecretManagerType,
   SecretManagerOptions
 } from './SecretManagerFactory';
 
 // デフォルトエクスポート - 簡単アクセス用のファクトリーインスタンス
-import { SecretManagerFactory } from './SecretManagerFactory';
+import { SecretManagerFactory } from "./SecretManagerFactory.js";
 
 /**
  * デフォルトのシークレットマネージャーインスタンスを取得
@@ -30,4 +30,4 @@ import { SecretManagerFactory } from './SecretManagerFactory';
 export const secretManager = SecretManagerFactory.getSecretManager();
 
 // デフォルトエクスポート
-export default secretManager; 
+export default secretManager;

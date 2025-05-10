@@ -1,12 +1,12 @@
 /**
  * 環境変数を使用したシークレットマネージャー実装
- * 
+ *
  * プロセス環境変数から設定を取得する簡易的なシークレットマネージャーです。
  * ローカル開発やCIでの使用を想定しています。
  */
 
-import { SecretManagerInterface } from './SecretManagerInterface';
-import logger from '../../utils/logger';
+import { SecretManagerInterface } from "./SecretManagerInterface.js";
+import logger from "../../utils/logger.js";
 import dotenv from 'dotenv';
 
 // .envファイルを読み込む
@@ -18,7 +18,7 @@ export interface EnvSecretManagerConfig {
 
 export class EnvSecretManager implements SecretManagerInterface {
   private readonly prefix: string;
-  
+
   /**
    * コンストラクタ
    * @param config 環境変数のプレフィックス設定
@@ -27,7 +27,7 @@ export class EnvSecretManager implements SecretManagerInterface {
     this.prefix = config.prefix || 'SECRET_';
     logger.info(`環境変数シークレットマネージャー初期化: prefix=${this.prefix}`);
   }
-  
+
   /**
    * キーに対応する環境変数名を取得
    * @param key シークレットのキー
@@ -39,10 +39,10 @@ export class EnvSecretManager implements SecretManagerInterface {
       .replace(/\./g, '_')
       .replace(/([a-z])([A-Z])/g, '$1_$2')
       .toUpperCase();
-    
+
     return `${this.prefix}${normalizedKey}`;
   }
-  
+
   /**
    * シークレット値を取得する
    * @param key シークレットのキー
@@ -51,15 +51,15 @@ export class EnvSecretManager implements SecretManagerInterface {
   async getSecret(key: string): Promise<string | null> {
     const envName = this.getEnvName(key);
     const value = process.env[envName];
-    
+
     if (value === undefined) {
       logger.debug(`環境変数が見つかりません: ${envName}`);
       return null;
     }
-    
+
     return value;
   }
-  
+
   /**
    * シークレット値を設定/更新する
    * 注意: 実行時の環境変数のみを変更し、.envファイルは更新しません
@@ -78,7 +78,7 @@ export class EnvSecretManager implements SecretManagerInterface {
       return false;
     }
   }
-  
+
   /**
    * シークレットを削除する（環境変数から削除）
    * @param key シークレットのキー
@@ -95,7 +95,7 @@ export class EnvSecretManager implements SecretManagerInterface {
       return false;
     }
   }
-  
+
   /**
    * シークレットが存在するか確認
    * @param key シークレットのキー
@@ -105,4 +105,4 @@ export class EnvSecretManager implements SecretManagerInterface {
     const envName = this.getEnvName(key);
     return envName in process.env;
   }
-} 
+}

@@ -8,11 +8,11 @@
  * npm run backtest:multi -- --symbols SOL/USDT,BTC/USDT --timeframe 4 --start-date 2023-01-01 --end-date 2023-05-01
  */
 
-import { MultiSymbolBacktestRunner } from '../core/multiSymbolBacktestRunner';
-import { AllocationStrategy } from '../types/multiSymbolTypes';
+import { MultiSymbolBacktestRunner } from "../core/multiSymbolBacktestRunner.js";
+import { AllocationStrategy } from "../types/multiSymbolTypes.js";
 import * as fs from 'fs';
 import * as path from 'path';
-import logger from '../utils/logger';
+import logger from "../utils/logger.js";
 
 // メイン処理
 async function main() {

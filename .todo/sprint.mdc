@@ -3,273 +3,127 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
 # SOL-Bot スプリント
 
-## 🗓 スプリント進捗 (4月26日現在)
+### 本番稼働ロードマップと計画:
+
+プロジェクトは現在、「ビルド／CI/CD／Docker」が動作する状態から、「24時間無停止のLIVE取引」へと向かうロードマップを進行中です。これには緊急停止機能、ロールバック機能、監視体制、アラート通知が含まれます。
+
+#### フェーズ別タスクリスト
+
+| フェーズ | 目的 | 完了条件 | 作業粒度 |
+|---|---|---|---|
+| P0 ― 安全ネット | "やらかさない"仕組みを先に敷く | LIVE 停止スイッチ が 10 秒で押せる | 2 d |
+| P1 ― インフラ Hardening | 勝手に動き出せる CI/CD + Secrets | main push → EC2 → LIVE 再起動まで全自動 | 3 d |
+| P2 ― 監視 & ログ可視化 | 失敗を 5 分以内に検知 | Grafana に「残高・PnL・Error Rate」3 枚 | 2 d |
+| P3 ― リスクロジック実戦テスト | 24 h 無人で Paper-Trade | simulation モードでノーエラー通過 | 3 d |
+| P4 ― Runbook & リハーサル | 障害対応ドキュメント & Drill 完了 | "EC2 停止→復旧" をペアで 1 回成功 | 1 d |
+| P5 ― Go-Live | 実弾投入 & 監視運用開始 | 週次決算まで問題なし | - |
+
+現在の進捗状況は「P0→P1フェーズ移行中」と評価されており、P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んでいきます。
+
+
+## 🗓 2026-W11スプリント（P0→P1：安全ネット＆インフラHardening）
+
+#### 本スプリント（P0→P1）の"Next-Action"指示:
+
+| # | タスク | How-To / 受け入れ基準 |
+|---|------|-------------------|
+| 0-1 | 緊急停止フラグを実装 | 仕様：data/kill-switch.flag が存在したら即 process.exit(1) 試験：flag 生成→Bot が 30 sec 以内に停止 |
+| 0-2 | ノン root SSH & sudo systemctl stop bot.service で同等の Kill を確認 | EC2 で 1 コマンド停止できること |
+| 1-1 | Secrets を AWS SSM Parameter Store に移行 | ステップ ① aws ssm put-parameter --name /solbot/EXCHANGE_API_KEY --type SecureString … ② deploy.sh で aws ssm get-parameter 取得→.env 生成 ③ GitHub Actions に OIDC ロール を設定（最低: ssm:GetParameters） |
+| 1-2 | GitHub Secrets から "鍵系" を削除 | EXCHANGE_SECRET_KEY, DISCORD_WEBHOOK_URL など = Parameter Store へ |
+| 1-3 | deploy*.yml を CI→SSM 仕様 に修正 | 成功条件： main push で .env を含まずに EC2 起動し PnL 0 出力 |
+| 1-4 | IAM 最小権限ポリシー を添付 | S3:PutObject, S3:GetObject, ssm:GetParameters のみ（Glacier は別ロール） |
+| 1-5 | Data-Lifecycle Cron 実機テスト | EC2 で npm run data-lifecycle --run-now → S3 にファイル移行確認 |
 
 ### 今週のスプリント計画と優先順位:
-現在W10スプリントが開始しました（追加機能開発・ユーザビリティ向上スプリント）。優先順位は以下の通りです：
+P0→P1フェーズのスプリント（本番稼働に向けた安全ネットとインフラHardening）。優先順位は以下の通り：
 
-1. [x] ALG-018: 新しい戦略パラメータの実装
-      - 📅 Due        : 2026-03-15
+0. [x] CICD-003: todo-lintスクリプトの修正
+      - 📅 Due        : 2026-04-30
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : feat
+      - 🏷️  Label      : bug
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : 市場環境に応じた動的パラメータ調整機能の追加。市場の状態（トレンド/レンジ）を検出し、それに応じてEMA期間、ATR乗数、エントリー閾値などの主要パラメータを自動調整する機能を実装します。ボラティリティベースの資金配分戦略（AllocationStrategy.VOLATILITY）を実装し、ATRの逆数を使って自動的に資金配分比率を計算する機能を追加。リスクパリティアプローチでボラティリティの高い通貨ペアには少なく、低い通貨ペアには多く配分する最適化を実現。
+      - ✎ Notes      : ESモジュール環境のloggerインポート問題を修正。todoValidator.tsとtodo-lint.tsのlogger依存をconsole.logに変更。コードをコミット済み。
 
-2. [ ] DOC-004: ユーザーマニュアル作成
-      - 📅 Due        : 2026-02-15
+1. [ ] SEC-004: 緊急停止フラグ機能の実装
+      - 📅 Due        : 2026-05-05
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : doc
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 75%
-      - ✎ Notes      : エンドユーザー向けの詳細な操作マニュアル作成。インストール手順、設定ファイルの編集方法、コマンドラインオプションの説明、バックテスト実行方法、ライブトレード設定など、包括的なドキュメント「UserManual.md」を作成。基本的な使用方法と設定のセクションは完了。現在トラブルシューティングとセキュリティのベストプラクティスセクションに取り組み中。既存のドキュメント（Docker-Setup.md、AWS-S3-SETUP.mdなど）との連携完了。
-
-
-3. [x] TODO-CLI: todo-lintの機能強化
-      - 📅 Due        : 2026-04-05
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : tool
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : todo-lintにfront-matterブロックスキップ機能と空文字チェックを追加。正規表現改善でタスク行とフィールドの検出精度を向上。日付比較のUTC統一とフォーマット検証強化も実装。大文字Xのチェックボックス対応やアーカイブタスク処理、統計情報表示機能も追加。
-
-4. [x] OMS-018: UnifiedOrderManager配分アルゴリズム単体テスト
-      - 📅 Due        : 2026-04-10
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : UnifiedOrderManagerの配分アルゴリズム（PRIORITY/ROUND_ROBIN/SPLIT_EQUAL/CUSTOM）の単体テスト実装完了。エッジケース（無効化取引所、負の比率、合計≠1など）のハンドリングを検証。カスタム配分率の合計が1未満の場合の処理、合計が1を超える場合の処理、負の配分率の扱いなどを確認。注文作成中にエラーが発生した場合の処理も検証。
-
-5. [ ] REF-020: テスト環境のESM完全対応
-      - 📅 Due        : 2026-04-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-019
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 75%
-      - ✎ Notes      : Jest設定ファイル、package.json、tsconfig.jsonのESM対応は完了。Todo-lintツールもESM対応に修正。大半のテストファイルの変換と実行に成功。REF-027（ESMインポートパス問題）とREF-028（Jestモック関数のESM対応）の2つの課題が残っており、これらの解決後に完了予定。テスト実行の安定性は向上し、CI/CDパイプラインでのテスト実行も確立済み。
-
-6. [x] REF-021: テスト変換スクリプト改良
-      - 📅 Due        : 2026-05-10
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : convert-tests-to-esmスクリプトの堅牢性を向上。型アノテーション除去の強化（変数宣言、関数パラメータ、クラスメソッド、ジェネリック型など）、jest.mockブロック処理の改善、クラス定義のESM対応化、複雑なモック関数の変換サポートを実装。特にジェネリック型の処理、複雑な型定義の削除、関数パラメータの型アノテーション除去を強化。循環参照の問題を解決するimport metaポリフィルも追加。変換結果の統計表示（成功、失敗、スキップ数）も追加。テストケースの実行検証も完了。
-
-7. [x] REF-022: 複雑なテストファイルのESM対応
-      - 📅 Due        : 2026-05-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-021
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 変換スクリプト(convert-tests-to-esm.js)を改良して複雑な構造のテストファイルを正しくESM形式に変換できるようにした。特に型アノテーションの削除、関数のパラメータ括弧の閉じ忘れ、モック関数の設定問題などを修正。UnifiedOrderManager.test.mjsとatrUtils.test.mjsの修正を完了し、テスト実行が正常に終了することを確認。また、非同期処理による「Jest did not exit」問題も解決し、テストプロセスが適切に終了するようにafterAllフックでクリーンアップ処理を追加。今後の変換作業の自動化も容易になった。esm-migration-issues.mdに詳細あり。
-
-8. [x] REF-023: テスト実行フローのESM対応
-      - 📅 Due        : 2026-05-20
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-022
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : テスト実行フローのESM対応を完了。setup-esm-test-flow.js（環境設定スクリプト）、run-esm-tests.js（カスタムテストランナー）、cleanup-test-resources.js（リソース管理）を実装。package.jsonに最適化されたテストスクリプト（test:esm、test:runner、test:detect-handles等）を追加。Jest設定の検証機能、非同期処理のクリーンアップ、テスト環境のNode.js互換性チェック、CI/CD対応も実装。ESMテスト実行時の「Jest did not exit」問題を解決し、テストプロセスが適切に終了するよう改善。esm-migration-issues.mdにも進捗と詳細を記録。
-
-9. [x] REF-024: ESM型アノテーション削除の最終処理
-      - 📅 Due        : 2026-06-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-023
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 一部の.mjsファイルに残っている型アノテーションを完全に削除し、TypeScriptの型チェックエラーを解消した。enhance-mjs-cleanup.jsスクリプトを作成し、ジェネリック型パラメータの削除、メソッド戻り値の型アノテーション除去、関数パラメータの型アノテーション削除、オブジェクト定義内の型アノテーション削除、壊れた文字列リテラルや構文の修正などを実装。24個の.mjsファイルすべてを修正し、残りの問題はインポート部分に集中していることを確認。テスト実行時のTypeScriptエラーは大幅に削減された。
-
-10. [x] REF-025: ESMテスト安定性の向上
-      - 📅 Due        : 2026-06-25
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-023
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : テスト実行の安定性向上のための包括的な対策を実装。test-cleanup-utils.jsで非同期処理クリーンアップヘルパーを作成し、afterAllフックで確実に実行できるようにした。jest-setup-esm.jsグローバルセットアップファイルでタイマーやイベントリスナー、モックなどを自動クリーンアップする機能を実装。また、run-esm-tests-safely.jsスクリプトでテスト実行時のハングを検出して強制終了する機能も追加。Jest did not exitエラーの根本的解決のため、ResourceTrackerクラスやクリーンアップユーティリティも実装。テスト間の分離を強化し、非同期処理の正しいクリーンアップパターンを標準化。ESM環境でのJest機能を完全にサポートするよう各種モジュールをESM互換に修正。
-
-11. [x] REF-026: ESMテスト用CI/CD最適化
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-023, REF-025
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ESMテスト実行のためのGitHub Actionsワークフローを最適化。新しいesm-tests.ymlワークフローを作成し、Node.jsバージョンとテストグループによるマトリックス実行を実装。キャッシュ戦略の最適化、テスト並列実行、失敗時も継続する設定を追加。カバレッジレポートの生成と保存も改善し、PR時の自動コメント機能を追加。ci.ymlワークフローもESMテスト実行をサポートするよう更新し、actions-env.yml設定ファイルで環境変数を一元管理。ci-esm-setup.jsスクリプトでCI環境のテスト前準備を自動化。PR検証からプロダクションデプロイまでの一貫したテスト実行パイプラインを構築。
-
-12. [x] REF-027: ESMインポートパス問題修正
-      - 📅 Due        : 2026-07-20
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-024
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ESM変換後の.mjsファイルに残っている壊れたインポートパスを修正するスクリプト（fix-esm-import-paths.js）を実装完了。'path: '→'path'、'url: '→'url'、__dirname"→__dirname、'../../'strategies/meanReversionStrategy''→'../../strategies/meanReversionStrategy.js'のような壊れたパターンを検出し修正。正規表現による置換パターンを多数実装し、24個のファイルすべてを自動的に修正。パスの正規化、拡張子の追加、壊れた文字列や構文の修正により、ESM環境でのモジュール解決問題を解決。package.jsonに「fix:esm-imports」コマンドも追加し、今後の保守性も向上。
-
-13. [x] REF-028: Jestモック関数のESM対応
-      - 📅 Due        : 2026-07-25
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : REF-024
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ESM環境でのJestモック関数処理を改善。fix-jest-mocks-for-esmスクリプトを実装し、jest.mock呼び出しの修正、モック実装の適切な構文への変換、モックファイルのESM形式への変換機能を追加。export-esm-mock.mjsヘルパーユーティリティを作成し、mockModule、createMockFactory、createSimpleMock関数を実装。setupJest.mjsファイルも修正して壊れた関数宣言や構文を修正。package.jsonにfix:jest-mocks、fix:esm:allコマンドを追加し、ESM-Migration-Guide.mdドキュメントも作成。Jestがモックを正しく認識できるようになり、"jest is not defined"エラーの解決、"jest.mock"呼び出しのESM対応が完了。
-
-14. [x] TST-015: MeanRevertStrategyテストの安定性強化
-      - 📅 Due        : 2026-07-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : meanRevertStrategy.test.mjsのテスト安定性問題を解決。テストデータ生成用のCandleDataFactoryクラスを実装し、様々なテストシナリオに対応。十分な量のローソク足データ（Donchianチャネル計算に必要な最低30本以上）を保証する機能、グリッド境界を確実にまたぐデータ生成機能、レンジエスケープ用のデータ生成機能などを実装。ボラティリティを調整可能にしATR計算の信頼性を向上。また、新たにボラティリティシナリオのテストケースも追加し、テストカバレッジも強化。テスト失敗の主因だったデータ不足問題を解消し、テストの再現性と安定性を大幅に向上させた。
-
-15. [ ] REF-029: ESMテストのモックデータ生成改善
-      - 📅 Due        : 2026-07-20
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
+      - 🏷️  Label      : security
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : テスト用モックデータ生成ユーティリティを作成し、すべてのテストファイルで一貫して使用できるようにする。テストの再現性向上のため、固定シード値に基づくランダムデータ生成をサポート。市場状態やシナリオ（トレンド上昇/下降、レンジ相場、急激な価格変動など）を指定してデータを生成できるファクトリー関数を実装。また、テスト用の設定を簡単にオーバーライドできる機能も追加。
+      - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。EC2で実行中のボットを30秒以内に停止できることを確認。また非root SSHでのsudo systemctl stop bot.serviceによる停止機能も検証。
 
-
-### 追加機能開発・ユーザビリティ向上の方針:
-前回のパフォーマンス最適化・リソース管理スプリントに続き、ユーザービリティと開発効率を向上させる機能強化を行います。主な焦点は：
-
-1. **戦略の適応性向上**:
-   - 市場状態に応じた動的パラメータ調整
-   - 異なる市場環境での戦略パフォーマンス向上
-   - より柔軟な取引条件の設定
-
-2. **ドキュメンテーション強化**:
-   - エンドユーザー向け包括的マニュアル
-   - 設定例とベストプラクティスの提供
-   - チュートリアルとユースケースの追加
-
-3. **開発効率向上**:
-   - Todoタスク管理ツールの強化
-   - テスト環境のESM対応による近代化
-   - コード品質と一貫性の向上
-
-4. **テスト品質向上**:
-   - マルチエクスチェンジ対応の検証強化
-   - エッジケースの包括的テスト
-   - ユニットテストのカバレッジ拡大
-
-### 期待される成果:
-- より多様な市場環境での戦略パフォーマンス向上
-- ユーザー導入障壁の低減とオンボーディングの簡素化
-- 開発プロセスの効率化とコード品質の向上
-- テスト品質とコードの安全性向上
-
-
-### バックログからの優先移動理由:
-* ALG-018は市場適応性を高め、様々な環境での収益性向上に直結するため最優先
-* DOC-004はユーザー採用と満足度に不可欠なためセカンドプライオリティに設定
-* TODO-CLIはタスク管理プロセスの改善により開発効率向上につながるため重要
-* OMS-018はマルチエクスチェンジ対応の重要な部分であり、信頼性確保に必要
-* REF-020はテスト環境の近代化とメンテナンス性向上のため優先的に対応
-
-## 前スプリント完了済みタスク (W9 パフォーマンス最適化・リソース管理スプリント):
-
-.- [x] PERF-006: RealTimeDataProcessor最適化
-      - 📅 Due        : 2026-04-15
+2. [ ] SEC-006: Secrets管理をAWS SSM Parameter Storeに移行
+      - 📅 Due        : 2026-05-10
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : perf
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : RealTimeDataProcessorにLRUキャッシュを実装し、メモリ使用量を最適化。back-pressure計測機能を追加し、高負荷時のデータ処理パフォーマンスを改善。maxBufferSizePerKeyを動的計算する仕組みも導入。優先度ベースのデータフィルタリングを実装しリソース使用を効率化。
-
-.- [x] TST-013: DataRepository並列E2Eテスト
-      - 📅 Due        : 2026-04-12
-      - 👤 Owner      : @qa-team
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : DataRepositoryの並列書き込み競合を検証するE2Eテストを実装。async-mutexによるロック機構を実装してファイル操作のアトミック性を確保。複数プロセスからの同時書き込みシナリオをテストし、データ整合性チェック機能も追加。子プロセス生成やマルチプロセスでの競合データアクセスに対応するテスト環境も実装した。
-
-.- [x] INF-023: 古い Parquet/Log 自動ローテーション
-      - 📅 Due        : 2026-04-14
-      - 👤 Owner      : @operator
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 90日超ファイルをS3→Glacierに自動移行するスクリプトを実装。AWS SDK for JavaScriptを使用してS3とGlacierに連携。古いデータファイル自動検出・アップロード機能、S3からGlacierへの段階的移行機能、node-cronによるスケジューラ機能を実装。環境変数による設定カスタマイズやコマンドライン引数によるモード切替も対応。IAMポリシー設定やAWS S3バケット設定方法も包括的にドキュメント化。
-
-.- [x] INF-021: CI 依存脆弱性スキャン & Dependabot
-      - 📅 Due        : 2026-04-20
-      - 👤 Owner      : @assistant
       - 🏷️  Label      : security
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : Dependabotの設定ファイル（.github/dependabot.yml）を作成し、npmパッケージとGitHub Actionsの依存関係を週次で自動更新。Trivyによる脆弱性スキャンを強化し、週次スケジュールとPR時の自動チェックを実装。スキャン結果をSARIF形式でGitHub Securityに統合し、脆弱性があるPRには自動コメント通知を実装。README.mdにセキュリティ対策セクションを追加し、包括的なSECURITY.mdドキュメントも作成。開発依存性と本番依存性のグループ化による効率的な更新管理も実装。
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : AWS SSM Parameter Storeを使用したシークレット管理の実装。EXCHANGE_API_KEY、EXCHANGE_SECRET_KEY、DISCORD_WEBHOOK_URLなどの機密情報をSecureStringとして保存。deploy.shスクリプトでSSMからパラメータを取得し.envファイルを生成する機能を実装。GitHub OIDC認証の設定も含む。
 
-.- [x] TST-014: マルチエクスチェンジテストの型エラー修正
-      - 📅 Due        : 2026-04-25
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : BT-007
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : マルチエクスチェンジ統合テスト（BT-007）で発生していた型エラーを修正。MockUnifiedOrderManagerクラスのパラメータに明示的な型を追加し、テストが正常に実行できるようになりました。exchangeId、exchangeService、orderなどの型を追加し、Map型にも適切なジェネリック型パラメータを指定しました。テスト実行を確認し、全テストケースが正常に通ることを確認しました。
-
-## 前々スプリント完了済みタスク (W8 コア安定化・セキュリティ強化スプリント):
-
-.- [x] CICD-004: Jestカバレッジ90%ゲートを追加
-      - 📅 Due        : 2026-04-05
+3. [ ] SEC-005: GitHub SecretsからAWS OIDCへの移行
+      - 📅 Due        : 2026-05-15
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : CI/CDパイプラインにJestカバレッジ閾値チェックを追加。jest.config.jsに設定を追加し、--coverageThreshold '{"global":{"lines":90,"functions":85,"statements":90}}' 設定を実装しCI/CDに統合。カバレッジレポート機能も追加完了。テスト実行確認済み。
-
-.- [x] SEC-003: gitleaks + SBOM セキュリティ対応
-      - 📅 Due        : 2026-04-10
-      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : SEC-006
       - 🏷️  Label      : security
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : PR、プッシュ、およびnightlyビルドでgitleaksを実行するsecurity-scan.ymlを追加。CycloneDXによるSBOM生成とTrivyによる脆弱性スキャンを統合。セキュリティレポート生成機能も実装。動作確認済み。
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : GitHub ActionsからAWS OIDCを使用したロールベースの認証を設定。最小権限原則に基づきS3:PutObject、S3:GetObject、ssm:GetParametersのみを許可するIAMポリシーを作成。GitHub SecretsからAPIキーなどの機密情報を削除し、代わりにSSM Parameter Storeから取得するようCI/CDを修正。
 
-.- [x] BT-007: マルチエクスチェンジ統合テスト
-      - 📅 Due        : 2026-04-12
-      - 👤 Owner      : @qa-team
-      - 🔗 Depends-on : OMS-009
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : Binance / Bybit / KuCoin stub を用いた end-to-end backtest統合テストを実装。複数取引所間での注文配分、レート差異、手数料計算の正確性を検証するテストケースを実装。異なるAPI応答パターンのシミュレーションと互換性テストも追加。各取引所間で手数料率や価格オフセットを変えてテストし、挙動が正しいことを確認。
-
-.- [x] BT-008: MultiSymbolBacktestRunner並列化
-      - 📅 Due        : 2026-04-20
+4. [ ] INF-024: deploy.ymlをCI→SSM仕様に修正
+      - 📅 Due        : 2026-05-20
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : perf
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : MultiSymbolBacktestRunnerを直列実行から並列実行に改善。p-limitパッケージを導入し、Promise.allによる並列化とメモリ使用量制御を実装。実行時間短縮（シンボル数に比例して高速化）。メモリピーク使用量の計測機能追加とレポート出力機能も実装。並列数の制限と保存機能も対応。
+      - 🔗 Depends-on : SEC-005
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : deploy.ymlワークフローを修正し、直接.envファイルをEC2に配置せず、SSM Parameter Storeから取得するように変更。main pushでEC2起動し、PnL出力が0になることを確認。OIDC認証とSSM Parameter Store取得のエラーハンドリングも実装。
 
-.- [x] REF-019: ParameterService ESM対応
-      - 📅 Due        : 2026-04-08
+5. [ ] DAT-015: Data-Lifecycle Cron実機テスト
+      - 📅 Due        : 2026-05-25
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : ParameterServiceをESModule対応に書き換え完了。requireハックを廃止し、import文に統一。fs, path, js-yamlのCommonJSスタイルインポートを修正し、ESM互換性を確保。@types/js-yamlをインストールして型エラーを解消。ただし、全テストの修正は別タスクとして対応が必要。他モジュールとの依存関係やテスト互換性の問題は今後のタスクで対応予定。
+      - 🏷️  Label      : ops
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
 
 
-## 次回スプリント候補:
+## 🗓 2026-W12スプリント候補（P1→P2：監視システム整備）
 
-1. ALG-018: 新しい戦略パラメータの実装
-2. DOC-004: ユーザーマニュアル作成
-3. TODO-CLI: todo-lintの機能強化
-4. OMS-018: UnifiedOrderManager配分アルゴリズム単体テスト
-5. REF-020: テスト環境のESM完全対応
+### 監視システムの整備方針:
+
+本スプリントはP2フェーズ「監視&ログ可視化」に対応しており、Grafanaダッシュボードに「残高・PnL・Error Rate」の3つの主要メトリクスを実装することを目指します。以下の成果物を予定しています：
+
+1. **メトリクス収集基盤**:
+   - Bot側メトリクスエンドポイント実装
+   - Prometheus設定の調整
+   - Grafanaデータソースの自動プロビジョニング
+
+2. **主要ダッシュボード**:
+   - PnL & 残高ダッシュボード
+   - （次回スプリントで）Bot健康状態ダッシュボード
+   - （次回スプリントで）インフラ資源ダッシュボード
+
+3. **アラート設定**:
+   - （次回スプリントで）アラートルールYAMLの作成
+   - （次回スプリントで）Alertmanager Discord Route拡張
+
+##### 成功基準:
+- メトリクスエンドポイントからPrometheusでデータ収集可能
+- Grafanaダッシュボードで残高とPnLの可視化
+- docker-compose経由での自動プロビジョニング
+
+次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
 
 
