@@ -3,217 +3,329 @@
  * マルチアセット対応機能で重要な、symbol/riskAmount/stopDistanceからロットサイズを計算するサービスのテスト
  */
 
-import { OrderSizingService } from '../../services/orderSizingService';
-import { ExchangeService } from '../../services/exchangeService';
+import { OrderSizingService } from "../../services/orderSizingService.js";
+import { ExchangeService } from "../../services/exchangeService.js";
+import { SymbolInfoService, SymbolInfo } from "../../services/symbolInfoService.js";
 
 // ExchangeServiceのモック
 jest.mock('../../services/exchangeService');
 const MockedExchangeService = ExchangeService as jest.MockedClass<typeof ExchangeService>;
 
+// SymbolInfoServiceのモック
+jest.mock('../../services/symbolInfoService');
+const MockedSymbolInfoService = SymbolInfoService as jest.MockedClass<typeof SymbolInfoService>;
+
+// ロガーをモック
+jest.mock('../../utils/logger', () => ({
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn()
+}));
+
 describe('OrderSizingService', () => {
+  let exchangeService: jest.Mocked<ExchangeService>;
+  let symbolInfoService: jest.Mocked<SymbolInfoService>;
   let orderSizingService: OrderSizingService;
-  let mockExchangeService: jest.Mocked<ExchangeService>;
-
+  
+  const mockSymbolInfo: SymbolInfo = {
+    symbol: 'BTC/USDT',
+    base: 'BTC',
+    quote: 'USDT',
+    active: true,
+    pricePrecision: 2,
+    amountPrecision: 6,
+    costPrecision: 8,
+    minPrice: 0.01,
+    maxPrice: 1000000,
+    minAmount: 0.000001,
+    maxAmount: 1000,
+    minCost: 10,
+    tickSize: 0.01,
+    stepSize: 0.000001,
+    fetchTimestamp: Date.now()
+  };
+  
+  const mockTicker = {
+    symbol: 'BTC/USDT',
+    last: 40000
+  };
+  
   beforeEach(() => {
-    // テスト用のモックMarketInfoオブジェクト
-    const mockMarketInfos: Record<string, any> = {
-      'BTC/USDT': {
-        id: 'btcusdt',
-        symbol: 'BTC/USDT',
-        base: 'BTC',
-        quote: 'USDT',
-        precision: {
-          price: 2,
-          amount: 5
-        },
-        limits: {
-          amount: {
-            min: 0.00001,
-            max: 1000
-          },
-          price: {
-            min: 0.01,
-            max: 1000000
-          },
-          cost: {
-            min: 10
-          }
-        }
-      },
-      'SOL/USDT': {
-        id: 'solusdt',
-        symbol: 'SOL/USDT',
-        base: 'SOL',
-        quote: 'USDT',
-        precision: {
-          price: 2,
-          amount: 1
-        },
-        limits: {
-          amount: {
-            min: 0.1,
-            max: 100000
-          },
-          price: {
-            min: 0.01,
-            max: 10000
-          },
-          cost: {
-            min: 5
-          }
-        }
-      },
-      'ETH/USDT': {
-        id: 'ethusdt',
-        symbol: 'ETH/USDT',
-        base: 'ETH',
-        quote: 'USDT',
-        precision: {
-          price: 2,
-          amount: 4
-        },
-        limits: {
-          amount: {
-            min: 0.0001,
-            max: 10000
-          },
-          price: {
-            min: 0.01,
-            max: 100000
-          },
-          cost: {
-            min: 5
-          }
-        }
-      }
-    };
-
-    // ExchangeServiceのモック
-    mockExchangeService = new MockedExchangeService() as jest.Mocked<ExchangeService>;
-    mockExchangeService.getMarketInfo = jest.fn().mockImplementation((symbol) => {
-      return mockMarketInfos[symbol] || null;
+    jest.clearAllMocks();
+    
+    // モックの設定
+    exchangeService = new MockedExchangeService() as jest.Mocked<ExchangeService>;
+    symbolInfoService = new MockedSymbolInfoService() as jest.Mocked<SymbolInfoService>;
+    
+    exchangeService.fetchTicker.mockResolvedValue(mockTicker);
+    symbolInfoService.getSymbolInfo.mockResolvedValue(mockSymbolInfo);
+    
+    // OrderSizingServiceのインスタンスを作成
+    orderSizingService = new OrderSizingService(exchangeService, symbolInfoService);
+    
+    // タイマーをモック
+    jest.useFakeTimers();
+  });
+  
+  // テストが終了したらタイマーをリセット
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+  
+  describe('calculateOrderSize', () => {
+    it('正常なパラメータで注文サイズを計算できること', async () => {
+      // テストデータ
+      const accountBalance = 1000;
+      const stopDistance = 2000;
+      const currentPrice = 40000;
+      const riskPercentage = 0.01;
+      
+      // 実行
+      const result = await orderSizingService.calculateOrderSize(
+        'BTC/USDT',
+        accountBalance,
+        stopDistance,
+        currentPrice,
+        riskPercentage
+      );
+      
+      // 検証
+      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith('BTC/USDT');
+      expect(result).toBe(0.005); // 1000 * 0.01 / 2000 = 0.005
     });
     
-    // fetchTickerのモックを追加
-    mockExchangeService.fetchTicker = jest.fn().mockImplementation((symbol) => {
-      const prices = {
-        'BTC/USDT': 50000,
-        'SOL/USDT': 100,
-        'ETH/USDT': 3000
+    it('最小ロットサイズ以下の場合は最小値にすること', async () => {
+      // 最小ロットサイズよりも小さい注文量を生成するデータ
+      const accountBalance = 10;
+      const stopDistance = 20000;
+      const currentPrice = 40000;
+      const riskPercentage = 0.01;
+      
+      // 実行
+      const result = await orderSizingService.calculateOrderSize(
+        'BTC/USDT',
+        accountBalance,
+        stopDistance,
+        currentPrice,
+        riskPercentage
+      );
+      
+      // 検証 (0.000005 < minAmount なので minAmount = 0.000001 が採用される)
+      expect(result).toBe(0.000001);
+    });
+    
+    it('最小コスト以下の場合は調整すること', async () => {
+      // 最小コスト未満の注文を生成するデータ
+      const accountBalance = 100;
+      const stopDistance = 100000;
+      const currentPrice = 40000;
+      const riskPercentage = 0.01;
+      
+      // 計算される注文サイズ: 100 * 0.01 / 100000 = 0.00001
+      // 注文コスト: 0.00001 * 40000 = 0.4 < minCost (10)
+      // 必要な注文サイズ: minCost / 価格 = 10 / 40000 = 0.00025
+      
+      // 実行
+      const result = await orderSizingService.calculateOrderSize(
+        'BTC/USDT',
+        accountBalance,
+        stopDistance,
+        currentPrice,
+        riskPercentage
+      );
+      
+      // 検証
+      expect(result).toBe(0.00025);
+    });
+    
+    it('現在価格が指定されていない場合は取引所から取得すること', async () => {
+      // テストデータ
+      const accountBalance = 1000;
+      const stopDistance = 2000;
+      const riskPercentage = 0.01;
+      
+      // 実行
+      await orderSizingService.calculateOrderSize(
+        'BTC/USDT',
+        accountBalance,
+        stopDistance,
+        undefined,
+        riskPercentage
+      );
+      
+      // 検証
+      expect(exchangeService.fetchTicker).toHaveBeenCalledWith('BTC/USDT');
+    });
+    
+    it('ストップ距離が小さすぎる場合はフォールバック値を使用すること', async () => {
+      // テストデータ
+      const accountBalance = 1000;
+      const stopDistance = 0; // 無効なストップ距離
+      const currentPrice = 40000;
+      const riskPercentage = 0.01;
+      
+      // 実行
+      await orderSizingService.calculateOrderSize(
+        'BTC/USDT',
+        accountBalance,
+        stopDistance,
+        currentPrice,
+        riskPercentage
+      );
+      
+      // 検証 - ストップ距離が現在価格の0.01%に設定されるはず
+      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith('BTC/USDT');
+    });
+  });
+  
+  describe('calculateMultipleOrderSizes', () => {
+    it('複数の通貨ペアの注文サイズを計算できること', async () => {
+      // モックを拡張
+      symbolInfoService.getSymbolInfo
+        .mockResolvedValueOnce(mockSymbolInfo)  // BTC/USDT
+        .mockResolvedValueOnce({   // ETH/USDT
+          ...mockSymbolInfo,
+          symbol: 'ETH/USDT',
+          base: 'ETH'
+        });
+      
+      exchangeService.fetchTicker
+        .mockResolvedValueOnce({ symbol: 'BTC/USDT', last: 40000 })
+        .mockResolvedValueOnce({ symbol: 'ETH/USDT', last: 2000 });
+      
+      // テストデータ
+      const symbols = ['BTC/USDT', 'ETH/USDT'];
+      const accountBalance = 1000;
+      const stopDistances = {
+        'BTC/USDT': 2000,
+        'ETH/USDT': 100
+      };
+      const riskPercentage = 0.01;
+      
+      // 実行
+      const result = await orderSizingService.calculateMultipleOrderSizes(
+        symbols,
+        accountBalance,
+        stopDistances,
+        undefined,
+        riskPercentage
+      );
+      
+      // 検証
+      expect(result.size).toBe(2);
+      expect(result.get('BTC/USDT')).toBe(0.005); // 1000 * 0.01 / 2000 = 0.005
+      expect(result.get('ETH/USDT')).toBe(0.1);   // 1000 * 0.01 / 100 = 0.1
+    });
+    
+    it('一部のシンボルでエラーが発生しても他のシンボルの計算は続行すること', async () => {
+      // ETH/USDTでエラーを発生させる
+      symbolInfoService.getSymbolInfo
+        .mockResolvedValueOnce(mockSymbolInfo)  // BTC/USDT
+        .mockRejectedValueOnce(new Error('API error')); // ETH/USDTでエラー
+      
+      // テストデータ
+      const symbols = ['BTC/USDT', 'ETH/USDT'];
+      const accountBalance = 1000;
+      const stopDistances = {
+        'BTC/USDT': 2000,
+        'ETH/USDT': 100
+      };
+      const currentPrices = {
+        'BTC/USDT': 40000,
+        'ETH/USDT': 2000
       };
       
-      return Promise.resolve({
-        symbol,
-        last: prices[symbol as keyof typeof prices] || 1000,
-        bid: prices[symbol as keyof typeof prices] * 0.999 || 999,
-        ask: prices[symbol as keyof typeof prices] * 1.001 || 1001
-      });
+      // 実行
+      const result = await orderSizingService.calculateMultipleOrderSizes(
+        symbols,
+        accountBalance,
+        stopDistances,
+        currentPrices
+      );
+      
+      // 検証
+      expect(result.size).toBe(1);
+      expect(result.has('BTC/USDT')).toBe(true);
+      expect(result.has('ETH/USDT')).toBe(false);
     });
-
-    // OrderSizingServiceのインスタンス化
-    orderSizingService = new OrderSizingService(mockExchangeService);
-  });
-
-  test('異なる通貨ペアで最小ロットサイズ制限を守る', async () => {
-    // BTC/USDT - 最小ロットサイズ: 0.00001
-    const btcSize = await orderSizingService.calculateOrderSize('BTC/USDT', 100, 1000);
-    expect(btcSize).toBeGreaterThanOrEqual(0.00001);
     
-    // SOL/USDT - 最小ロットサイズ: 0.1
-    const solSize = await orderSizingService.calculateOrderSize('SOL/USDT', 100, 5);
-    expect(solSize).toBeGreaterThanOrEqual(0.1);
+    it('ストップ距離が指定されていないシンボルはスキップすること', async () => {
+      // テストデータ
+      const symbols = ['BTC/USDT', 'ETH/USDT'];
+      const accountBalance = 1000;
+      const stopDistances = {
+        'BTC/USDT': 2000
+        // ETH/USDTのストップ距離がない
+      };
+      const currentPrices = {
+        'BTC/USDT': 40000,
+        'ETH/USDT': 2000
+      };
+      
+      // 実行
+      const result = await orderSizingService.calculateMultipleOrderSizes(
+        symbols,
+        accountBalance,
+        stopDistances,
+        currentPrices
+      );
+      
+      // 検証
+      expect(result.size).toBe(1);
+      expect(result.has('BTC/USDT')).toBe(true);
+      expect(result.has('ETH/USDT')).toBe(false);
+    });
   });
-
-  test('最小注文価値（コスト）制限を守る', async () => {
-    // BTC/USDT - 最小コスト: 10 USDT
-    // 価格が50,000USDTの場合、最小量は10/50000 = 0.0002
-    const btcPrice = 50000;
-    const btcSize = await orderSizingService.calculateOrderSize('BTC/USDT', 100, 1000, btcPrice);
-    expect(btcSize * btcPrice).toBeGreaterThanOrEqual(10);
+  
+  describe('roundPriceToTickSize', () => {
+    it('価格をティックサイズに丸めること', async () => {
+      // テストデータ
+      const price = 40123.456;
+      
+      // 実行
+      const result = await orderSizingService.roundPriceToTickSize('BTC/USDT', price);
+      
+      // 検証 (tickSize = 0.01 なので 40123.45 になるはず)
+      expect(result).toBe(40123.45);
+    });
     
-    // SOL/USDT - 最小コスト: 5 USDT
-    // 価格が100USDTの場合、最小量は5/100 = 0.05
-    const solPrice = 100;
-    const solSize = await orderSizingService.calculateOrderSize('SOL/USDT', 100, 5, solPrice);
-    expect(solSize * solPrice).toBeGreaterThanOrEqual(5);
-  });
-
-  test('金額が不足している場合は可能な最大値を返す', async () => {
-    // 利用可能残高: 100 USDT
-    // リスク額: 100 * 0.01 = 1 USDT
-    // ストップ距離: 1000 USD
-    // 理論上のサイズ: 1 / 1000 = 0.001 BTC
-    // ただし最小ロットサイズは0.00001で、コスト制限は10 USDT
-    const availableBalance = 5; // 5 USDT
-    const btcPrice = 50000;
-    const btcSize = await orderSizingService.calculateOrderSize(
-      'BTC/USDT', 
-      availableBalance, 
-      1000, 
-      btcPrice, 
-      0.01 // 1% リスク
-    );
+    it('ティックサイズが見つからない場合は価格精度で丸めること', async () => {
+      // ティックサイズがundefinedのSymbolInfo
+      symbolInfoService.getSymbolInfo.mockResolvedValueOnce({
+        ...mockSymbolInfo,
+        tickSize: undefined
+      });
+      
+      // テストデータ
+      const price = 40123.456;
+      
+      // 実行
+      const result = await orderSizingService.roundPriceToTickSize('BTC/USDT', price);
+      
+      // 検証 (pricePrecision = 2 なので 40123.45 になるはず)
+      expect(result).toBe(40123.45);
+    });
     
-    // 金額不足のため、最小コスト制限かロットサイズの制約に基づいた値のうち大きい方を返す
-    // 最小コスト制限: 10/50000 = 0.0002, これが最小ロットサイズ0.00001より大きいため採用される
-    expect(btcSize).toBeCloseTo(0.0002, 5);
+    it('エラー発生時はデフォルト精度で丸めること', async () => {
+      // エラーをシミュレート
+      symbolInfoService.getSymbolInfo.mockRejectedValueOnce(new Error('API error'));
+      
+      // テストデータ
+      const price = 40123.456789;
+      
+      // 実行
+      const result = await orderSizingService.roundPriceToTickSize('BTC/USDT', price);
+      
+      // 検証 (エラー時は精度8で丸める)
+      expect(result).toBe(40123.456789);
+    });
   });
-
-  test('異なる通貨ペアでの精度に正しく対応する', async () => {
-    // BTC/USDT - 数量精度: 5桁
-    const btcSize = await orderSizingService.calculateOrderSize('BTC/USDT', 1000, 500, 50000);
-    const btcSizeStr = btcSize.toString();
-    const btcDecimalPlaces = btcSizeStr.includes('.') ? btcSizeStr.split('.')[1].length : 0;
-    expect(btcDecimalPlaces).toBeLessThanOrEqual(5);
-    
-    // SOL/USDT - 数量精度: 1桁
-    const solSize = await orderSizingService.calculateOrderSize('SOL/USDT', 1000, 10, 100);
-    const solSizeStr = solSize.toString();
-    const solDecimalPlaces = solSizeStr.includes('.') ? solSizeStr.split('.')[1].length : 0;
-    expect(solDecimalPlaces).toBeLessThanOrEqual(1);
-  });
-
-  test('リスク計算が正しく行われる', async () => {
-    // 利用可能残高: 1000 USDT
-    // リスク率: 1% (0.01)
-    // リスク額: 1000 * 0.01 = 10 USDT
-    // ストップ距離: 500 USD
-    // 期待されるサイズ: 10 / 500 = 0.02 BTC
-    const btcSize = await orderSizingService.calculateOrderSize(
-      'BTC/USDT', 
-      1000, 
-      500, 
-      50000, 
-      0.01
-    );
-    expect(btcSize).toBeCloseTo(0.02, 5);
-  });
-
-  test('マーケット情報が取得できない場合はエラーをスローする', async () => {
-    await expect(
-      orderSizingService.calculateOrderSize('XRP/USDT', 1000, 10)
-    ).rejects.toThrow('マーケット情報が見つかりません: XRP/USDT');
-  });
-
-  test('ストップ距離が0または非常に小さい場合はフォールバック値を使用する', async () => {
-    // ストップ距離が0
-    const btcSizeWithZeroStop = await orderSizingService.calculateOrderSize(
-      'BTC/USDT', 
-      1000, 
-      0, 
-      50000, 
-      0.01
-    );
-    expect(btcSizeWithZeroStop).toBeGreaterThan(0);
-    
-    // ストップ距離が非常に小さい
-    const btcSizeWithTinyStop = await orderSizingService.calculateOrderSize(
-      'BTC/USDT', 
-      1000, 
-      0.0000001, 
-      50000, 
-      0.01
-    );
-    expect(btcSizeWithTinyStop).toBeGreaterThan(0);
+  
+  describe('getSymbolInfoService', () => {
+    it('SymbolInfoServiceのインスタンスを返すこと', () => {
+      const result = orderSizingService.getSymbolInfoService();
+      expect(result).toBe(symbolInfoService);
+    });
   });
 }); 

@@ -3,8 +3,8 @@
  * マルチタイムフレームデータ取得を実行するスクリプト
  */
 
-import { MultiTimeframeDataFetcher, Timeframe } from './MultiTimeframeDataFetcher';
-import logger from '../utils/logger';
+import { MultiTimeframeDataFetcher, Timeframe } from "./MultiTimeframeDataFetcher.js";
+import logger from "../utils/logger.js";
 import 'dotenv/config';
 
 // コマンドライン引数の解析
@@ -43,7 +43,7 @@ function parseTimeframe(tfString: string): Timeframe | null {
     '1h': Timeframe.HOUR_1,
     '1d': Timeframe.DAY_1
   };
-  
+
   return timeframeMap[tfString] || null;
 }
 
@@ -54,25 +54,25 @@ async function main() {
   try {
     logger.info('マルチタイムフレームデータ取得ツールを開始します');
     const fetcher = new MultiTimeframeDataFetcher();
-    
+
     if (cmd === 'help' || cmd === '--help' || cmd === '-h') {
       showUsage();
       process.exit(0);
     }
-    
+
     // コマンドに応じた処理
     switch (cmd) {
       case 'fetch-all':
         logger.info(`すべてのタイムフレームのデータを取得します (${symbol})`);
         const results = await fetcher.fetchAllTimeframes(symbol);
-        
+
         // 結果のサマリーを表示
         console.log('\n=== データ取得結果 ===');
         for (const [timeframe, success] of Object.entries(results)) {
           console.log(`${timeframe}: ${success ? '成功 ✓' : '失敗 ✗'}`);
         }
         break;
-        
+
       case 'fetch': {
         const tfString = args[1];
         if (!tfString) {
@@ -80,25 +80,25 @@ async function main() {
           showUsage();
           process.exit(1);
         }
-        
+
         const timeframe = parseTimeframe(tfString);
         if (!timeframe) {
           logger.error(`無効なタイムフレーム: ${tfString}`);
           showUsage();
           process.exit(1);
         }
-        
+
         logger.info(`${timeframe}データを取得します (${symbol})`);
         const success = await fetcher.fetchAndSaveTimeframe(timeframe, symbol);
         logger.info(`取得結果: ${success ? '成功' : '失敗'}`);
         break;
       }
-        
+
       case 'start-all':
         logger.info(`すべてのタイムフレームの定期取得ジョブを開始します (${symbol})`);
         fetcher.startAllScheduledJobs(symbol);
         logger.info('定期取得ジョブが開始されました。Ctrl+Cで終了できます...');
-        
+
         // プロセスがバックグラウンドで実行し続けるようにする
         process.on('SIGINT', () => {
           logger.info('ジョブを停止しています...');
@@ -106,7 +106,7 @@ async function main() {
           process.exit(0);
         });
         break;
-        
+
       case 'start': {
         const tfString = args[1];
         if (!tfString) {
@@ -114,18 +114,18 @@ async function main() {
           showUsage();
           process.exit(1);
         }
-        
+
         const timeframe = parseTimeframe(tfString);
         if (!timeframe) {
           logger.error(`無効なタイムフレーム: ${tfString}`);
           showUsage();
           process.exit(1);
         }
-        
+
         logger.info(`${timeframe}の定期取得ジョブを開始します (${symbol})`);
         fetcher.startScheduledJob(timeframe, symbol);
         logger.info('定期取得ジョブが開始されました。Ctrl+Cで終了できます...');
-        
+
         // プロセスがバックグラウンドで実行し続けるようにする
         process.on('SIGINT', () => {
           logger.info('ジョブを停止しています...');
@@ -134,19 +134,18 @@ async function main() {
         });
         break;
       }
-        
+
       default:
         logger.error(`不明なコマンド: ${cmd}`);
         showUsage();
         process.exit(1);
     }
-    
+
     // すぐに終了するコマンドの場合はここで処理を終了
     if (cmd === 'fetch-all' || cmd === 'fetch') {
       fetcher.close();
       process.exit(0);
     }
-    
   } catch (error) {
     logger.error(`エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
@@ -154,7 +153,7 @@ async function main() {
 }
 
 // メイン処理を実行
-main().catch(error => {
+main().catch((error) => {
   logger.error(`予期せぬエラー: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(1);
-}); 
+});

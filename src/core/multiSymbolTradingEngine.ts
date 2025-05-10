@@ -5,19 +5,20 @@
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
  */
 
-import { TradingEngine, TradingEngineOptions } from './tradingEngine';
+import { TradingEngine, TradingEngineOptions } from "./tradingEngine.js";
 import { 
   MultiSymbolEngineConfig, 
   AllocationStrategy, 
   PortfolioRiskAnalysis 
-} from '../types/multiSymbolTypes';
-import { Candle, Position, Order, OrderSide, OrderType, SystemMode, RiskLevel } from './types';
-import logger from '../utils/logger';
-import { OrderManagementSystem } from './orderManagementSystem';
-import { UnifiedOrderManager } from '../services/UnifiedOrderManager';
-import { ExchangeService } from '../services/exchangeService';
-import { OrderSizingService } from '../services/orderSizingService';
-import { calculatePearsonCorrelation } from '../utils/mathUtils';
+} from "../types/multiSymbolTypes.js";
+import { Candle, Position, Order, OrderSide, OrderType, SystemMode, RiskLevel } from "./types.js";
+import logger from "../utils/logger.js";
+import { OrderManagementSystem } from "./orderManagementSystem.js";
+import { UnifiedOrderManager } from "../services/UnifiedOrderManager.js";
+import { ExchangeService } from "../services/exchangeService.js";
+import { OrderSizingService } from "../services/orderSizingService.js";
+import { calculatePearsonCorrelation } from "../utils/mathUtils.js";
+import { volBasedAllocationWeights } from "../indicators/marketState.js";
 
 /**
  * マルチシンボルトレーディングエンジン
@@ -100,13 +101,29 @@ export class MultiSymbolTradingEngine {
         break;
         
       case AllocationStrategy.VOLATILITY:
-        // 実装時はATRなどのボラティリティ指標を使用して逆比例配分
-        // 現時点では簡易的に均等配分
-        symbols.forEach(symbol => {
-          this.allocationWeights[symbol] = 1 / symbols.length;
-        });
-        if (!this.quietMode) {
-          logger.warn(`[MultiSymbolTradingEngine] ボラティリティ配分は未実装のため均等配分を使用します`);
+        // ATRなどのボラティリティ指標を使用して逆比例配分
+        if (this.previousCandles && Object.keys(this.previousCandles).length > 0) {
+          try {
+            // 十分なデータがある場合はボラティリティベースの配分を計算
+            this.allocationWeights = volBasedAllocationWeights(this.previousCandles);
+          } catch (error) {
+            // エラー時は均等配分にフォールバック
+            symbols.forEach(symbol => {
+              this.allocationWeights[symbol] = 1 / symbols.length;
+            });
+            if (!this.quietMode) {
+              logger.error(`[MultiSymbolTradingEngine] ボラティリティ配分計算エラー: ${error instanceof Error ? error.message : String(error)}`);
+              logger.warn(`[MultiSymbolTradingEngine] ボラティリティ配分計算に失敗したため均等配分を使用します`);
+            }
+          }
+        } else {
+          // データ不足の場合は均等配分を使用
+          symbols.forEach(symbol => {
+            this.allocationWeights[symbol] = 1 / symbols.length;
+          });
+          if (!this.quietMode) {
+            logger.warn(`[MultiSymbolTradingEngine] キャンドルデータ不足のため均等配分を使用します`);
+          }
         }
         break;
         

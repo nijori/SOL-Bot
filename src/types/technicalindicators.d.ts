@@ -48,4 +48,4 @@ declare module 'technicalindicators' {
   export class Lowest {
     static calculate(input: InputHighestLowest): number[];
   }
-} 
+}

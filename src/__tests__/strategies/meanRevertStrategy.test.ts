@@ -1,5 +1,5 @@
-import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy';
-import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
+import { executeMeanRevertStrategy } from "../../strategies/meanRevertStrategy.js";
+import { Candle, OrderSide, OrderType, Position, StrategyType } from "../../core/types.js";
 
 // テスト用のより堅牢なモックデータファクトリ
 class CandleFactory {

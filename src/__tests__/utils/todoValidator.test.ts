@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { 
+import {
   parseTodoFile,
   getAllTasks,
   checkDuplicateTaskIds,
@@ -14,16 +14,16 @@ import {
   validateTodoFiles,
   TodoTask,
   ValidationErrorType
-} from '../../utils/todoValidator';
+} from "../../utils/todoValidator.js";
 
 // 自分自身をモックする（テスト内で関数をモック可能に）
 jest.mock('../../utils/todoValidator', () => {
   // 実際のモジュールを取得
   const originalModule = jest.requireActual('../../utils/todoValidator');
-  
+
   // 必要な関数だけをモック化し、他は元のまま返す
   return {
-    ...originalModule,
+    ...originalModule
     // ここではモックせず、テスト内で必要に応じてモックする
   };
 });
@@ -137,9 +137,10 @@ describe('TodoValidator', () => {
       // モックデータ
       const mockFiles = ['sprint.mdc'];
       (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
-      
+
       // 単純なmockFileContent
-      const mockFileContent = '- [ ] TST-001: テスト\n      - 📅 Due: 2026-01-01\n      - 👤 Owner: @test';
+      const mockFileContent =
+        '- [ ] TST-001: テスト\n      - 📅 Due: 2026-01-01\n      - 👤 Owner: @test';
       (fs.readFileSync as jest.Mock).mockReturnValue(mockFileContent);
 
       // 関数実行 - 実際のパースロジックを使う
@@ -157,7 +158,7 @@ describe('TodoValidator', () => {
         createMockTask({ id: 'TST-001', filePath: 'sprint.mdc', lineNumber: 10 }),
         createMockTask({ id: 'TST-002', filePath: 'sprint.mdc', lineNumber: 20 }),
         createMockTask({ id: 'TST-001', filePath: 'backlog.mdc', lineNumber: 5 }),
-        createMockTask({ id: 'TST-003', filePath: 'sprint.mdc', lineNumber: 30 }),
+        createMockTask({ id: 'TST-003', filePath: 'sprint.mdc', lineNumber: 30 })
       ];
 
       // 関数実行
@@ -174,7 +175,7 @@ describe('TodoValidator', () => {
       const tasks: TodoTask[] = [
         createMockTask({ id: 'TST-001', filePath: 'sprint.mdc', lineNumber: 10 }),
         createMockTask({ id: 'TST-002', filePath: 'sprint.mdc', lineNumber: 20 }),
-        createMockTask({ id: 'TST-003', filePath: 'sprint.mdc', lineNumber: 30 }),
+        createMockTask({ id: 'TST-003', filePath: 'sprint.mdc', lineNumber: 30 })
       ];
 
       // 関数実行
@@ -189,9 +190,30 @@ describe('TodoValidator', () => {
     it('完了マークされたタスクのHealthと進捗率の不整合を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', isCompleted: true, health: '⏳', progress: '75%', filePath: 'sprint.mdc', lineNumber: 10 }),
-        createMockTask({ id: 'TST-002', isCompleted: true, health: '✅', progress: '50%', filePath: 'sprint.mdc', lineNumber: 20 }),
-        createMockTask({ id: 'TST-003', isCompleted: true, health: '✅', progress: '100%', filePath: 'sprint.mdc', lineNumber: 30 }),
+        createMockTask({
+          id: 'TST-001',
+          isCompleted: true,
+          health: '⏳',
+          progress: '75%',
+          filePath: 'sprint.mdc',
+          lineNumber: 10
+        }),
+        createMockTask({
+          id: 'TST-002',
+          isCompleted: true,
+          health: '✅',
+          progress: '50%',
+          filePath: 'sprint.mdc',
+          lineNumber: 20
+        }),
+        createMockTask({
+          id: 'TST-003',
+          isCompleted: true,
+          health: '✅',
+          progress: '100%',
+          filePath: 'sprint.mdc',
+          lineNumber: 30
+        })
       ];
 
       // 関数実行
@@ -208,9 +230,30 @@ describe('TodoValidator', () => {
     it('未完了タスクのHealthと進捗率の不整合を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', isCompleted: false, health: '✅', progress: '75%', filePath: 'sprint.mdc', lineNumber: 10 }),
-        createMockTask({ id: 'TST-002', isCompleted: false, health: '⏳', progress: '100%', filePath: 'sprint.mdc', lineNumber: 20 }),
-        createMockTask({ id: 'TST-003', isCompleted: false, health: '⏳', progress: '50%', filePath: 'sprint.mdc', lineNumber: 30 }),
+        createMockTask({
+          id: 'TST-001',
+          isCompleted: false,
+          health: '✅',
+          progress: '75%',
+          filePath: 'sprint.mdc',
+          lineNumber: 10
+        }),
+        createMockTask({
+          id: 'TST-002',
+          isCompleted: false,
+          health: '⏳',
+          progress: '100%',
+          filePath: 'sprint.mdc',
+          lineNumber: 20
+        }),
+        createMockTask({
+          id: 'TST-003',
+          isCompleted: false,
+          health: '⏳',
+          progress: '50%',
+          filePath: 'sprint.mdc',
+          lineNumber: 30
+        })
       ];
 
       // 関数実行
@@ -229,16 +272,34 @@ describe('TodoValidator', () => {
       const yesterdayDate = new Date(now);
       yesterdayDate.setDate(now.getDate() - 1);
       const yesterday = yesterdayDate.toISOString().split('T')[0]; // YYYY-MM-DD形式
-      
+
       const tomorrowDate = new Date(now);
       tomorrowDate.setDate(now.getDate() + 1);
       const tomorrow = tomorrowDate.toISOString().split('T')[0]; // YYYY-MM-DD形式
 
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', isCompleted: false, dueDate: yesterday, filePath: 'sprint.mdc', lineNumber: 10 }),
-        createMockTask({ id: 'TST-002', isCompleted: false, dueDate: tomorrow, filePath: 'sprint.mdc', lineNumber: 20 }),
-        createMockTask({ id: 'TST-003', isCompleted: true, dueDate: yesterday, filePath: 'sprint.mdc', lineNumber: 30 }),
+        createMockTask({
+          id: 'TST-001',
+          isCompleted: false,
+          dueDate: yesterday,
+          filePath: 'sprint.mdc',
+          lineNumber: 10
+        }),
+        createMockTask({
+          id: 'TST-002',
+          isCompleted: false,
+          dueDate: tomorrow,
+          filePath: 'sprint.mdc',
+          lineNumber: 20
+        }),
+        createMockTask({
+          id: 'TST-003',
+          isCompleted: true,
+          dueDate: yesterday,
+          filePath: 'sprint.mdc',
+          lineNumber: 30
+        })
       ];
 
       // 関数実行
@@ -253,7 +314,13 @@ describe('TodoValidator', () => {
     it('無効な日付形式を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', isCompleted: false, dueDate: '2026/02/15', filePath: 'sprint.mdc', lineNumber: 10 }),
+        createMockTask({
+          id: 'TST-001',
+          isCompleted: false,
+          dueDate: '2026/02/15',
+          filePath: 'sprint.mdc',
+          lineNumber: 10
+        })
       ];
 
       // 関数実行
@@ -269,8 +336,13 @@ describe('TodoValidator', () => {
     it('存在しないタスクIDへの依存を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', dependsOn: ['TST-002', 'TST-999'], filePath: 'sprint.mdc', lineNumber: 10 }),
-        createMockTask({ id: 'TST-002', dependsOn: [], filePath: 'sprint.mdc', lineNumber: 20 }),
+        createMockTask({
+          id: 'TST-001',
+          dependsOn: ['TST-002', 'TST-999'],
+          filePath: 'sprint.mdc',
+          lineNumber: 10
+        }),
+        createMockTask({ id: 'TST-002', dependsOn: [], filePath: 'sprint.mdc', lineNumber: 20 })
       ];
 
       // 関数実行
@@ -288,15 +360,15 @@ describe('TodoValidator', () => {
     it('必須フィールドの欠落を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ 
-          id: 'TST-001', 
+        createMockTask({
+          id: 'TST-001',
           dueDate: '2026-02-15',
           owner: null, // 欠落
           label: 'test',
           health: '⏳',
           progress: '25%',
-          filePath: 'sprint.mdc', 
-          lineNumber: 10 
+          filePath: 'sprint.mdc',
+          lineNumber: 10
         }),
         createMockTask({
           id: 'TST-002',
@@ -307,7 +379,7 @@ describe('TodoValidator', () => {
           progress: '50%',
           filePath: 'sprint.mdc',
           lineNumber: 20
-        }),
+        })
       ];
 
       // 関数実行
@@ -318,10 +390,10 @@ describe('TodoValidator', () => {
       expect(errors[0].taskId).toBe('TST-001');
       expect(errors[0].type).toBe(ValidationErrorType.MISSING_REQUIRED_FIELD);
       expect(errors[0].message).toContain('Owner');
-      
+
       expect(errors[1].taskId).toBe('TST-002');
       expect(errors[1].message).toContain('期限日');
-      
+
       expect(errors[2].taskId).toBe('TST-002');
       expect(errors[2].message).toContain('ラベル');
     });
@@ -333,8 +405,8 @@ describe('TodoValidator', () => {
       const tasks: TodoTask[] = [
         createMockTask({ id: 'TST-001', filePath: 'sprint.mdc', lineNumber: 10 }), // 正しい
         createMockTask({ id: 'tst-002', filePath: 'sprint.mdc', lineNumber: 20 }), // 小文字
-        createMockTask({ id: 'TST-01', filePath: 'sprint.mdc', lineNumber: 30 }),  // 桁不足
-        createMockTask({ id: 'TST001', filePath: 'sprint.mdc', lineNumber: 40 }),  // ハイフンなし
+        createMockTask({ id: 'TST-01', filePath: 'sprint.mdc', lineNumber: 30 }), // 桁不足
+        createMockTask({ id: 'TST001', filePath: 'sprint.mdc', lineNumber: 40 }) // ハイフンなし
       ];
 
       // 関数実行
@@ -342,8 +414,8 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors.map(e => e.taskId)).toEqual(['tst-002', 'TST-01', 'TST001']);
-      expect(errors.every(e => e.type === ValidationErrorType.INVALID_TASK_ID_FORMAT)).toBe(true);
+      expect(errors.map((e) => e.taskId)).toEqual(['tst-002', 'TST-01', 'TST001']);
+      expect(errors.every((e) => e.type === ValidationErrorType.INVALID_TASK_ID_FORMAT)).toBe(true);
     });
   });
 
@@ -351,13 +423,13 @@ describe('TodoValidator', () => {
     it('無効な進捗率形式を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', progress: '0%', filePath: 'sprint.mdc', lineNumber: 10 }),   // 正しい
-        createMockTask({ id: 'TST-002', progress: '50%', filePath: 'sprint.mdc', lineNumber: 20 }),  // 正しい
-        createMockTask({ id: 'TST-003', progress: '33%', filePath: 'sprint.mdc', lineNumber: 30 }),  // 正しい (柔軟フォーマット)
-        createMockTask({ id: 'TST-004', progress: '10%', filePath: 'sprint.mdc', lineNumber: 40 }),  // 正しい (柔軟フォーマット)
+        createMockTask({ id: 'TST-001', progress: '0%', filePath: 'sprint.mdc', lineNumber: 10 }), // 正しい
+        createMockTask({ id: 'TST-002', progress: '50%', filePath: 'sprint.mdc', lineNumber: 20 }), // 正しい
+        createMockTask({ id: 'TST-003', progress: '33%', filePath: 'sprint.mdc', lineNumber: 30 }), // 正しい (柔軟フォーマット)
+        createMockTask({ id: 'TST-004', progress: '10%', filePath: 'sprint.mdc', lineNumber: 40 }), // 正しい (柔軟フォーマット)
         createMockTask({ id: 'TST-005', progress: '200%', filePath: 'sprint.mdc', lineNumber: 50 }), // 無効
         createMockTask({ id: 'TST-006', progress: '-10%', filePath: 'sprint.mdc', lineNumber: 60 }), // 無効
-        createMockTask({ id: 'TST-007', progress: '50', filePath: 'sprint.mdc', lineNumber: 70 }),   // 無効 (%なし)
+        createMockTask({ id: 'TST-007', progress: '50', filePath: 'sprint.mdc', lineNumber: 70 }) // 無効 (%なし)
       ];
 
       // 関数実行
@@ -365,8 +437,10 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors.map(e => e.taskId)).toEqual(['TST-005', 'TST-006', 'TST-007']);
-      expect(errors.every(e => e.type === ValidationErrorType.INVALID_PROGRESS_FORMAT)).toBe(true);
+      expect(errors.map((e) => e.taskId)).toEqual(['TST-005', 'TST-006', 'TST-007']);
+      expect(errors.every((e) => e.type === ValidationErrorType.INVALID_PROGRESS_FORMAT)).toBe(
+        true
+      );
     });
   });
 
@@ -374,10 +448,10 @@ describe('TodoValidator', () => {
     it('無効なHealth状態を検出する', () => {
       // モックタスク
       const tasks: TodoTask[] = [
-        createMockTask({ id: 'TST-001', health: '⏳', filePath: 'sprint.mdc', lineNumber: 10 }),  // 正しい
-        createMockTask({ id: 'TST-002', health: '✅', filePath: 'sprint.mdc', lineNumber: 20 }),  // 正しい
-        createMockTask({ id: 'TST-003', health: '🔄', filePath: 'sprint.mdc', lineNumber: 30 }),  // 無効
-        createMockTask({ id: 'TST-004', health: 'WIP', filePath: 'sprint.mdc', lineNumber: 40 }), // 無効
+        createMockTask({ id: 'TST-001', health: '⏳', filePath: 'sprint.mdc', lineNumber: 10 }), // 正しい
+        createMockTask({ id: 'TST-002', health: '✅', filePath: 'sprint.mdc', lineNumber: 20 }), // 正しい
+        createMockTask({ id: 'TST-003', health: '🔄', filePath: 'sprint.mdc', lineNumber: 30 }), // 無効
+        createMockTask({ id: 'TST-004', health: 'WIP', filePath: 'sprint.mdc', lineNumber: 40 }) // 無効
       ];
 
       // 関数実行
@@ -385,8 +459,8 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(2);
-      expect(errors.map(e => e.taskId)).toEqual(['TST-003', 'TST-004']);
-      expect(errors.every(e => e.type === ValidationErrorType.INVALID_HEALTH_STATUS)).toBe(true);
+      expect(errors.map((e) => e.taskId)).toEqual(['TST-003', 'TST-004']);
+      expect(errors.every((e) => e.type === ValidationErrorType.INVALID_HEALTH_STATUS)).toBe(true);
     });
   });
 
@@ -395,9 +469,10 @@ describe('TodoValidator', () => {
       // モックデータ
       const mockFiles = ['sprint.mdc'];
       (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
-      
+
       // 単純なmockFileContent (エラーを含む)
-      const mockFileContent = '- [x] TST-001: テスト\n      - 📅 Due: 2026-01-01\n      - 👤 Owner: @test\n      - 🩺 Health: ⏳\n      - 📊 Progress: 50%';
+      const mockFileContent =
+        '- [x] TST-001: テスト\n      - 📅 Due: 2026-01-01\n      - 👤 Owner: @test\n      - 🩺 Health: ⏳\n      - 📊 Progress: 50%';
       (fs.readFileSync as jest.Mock).mockReturnValue(mockFileContent);
 
       // 関数実行
@@ -407,7 +482,7 @@ describe('TodoValidator', () => {
       expect(Array.isArray(errors)).toBe(true);
     });
   });
-  
+
   // ヘルパー関数: モックタスクの作成
   function createMockTask(overrides: Partial<TodoTask>): TodoTask {
     return {
@@ -427,4 +502,4 @@ describe('TodoValidator', () => {
       ...overrides
     };
   }
-}); 
+});

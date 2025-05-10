@@ -1,0 +1,210 @@
+name: ESM Tests Workflow
+
+on:
+  push:
+    branches: [ master, main, develop ]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'jest.config.js'
+      - 'package.json'
+      - '.github/workflows/esm-tests.yml'
+  pull_request:
+    branches: [ master, main, develop ]
+    paths:
+      - 'src/**'
+      - 'scripts/**'
+      - 'jest.config.js'
+      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      testPattern:
+        description: 'テストするファイルのパターン（例: src/__tests__/strategies/*.test.mjs）'
+        required: false
+        default: 'src/__tests__/**/*.test.mjs'
+
+jobs:
+  esm-tests:
+    name: ESM Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        test-group: [core, data, strategies, services, utils]
+      fail-fast: false # 一つの失敗で全体が停止しないようにする
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Setup cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.npm
+            .jest-cache
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ matrix.node-version }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create test directories
+        run: |
+          mkdir -p data/test
+          mkdir -p data/test-e2e
+          mkdir -p .jest-cache
+
+      - name: Run ESM Tests with Matrix Strategy
+        env:
+          NODE_OPTIONS: "--experimental-vm-modules --max-old-space-size=4096"
+          TEST_GROUP: ${{ matrix.test-group }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.testPattern }}" != "" ]; then
+            TEST_PATTERN="${{ github.event.inputs.testPattern }}"
+          else
+            case $TEST_GROUP in
+              core)
+                TEST_PATTERN="src/__tests__/core/**/*.test.mjs"
+                ;;
+              data)
+                TEST_PATTERN="src/__tests__/data/**/*.test.mjs"
+                ;;
+              strategies)
+                TEST_PATTERN="src/__tests__/strategies/**/*.test.mjs"
+                ;;
+              services)
+                TEST_PATTERN="src/__tests__/services/**/*.test.mjs"
+                ;;
+              utils)
+                TEST_PATTERN="src/__tests__/utils/**/*.test.mjs"
+                ;;
+              *)
+                TEST_PATTERN="src/__tests__/**/*.test.mjs"
+                ;;
+            esac
+          fi
+          
+          echo "Running tests for pattern: $TEST_PATTERN"
+          
+          # ESM専用のテスト実行スクリプトでテストを実行
+          node --experimental-vm-modules ./scripts/run-esm-tests-safely.js $TEST_PATTERN --ci --cacheDirectory=.jest-cache
+
+      - name: Generate coverage report
+        if: success() || failure() # テストが失敗しても実行
+        run: |
+          # 既存のカバレッジディレクトリがあれば削除
+          rm -rf coverage || true
+          
+          # カバレッジレポート生成（テスト実行が完了していることが前提）
+          node --experimental-vm-modules ./node_modules/.bin/jest --ci --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=html --testMatch="[${{ matrix.test-group }}]**/*.test.mjs"
+
+      - name: Upload coverage reports
+        if: success() || failure() # テストが失敗しても実行
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.node-version }}-${{ matrix.test-group }}
+          path: coverage
+          retention-days: 7
+
+  merge-coverage:
+    name: Merge Coverage Reports
+    needs: esm-tests
+    runs-on: ubuntu-latest
+    if: success() || failure() # 上のジョブが失敗してもレポート作成
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install coverage tools
+        run: |
+          npm install -g istanbul-merge istanbul-reports istanbul-lib-coverage istanbul-lib-report nyc
+
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-report-*
+          path: coverage-reports
+          merge-multiple: true
+
+      - name: Merge coverage reports
+        run: |
+          mkdir -p merged-coverage
+          
+          # カバレッジレポートのマージ
+          istanbul-merge --out merged-coverage/coverage-final.json coverage-reports/*/lcov.info
+          
+          # HTMLレポート生成
+          istanbul report --root merged-coverage --dir merged-coverage/html html
+          
+          # コンソール出力用テキストレポート
+          istanbul report --root merged-coverage text
+
+      - name: Upload merged coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: merged-coverage-report
+          path: merged-coverage
+          retention-days: 30
+      
+      - name: Add Coverage PR Comment
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          recreate: true
+          path: merged-coverage/coverage-summary.txt
+
+  notify-results:
+    name: Notify Test Results
+    needs: [esm-tests, merge-coverage]
+    runs-on: ubuntu-latest
+    if: always() # 常に実行
+    
+    steps:
+      - name: Check previous job status
+        id: status
+        run: |
+          if [[ "${{ needs.esm-tests.result }}" == "success" ]]; then
+            echo "result=成功 ✅" >> $GITHUB_OUTPUT
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+          else
+            echo "result=失敗 ❌" >> $GITHUB_OUTPUT
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+          fi
+          
+          # テスト完了日時
+          echo "completed_at=$(date)" >> $GITHUB_OUTPUT
+
+      - name: Send Discord notification
+        if: always()
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ needs.esm-tests.result }}
+          title: "SOL-Bot ESMテスト結果"
+          description: |
+            テスト結果: ${{ steps.status.outputs.emoji }} ${{ steps.status.outputs.result }}
+            ブランチ: ${{ github.ref }}
+            コミット: ${{ github.sha }}
+            完了時刻: ${{ steps.status.outputs.completed_at }}
+            ${{ github.event_name == 'workflow_dispatch' ? format('実行者: {0}', github.actor) : '' }} 

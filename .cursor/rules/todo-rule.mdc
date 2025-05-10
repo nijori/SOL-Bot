@@ -15,6 +15,7 @@ repo-root/
 Backlog にインプット → 週次スクラムで Sprint へ選別 → 完了タスクは ~~打消し~~ にして 3 か月後 Archive へ。
 
 大重要★
+Todoファイルの整合性をみるためにtodo-lintは定期的に実行
 作成するbotの要件は適宜C:\Users\nijor\Dev\SOL_bot\SOLUSDT_Algo_Strategy_Designを参照
 またTodoの更新はC:\Users\nijor\Dev\SOL_bot\.todo\todo-format.mdも参照
 git周りはC:\Users\nijor\Dev\SOL_bot\.github\workflowsを参照
@@ -63,16 +64,18 @@ SEC/セキュリティ関連
 
 CICD/CI/CD関連
 
-
 4. ライフサイクル・ルール
-
-新規作成 : backlog.mdc に追加。Health = ⏳。
-
-スプリント移動 : 週次で優先タスクを sprint.mdc へ Cut & Paste。
-
-状態更新 : コミット時に [ ]→[x] & Health✅。遅延は ⚠️、要支援は 🚑 で可視化。
-
-クロージャ : 3 か月経過で sprint.mdc から archive.mdc へ。
+ 1. **新規作成**: backlog.mdc に追加。Health = ⏳
+ 2. **スプリント移動**: 週次で優先タスクを sprint.mdc へコピー
+ 3. **状態更新**: コミット時に [ ]→[x] & Health✅
+ 4. **アーカイブ移行**: 
+    - 完了タスクは3ヵ月経過で sprint.mdc から archive.mdc へ移動
+    - 完了したがスキップまたは置き換えられたタスクも archive.mdc に移動し、Notes に置き換え理由や関連タスク（例: 「TST-012 に置き換えられました」）を明記
+ 5. **トレーサビリティの確保**:
+    - タスクがマージや再編成される場合、元のタスクを削除する前に archive.mdc に移動
+    - 関連タスクとの紐付けを Notes に明記（例: 「TST-012として再実装」「ALG-040に機能統合」など）
+    - スプリントから直接削除せず、必ず archive.mdc へのトレース情報を残す
+    - アーカイブするべき前スプリントのタスクをコメントアウトするような形で先頭に「.」を追加、これによりタスクID重複検出の対象から除外
 
 5. サンプル sprint.mdc
 

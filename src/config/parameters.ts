@@ -1,12 +1,12 @@
 /**
  * トレーディングパラメータ設定
- * 
+ *
  * このファイルは下位互換性のために保持されています。
  * 実際のパラメータ設定はparameters.yamlとparameterService.tsで管理されています。
  */
 
 import 'dotenv/config';
-import { parameterService } from './parameterService';
+import { parameterService } from "./parameterService.js";
 
 // 相場環境判定用パラメータ
 export const MARKET_PARAMETERS = parameterService.getMarketParameters();
@@ -30,10 +30,11 @@ export const BACKTEST_PARAMETERS = parameterService.getBacktestParameters();
 export enum OperationMode {
   LIVE = 'live',
   SIMULATION = 'simulation',
-  BACKTEST = 'backtest',
+  BACKTEST = 'backtest'
 }
 
-export const OPERATION_MODE = parameterService.getOperationMode() as OperationMode || OperationMode.SIMULATION;
+export const OPERATION_MODE =
+  (parameterService.getOperationMode() as OperationMode) || OperationMode.SIMULATION;
 
 // すべてのパラメータを1つのオブジェクトとして取得するヘルパー関数
-export const getAllParameters = () => parameterService.getAllParameters(); 
+export const getAllParameters = () => parameterService.getAllParameters();

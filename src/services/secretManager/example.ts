@@ -1,12 +1,12 @@
 /**
  * シークレットマネージャー使用例
- * 
+ *
  * このファイルはシークレットマネージャーの使用方法を示します。
  * 実際のコードでの参照用で、実行することは意図されていません。
  */
 
-import { secretManager, SecretManagerFactory, SecretManagerType } from './index';
-import logger from '../../utils/logger';
+import { secretManager, SecretManagerFactory, SecretManagerType } from "./index.js";
+import logger from "../../utils/logger.js";
 
 /**
  * デフォルトのシークレットマネージャーを使用する例
@@ -16,9 +16,9 @@ async function useDefaultSecretManager() {
     // デフォルトのシークレットマネージャーでシークレットを取得
     const apiKey = await secretManager.getSecret('exchange.api_key');
     const apiSecret = await secretManager.getSecret('exchange.api_secret');
-    
+
     logger.info(`API Keyを取得しました: ${apiKey ? '成功' : '未設定'}`);
-    
+
     // 環境に応じた処理
     if (apiKey && apiSecret) {
       // 取引所クライアントの初期化などの処理
@@ -27,7 +27,9 @@ async function useDefaultSecretManager() {
       logger.warn('API認証情報が見つかりません');
     }
   } catch (error) {
-    logger.error(`シークレット取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(
+      `シークレット取得エラー: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -44,19 +46,21 @@ async function useSpecificSecretManager() {
         pathPrefix: '/sol-bot/prod/'
       }
     });
-    
+
     // シークレットを取得
     const dbPassword = await awsSecretManager.getSecret('database.password');
-    
+
     // シークレットを設定（新規作成または更新）
     await awsSecretManager.setSecret('app.version', '1.0.0');
-    
+
     // シークレットが存在するか確認
     const hasApiKey = await awsSecretManager.hasSecret('exchange.api_key');
-    
+
     logger.info(`シークレットチェック結果 - API Key: ${hasApiKey ? '存在します' : '存在しません'}`);
   } catch (error) {
-    logger.error(`AWS Parameter Store操作エラー: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(
+      `AWS Parameter Store操作エラー: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -72,16 +76,18 @@ async function useGCPSecretManager() {
         projectId: 'sol-bot-prod'
       }
     });
-    
+
     // シークレットを取得
     const apiKey = await gcpSecretManager.getSecret('exchange-api-key');
-    
+
     // シークレットを設定（新規作成または更新）
     await gcpSecretManager.setSecret('app-version', '1.0.0');
-    
+
     logger.info('GCP Secret Managerの操作が完了しました');
   } catch (error) {
-    logger.error(`GCP Secret Manager操作エラー: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(
+      `GCP Secret Manager操作エラー: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -95,13 +101,13 @@ async function useEnvSecretManager() {
       type: SecretManagerType.ENV,
       envPrefix: 'SOL_BOT_'
     });
-    
+
     // シークレットを取得（例: 環境変数 SOL_BOT_API_KEY の値を取得）
     const apiKey = await envSecretManager.getSecret('api_key');
-    
+
     // 実行時の環境変数を設定
     await envSecretManager.setSecret('debug_mode', 'true');
-    
+
     logger.info('環境変数シークレットマネージャーの操作が完了しました');
   } catch (error) {
     logger.error(`環境変数操作エラー: ${error instanceof Error ? error.message : String(error)}`);
@@ -114,4 +120,4 @@ export async function runExamples() {
   // await useSpecificSecretManager();
   // await useGCPSecretManager();
   // await useEnvSecretManager();
-} 
+}

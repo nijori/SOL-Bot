@@ -5,15 +5,15 @@ import * as optuna from 'optuna';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
-import { 
-  IParameterSpace, 
-  ParameterType, 
-  OptimizationResult, 
-  OptimizerConfig, 
-  MetricType 
-} from '../types/optimizer';
-import { parameterSpace } from './parameterSpace';
-import { BacktestRunner } from '../core/backtestRunner';
+import {
+  IParameterSpace,
+  ParameterType,
+  OptimizationResult,
+  OptimizerConfig,
+  MetricType
+} from "../types/optimizer.js";
+import { parameterSpace } from "./parameterSpace.js";
+import { BacktestRunner } from "../core/backtestRunner.js";
 
 export class OptunaOptimizer {
   private config: OptimizerConfig;
@@ -47,13 +47,15 @@ export class OptunaOptimizer {
     });
 
     // 最適化を実行
-    await this.study.optimize(this.objectiveFunction.bind(this), { n_trials: this.config.numTrials });
+    await this.study.optimize(this.objectiveFunction.bind(this), {
+      n_trials: this.config.numTrials
+    });
 
     // 最高のトライアルを取得
     const bestTrial = this.study.best_trial;
-    
+
     // 全トライアルの結果を取得
-    const allTrials = this.study.trials.map(trial => ({
+    const allTrials = this.study.trials.map((trial) => ({
       parameters: trial.params,
       value: trial.value
     }));
@@ -94,10 +96,10 @@ export class OptunaOptimizer {
       });
 
       const results = await backtestRunner.run();
-      
+
       // 指定された評価指標を取得
       let metricValue: number;
-      
+
       switch (this.config.metric) {
         case MetricType.SHARPE_RATIO:
           metricValue = results.metrics.sharpeRatio;
@@ -117,9 +119,10 @@ export class OptunaOptimizer {
           break;
         case MetricType.COMPOSITE:
           // 複合指標: シャープレシオ + リターン/10 - ドローダウン*5
-          metricValue = results.metrics.sharpeRatio + 
-                        results.metrics.totalReturn / 10 - 
-                        results.metrics.maxDrawdown * 5;
+          metricValue =
+            results.metrics.sharpeRatio +
+            results.metrics.totalReturn / 10 -
+            results.metrics.maxDrawdown * 5;
           break;
         default:
           metricValue = results.metrics.sharpeRatio;
@@ -127,7 +130,6 @@ export class OptunaOptimizer {
 
       console.log(`[OptunaOptimizer] トライアル ${trial.number} 評価: ${metricValue}`);
       return metricValue;
-      
     } catch (error) {
       console.error(`[OptunaOptimizer] トライアル ${trial.number} エラー:`, error);
       // エラー時は不適な値を返す
@@ -140,25 +142,15 @@ export class OptunaOptimizer {
    */
   private createTrialParameters(trial: optuna.Trial): Record<string, any> {
     const params: Record<string, any> = {};
-    
+
     // パラメータ空間の定義を使用してトライアルパラメータを生成
     Object.entries(this.config.parameterSpace).forEach(([key, def]) => {
       switch (def.type) {
         case ParameterType.FLOAT:
-          params[key] = trial.suggest_float(
-            key, 
-            def.min, 
-            def.max, 
-            { step: def.step }
-          );
+          params[key] = trial.suggest_float(key, def.min, def.max, { step: def.step });
           break;
         case ParameterType.INTEGER:
-          params[key] = trial.suggest_int(
-            key, 
-            def.min, 
-            def.max, 
-            def.step || 1
-          );
+          params[key] = trial.suggest_int(key, def.min, def.max, def.step || 1);
           break;
         case ParameterType.CATEGORICAL:
           params[key] = trial.suggest_categorical(key, def.choices);
@@ -168,7 +160,7 @@ export class OptunaOptimizer {
           break;
       }
     });
-    
+
     return params;
   }
 
@@ -177,16 +169,16 @@ export class OptunaOptimizer {
    */
   private saveResultsToYaml(result: OptimizationResult): void {
     const outputDir = path.resolve(process.cwd(), 'data', 'optimization');
-    
+
     // ディレクトリが存在しない場合は作成
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
-    
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `${this.config.symbol}_${this.config.metric}_${timestamp}.yaml`;
     const outputPath = path.join(outputDir, filename);
-    
+
     // 最適化結果をYAML形式で保存
     const yamlContent = yaml.dump({
       optimization_config: this.config,
@@ -198,7 +190,7 @@ export class OptunaOptimizer {
         value: trial.value
       }))
     });
-    
+
     fs.writeFileSync(outputPath, yamlContent, 'utf8');
     console.log(`[OptunaOptimizer] 結果を保存: ${outputPath}`);
   }
@@ -209,4 +201,4 @@ export class OptunaOptimizer {
   private isMinimizationMetric(): boolean {
     return this.config.metric === MetricType.MAX_DRAWDOWN;
   }
-} 
+}

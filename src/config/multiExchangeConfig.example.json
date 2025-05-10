@@ -1,0 +1,61 @@
+{
+  "exchanges": {
+    "binance": {
+      "apiKey": "${BINANCE_API_KEY}",
+      "secret": "${BINANCE_SECRET_KEY}",
+      "priority": 1,
+      "active": true,
+      "symbols": ["SOL/USDT", "BTC/USDT", "ETH/USDT"]
+    },
+    "bybit": {
+      "apiKey": "${BYBIT_API_KEY}",
+      "secret": "${BYBIT_SECRET_KEY}",
+      "priority": 2,
+      "active": true,
+      "symbols": ["SOL/USDT", "BTC/USDT", "ETH/USDT"]
+    },
+    "kucoin": {
+      "apiKey": "${KUCOIN_API_KEY}",
+      "secret": "${KUCOIN_SECRET_KEY}",
+      "password": "${KUCOIN_API_PASSPHRASE}",
+      "priority": 3,
+      "active": false,
+      "symbols": ["SOL/USDT", "BTC/USDT"]
+    }
+  },
+  "allocation": {
+    "strategy": "PRIORITY",
+    "customRatios": {
+      "binance": 0.6,
+      "bybit": 0.4,
+      "kucoin": 0.0
+    }
+  },
+  "riskManagement": {
+    "maxExchangeAllocation": {
+      "binance": 0.7,
+      "bybit": 0.3,
+      "kucoin": 0.3
+    },
+    "exchangeFailoverEnabled": true,
+    "retryAttempts": 3
+  },
+  "symbolMapping": {
+    "SOL/USDT": {
+      "binance": "SOL/USDT",
+      "bybit": "SOLUSDT",
+      "kucoin": "SOL-USDT"
+    },
+    "BTC/USDT": {
+      "binance": "BTC/USDT",
+      "bybit": "BTCUSDT",
+      "kucoin": "BTC-USDT"
+    }
+  },
+  "hedging": {
+    "enabled": false,
+    "hedgeExchange": "bybit",
+    "primaryExchange": "binance",
+    "maxHedgeRatio": 0.5
+  }
+} 

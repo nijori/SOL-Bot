@@ -1,9 +1,11 @@
 /**
  * マルチシンボル対応の型定義
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
+ * BT-008: MultiSymbolBacktestRunner並列化
  */
 
-import { BacktestConfig, BacktestResult } from '../core/backtestRunner';
+import { BacktestConfig, BacktestResult } from "../core/backtestRunner.js";
+import { MemoryPeaks } from "../utils/memoryMonitor.js";
 
 /**
  * マルチシンボルバックテスト設定
@@ -25,6 +27,10 @@ export interface MultiSymbolBacktestConfig {
   batchSize?: number;                          // データ処理バッチサイズ
   memoryMonitoring?: boolean;                  // メモリ監視を有効にするか
   gcInterval?: number;                         // ガベージコレクション実行間隔（キャンドル数）
+  parallelLimit?: number;                      // 並列実行数の上限 (BT-008)
+  saveResults?: boolean;                       // 結果をファイルに保存するかどうか (BT-008)
+  name?: string;                               // バックテスト設定の名前 (保存時のファイル名に使用)
+  customWeights?: Record<string, number>;      // カスタム配分の重み (AllocationStrategy.CUSTOMで使用)
 }
 
 /**
@@ -46,27 +52,49 @@ export interface AllocationWeights {
 }
 
 /**
+ * 実行統計情報
+ */
+export interface ExecutionStats {
+  totalDuration: number;                // 合計実行時間 (ms)
+  memoryPeaks: MemoryPeaks;             // メモリ使用量のピーク値
+  memoryDelta: {                        // メモリ使用量の増加分
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+  };
+  correlationMatrix?: Record<string, Record<string, number>>; // シンボル間の相関行列
+}
+
+/**
+ * エクイティ履歴ポイント
+ */
+export interface EquityPoint {
+  timestamp: number;                   // タイムスタンプ
+  bySymbol: Record<string, number>;    // シンボルごとのエクイティ
+  total: number;                       // 合計エクイティ
+}
+
+/**
  * マルチシンボルバックテスト結果
  */
 export interface MultiSymbolBacktestResult {
-  symbolResults: Record<string, BacktestResult>;   // シンボルごとのバックテスト結果
-  portfolioMetrics: {
-    totalReturn: number;
-    sharpeRatio: number;
-    maxDrawdown: number;
-    winRate: number;
-    profitFactor: number;
-    calmarRatio: number;
-    sortinoRatio: number;
-    correlationMatrix?: Record<string, Record<string, number>>; // シンボル間の相関行列
+  symbolResults: Record<string, BacktestResult>;  // シンボルごとのバックテスト結果
+  combinedMetrics: {                              // 統合された指標
+    totalTrades: number;                          // 総取引数
+    winningTrades: number;                        // 勝ちトレード数
+    losingTrades: number;                         // 負けトレード数
+    winRate: number;                              // 勝率
+    maxDrawdown: number;                          // 最大ドローダウン
+    sharpeRatio: number;                          // シャープレシオ
+    totalReturn: number;                          // 総リターン
+    totalProfit: number;                          // 総利益
+    initialTotal: number;                         // 初期残高合計
+    finalTotal: number;                           // 最終残高合計
   };
-  equity: {
-    timestamp: string;
-    equity: number;
-    symbolEquity: Record<string, number>; // シンボルごとの資産推移
-  }[];
-  allocationStrategy: AllocationStrategy;
-  parameters: Record<string, any>;
+  allEquityPoints: EquityPoint[];                 // 全エクイティポイント履歴
+  totalEquity: number;                            // 総エクイティ
+  executionStats: ExecutionStats;                 // 実行統計情報
 }
 
 /**

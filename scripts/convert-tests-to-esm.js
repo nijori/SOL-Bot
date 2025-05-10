@@ -128,6 +128,12 @@ function removeTypeAnnotations(content) {
     return `(${cleanedParams}) =>`;
   });
   
+  // mockImplementation内のパラメータの括弧が閉じられていない問題を修正
+  result = result.replace(/mockImplementation\(\((\w+)(\s*)=>/g, 'mockImplementation(($1)$2=>');
+  
+  // mock.callsの構文エラーを修正
+  result = result.replace(/const\s+calls\s+=\s+\(([^;]+);/g, 'const calls = $1.mock.calls;');
+  
   // 関数定義の型アノテーションを削除
   result = result.replace(typePatterns.functionReturn, (match, name, params) => {
     // パラメータごとに型アノテーションを削除
@@ -419,6 +425,21 @@ async function convertFileToEsm(filePath) {
     // 型アノテーションを削除
     testCode = removeTypeAnnotations(processedContent);
     
+    // モックオブジェクトのクリーンアップコードを追加
+    testCode = addMockCleanupCode(testCode);
+    
+    // タイマーとイベントリスナーのクリーンアップコードを追加
+    testCode = addCleanupCode(testCode);
+    
+    // プロパティ名の修正（テストクラスの実際のプロパティ構造に合わせる）
+    testCode = fixPropertyAccess(testCode);
+    
+    // テスト変数のスコープ修正
+    testCode = fixTestVariableScope(testCode);
+    
+    // ESMファイルのファイナライズ（最終的な調整）
+    testCode = finalizeESMFile(testCode);
+    
     // 最終的なコンテンツを作成
     updatedContent += testCode;
     
@@ -488,6 +509,231 @@ function printSummary() {
   console.log(`❌ 失敗: ${failureCount} ファイル`);
   console.log(`📦 スキップ: ${skippedCount} ファイル`);
   console.log('====================\n');
+}
+
+// ESM対応のimport文を追加
+function addESMImports(content) {
+  // @jest/globalsからのインポートを追加
+  if (content.includes('describe(') || content.includes('test(') || content.includes('it(')) {
+    // 既存のimport文を検索
+    const importRegex = /import\s+{([^}]+)}\s+from\s+['"]@jest\/globals['"];?/;
+    const importMatch = content.match(importRegex);
+    
+    // 必要なJestの関数
+    const requiredImports = ['jest', 'describe', 'beforeEach', 'beforeAll', 'afterEach', 'afterAll', 'test', 'it', 'expect'];
+    
+    if (importMatch) {
+      // 既存のimport文がある場合は拡張
+      const existingImports = importMatch[1].split(',').map(s => s.trim());
+      const missingImports = requiredImports.filter(imp => !existingImports.includes(imp));
+      
+      if (missingImports.length > 0) {
+        const newImports = [...existingImports, ...missingImports].join(', ');
+        return content.replace(importRegex, `import { ${newImports} } from '@jest/globals';`);
+      }
+    } else {
+      // import文がない場合は追加
+      return `import { ${requiredImports.join(', ')} } from '@jest/globals';\n\n${content}`;
+    }
+  }
+  
+  return content;
+}
+
+// タイマーとイベントリスナーのクリーンアップコードを追加
+function addCleanupCode(content) {
+  // 既にクリーンアップコードが含まれているかチェック
+  if (content.includes('afterAll(') && content.includes('clearAllTimers')) {
+    return content;
+  }
+  
+  // beforeAllでタイマーモック化するコードを追加
+  const beforeAllCode = `
+// テスト開始前にタイマーをモック化
+beforeAll(() => {
+  jest.useFakeTimers();
+});
+`;
+
+  // afterAllでクリーンアップするコードを追加
+  const afterAllCode = `
+// 非同期処理をクリーンアップするためのafterAll
+afterAll(() => {
+  // すべてのモックをリセット
+  jest.clearAllMocks();
+  
+  // タイマーをリセット
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  
+  // グローバルタイマーをクリア
+  if (global.setInterval && global.setInterval.mockClear) {
+    global.setInterval.mockClear();
+  }
+  
+  if (global.clearInterval && global.clearInterval.mockClear) {
+    global.clearInterval.mockClear();
+  }
+  
+  // 確実にすべてのプロミスが解決されるのを待つ
+  return new Promise(resolve => {
+    setTimeout(() => {
+      // 残りの非同期処理を強制終了
+      process.removeAllListeners('unhandledRejection');
+      process.removeAllListeners('uncaughtException');
+      resolve();
+    }, 100);
+  });
+});
+`;
+
+  // afterEachでインスタンスのクリーンアップコードを追加
+  const afterEachCode = `
+// テスト後にインターバルを停止
+afterEach(() => {
+  // すべてのタイマーモックをクリア
+  jest.clearAllTimers();
+  
+  // インスタンスを明示的に破棄
+  // (ここにテスト固有のクリーンアップコードが必要な場合があります)
+});
+`;
+
+  // 既存のbeforeEach, beforeAll, afterEach, afterAll関数を検出
+  const hasBeforeAll = content.includes('beforeAll(');
+  const hasAfterAll = content.includes('afterAll(');
+  const hasAfterEach = content.includes('afterEach(');
+  
+  // 挿入場所を検索
+  let insertBeforeAllPos = content.indexOf('describe(');
+  let insertAfterAllPos = content.lastIndexOf('describe(');
+  let insertAfterEachPos = content.indexOf('describe(');
+  
+  // モック宣言の後ろに挿入する
+  const mockJestPos = content.indexOf('jest.mock(');
+  if (mockJestPos > 0) {
+    insertBeforeAllPos = content.indexOf('\n', mockJestPos + 10);
+  }
+  
+  // 既存の挿入場所も探す
+  const existingBeforeAllPos = content.indexOf('beforeAll(');
+  const existingAfterAllPos = content.indexOf('afterAll(');
+  const existingAfterEachPos = content.indexOf('afterEach(');
+  
+  let modifiedContent = content;
+  
+  // beforeAll の挿入
+  if (!hasBeforeAll && insertBeforeAllPos > 0) {
+    modifiedContent = modifiedContent.slice(0, insertBeforeAllPos) + beforeAllCode + modifiedContent.slice(insertBeforeAllPos);
+  } else if (existingBeforeAllPos > 0) {
+    // 既存のbeforeAllがある場合、その中にタイマーモック化のコードを追加
+    const beforeAllEndPos = modifiedContent.indexOf('});', existingBeforeAllPos) + 3;
+    modifiedContent = modifiedContent.slice(0, beforeAllEndPos) + '\n' + modifiedContent.slice(beforeAllEndPos);
+  }
+  
+  // afterEach の挿入
+  if (!hasAfterEach && insertAfterEachPos > 0) {
+    modifiedContent = modifiedContent.slice(0, insertAfterEachPos) + afterEachCode + modifiedContent.slice(insertAfterEachPos);
+  }
+  
+  // afterAll の挿入
+  if (!hasAfterAll && insertAfterAllPos > 0) {
+    modifiedContent = modifiedContent.slice(0, insertAfterAllPos) + afterAllCode + modifiedContent.slice(insertAfterAllPos);
+  }
+  
+  return modifiedContent;
+}
+
+// プロパティ名の修正（テストクラスの実際のプロパティ構造に合わせる）
+function fixPropertyAccess(content) {
+  // exchangeMap → exchanges のように変換
+  let modifiedContent = content;
+  
+  // UnifiedOrderManager のプロパティ変換
+  modifiedContent = modifiedContent.replace(/unifiedManager\.exchangeMap/g, 'unifiedManager.exchanges');
+  modifiedContent = modifiedContent.replace(/unifiedManager\.priorityMap\.get\((['"])([^'"]+)(['"])\)/g, 'unifiedManager.exchanges.get($1$2$3).priority');
+  modifiedContent = modifiedContent.replace(/unifiedManager\.omsMap\.get\((['"])([^'"]+)(['"])\)/g, 'unifiedManager.exchanges.get($1$2$3).oms');
+  
+  // クラスの特定のメソッドの呼び出しパターンを修正
+  // メソッドがプロパティに変換されるパターンなど
+  
+  return modifiedContent;
+}
+
+// モックオブジェクトのクリーンアップコードを追加
+function addMockCleanupCode(content) {
+  // 特定のクラスのモックに停止メソッドを追加するパターン
+  const orderManagementSystemStopMock = `
+// OrderManagementSystemに停止メソッドを追加
+OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
+  if (this.fillMonitorTask) {
+    if (typeof this.fillMonitorTask.destroy === 'function') {
+      this.fillMonitorTask.destroy();
+    } else {
+      this.fillMonitorTask.stop();
+    }
+    this.fillMonitorTask = null;
+  }
+});
+`;
+  
+  // 既にモックが存在するか確認
+  if (content.includes('OrderManagementSystem.prototype.stopMonitoring')) {
+    return content;
+  }
+  
+  // モック宣言の後に挿入
+  const mockPos = content.indexOf('jest.mock(');
+  if (mockPos > 0) {
+    // 最後のjest.mockの後に挿入
+    let lastMockEndPos = content.lastIndexOf('jest.mock(');
+    lastMockEndPos = content.indexOf(';', lastMockEndPos) + 1;
+    
+    return content.slice(0, lastMockEndPos) + '\n' + orderManagementSystemStopMock + content.slice(lastMockEndPos);
+  }
+  
+  return content;
+}
+
+// テスト変数のスコープ修正
+function fixTestVariableScope(content) {
+  // テスト変数をスコープの外に移動させる
+  const result = content.replace(
+    /(describe\(.*?\{)\s*let\s+([a-zA-Z0-9_,\s]+);/s,
+    '// テストで使用するインスタンス変数をスコープ外に定義\nlet $2;\n\n$1'
+  );
+  
+  return result;
+}
+
+// ESMファイルのファイナライズ（最終的な調整）
+function finalizeESMFile(content) {
+  // ポリフィルチェックを追加
+  if (!content.includes('__jest_import_meta_url')) {
+    const polyfill = `
+// 循環参照対策のポリフィル
+if (typeof globalThis.__jest_import_meta_url === 'undefined') {
+  globalThis.__jest_import_meta_url = 'file:///';
+}
+`;
+    
+    // importステートメントの後に挿入
+    const importEndPos = content.lastIndexOf('import');
+    if (importEndPos > 0) {
+      const nextLinePos = content.indexOf('\n', importEndPos);
+      if (nextLinePos > 0) {
+        content = content.slice(0, nextLinePos + 1) + polyfill + content.slice(nextLinePos + 1);
+      }
+    }
+  }
+  
+  // 重複アロー関数表現の修正
+  content = content.replace(/\(\(([^)]+)\)\)\s*=>/g, '(($1) =>');
+  
+  // 誤った型アサーションの修正
+  content = content.replace(/as\s+[A-Za-z0-9_<>[\].,|&\s{}()?!]+/g, '');
+  
+  return content;
 }
 
 // メイン処理

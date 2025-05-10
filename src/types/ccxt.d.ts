@@ -146,34 +146,88 @@ declare module 'ccxt' {
     apiKey: string;
     secret: string;
     password: string;
-    
+
     loadMarkets(): Promise<{ [symbol: string]: MarketInfo }>;
-    fetchOrderBook(symbol: string, limit?: number, params?: Record<string, unknown>): Promise<OrderBook>;
+    fetchOrderBook(
+      symbol: string,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<OrderBook>;
     fetchTicker(symbol: string, params?: Record<string, unknown>): Promise<Ticker>;
-    fetchOHLCV(symbol: string, timeframe?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<number[][]>;
-    fetchTrades(symbol: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Trade[]>;
-    createOrder(symbol: string, type: string, side: string, amount: number, price?: number, params?: Record<string, unknown>): Promise<Order>;
-    createOCOOrder?(symbol: string, side: string, amount: number, price: number, stopPrice: number, stopLimitPrice?: number, params?: Record<string, unknown>): Promise<Order>;
+    fetchOHLCV(
+      symbol: string,
+      timeframe?: string,
+      since?: number,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<number[][]>;
+    fetchTrades(
+      symbol: string,
+      since?: number,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<Trade[]>;
+    createOrder(
+      symbol: string,
+      type: string,
+      side: string,
+      amount: number,
+      price?: number,
+      params?: Record<string, unknown>
+    ): Promise<Order>;
+    createOCOOrder?(
+      symbol: string,
+      side: string,
+      amount: number,
+      price: number,
+      stopPrice: number,
+      stopLimitPrice?: number,
+      params?: Record<string, unknown>
+    ): Promise<Order>;
     cancelOrder(id: string, symbol?: string, params?: Record<string, unknown>): Promise<Order>;
     fetchOrder(id: string, symbol?: string, params?: Record<string, unknown>): Promise<Order>;
-    fetchOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
-    fetchOpenOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
-    fetchClosedOrders(symbol?: string, since?: number, limit?: number, params?: Record<string, unknown>): Promise<Order[]>;
+    fetchOrders(
+      symbol?: string,
+      since?: number,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<Order[]>;
+    fetchOpenOrders(
+      symbol?: string,
+      since?: number,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<Order[]>;
+    fetchClosedOrders(
+      symbol?: string,
+      since?: number,
+      limit?: number,
+      params?: Record<string, unknown>
+    ): Promise<Order[]>;
     fetchBalance(params?: Record<string, unknown>): Promise<Balance>;
-    withdraw(currency: string, amount: number, address: string, tag?: string, params?: Record<string, unknown>): Promise<{
+    withdraw(
+      currency: string,
+      amount: number,
+      address: string,
+      tag?: string,
+      params?: Record<string, unknown>
+    ): Promise<{
       id: string;
       info: unknown;
       txid?: string;
       [key: string]: unknown;
     }>;
-    fetchDepositAddress(currency: string, params?: Record<string, unknown>): Promise<{
+    fetchDepositAddress(
+      currency: string,
+      params?: Record<string, unknown>
+    ): Promise<{
       currency: string;
       address: string;
       tag?: string;
       info: unknown;
       [key: string]: unknown;
     }>;
-    
+
     [key: string]: unknown;
   }
 
@@ -183,4 +237,4 @@ declare module 'ccxt' {
   export class bybit extends Exchange {}
   export class kucoin extends Exchange {}
   // その他の取引所クラスも同様に定義
-} 
+}

@@ -1,34 +1,39 @@
 /**
  * 取引所との通信を管理するサービス
- * 
+ *
  * このファイルはccxtライブラリを使用して、暗号資産取引所とのやり取りを抽象化します。
  * 市場データの取得や注文の実行など、取引所関連の操作を提供します。
  */
 
 import ccxt from 'ccxt';
-import { Candle, Order, OrderSide, OrderType, OrderStatus } from '../core/types';
-import logger from '../utils/logger';
-import { orderTypeToCcxt, ccxtToOrderType, ORDER_TYPE_TO_CCXT_MAPPING, CCXT_TO_ORDER_TYPE_MAPPING } from '../utils/orderTypeUtils';
+import { Candle, Order, OrderSide, OrderType, OrderStatus } from "../core/types.js";
+import logger from "../utils/logger.js";
+import {
+  orderTypeToCcxt,
+  ccxtToOrderType,
+  ORDER_TYPE_TO_CCXT_MAPPING,
+  CCXT_TO_ORDER_TYPE_MAPPING
+} from "../utils/orderTypeUtils.js";
 
 /**
  * 注文オプションのインターフェース
  */
 export interface OrderOptions {
-  postOnly?: boolean;   // Post-Onlyオプション
-  hidden?: boolean;     // 隠し注文オプション
-  iceberg?: number;     // アイスバーグ注文の表示数量
-  stopPrice?: number;   // ストップ価格
+  postOnly?: boolean; // Post-Onlyオプション
+  hidden?: boolean; // 隠し注文オプション
+  iceberg?: number; // アイスバーグ注文の表示数量
+  stopPrice?: number; // ストップ価格
 }
 
 /**
  * OCO注文の入力パラメータ
  */
 export interface OcoOrderParams {
-  symbol: string;         // 銘柄シンボル
-  side: OrderSide;        // 注文サイド
-  amount: number;         // 注文数量
-  stopPrice: number;      // ストップ価格
-  limitPrice: number;     // 指値価格
+  symbol: string; // 銘柄シンボル
+  side: OrderSide; // 注文サイド
+  amount: number; // 注文数量
+  stopPrice: number; // ストップ価格
+  limitPrice: number; // 指値価格
   stopLimitPrice?: number; // ストップリミットの場合の指値価格
 }
 
@@ -64,8 +69,8 @@ export class ExchangeService {
   private readonly MAX_RETRIES = 7; // 最大再試行回数
   // 固定値ではなく、真の指数バックオフのパラメータを定義
   private readonly INITIAL_BACKOFF_MS = 1000; // 初期バックオフ時間（ミリ秒）
-  private readonly MAX_BACKOFF_MS = 64000;   // 最大バックオフ時間（ミリ秒）
-  private readonly BACKOFF_FACTOR = 2;       // バックオフ係数（2倍ずつ増加）
+  private readonly MAX_BACKOFF_MS = 64000; // 最大バックオフ時間（ミリ秒）
+  private readonly BACKOFF_FACTOR = 2; // バックオフ係数（2倍ずつ増加）
 
   /**
    * 取引所サービスを初期化する
@@ -77,9 +82,12 @@ export class ExchangeService {
     try {
       // 取引所インスタンスの作成
       // ccxtは動的にインスタンス化するのでRecord型を使用
-      const exchangeClasses = ccxt as unknown as Record<string, new (options: ccxt.ExchangeOptions) => ccxt.Exchange>;
+      const exchangeClasses = ccxt as unknown as Record<
+        string,
+        new (options: ccxt.ExchangeOptions) => ccxt.Exchange
+      >;
       const exchangeClass = exchangeClasses[exchangeId];
-      
+
       if (!exchangeClass) {
         logger.error(`指定された取引所が見つかりません: ${exchangeId}`);
         return false;
@@ -88,7 +96,7 @@ export class ExchangeService {
       this.exchange = new exchangeClass({
         apiKey,
         secret,
-        enableRateLimit: true,
+        enableRateLimit: true
       });
 
       // 取引所への接続テスト
@@ -109,34 +117,42 @@ export class ExchangeService {
    */
   private isRetryable(error: ExchangeError): boolean {
     // レート制限（429）エラー
-    if ((error.name && error.name === 'RateLimitExceeded') || 
-        (error.message && error.message.includes('429')) || 
-        (error.code && error.code === 429)) {
+    if (
+      (error.name && error.name === 'RateLimitExceeded') ||
+      (error.message && error.message.includes('429')) ||
+      (error.code && error.code === 429)
+    ) {
       return true;
     }
-    
+
     // サーバーエラー（5xx）
-    if ((error.message && /50\d/.test(error.message)) || 
-        (error.code && typeof error.code === 'number' && error.code >= 500 && error.code < 600)) {
+    if (
+      (error.message && /50\d/.test(error.message)) ||
+      (error.code && typeof error.code === 'number' && error.code >= 500 && error.code < 600)
+    ) {
       return true;
     }
-    
+
     // ゲートウェイエラー
-    if (error.message && (
-        error.message.includes('502') || 
-        error.message.includes('Bad Gateway') || 
-        error.message.includes('Gateway Timeout'))) {
+    if (
+      error.message &&
+      (error.message.includes('502') ||
+        error.message.includes('Bad Gateway') ||
+        error.message.includes('Gateway Timeout'))
+    ) {
       return true;
     }
-    
+
     // 接続リセットやネットワークエラー
-    if (error.code === 'ECONNRESET' || 
-        error.code === 'ETIMEDOUT' || 
-        error.code === 'ESOCKETTIMEDOUT' ||
-        error.code === 'ECONNREFUSED') {
+    if (
+      error.code === 'ECONNRESET' ||
+      error.code === 'ETIMEDOUT' ||
+      error.code === 'ESOCKETTIMEDOUT' ||
+      error.code === 'ECONNREFUSED'
+    ) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -148,39 +164,46 @@ export class ExchangeService {
    */
   private async fetchWithExponentialBackoff<T>(apiCall: () => Promise<T>): Promise<T> {
     let lastError: ExchangeError = new Error('Unknown error') as ExchangeError;
-    
+
     for (let retry = 0; retry < this.MAX_RETRIES; retry++) {
       try {
         return await apiCall();
       } catch (error) {
         lastError = error as ExchangeError;
-        
+
         // 再試行可能なエラーかどうか判定
         if (this.isRetryable(lastError)) {
           // 最後の試行なら例外をそのまま投げる
           if (retry === this.MAX_RETRIES - 1) {
             throw error;
           }
-          
+
           // 真の指数バックオフ計算: min(初期値 * 係数^試行回数, 最大値)
           const delay = Math.min(
             this.INITIAL_BACKOFF_MS * Math.pow(this.BACKOFF_FACTOR, retry),
             this.MAX_BACKOFF_MS
           );
-          
+
           const errorCode = lastError.code || '';
-          const errorType = lastError.name || (lastError.message && lastError.message.includes('429') ? 'レート制限' : 
-                           (lastError.message && /50\d/.test(lastError.message) ? 'サーバーエラー' : 'ネットワークエラー'));
-          
-          logger.warn(`${errorType}エラー(${errorCode})が発生しました。${delay/1000}秒待機後に再試行 (${retry + 1}/${this.MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          const errorType =
+            lastError.name ||
+            (lastError.message && lastError.message.includes('429')
+              ? 'レート制限'
+              : lastError.message && /50\d/.test(lastError.message)
+                ? 'サーバーエラー'
+                : 'ネットワークエラー');
+
+          logger.warn(
+            `${errorType}エラー(${errorCode})が発生しました。${delay / 1000}秒待機後に再試行 (${retry + 1}/${this.MAX_RETRIES})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
         } else {
           // 再試行不可能なエラーはすぐに例外を投げる
           throw error;
         }
       }
     }
-    
+
     // ここには到達しないはずだが、コンパイルエラーを防ぐ
     throw lastError;
   }
@@ -192,18 +215,22 @@ export class ExchangeService {
    * @param limit 取得するローソク足の数
    * @returns ローソク足データの配列
    */
-  public async fetchCandles(symbol: string, timeframe: string, limit: number = 100): Promise<Candle[]> {
+  public async fetchCandles(
+    symbol: string,
+    timeframe: string,
+    limit: number = 100
+  ): Promise<Candle[]> {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return [];
     }
 
     try {
-      const ohlcv = await this.fetchWithExponentialBackoff(() => 
+      const ohlcv = await this.fetchWithExponentialBackoff(() =>
         this.exchange.fetchOHLCV(symbol, timeframe, undefined, limit)
       );
-      
-      return ohlcv.map(candle => ({
+
+      return ohlcv.map((candle) => ({
         timestamp: candle[0],
         open: candle[1],
         high: candle[2],
@@ -212,7 +239,9 @@ export class ExchangeService {
         volume: candle[5]
       }));
     } catch (error) {
-      logger.error(`市場データ取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `市場データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
       return [];
     }
   }
@@ -238,19 +267,25 @@ export class ExchangeService {
       const symbol = order.symbol;
 
       const params: Record<string, unknown> = {};
-      
+
       // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
       if (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) {
         // 成行注文の場合はpriceをundefinedに設定（ccxtの型定義に合わせる）
         price = undefined;
-        logger.debug(`[ExchangeService] 成行系注文のためpriceパラメータを削除: ${order.type} ${side} ${amount} ${symbol}`);
+        logger.debug(
+          `[ExchangeService] 成行系注文のためpriceパラメータを削除: ${order.type} ${side} ${amount} ${symbol}`
+        );
       }
-      
+
       // ストップ注文の場合、パラメータを追加
-      if (order.type === OrderType.STOP || order.type === OrderType.STOP_LIMIT || order.type.toString().includes('STOP')) {
+      if (
+        order.type === OrderType.STOP ||
+        order.type === OrderType.STOP_LIMIT ||
+        order.type.toString().includes('STOP')
+      ) {
         params.stopPrice = order.stopPrice;
       }
-      
+
       // 追加オプションを適用
       if (options) {
         // Post-Onlyオプション
@@ -258,44 +293,66 @@ export class ExchangeService {
           params.postOnly = true;
           logger.debug(`[ExchangeService] Post-Onlyオプションを適用: ${symbol}`);
         }
-        
+
         // 隠し注文オプション
         if (options.hidden) {
           params.hidden = true;
           logger.debug(`[ExchangeService] 隠し注文オプションを適用: ${symbol}`);
         }
-        
+
         // アイスバーグ注文オプション
         if (options.iceberg && options.iceberg > 0) {
           params.iceberg = options.iceberg;
-          logger.debug(`[ExchangeService] アイスバーグ注文オプションを適用: 表示数量=${options.iceberg}, ${symbol}`);
+          logger.debug(
+            `[ExchangeService] アイスバーグ注文オプションを適用: 表示数量=${options.iceberg}, ${symbol}`
+          );
         }
       }
 
       // 全取引所で一貫した成行注文処理を行う
-      if (price === undefined &&
-          (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET'))) {
+      if (
+        price === undefined &&
+        (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET'))
+      ) {
         // 成行注文のパラメータを準備
         const marketOrderParams = { ...params };
-        
+
         // 取引所ごとの特殊処理を適用
         const result = await this.fetchWithExponentialBackoff(() => {
           logger.debug(`[ExchangeService] 成行注文実行: ${symbol} ${side} ${amount}`);
-          
+
           // 取引所がBitgetまたはBybitの場合、特別な処理が必要
           if (this.exchange.id === 'bitget' || this.exchange.id === 'bybit') {
-            logger.debug(`[ExchangeService] ${this.exchange.id}向け成行注文特殊処理: priceパラメータ省略`);
-            
+            logger.debug(
+              `[ExchangeService] ${this.exchange.id}向け成行注文特殊処理: priceパラメータ省略`
+            );
+
             // @ts-ignore: ccxtの型定義問題を回避
-            return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, undefined, marketOrderParams);
+            return this.exchange.createOrder(
+              symbol,
+              ccxtOrderType,
+              side,
+              amount,
+              undefined,
+              marketOrderParams
+            );
           }
-          
+
           // 標準的な取引所の場合
-          return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, undefined, marketOrderParams);
+          return this.exchange.createOrder(
+            symbol,
+            ccxtOrderType,
+            side,
+            amount,
+            undefined,
+            marketOrderParams
+          );
         });
-        
-        logger.info(`成行注文実行: ${side} ${amount} ${symbol}, オプション: ${JSON.stringify(marketOrderParams)}`);
-        
+
+        logger.info(
+          `成行注文実行: ${side} ${amount} ${symbol}, オプション: ${JSON.stringify(marketOrderParams)}`
+        );
+
         // resultがnullでなく、かつidプロパティを持つことを確認
         if (result && typeof result === 'object' && 'id' in result && result.id) {
           return result.id;
@@ -308,9 +365,11 @@ export class ExchangeService {
         const result = await this.fetchWithExponentialBackoff(() => {
           return this.exchange.createOrder(symbol, ccxtOrderType, side, amount, price, params);
         });
-        
-        logger.info(`注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`);
-        
+
+        logger.info(
+          `注文実行: ${side} ${amount} ${symbol} @ ${price || 'market'}, オプション: ${JSON.stringify(params)}`
+        );
+
         // resultがnullでなく、かつidプロパティを持つことを確認
         if (result && typeof result === 'object' && 'id' in result && result.id) {
           return result.id;
@@ -356,27 +415,27 @@ export class ExchangeService {
       logger.error('取引所が初期化されていません');
       return null;
     }
-    
+
     try {
       // 取引所がOCO注文をサポートしているか確認
       const hasOcoSupport = this.supportsOCO();
-      
+
       if (hasOcoSupport) {
         // ネイティブOCO注文をサポートしている場合
         // まず標準的なメソッド名'createOCOOrder'をチェック
         let createOCOMethod = this.exchange.createOCOOrder;
-        
+
         // 存在しなければ'createOCO'をチェック（一部の取引所での命名）
         if (!createOCOMethod && 'createOCO' in this.exchange) {
           createOCOMethod = (this.exchange as any).createOCO;
         }
-        
+
         if (!createOCOMethod) {
           logger.error('取引所がOCO注文をサポートしているのに、メソッドが存在しません');
           return null;
         }
-        
-        const result = await this.fetchWithExponentialBackoff(() => 
+
+        const result = await this.fetchWithExponentialBackoff(() =>
           createOCOMethod.call(
             this.exchange,
             params.symbol,
@@ -387,19 +446,26 @@ export class ExchangeService {
             params.stopLimitPrice
           )
         );
-        
-        logger.info(`OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`);
-        
+
+        logger.info(
+          `OCO注文実行: ${params.side} ${params.amount} ${params.symbol}, 指値=${params.limitPrice}, ストップ=${params.stopPrice}`
+        );
+
         // resultの安全な処理 - 取引所によって戻り値が異なる可能性に対応
         if (!result) {
           logger.warn('OCO注文結果がnullまたはundefinedでした');
           return null;
         }
-        
+
         // Binanceなど配列を返す取引所への対応
         if (Array.isArray(result)) {
           logger.debug(`OCO注文結果が配列形式で返されました (${this.exchange.id})`);
-          if (result.length > 0 && result[0] && typeof result[0] === 'object' && 'id' in result[0]) {
+          if (
+            result.length > 0 &&
+            result[0] &&
+            typeof result[0] === 'object' &&
+            'id' in result[0]
+          ) {
             return result[0].id as string;
           }
         }
@@ -410,14 +476,18 @@ export class ExchangeService {
             return result.id as string;
           }
         }
-        
+
         // いずれの形式にも該当しない場合
-        logger.warn(`OCO注文は成功しましたが、想定外の形式でした: ${JSON.stringify(result).substring(0, 200)}...`);
+        logger.warn(
+          `OCO注文は成功しましたが、想定外の形式でした: ${JSON.stringify(result).substring(0, 200)}...`
+        );
         return null;
       } else {
         // OCOをサポートしていない場合は個別に注文を出す
-        logger.warn(`取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`);
-        
+        logger.warn(
+          `取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`
+        );
+
         // 利確注文（指値）
         const limitOrderId = await this.executeOrder({
           symbol: params.symbol,
@@ -426,7 +496,7 @@ export class ExchangeService {
           amount: params.amount,
           price: params.limitPrice
         });
-        
+
         // 損切り注文（ストップ）
         const stopOrderId = await this.executeOrder({
           symbol: params.symbol,
@@ -436,25 +506,25 @@ export class ExchangeService {
           stopPrice: params.stopPrice,
           price: params.stopLimitPrice || params.stopPrice // ストップリミットの場合は指定された価格、そうでなければストップ価格
         });
-        
+
         if (limitOrderId && stopOrderId) {
           logger.info(`個別注文で擬似OCO作成: 指値=${limitOrderId}, ストップ=${stopOrderId}`);
           return `${limitOrderId},${stopOrderId}`; // 両方の注文IDをカンマ区切りで返す
         } else {
           logger.error('OCO注文の作成に失敗しました');
-          
+
           // 部分的に成功した注文をキャンセル
           if (limitOrderId) {
-            await this.fetchWithExponentialBackoff(() => 
+            await this.fetchWithExponentialBackoff(() =>
               this.exchange.cancelOrder(limitOrderId, params.symbol)
             );
           }
           if (stopOrderId) {
-            await this.fetchWithExponentialBackoff(() => 
+            await this.fetchWithExponentialBackoff(() =>
               this.exchange.cancelOrder(stopOrderId, params.symbol)
             );
           }
-          
+
           return null;
         }
       }
@@ -475,9 +545,7 @@ export class ExchangeService {
     }
 
     try {
-      const balances = await this.fetchWithExponentialBackoff(() => 
-        this.exchange.fetchBalance()
-      );
+      const balances = await this.fetchWithExponentialBackoff(() => this.exchange.fetchBalance());
       const result: Record<string, number> = {};
 
       // 利用可能な残高を抽出
@@ -505,7 +573,7 @@ export class ExchangeService {
     }
 
     try {
-      return await this.fetchWithExponentialBackoff(() => 
+      return await this.fetchWithExponentialBackoff(() =>
         this.exchange.fetchOrder(orderId, symbol)
       );
     } catch (error) {
@@ -537,9 +605,7 @@ export class ExchangeService {
    */
   private convertCcxtOrderToInternalOrder(ccxtOrder: ccxt.Order): Order {
     // 注文タイプが存在する場合は変換、ない場合はデフォルトでLIMIT
-    const orderType = ccxtOrder.type 
-      ? this.mapCCXTToOrderType(ccxtOrder.type) 
-      : OrderType.LIMIT;
+    const orderType = ccxtOrder.type ? this.mapCCXTToOrderType(ccxtOrder.type) : OrderType.LIMIT;
 
     return {
       exchangeOrderId: ccxtOrder.id,
@@ -585,12 +651,12 @@ export class ExchangeService {
     if (!this.isInitialized) {
       return false;
     }
-    
+
     // OCO関連の機能は特別な処理を行う
     if (feature === 'createOCO' || feature === 'createOCOOrder') {
       return this.supportsOCO();
     }
-    
+
     return Boolean(this.exchange.has[feature]);
   }
 
@@ -603,7 +669,7 @@ export class ExchangeService {
     if (!this.isInitialized || !this.exchange.has) {
       return false;
     }
-    
+
     // 両方のキー名をチェック（'createOCO'と'createOCOOrder'）
     return Boolean(this.exchange.has['createOCO'] || this.exchange.has['createOCOOrder']);
   }
@@ -616,7 +682,54 @@ export class ExchangeService {
     if (!this.isInitialized) {
       return 'Not initialized';
     }
-    
+
     return this.exchange.name;
   }
-} 
+
+  /**
+   * 特定の通貨ペアのマーケット情報を取得する
+   * @param symbol 通貨ペア (例: 'BTC/USDT')
+   * @returns マーケット情報オブジェクト
+   */
+  public async getMarketInfo(symbol: string): Promise<any> {
+    if (!this.isInitialized) {
+      logger.error('取引所が初期化されていません');
+      throw new Error('取引所が初期化されていません');
+    }
+
+    try {
+      // マーケット情報をロード
+      await this.exchange.loadMarkets();
+      
+      // シンボルが存在するか確認
+      if (!(symbol in this.exchange.markets)) {
+        logger.error(`シンボルが見つかりません: ${symbol}`);
+        return null;
+      }
+      
+      return this.exchange.markets[symbol];
+    } catch (error) {
+      logger.error(`マーケット情報取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`マーケット情報を取得できません: ${symbol}`);
+    }
+  }
+
+  /**
+   * 特定の通貨ペアのティッカー（現在価格情報）を取得する
+   * @param symbol 通貨ペア (例: 'BTC/USDT')
+   * @returns ティッカーオブジェクト
+   */
+  public async fetchTicker(symbol: string): Promise<any> {
+    if (!this.isInitialized) {
+      logger.error('取引所が初期化されていません');
+      throw new Error('取引所が初期化されていません');
+    }
+
+    try {
+      return await this.exchange.fetchTicker(symbol);
+    } catch (error) {
+      logger.error(`ティッカー取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`ティッカーを取得できません: ${symbol}`);
+    }
+  }
+}

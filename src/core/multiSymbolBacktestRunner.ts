@@ -3,6 +3,7 @@
  * 複数通貨ペアの同時バックテストを実行
  * 
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
+ * BT-008: MultiSymbolBacktestRunner並列化
  */
 
 import { BacktestRunner, BacktestConfig, BacktestResult } from './backtestRunner';
@@ -18,6 +19,8 @@ import { parameterService } from '../config/parameterService';
 import { normalizeTimestamp } from './types';
 import * as path from 'path';
 import * as fs from 'fs';
+import pLimit from 'p-limit';
+import { volBasedAllocationWeights } from '../indicators/marketState';
 
 /**
  * マルチシンボルバックテスト実行クラス
@@ -27,6 +30,7 @@ export class MultiSymbolBacktestRunner {
   private memoryMonitor: MemoryMonitor | null = null;
   private symbolRunners: Map<string, BacktestRunner> = new Map();
   private allocationWeights: Record<string, number> = {};
+  private parallelLimit: number;
 
   /**
    * コンストラクタ
@@ -34,6 +38,9 @@ export class MultiSymbolBacktestRunner {
    */
   constructor(config: MultiSymbolBacktestConfig) {
     this.config = config;
+    
+    // 並列処理の制限値を設定（デフォルトはシンボル数、最大8）
+    this.parallelLimit = config.parallelLimit || Math.min(config.symbols.length, 8);
 
     // メモリモニタリングの初期化
     if (config.memoryMonitoring) {
@@ -50,6 +57,7 @@ export class MultiSymbolBacktestRunner {
     if (!config.quiet) {
       logger.info(`[MultiSymbolBacktestRunner] ${config.symbols.length}個のシンボルで初期化しました`);
       logger.info(`[MultiSymbolBacktestRunner] 資金配分戦略: ${config.allocationStrategy || AllocationStrategy.EQUAL}`);
+      logger.info(`[MultiSymbolBacktestRunner] 並列実行制限: ${this.parallelLimit}（同時実行最大数）`);
     }
   }
 
@@ -87,13 +95,80 @@ export class MultiSymbolBacktestRunner {
         break;
 
       case AllocationStrategy.VOLATILITY:
-        // 実装時はATRなどのボラティリティ指標を使用して逆比例配分
-        // 現時点では簡易的に均等配分
-        symbols.forEach(symbol => {
-          this.allocationWeights[symbol] = 1 / symbols.length;
-        });
-        if (!this.config.quiet) {
-          logger.warn(`[MultiSymbolBacktestRunner] ボラティリティ配分は未実装のため均等配分を使用します`);
+        try {
+          // バックテスト前の初期化時にはボラティリティデータが必要
+          // 各シンボルのキャンドルデータを読み込む必要がある
+          if (!this.config.quiet) {
+            logger.info(`[MultiSymbolBacktestRunner] ボラティリティベースの資金配分を計算中...`);
+          }
+          
+          // データロード用の関数
+          const getInitialCandlesForSymbol = async (symbol: string) => {
+            try {
+              // 各シンボルのデータパスを構築
+              const dataDir = process.env.DATA_DIR || 'data/candles';
+              const timeframe = this.config.timeframeHours instanceof Array ? 
+                `${this.config.timeframeHours[0]}h` : 
+                `${this.config.timeframeHours}h`;
+              const filepath = path.join(dataDir, timeframe, `${symbol.replace('/', '_')}.json`);
+              
+              // ファイルが存在するか確認
+              if (fs.existsSync(filepath)) {
+                // データを読み込む（最大100件）
+                const rawData = fs.readFileSync(filepath, 'utf-8');
+                const allCandles = JSON.parse(rawData);
+                // 最新の100件のみ使用
+                return allCandles.slice(-100);
+              }
+              return [];
+            } catch (error) {
+              logger.error(`[MultiSymbolBacktestRunner] ${symbol}のキャンドルデータロードエラー: ${error instanceof Error ? error.message : String(error)}`);
+              return [];
+            }
+          };
+          
+          // 各シンボルのキャンドルデータを非同期でロード
+          const symbolCandlesPromises = symbols.map(async (symbol) => {
+            const candles = await getInitialCandlesForSymbol(symbol);
+            return { symbol, candles };
+          });
+          
+          const symbolCandlesResults = await Promise.all(symbolCandlesPromises);
+          
+          // キャンドルデータをマップに変換
+          const symbolCandles: Record<string, any[]> = {};
+          symbolCandlesResults.forEach(({ symbol, candles }) => {
+            symbolCandles[symbol] = candles;
+          });
+          
+          // 十分なデータがあるかチェック
+          const hasEnoughData = Object.values(symbolCandles).every(candles => candles.length >= 30);
+          
+          if (hasEnoughData) {
+            // ボラティリティベースの配分を計算
+            this.allocationWeights = volBasedAllocationWeights(symbolCandles);
+            
+            if (!this.config.quiet) {
+              logger.info(`[MultiSymbolBacktestRunner] ボラティリティベースの資金配分を計算しました`);
+            }
+          } else {
+            // データ不足時は均等配分
+            symbols.forEach(symbol => {
+              this.allocationWeights[symbol] = 1 / symbols.length;
+            });
+            if (!this.config.quiet) {
+              logger.warn(`[MultiSymbolBacktestRunner] 十分なキャンドルデータがないため均等配分を使用します`);
+            }
+          }
+        } catch (error) {
+          // エラー時は均等配分
+          symbols.forEach(symbol => {
+            this.allocationWeights[symbol] = 1 / symbols.length;
+          });
+          if (!this.config.quiet) {
+            logger.error(`[MultiSymbolBacktestRunner] ボラティリティ配分計算エラー: ${error instanceof Error ? error.message : String(error)}`);
+            logger.warn(`[MultiSymbolBacktestRunner] エラーのため均等配分を使用します`);
+          }
         }
         break;
 
@@ -171,7 +246,7 @@ export class MultiSymbolBacktestRunner {
   async run(): Promise<MultiSymbolBacktestResult> {
     // 処理時間計測開始
     const startTime = Date.now();
-
+    
     if (!this.config.quiet) {
       logger.info(`
 === マルチシンボルバックテスト開始 ===
@@ -179,344 +254,381 @@ export class MultiSymbolBacktestRunner {
 期間: ${this.config.startDate} ～ ${this.config.endDate}
 初期資金: ${this.config.initialBalance}
 配分戦略: ${this.config.allocationStrategy || AllocationStrategy.EQUAL}
+並列数: ${this.parallelLimit}
       `);
     }
 
     try {
       // 各シンボルのバックテスト結果を格納するオブジェクト
       const symbolResults: Record<string, BacktestResult> = {};
-      let totalEquity: number = 0;
+      let totalEquity = 0;
+      const allEquityPoints = new Map<number, Record<string, number>>();
       
-      // エクイティ履歴を結合するためのマップ
-      type EquityPoint = { timestamp: string; equity: number; };
-      const allEquityPoints = new Map<string, { 
-        total: number, 
-        bySymbol: Record<string, number> 
-      }>();
-
-      // 各シンボルのバックテストを順次実行
-      for (const [symbol, runner] of this.symbolRunners.entries()) {
-        if (!this.config.quiet) {
-          logger.info(`[MultiSymbolBacktestRunner] ${symbol}のバックテスト実行中...`);
-        }
-
-        // バックテスト実行
-        const result = await runner.run();
-        symbolResults[symbol] = result;
-        
-        // 最終エクイティを累積
-        const finalEquity = result.equity[result.equity.length - 1]?.equity || 0;
-        totalEquity += finalEquity;
-
-        // エクイティ履歴をマージ用マップに追加
-        result.equity.forEach((point: EquityPoint) => {
-          if (!allEquityPoints.has(point.timestamp)) {
-            allEquityPoints.set(point.timestamp, { 
-              total: 0, 
-              bySymbol: {} 
-            });
+      // 一定数の並列処理に制限するためのリミッター
+      const limit = pLimit(this.parallelLimit);
+      
+      // メモリ使用状況のベースライン計測
+      const baselineMemory = process.memoryUsage();
+      
+      // 各シンボルのバックテストを並列実行
+      const tasks = Array.from(this.symbolRunners.entries()).map(
+        ([symbol, runner]) => limit(async () => {
+          if (!this.config.quiet) {
+            logger.info(`[MultiSymbolBacktestRunner] ${symbol}のバックテスト開始`);
           }
           
-          const entry = allEquityPoints.get(point.timestamp)!;
-          entry.total += point.equity;
-          entry.bySymbol[symbol] = point.equity;
-        });
-
-        if (!this.config.quiet) {
-          logger.info(`[MultiSymbolBacktestRunner] ${symbol}のバックテスト完了: リターン=${result.metrics.totalReturn.toFixed(2)}%, 取引数=${result.trades.length}件`);
+          // シンボルごとの開始時間
+          const symbolStartTime = Date.now();
+          
+          // バックテスト実行
+          const result = await runner.run();
+          
+          // シンボルごとの実行時間
+          const symbolDuration = Date.now() - symbolStartTime;
+          
+          if (!this.config.quiet) {
+            logger.info(`[MultiSymbolBacktestRunner] ${symbol}のバックテスト完了 (所要時間: ${(symbolDuration/1000).toFixed(2)}秒)`);
+          }
+          
+          return { symbol, result };
+        })
+      );
+      
+      // すべてのバックテストタスクを並列実行し完了を待機
+      const results = await Promise.all(tasks);
+      
+      // 結果をマップに格納
+      for (const { symbol, result } of results) {
+        symbolResults[symbol] = result;
+        totalEquity += result.equity[result.equity.length - 1]?.equity || 0;
+        
+        // エクイティポイントをマージ
+        for (const equityPoint of result.equity) {
+          const timestamp = normalizeTimestamp(equityPoint.timestamp);
+          if (!allEquityPoints.has(timestamp)) {
+            allEquityPoints.set(timestamp, {});
+          }
+          const point = allEquityPoints.get(timestamp)!;
+          point[symbol] = equityPoint.equity;
         }
       }
-
-      // 統合されたエクイティ履歴を作成
-      const equityHistory = Array.from(allEquityPoints.entries())
-        .map(([timestamp, data]) => ({
-          timestamp,
-          equity: data.total,
-          symbolEquity: data.bySymbol
-        }))
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-      // ポートフォリオ全体のメトリクスを計算
-      const portfolioMetrics = this.calculatePortfolioMetrics(symbolResults, equityHistory);
-
-      // 相関分析（オプション）
-      if (this.config.correlationAnalysis) {
-        portfolioMetrics.correlationMatrix = this.calculateCorrelationMatrix(symbolResults, equityHistory);
-      }
-
-      // メモリモニタリングを停止
-      let peakMemoryUsageMB = 0;
-      if (this.memoryMonitor) {
-        this.memoryMonitor.stopMonitoring();
-        peakMemoryUsageMB = this.memoryMonitor.getMaxHeapUsed();
-
-        if (!this.config.quiet) {
-          this.memoryMonitor.logSummary();
-        }
-      }
-
+      
+      // 各シンボルの結果から統計を計算
+      const totalTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.trades.length, 0);
+      const totalWinningTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.metrics.winningTrades, 0);
+      const totalLosingTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.metrics.losingTrades, 0);
+      
+      // パフォーマンス指標を計算
+      const performanceMetrics = this.calculateCombinedMetrics(symbolResults);
+      
       // 処理時間計測終了
-      const processingTimeMS = Date.now() - startTime;
-
-      const result: MultiSymbolBacktestResult = {
-        symbolResults,
-        portfolioMetrics,
-        equity: equityHistory,
-        allocationStrategy: this.config.allocationStrategy || AllocationStrategy.EQUAL,
-        parameters: {
-          ...this.config.parameters,
-          slippage: this.config.slippage,
-          commissionRate: this.config.commissionRate
-        }
+      const endTime = Date.now();
+      const totalDuration = endTime - startTime;
+      
+      // メモリ使用量計測
+      const finalMemory = process.memoryUsage();
+      const memoryDelta = {
+        rss: finalMemory.rss - baselineMemory.rss,
+        heapTotal: finalMemory.heapTotal - baselineMemory.heapTotal,
+        heapUsed: finalMemory.heapUsed - baselineMemory.heapUsed,
+        external: finalMemory.external - baselineMemory.external
+      };
+      
+      // メモリモニタからピーク使用量を取得
+      const memoryPeaks = this.memoryMonitor?.getMemoryPeaks() || {
+        rss: 0,
+        heapTotal: 0,
+        heapUsed: 0,
+        external: 0
       };
 
       if (!this.config.quiet) {
+        // 結果サマリーの表示
         logger.info(`
-=== マルチシンボルバックテスト完了 ===
-実行時間: ${(processingTimeMS / 1000).toFixed(1)}秒
-最大メモリ使用量: ${peakMemoryUsageMB.toFixed(2)}MB
+=== マルチシンボルバックテスト結果 ===
+合計取引数: ${totalTrades}
+勝率: ${totalWinningTrades}勝 ${totalLosingTrades}敗 (${((totalWinningTrades / totalTrades) * 100).toFixed(2)}%)
+最終評価額: ${totalEquity.toFixed(2)}
 シンボル数: ${this.config.symbols.length}
-ポートフォリオ リターン: ${portfolioMetrics.totalReturn.toFixed(2)}%
-ポートフォリオ シャープレシオ: ${portfolioMetrics.sharpeRatio.toFixed(2)}
-ポートフォリオ 最大ドローダウン: ${(portfolioMetrics.maxDrawdown * 100).toFixed(2)}%
+所要時間: ${(totalDuration / 1000).toFixed(2)}秒
+シンボルあたり平均時間: ${(totalDuration / 1000 / this.config.symbols.length).toFixed(2)}秒
+並列実行数: ${this.parallelLimit}
+
+メモリ使用状況:
+・現在の増加量: ${(memoryDelta.heapUsed / 1024 / 1024).toFixed(2)} MB
+・ピーク使用量: ${(memoryPeaks.heapUsed / 1024 / 1024).toFixed(2)} MB
         `);
       }
 
-      return result;
+      // 相関分析を行う場合
+      if (this.config.correlationAnalysis) {
+        const correlationMatrix = this.calculateCorrelationMatrix(symbolResults);
+        if (!this.config.quiet) {
+          logger.info('\n=== シンボル間のリターン相関行列 ===');
+          this.printCorrelationMatrix(correlationMatrix);
+        }
+      }
+
+      // 結果をファイルに保存
+      if (this.config.saveResults) {
+        await this.saveResultsToFile(symbolResults, performanceMetrics, {
+          totalDuration,
+          memoryPeaks,
+          memoryDelta,
+          correlationMatrix: this.config.correlationAnalysis ? 
+                            this.calculateCorrelationMatrix(symbolResults) : 
+                            undefined
+        });
+      }
+
+      return {
+        symbolResults,
+        combinedMetrics: performanceMetrics,
+        allEquityPoints: Array.from(allEquityPoints.entries()).map(([timestamp, points]) => ({
+          timestamp,
+          bySymbol: points,
+          total: Object.values(points).reduce((sum, value) => sum + value, 0)
+        })),
+        totalEquity,
+        executionStats: {
+          totalDuration,
+          memoryPeaks,
+          memoryDelta,
+          correlationMatrix: this.config.correlationAnalysis ? 
+                            this.calculateCorrelationMatrix(symbolResults) : 
+                            undefined
+        }
+      };
     } catch (error) {
-      // エラー発生時もメモリモニタリングを停止
+      logger.error(`[MultiSymbolBacktestRunner] エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    } finally {
+      // メモリモニタリングを停止
       if (this.memoryMonitor) {
         this.memoryMonitor.stopMonitoring();
       }
-
-      logger.error(`[MultiSymbolBacktestRunner] マルチシンボルバックテスト実行エラー:`, error);
-      throw error;
     }
   }
 
   /**
-   * ポートフォリオ全体のメトリクスを計算
+   * バックテスト結果をファイルに保存
    */
-  private calculatePortfolioMetrics(
+  private async saveResultsToFile(
     symbolResults: Record<string, BacktestResult>,
-    equityHistory: { timestamp: string; equity: number; symbolEquity: Record<string, number> }[]
-  ): MultiSymbolBacktestResult['portfolioMetrics'] {
-    // デフォルト値で初期化
-    const metrics: MultiSymbolBacktestResult['portfolioMetrics'] = {
-      totalReturn: 0,
-      sharpeRatio: 0,
-      maxDrawdown: 0,
-      winRate: 0,
-      profitFactor: 0,
-      calmarRatio: 0,
-      sortinoRatio: 0
-    };
-
-    // エクイティから計算可能なメトリクスを計算
-    if (equityHistory.length > 0) {
-      // 初期資金と最終資金から総リターンを計算
-      const initialEquity = equityHistory[0].equity;
-      const finalEquity = equityHistory[equityHistory.length - 1].equity;
-      metrics.totalReturn = ((finalEquity / initialEquity) - 1) * 100;
-
-      // 最大ドローダウンを計算
-      let maxEquity = initialEquity;
-      let currentDrawdown = 0;
-      let maxDrawdown = 0;
-
-      for (const point of equityHistory) {
-        if (point.equity > maxEquity) {
-          maxEquity = point.equity;
-        }
-
-        currentDrawdown = 1 - (point.equity / maxEquity);
-        if (currentDrawdown > maxDrawdown) {
-          maxDrawdown = currentDrawdown;
-        }
+    combinedMetrics: any,
+    executionStats: any
+  ): Promise<void> {
+    try {
+      // 結果を保存するディレクトリを作成
+      const resultsDir = path.resolve(process.cwd(), 'data/optimization');
+      if (!fs.existsSync(resultsDir)) {
+        fs.mkdirSync(resultsDir, { recursive: true });
       }
-      metrics.maxDrawdown = maxDrawdown;
-
-      // 日次リターンを計算してシャープレシオとソルティノレシオを計算
-      if (equityHistory.length > 1) {
-        const dailyReturns: number[] = [];
-        
-        // 日次リターンを計算（日ごとの価格変化率）
-        for (let i = 1; i < equityHistory.length; i++) {
-          const prevEquity = equityHistory[i - 1].equity;
-          const currentEquity = equityHistory[i].equity;
-          dailyReturns.push((currentEquity / prevEquity) - 1);
-        }
-
-        // 平均リターンと標準偏差を計算
-        const averageReturn = dailyReturns.reduce((sum, ret) => sum + ret, 0) / dailyReturns.length;
-        const variance = dailyReturns.reduce((sum, ret) => sum + Math.pow(ret - averageReturn, 2), 0) / dailyReturns.length;
-        const stdDev = Math.sqrt(variance);
-
-        // 年間化シャープレシオを計算（リスクフリーレート=0と仮定）
-        metrics.sharpeRatio = stdDev > 0 ? (averageReturn / stdDev) * Math.sqrt(252) : 0;
-
-        // ネガティブリターンのみの標準偏差を計算（ソルティノレシオ用）
-        const negativeReturns = dailyReturns.filter(ret => ret < 0);
-        const negativeVariance = negativeReturns.length > 0 
-          ? negativeReturns.reduce((sum, ret) => sum + Math.pow(ret, 2), 0) / negativeReturns.length 
-          : 0;
-        const negativeStdDev = Math.sqrt(negativeVariance);
-
-        // ソルティノレシオを計算
-        metrics.sortinoRatio = negativeStdDev > 0 ? (averageReturn / negativeStdDev) * Math.sqrt(252) : 0;
-
-        // カルマーレシオを計算
-        metrics.calmarRatio = metrics.maxDrawdown > 0 ? (metrics.totalReturn / 100) / metrics.maxDrawdown : 0;
-      }
-
-      // 集計情報からwinRate, profitFactorを計算
-      let totalWins = 0;
-      let totalLosses = 0;
-      let totalProfit = 0;
-      let totalLoss = 0;
-      let totalTrades = 0;
-
-      Object.values(symbolResults).forEach(result => {
-        // 勝ちトレードと負けトレード
-        const winningTrades = result.trades.filter(t => t.pnl > 0);
-        const losingTrades = result.trades.filter(t => t.pnl < 0);
-        
-        totalWins += winningTrades.length;
-        totalLosses += losingTrades.length;
-        totalTrades += result.trades.length;
-
-        // 合計利益と合計損失
-        totalProfit += winningTrades.reduce((sum, t) => sum + t.pnl, 0);
-        totalLoss += Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
-      });
-
-      // 勝率を計算
-      metrics.winRate = totalTrades > 0 ? totalWins / totalTrades : 0;
-
-      // プロフィットファクターを計算
-      metrics.profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
-    }
-
-    return metrics;
-  }
-
-  /**
-   * シンボル間の相関行列を計算
-   */
-  private calculateCorrelationMatrix(
-    symbolResults: Record<string, BacktestResult>,
-    equityHistory: { timestamp: string; equity: number; symbolEquity: Record<string, number> }[]
-  ): Record<string, Record<string, number>> {
-    const correlationMatrix: Record<string, Record<string, number>> = {};
-    const symbols = Object.keys(symbolResults);
-
-    // 各シンボルの初期化
-    symbols.forEach(symbol => {
-      correlationMatrix[symbol] = {};
-      symbols.forEach(innerSymbol => {
-        correlationMatrix[symbol][innerSymbol] = symbol === innerSymbol ? 1.0 : 0.0;
-      });
-    });
-
-    // エクイティポイントが少なすぎる場合は計算しない
-    if (equityHistory.length < 10) {
-      return correlationMatrix;
-    }
-
-    // 各シンボルの日次リターンを計算
-    const symbolReturns: Record<string, number[]> = {};
-    
-    symbols.forEach(symbol => {
-      symbolReturns[symbol] = [];
       
-      for (let i = 1; i < equityHistory.length; i++) {
-        const prevEquity = equityHistory[i - 1].symbolEquity[symbol] || 0;
-        const currentEquity = equityHistory[i].symbolEquity[symbol] || 0;
-        
-        if (prevEquity > 0 && currentEquity > 0) {
-          symbolReturns[symbol].push((currentEquity / prevEquity) - 1);
-        } else {
-          symbolReturns[symbol].push(0); // 欠損値の場合は0とする
-        }
+      // タイムスタンプを含むファイル名
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const configName = this.config.name || 'multi_symbol';
+      const fileName = `${configName}_${timestamp}.json`;
+      const filePath = path.join(resultsDir, fileName);
+      
+      // 保存するデータ
+      const saveData = {
+        config: this.config,
+        symbolResults,
+        combinedMetrics,
+        executionStats,
+        timestamp: Date.now()
+      };
+      
+      // ファイルに書き込み
+      fs.writeFileSync(filePath, JSON.stringify(saveData, null, 2));
+      
+      if (!this.config.quiet) {
+        logger.info(`[MultiSymbolBacktestRunner] 結果を保存しました: ${filePath}`);
       }
-    });
+    } catch (error) {
+      logger.error(`[MultiSymbolBacktestRunner] 結果の保存に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
 
-    // ピアソン相関係数を計算
-    symbols.forEach((symbolA, indexA) => {
-      symbols.forEach((symbolB, indexB) => {
-        if (indexA < indexB) { // 対角線より上半分だけ計算
-          const returnsA = symbolReturns[symbolA];
-          const returnsB = symbolReturns[symbolB];
-          
-          // 両方のシンボルで十分なデータがある場合のみ計算
-          if (returnsA.length >= 10 && returnsB.length >= 10) {
-            const correlation = this.calculatePearsonCorrelation(returnsA, returnsB);
-            correlationMatrix[symbolA][symbolB] = correlation;
-            correlationMatrix[symbolB][symbolA] = correlation; // 対称行列
-          }
+  /**
+   * 複数シンボルのパフォーマンス指標を結合計算
+   */
+  private calculateCombinedMetrics(symbolResults: Record<string, BacktestResult>): any {
+    // 各シンボルのメトリクスを集計
+    const totalTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.trades.length, 0);
+    const winningTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.metrics.winningTrades, 0);
+    const losingTrades = Object.values(symbolResults).reduce((sum, result) => sum + result.metrics.losingTrades, 0);
+    
+    // 加重平均の計算
+    const totalInitialBalance = Object.values(symbolResults).reduce((sum, result) => sum + result.initialBalance, 0);
+    
+    // 加重平均最大ドローダウン
+    const weightedMaxDrawdown = Object.values(symbolResults).reduce((sum, result) => {
+      const weight = result.initialBalance / totalInitialBalance;
+      return sum + (result.metrics.maxDrawdown * weight);
+    }, 0);
+    
+    // 加重平均シャープレシオ
+    const weightedSharpeRatio = Object.values(symbolResults).reduce((sum, result) => {
+      const weight = result.initialBalance / totalInitialBalance;
+      return sum + (result.metrics.sharpeRatio * weight);
+    }, 0);
+    
+    // トータルリターン
+    const initialTotal = Object.values(symbolResults).reduce((sum, result) => sum + result.initialBalance, 0);
+    const finalTotal = Object.values(symbolResults).reduce((sum, result) => sum + result.equity[result.equity.length - 1]?.equity || 0, 0);
+    const totalReturn = (finalTotal - initialTotal) / initialTotal;
+    
+    // 全シンボルの合計利益
+    const totalProfit = finalTotal - initialTotal;
+    
+    return {
+      totalTrades,
+      winningTrades,
+      losingTrades,
+      winRate: totalTrades > 0 ? winningTrades / totalTrades : 0,
+      maxDrawdown: weightedMaxDrawdown,
+      sharpeRatio: weightedSharpeRatio,
+      totalReturn,
+      totalProfit,
+      initialTotal,
+      finalTotal
+    };
+  }
+
+  /**
+   * シンボル間のリターン相関行列を計算
+   */
+  private calculateCorrelationMatrix(symbolResults: Record<string, BacktestResult>): Record<string, Record<string, number>> {
+    const symbols = Object.keys(symbolResults);
+    const correlationMatrix: Record<string, Record<string, number>> = {};
+    
+    // 各シンボルごとに相関係数を計算
+    for (const symbol1 of symbols) {
+      correlationMatrix[symbol1] = {};
+      
+      for (const symbol2 of symbols) {
+        if (symbol1 === symbol2) {
+          correlationMatrix[symbol1][symbol2] = 1.0; // 自己相関は1
+          continue;
         }
-      });
-    });
-
+        
+        // 2つのシンボルのエクイティ履歴からリターン系列を計算
+        const returnsA = this.calculateReturns(symbolResults[symbol1].equityHistory);
+        const returnsB = this.calculateReturns(symbolResults[symbol2].equityHistory);
+        
+        // リターン同士の相関係数を計算
+        correlationMatrix[symbol1][symbol2] = this.calculatePearsonCorrelation(returnsA, returnsB);
+      }
+    }
+    
     return correlationMatrix;
   }
 
   /**
-   * ピアソン相関係数を計算
+   * エクイティ履歴からリターン系列を計算
    */
-  private calculatePearsonCorrelation(x: number[], y: number[]): number {
-    if (x.length !== y.length) {
-      throw new Error('配列の長さが一致しません');
+  private calculateReturns(equityHistory: { timestamp: number | string, equity: number }[]): number[] {
+    const returns: number[] = [];
+    
+    for (let i = 1; i < equityHistory.length; i++) {
+      const prevEquity = equityHistory[i - 1].equity;
+      const currentEquity = equityHistory[i].equity;
+      const returnValue = (currentEquity - prevEquity) / prevEquity;
+      returns.push(returnValue);
     }
-
-    const n = x.length;
-    let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
-    let sumX2 = 0;
-    let sumY2 = 0;
-
-    for (let i = 0; i < n; i++) {
-      sumX += x[i];
-      sumY += y[i];
-      sumXY += x[i] * y[i];
-      sumX2 += x[i] * x[i];
-      sumY2 += y[i] * y[i];
-    }
-
-    const numerator = n * sumXY - sumX * sumY;
-    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-
-    if (denominator === 0) {
-      return 0;
-    }
-
-    return numerator / denominator;
+    
+    return returns;
   }
 
   /**
-   * マルチシンボルバックテストをCLIから実行
+   * ピアソン相関係数を計算
+   * @param x 配列1
+   * @param y 配列2
+   * @returns 相関係数 (-1.0 から 1.0)
+   */
+  private calculatePearsonCorrelation(x: number[], y: number[]): number {
+    // データ長が異なる場合は短い方に合わせる
+    const n = Math.min(x.length, y.length);
+    if (n <= 1) return 0; // 相関計算に十分なデータがない
+    
+    // 平均を計算
+    const xMean = x.slice(0, n).reduce((sum, val) => sum + val, 0) / n;
+    const yMean = y.slice(0, n).reduce((sum, val) => sum + val, 0) / n;
+    
+    // 共分散と標準偏差を計算
+    let covariance = 0;
+    let xVariance = 0;
+    let yVariance = 0;
+    
+    for (let i = 0; i < n; i++) {
+      const xDiff = x[i] - xMean;
+      const yDiff = y[i] - yMean;
+      covariance += xDiff * yDiff;
+      xVariance += xDiff * xDiff;
+      yVariance += yDiff * yDiff;
+    }
+    
+    // 分母がゼロに近い場合は相関なしとみなす
+    if (xVariance < 1e-10 || yVariance < 1e-10) return 0;
+    
+    // 相関係数を計算して返す
+    return covariance / (Math.sqrt(xVariance) * Math.sqrt(yVariance));
+  }
+
+  /**
+   * 相関行列を出力
+   */
+  private printCorrelationMatrix(matrix: Record<string, Record<string, number>>): void {
+    const symbols = Object.keys(matrix);
+    
+    // ヘッダー行
+    let header = '        '; // 左上の空白
+    symbols.forEach(symbol => {
+      header += symbol.padEnd(10);
+    });
+    logger.info(header);
+    
+    // データ行
+    symbols.forEach(symbol1 => {
+      let row = symbol1.padEnd(8);
+      
+      symbols.forEach(symbol2 => {
+        const correlation = matrix[symbol1][symbol2];
+        // 小数点2桁までフォーマットして、10文字の幅に収める
+        row += correlation.toFixed(2).padEnd(10);
+      });
+      
+      logger.info(row);
+    });
+  }
+
+  /**
+   * CLI引数からマルチシンボルバックテストを実行
    */
   static async runFromCli(): Promise<void> {
     const args = process.argv.slice(2);
     
     // デフォルト設定
-    let symbols: string[] = [];
+    let symbols: string[] = ['SOL/USDT'];
     let timeframeHours: number | number[] = 4;
-    let startDate: string = '';
-    let endDate: string = '';
-    let initialBalance: number = 10000;
+    let startDate = '2023-01-01';
+    let endDate = '2023-12-31';
+    let initialBalance = 10000;
     let allocationStrategy: AllocationStrategy = AllocationStrategy.EQUAL;
-    let slippage: number = 0.001;
-    let commissionRate: number = 0.001;
-    let quiet: boolean = false;
-    let batchSize: number = 5000;
-    let gcInterval: number = 1000;
-    let memoryMonitoring: boolean = false;
-    let correlationAnalysis: boolean = false;
-    let configFile: string = '';
+    let slippage = 0.001;
+    let commissionRate = 0.001;
+    let quiet = false;
+    let batchSize = 5000;
+    let gcInterval = 10;
+    let memoryMonitoring = false;
+    let correlationAnalysis = false;
+    let configFile = '';
+    let parallelLimit = 4; // デフォルトの並列処理数
+    let saveResults = false;
     
-    // 引数解析
+    // 引数の解析
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
       
@@ -556,48 +668,15 @@ export class MultiSymbolBacktestRunner {
         correlationAnalysis = true;
       } else if (arg === '--config' && i + 1 < args.length) {
         configFile = args[++i];
+      } else if (arg === '--parallel' && i + 1 < args.length) {
+        parallelLimit = parseInt(args[++i], 10);
+      } else if (arg === '--save-results') {
+        saveResults = true;
       }
     }
     
-    // 設定ファイルからの読み込み（指定されている場合）
-    if (configFile) {
-      try {
-        const configPath = path.resolve(process.cwd(), configFile);
-        const configContent = fs.readFileSync(configPath, 'utf8');
-        const config = JSON.parse(configContent);
-        
-        // 設定ファイルの内容で上書き（CLIで指定されたものは優先）
-        symbols = symbols.length > 0 ? symbols : config.symbols || [];
-        timeframeHours = config.timeframeHours || timeframeHours;
-        startDate = startDate || config.startDate;
-        endDate = endDate || config.endDate;
-        initialBalance = config.initialBalance || initialBalance;
-        allocationStrategy = config.allocationStrategy || allocationStrategy;
-        slippage = config.slippage ?? slippage;
-        commissionRate = config.commissionRate ?? commissionRate;
-        correlationAnalysis = config.correlationAnalysis ?? correlationAnalysis;
-        
-        if (!quiet) {
-          logger.info(`[MultiSymbolBacktestRunner] 設定ファイル ${configFile} を読み込みました`);
-        }
-      } catch (error) {
-        logger.error(`[MultiSymbolBacktestRunner] 設定ファイルの読み込みエラー:`, error);
-      }
-    }
-    
-    // シンボルが指定されていない場合はパラメータサービスから取得
-    if (symbols.length === 0) {
-      symbols = parameterService.get('general.markets', ['SOL/USDT']);
-    }
-    
-    // 開始日と終了日が指定されていない場合はエラー
-    if (!startDate || !endDate) {
-      logger.error('[MultiSymbolBacktestRunner] 開始日と終了日を指定してください');
-      process.exit(1);
-    }
-    
-    // 設定を作成してマルチシンボルバックテストを実行
-    const config: MultiSymbolBacktestConfig = {
+    // 設定を作成
+    let config: MultiSymbolBacktestConfig = {
       symbols,
       timeframeHours,
       startDate,
@@ -606,22 +685,33 @@ export class MultiSymbolBacktestRunner {
       allocationStrategy,
       slippage,
       commissionRate,
-      quiet,
       batchSize,
       gcInterval,
       memoryMonitoring,
-      correlationAnalysis
+      correlationAnalysis,
+      parallelLimit,
+      saveResults,
+      quiet
     };
     
-    if (!quiet) {
-      logger.info(`マルチシンボルバックテスト設定:`, config);
+    // 設定ファイルがある場合は読み込み
+    if (configFile) {
+      try {
+        const configData = fs.readFileSync(configFile, 'utf8');
+        const fileConfig = JSON.parse(configData);
+        // ファイル設定とコマンドライン設定をマージ
+        config = { ...config, ...fileConfig };
+      } catch (error) {
+        logger.error(`設定ファイルの読み込みに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
     
+    // パラメータサービスからパラメータを取得
+    const parameters = parameterService.getParameters();
+    config.parameters = parameters;
+    
+    // マルチシンボルバックテストを実行
     const runner = new MultiSymbolBacktestRunner(config);
-    const result = await runner.run();
-    
-    if (!quiet) {
-      console.log(JSON.stringify(result, null, 2));
-    }
+    await runner.run();
   }
 } 
