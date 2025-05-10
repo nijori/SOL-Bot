@@ -4,16 +4,16 @@ import cron from 'node-cron';
 // ccxtのインポート
 import * as ccxtTypes from 'ccxt';
 const ccxt = require('ccxt');
-import { TradingEngine } from "./core/tradingEngine.js";
-import { OrderManagementSystem } from "./core/orderManagementSystem.js";
-import { OperationMode, OPERATION_MODE } from "./config/parameters.js";
-import logger from "./utils/logger.js";
-import { Candle, Order } from "./core/types.js";
-import { ExchangeService } from "./services/exchangeService.js";
-import { parameterService } from "./config/parameterService.js";
-import metricsService from "./utils/metrics.js";
-import { CliParser } from "./utils/cliParser.js";
-import { BacktestRunner } from "./core/backtestRunner.js";
+import { TradingEngine } from './core/tradingEngine.js';
+import { OrderManagementSystem } from './core/orderManagementSystem.js';
+import { OperationMode, OPERATION_MODE } from './config/parameters.js';
+import logger from './utils/logger.js';
+import { Candle, Order } from './core/types.js';
+import { ExchangeService } from './services/exchangeService.js';
+import { parameterService } from './config/parameterService.js';
+import metricsService from './utils/metrics.js';
+import { CliParser } from './utils/cliParser.js';
+import { BacktestRunner } from './core/backtestRunner.js';
 
 // 設定
 const PORT = process.env.PORT || 3000;
@@ -26,7 +26,7 @@ const isCliMode = process.argv.length > 2;
 
 // CLIモードの場合はCLIを実行
 if (isCliMode) {
-  import('./scripts/cli').then(cli => {
+  import('./scripts/cli').then((cli) => {
     // CLIモジュールをロードして実行する
     logger.info('CLIモードで実行しています');
   });
@@ -85,11 +85,11 @@ app.use(express.json());
 app.get('/api/status', (req, res) => {
   // すべてのエンジンのステータスを取得
   const engineStatuses: Record<string, any> = {};
-  
+
   tradingEngines.forEach((engine, symbol) => {
     engineStatuses[symbol] = engine.getStatus();
   });
-  
+
   res.json({
     status: 'running',
     mode: OPERATION_MODE,
@@ -107,11 +107,11 @@ app.get('/api/symbols', (req, res) => {
 app.get('/api/symbol/:symbol', (req, res) => {
   const symbol = req.params.symbol;
   const engine = tradingEngines.get(symbol);
-  
+
   if (!engine) {
     return res.status(404).json({ error: `シンボル ${symbol} が見つかりません` });
   }
-  
+
   res.json({
     symbol,
     status: engine.getStatus()
@@ -225,7 +225,7 @@ async function runTradingLogic(): Promise<void> {
     // 各シンボルに対して処理を実行
     for (const [symbol, engine] of tradingEngines.entries()) {
       logger.info(`${symbol}の取引ロジックを実行中...`);
-      
+
       // 市場データを取得
       const candles = await fetchMarketData(symbol, DEFAULT_TIMEFRAME);
       if (candles.length === 0) {

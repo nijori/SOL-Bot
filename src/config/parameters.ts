@@ -6,7 +6,7 @@
  */
 
 import 'dotenv/config';
-import { parameterService } from "./parameterService.js";
+import { parameterService } from './parameterService.js';
 
 // 相場環境判定用パラメータ
 export const MARKET_PARAMETERS = parameterService.getMarketParameters();

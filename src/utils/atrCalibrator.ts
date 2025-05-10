@@ -1,14 +1,14 @@
 /**
  * ATRキャリブレーションユーティリティ
- * 
+ *
  * 通貨ペアのボラティリティ特性に基づいてATR%やその他パラメータを動的に調整する機能
  * ALG-040: ATR%自動キャリブレーション
  */
 
-import { Candle } from "../core/types.js";
-import { calculateATR } from "./atrUtils.js";
-import { parameterService } from "../config/parameterService.js";
-import logger from "./logger.js";
+import { Candle } from '../core/types.js';
+import { calculateATR } from './atrUtils.js';
+import { parameterService } from '../config/parameterService.js';
+import logger from './logger.js';
 
 // パラメータをサービスから取得
 const MIN_LOOKBACK_CANDLES = parameterService.get<number>('risk.minLookbackCandles', 30);
@@ -108,16 +108,16 @@ export class ATRCalibrator {
 
     // ATR計算
     const atrValue = calculateATR(relevantCandles, DEFAULT_ATR_PERIOD, 'ATRCalibrator');
-    
+
     // 平均価格を計算
     const avgPrice = this.calculateAveragePrice(relevantCandles);
-    
+
     // ATR%計算
     const atrPercentage = (atrValue / avgPrice) * 100;
 
     // ボラティリティプロファイル分類
     const volatilityProfile = this.classifyVolatility(atrPercentage);
-    
+
     // 最適パラメータを計算
     const recommendedParameters = this.calculateOptimalParameters(atrPercentage, volatilityProfile);
 
@@ -141,7 +141,9 @@ export class ATRCalibrator {
     // キャッシュに保存
     this.cacheResult(symbol, result);
 
-    logger.info(`[ATRCalibrator] ${symbol} のATR%キャリブレーション完了: ${atrPercentage.toFixed(2)}% (${volatilityProfile})`);
+    logger.info(
+      `[ATRCalibrator] ${symbol} のATR%キャリブレーション完了: ${atrPercentage.toFixed(2)}% (${volatilityProfile})`
+    );
     return result;
   }
 
@@ -242,7 +244,7 @@ export class ATRCalibrator {
     for (const candle of candles) {
       const typicalPrice = (candle.high + candle.low + candle.close) / 3;
       const volume = candle.volume || 1; // ボリュームがない場合は1と仮定
-      
+
       totalVolumePrice += typicalPrice * volume;
       totalVolume += volume;
     }
@@ -312,19 +314,18 @@ export class ATRCalibrator {
    */
   private getFallbackCalibration(symbol: string, candles?: Candle[]): CalibrationResult {
     logger.warn(`[ATRCalibrator] ${symbol} のフォールバックキャリブレーションを使用します`);
-    
+
     // 利用可能なデータから現在価格を取得
-    const currentPrice = candles && candles.length > 0 
-      ? candles[candles.length - 1].close 
-      : 0;
-    
+    const currentPrice = candles && candles.length > 0 ? candles[candles.length - 1].close : 0;
+
     // デフォルトのATR%を使用
-    const defaultAtrPercentage = parameterService.get<number>('risk.defaultAtrPercentage', 0.02) * 100;
-    
+    const defaultAtrPercentage =
+      parameterService.get<number>('risk.defaultAtrPercentage', 0.02) * 100;
+
     const result: CalibrationResult = {
       symbol,
       atrPercentage: defaultAtrPercentage,
-      atrValue: currentPrice * defaultAtrPercentage / 100,
+      atrValue: (currentPrice * defaultAtrPercentage) / 100,
       recommendedParameters: {
         atrPercentageThreshold: 6.0,
         trailingStopFactor: 1.5,
@@ -355,15 +356,15 @@ export class ATRCalibrator {
     useCache: boolean = true
   ): Map<string, CalibrationResult> {
     const results = new Map<string, CalibrationResult>();
-    
+
     for (const [symbol, candles] of symbolsCandles.entries()) {
       const result = this.calibrateATR(symbol, candles, timeframeHours, useCache);
       results.set(symbol, result);
     }
-    
+
     return results;
   }
 }
 
 // シングルトンインスタンスをエクスポート
-export const atrCalibrator = ATRCalibrator.getInstance(); 
+export const atrCalibrator = ATRCalibrator.getInstance();

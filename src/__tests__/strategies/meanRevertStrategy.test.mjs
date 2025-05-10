@@ -1,5 +1,14 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, beforeAll, afterAll, test, expect } from '@jest/globals';
+import {
+  jest,
+  describe,
+  beforeEach,
+  afterEach,
+  beforeAll,
+  afterAll,
+  test,
+  expect
+} from '@jest/globals';
 
 // 循環参照対策のポリフィル
 if (typeof globalThis.__jest_import_meta_url === 'undefined') {
@@ -55,18 +64,22 @@ class CandleDataFactory {
   static makeGridCrossingCandles(base, crossSize = 4) {
     // 30本は平坦で十分な履歴を作る
     const flatCandles = this.makeCandles(base, Array(30).fill(0), 1.0);
-    
+
     // グリッド境界をまたぐための変動データを作成
     // まず価格を下げて、その後上げる（グリッドの下降クロスと上昇クロスの両方を発生させる）
-    const downwardDeltas = Array(5).fill(0).map((_, i) => -(i + 1) * crossSize / 2);
-    const upwardDeltas = Array(5).fill(0).map((_, i) => (i + 1) * crossSize);
-    
+    const downwardDeltas = Array(5)
+      .fill(0)
+      .map((_, i) => (-(i + 1) * crossSize) / 2);
+    const upwardDeltas = Array(5)
+      .fill(0)
+      .map((_, i) => (i + 1) * crossSize);
+
     // 合計40本のキャンドルデータ（30本平坦 + 5本下降 + 5本上昇）
     const volatileCandles = [
       ...this.makeCandles(base, downwardDeltas, 2.0),
       ...this.makeCandles(base, upwardDeltas, 2.0)
     ];
-    
+
     return [...flatCandles, ...volatileCandles];
   }
 
@@ -80,14 +93,14 @@ class CandleDataFactory {
   static makeRangeEscapeCandles(base, escapePercent = 20, isUpward = true) {
     // 39本は平坦
     const flatCandles = this.makeCandles(base, Array(39).fill(0), 1.0);
-    
+
     // 最後の1本でエスケープ
-    const escapeValue = isUpward ? base * escapePercent / 100 : -base * escapePercent / 100;
+    const escapeValue = isUpward ? (base * escapePercent) / 100 : (-base * escapePercent) / 100;
     const escapeCandle = this.makeCandles(base, [escapeValue], escapePercent / 10);
-    
+
     return [...flatCandles, ...escapeCandle];
   }
-  
+
   /**
    * 極端なボラティリティシナリオ用のデータ生成
    * @param {number} base 基準価格
@@ -96,11 +109,11 @@ class CandleDataFactory {
   static makeExtremeVolatilityCandles(base) {
     // 30本のベースデータ
     const baseCandles = this.makeCandles(base, Array(30).fill(0), 2.0);
-    
+
     // 激しい変動を持つ10本のキャンドル
     const extremeDeltas = [5, -8, 12, -6, 10, -15, 20, -10, 15, -5];
     const extremeCandles = this.makeCandles(base, extremeDeltas, 5.0);
-    
+
     return [...baseCandles, ...extremeCandles];
   }
 }
@@ -132,13 +145,13 @@ describe('MeanRevertStrategy Tests', () => {
 
   test('should generate grid signals within range', () => {
     // Arrange: より大きな価格変動と明確なグリッド境界クロスを作る
-    const candles = CandleDataFactory.makeGridCrossingCandles(100, 10);  // 10%の大きな変動
+    const candles = CandleDataFactory.makeGridCrossingCandles(100, 10); // 10%の大きな変動
     const positions = [];
     // Act
     const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
-    
+
     // グリッド信号が存在することを確認
     // 信号がない場合は、代わりにテストをスキップして失敗を回避
     if (result.signals.length === 0) {
@@ -146,7 +159,7 @@ describe('MeanRevertStrategy Tests', () => {
       expect(true).toBe(true); // 常に成功するアサーション
       return;
     }
-    
+
     expect(result.signals.length).toBeGreaterThan(0);
     const sellOrders = result.signals.filter((s) => s.side === OrderSide.SELL);
     expect(sellOrders.length).toBeGreaterThan(0);
@@ -240,21 +253,23 @@ describe('MeanRevertStrategy Tests', () => {
   test('should handle extended volatility scenarios', () => {
     // Arrange: より極端なボラティリティを持つシナリオ
     const candles = CandleDataFactory.makeExtremeVolatilityCandles(100);
-    
+
     const positions = [];
     // Act
     const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
-    
+
     // ボラティリティの高いシナリオではシグナルが生成されることを確認
     // 信号がない場合は、代わりにテストをスキップして失敗を回避
     if (result.signals.length === 0) {
-      console.log('警告: ボラティリティシナリオで信号が生成されませんでした。テストをスキップします。');
+      console.log(
+        '警告: ボラティリティシナリオで信号が生成されませんでした。テストをスキップします。'
+      );
       expect(true).toBe(true); // 常に成功するアサーション
       return;
     }
-    
+
     expect(result.signals.length).toBeGreaterThan(0);
   });
 });

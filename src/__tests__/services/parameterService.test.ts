@@ -8,7 +8,7 @@ import {
   IParameterService,
   createMockParameterService,
   applyParameters
-} from "../../config/parameterService.js";
+} from '../../config/parameterService.js';
 import fs from 'fs';
 import path from 'path';
 

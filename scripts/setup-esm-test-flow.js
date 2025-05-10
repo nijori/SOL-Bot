@@ -1,7 +1,7 @@
 /**
  * ESMテスト環境セットアップスクリプト
  * REF-025: ESMテスト安定性の向上
- * 
+ *
  * テスト実行前にESM環境設定と安定性向上のための前処理を行います
  */
 
@@ -32,10 +32,7 @@ globalThis.__REGISTER_TEST_RESOURCE = (resource) => {
 };
 
 // テスト環境ディレクトリの初期化
-const testDirs = [
-  path.join(rootDir, 'data', 'test-e2e'),
-  path.join(rootDir, 'data', 'test')
-];
+const testDirs = [path.join(rootDir, 'data', 'test-e2e'), path.join(rootDir, 'data', 'test')];
 
 console.log('🔧 テスト環境を準備しています...');
 
@@ -55,42 +52,42 @@ for (const dir of testDirs) {
 const createHandlesDetector = () => {
   let timers = new Set();
   let intervals = new Set();
-  
+
   // 元のタイマー関数を保存
   const originalSetTimeout = global.setTimeout;
   const originalSetInterval = global.setInterval;
   const originalClearTimeout = global.clearTimeout;
   const originalClearInterval = global.clearInterval;
-  
+
   // タイマー関数をラップしてトラッキング
-  global.setTimeout = function(fn, delay, ...args) {
+  global.setTimeout = function (fn, delay, ...args) {
     const timer = originalSetTimeout(fn, delay, ...args);
     timers.add(timer);
     return timer;
   };
-  
-  global.clearTimeout = function(timer) {
+
+  global.clearTimeout = function (timer) {
     timers.delete(timer);
     return originalClearTimeout(timer);
   };
-  
-  global.setInterval = function(fn, delay, ...args) {
+
+  global.setInterval = function (fn, delay, ...args) {
     const interval = originalSetInterval(fn, delay, ...args);
     intervals.add(interval);
     return interval;
   };
-  
-  global.clearInterval = function(interval) {
+
+  global.clearInterval = function (interval) {
     intervals.delete(interval);
     return originalClearInterval(interval);
   };
-  
+
   // 未クリアのハンドルを報告
   return {
     report: () => {
       const activeTimers = timers.size;
       const activeIntervals = intervals.size;
-      
+
       if (activeTimers > 0 || activeIntervals > 0) {
         console.warn(`⚠️ 未クリアのタイマーハンドルが検出されました:`);
         console.warn(`  - setTimeout: ${activeTimers}件`);
@@ -124,7 +121,7 @@ const createHandlesDetector = () => {
 if (process.argv.includes('--detect-handles')) {
   console.log('🔍 オープンハンドル検出を有効化しています...');
   globalThis.__HANDLES_DETECTOR = createHandlesDetector();
-  
+
   // プロセス終了時に報告
   process.on('exit', () => {
     const hasOpenHandles = globalThis.__HANDLES_DETECTOR.report();
@@ -140,11 +137,13 @@ console.log('✅ テスト環境のセットアップが完了しました');
 
 // 環境変数でNode.jsバージョンとESMサポート状況を表示
 console.log(`🔧 Node.jsバージョン: ${process.version}`);
-console.log(`🔧 ESMサポート: ${process.execArgv.includes('--experimental-vm-modules') ? '有効' : '無効'}`);
+console.log(
+  `🔧 ESMサポート: ${process.execArgv.includes('--experimental-vm-modules') ? '有効' : '無効'}`
+);
 console.log(`🔧 TEST_MODE: ${process.env.TEST_MODE || 'default'}`);
 
 // テスト環境の準備完了
 export default {
   rootDir,
   testDirs
-}; 
+};

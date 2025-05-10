@@ -27,8 +27,8 @@ interface Path {
 // モジュールをrequireで読み込み
 const fs = require('fs') as FileSystem;
 const path = require('path') as Path;
-import { Candle, isNumericTimestamp, normalizeTimestamp } from "../core/types.js";
-import logger from "../utils/logger.js";
+import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types.js';
+import logger from '../utils/logger.js';
 
 // duckdbの型定義
 interface DuckDBConnection {

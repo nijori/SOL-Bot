@@ -1,19 +1,25 @@
 /**
  * データライフサイクル管理スクリプト
- * 
+ *
  * 古いデータファイル（Parquet/Log/JSON）を自動的にS3にアップロードし、
  * 一定期間後にGlacierに移行するスクリプト
- * 
+ *
  * INF-023: 古い Parquet/Log 自動ローテーション
  */
 
 import path from 'path';
 import fs from 'fs';
-import { S3Client, PutObjectCommand, ListObjectsV2Command, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+  CopyObjectCommand,
+  DeleteObjectCommand
+} from '@aws-sdk/client-s3';
 import { GlacierClient, InitiateJobCommand } from '@aws-sdk/client-glacier';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
-import logger from "../utils/logger.js";
+import logger from '../utils/logger.js';
 
 // 環境変数を読み込む
 dotenv.config();
@@ -88,7 +94,7 @@ function extractDateFromFileName(fileName: string): string {
   if (dateMatch && dateMatch[1]) {
     return dateMatch[1];
   }
-  
+
   // 日付が見つからない場合はファイルの作成日を使用
   try {
     const stats = fs.statSync(fileName);
@@ -112,11 +118,15 @@ async function uploadFileToS3(filePath: string, s3Key: string): Promise<boolean>
       Bucket: S3_BUCKET,
       Key: s3Key,
       Body: fileContent,
-      ContentType: filePath.endsWith('.json') ? 'application/json' : 
-                  filePath.endsWith('.parquet') ? 'application/octet-stream' : 
-                  filePath.endsWith('.log') ? 'text/plain' : 'application/octet-stream'
+      ContentType: filePath.endsWith('.json')
+        ? 'application/json'
+        : filePath.endsWith('.parquet')
+          ? 'application/octet-stream'
+          : filePath.endsWith('.log')
+            ? 'text/plain'
+            : 'application/octet-stream'
     });
-    
+
     await s3Client.send(command);
     logger.info(`ファイルをS3にアップロードしました: ${s3Key}`);
     return true;
@@ -135,7 +145,7 @@ async function moveFromS3ToGlacier(s3Key: string): Promise<boolean> {
   try {
     const dataType = s3Key.split('/')[0];
     const archiveKey = `${dataType}/archive/${path.basename(s3Key)}`;
-    
+
     // S3からGlacierストレージクラスで新しいバケットにコピー
     const copyCommand = new CopyObjectCommand({
       Bucket: S3_ARCHIVE_BUCKET,
@@ -143,15 +153,15 @@ async function moveFromS3ToGlacier(s3Key: string): Promise<boolean> {
       CopySource: `${S3_BUCKET}/${s3Key}`,
       StorageClass: 'GLACIER'
     });
-    
+
     await s3Client.send(copyCommand);
-    
+
     // コピー成功後、元のファイルを削除
     const deleteCommand = new DeleteObjectCommand({
       Bucket: S3_BUCKET,
       Key: s3Key
     });
-    
+
     await s3Client.send(deleteCommand);
     logger.info(`ファイルをGlacierに移行しました: ${s3Key} -> ${archiveKey}`);
     return true;
@@ -168,17 +178,21 @@ async function moveFromS3ToGlacier(s3Key: string): Promise<boolean> {
  * @param filePattern 検索ファイルパターン
  * @returns 処理したファイル数
  */
-async function migrateOldFilesToS3(directory: string, retentionDays: number, filePattern: RegExp): Promise<number> {
+async function migrateOldFilesToS3(
+  directory: string,
+  retentionDays: number,
+  filePattern: RegExp
+): Promise<number> {
   let processedCount = 0;
-  
+
   try {
     const processDir = async (currentDir: string) => {
       const files = fs.readdirSync(currentDir);
-      
+
       for (const file of files) {
         const filePath = path.join(currentDir, file);
         const stats = fs.statSync(filePath);
-        
+
         if (stats.isDirectory()) {
           // サブディレクトリを再帰的に処理
           await processDir(filePath);
@@ -188,9 +202,13 @@ async function migrateOldFilesToS3(directory: string, retentionDays: number, fil
           const dataType = getDataTypeFromFileName(file);
           const date = extractDateFromFileName(file);
           let s3Key = `${dataType}/${date}/${file}`;
-          
+
           // ディレクトリ構造を維持するために追加処理
-          if (relativeDir.includes('candles') || relativeDir.includes('orders') || relativeDir.includes('metrics')) {
+          if (
+            relativeDir.includes('candles') ||
+            relativeDir.includes('orders') ||
+            relativeDir.includes('metrics')
+          ) {
             // データディレクトリの場合
             const parts = relativeDir.split(path.sep);
             if (parts.length > 1) {
@@ -201,7 +219,7 @@ async function migrateOldFilesToS3(directory: string, retentionDays: number, fil
               }
             }
           }
-          
+
           const uploaded = await uploadFileToS3(filePath, s3Key);
           if (uploaded) {
             processedCount++;
@@ -212,7 +230,7 @@ async function migrateOldFilesToS3(directory: string, retentionDays: number, fil
         }
       }
     };
-    
+
     await processDir(directory);
     return processedCount;
   } catch (err) {
@@ -228,23 +246,23 @@ async function migrateOldFilesToS3(directory: string, retentionDays: number, fil
  */
 async function moveOldS3FilesToGlacier(glacierMoveDays: number): Promise<number> {
   let processedCount = 0;
-  
+
   try {
     const listParams = {
       Bucket: S3_BUCKET
     };
-    
+
     const response = await s3Client.send(new ListObjectsV2Command(listParams));
-    
+
     if (response.Contents) {
       for (const object of response.Contents) {
         const key = object.Key;
         const lastModified = object.LastModified;
-        
+
         if (key && lastModified) {
           const cutoffDate = new Date();
           cutoffDate.setDate(cutoffDate.getDate() - glacierMoveDays);
-          
+
           if (lastModified < cutoffDate) {
             // Glacierに移行
             const moved = await moveFromS3ToGlacier(key);
@@ -255,7 +273,7 @@ async function moveOldS3FilesToGlacier(glacierMoveDays: number): Promise<number>
         }
       }
     }
-    
+
     return processedCount;
   } catch (err) {
     logger.error(`S3ファイル処理エラー: ${err instanceof Error ? err.message : String(err)}`);
@@ -269,29 +287,37 @@ async function moveOldS3FilesToGlacier(glacierMoveDays: number): Promise<number>
 async function runDataLifecycleManagement(): Promise<void> {
   try {
     logger.info('データライフサイクル管理を開始します');
-    
-    const retentionDays = parseInt(process.env.DATA_RETENTION_DAYS || String(DEFAULT_RETENTION_DAYS), 10);
-    const glacierMoveDays = parseInt(process.env.GLACIER_MOVE_DAYS || String(DEFAULT_GLACIER_MOVE_DAYS), 10);
-    
+
+    const retentionDays = parseInt(
+      process.env.DATA_RETENTION_DAYS || String(DEFAULT_RETENTION_DAYS),
+      10
+    );
+    const glacierMoveDays = parseInt(
+      process.env.GLACIER_MOVE_DAYS || String(DEFAULT_GLACIER_MOVE_DAYS),
+      10
+    );
+
     // 各種ファイルパターン
     const dataFilePattern = /\.(parquet|json)$/i;
     const logFilePattern = /\.log(\.\d+)?$/i;
-    
+
     // データディレクトリの処理
     const dataCount = await migrateOldFilesToS3(DATA_DIR, retentionDays, dataFilePattern);
     logger.info(`${dataCount}件のデータファイルをS3に移行しました`);
-    
+
     // ログディレクトリの処理
     const logCount = await migrateOldFilesToS3(LOG_DIR, retentionDays, logFilePattern);
     logger.info(`${logCount}件のログファイルをS3に移行しました`);
-    
+
     // S3からGlacierへの移行
     const glacierCount = await moveOldS3FilesToGlacier(glacierMoveDays);
     logger.info(`${glacierCount}件のS3ファイルをGlacierに移行しました`);
-    
+
     logger.info('データライフサイクル管理が完了しました');
   } catch (err) {
-    logger.error(`データライフサイクル管理エラー: ${err instanceof Error ? err.message : String(err)}`);
+    logger.error(
+      `データライフサイクル管理エラー: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 
@@ -300,7 +326,7 @@ async function runDataLifecycleManagement(): Promise<void> {
  */
 function processArguments(): void {
   const args = process.argv.slice(2);
-  
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
 データライフサイクル管理スクリプト
@@ -325,28 +351,30 @@ function processArguments(): void {
 `);
     process.exit(0);
   }
-  
+
   if (args.includes('--run-now')) {
     // 即時実行
-    runDataLifecycleManagement().then(() => {
-      process.exit(0);
-    }).catch(err => {
-      logger.error(`スクリプト実行エラー: ${err instanceof Error ? err.message : String(err)}`);
-      process.exit(1);
-    });
+    runDataLifecycleManagement()
+      .then(() => {
+        process.exit(0);
+      })
+      .catch((err) => {
+        logger.error(`スクリプト実行エラー: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(1);
+      });
   } else if (args.includes('--schedule')) {
     // cronスケジュールとして実行
     const cronSchedule = process.env.CRON_SCHEDULE || '0 3 * * *'; // デフォルト: 毎日午前3時
     logger.info(`スケジュール設定: ${cronSchedule}`);
-    
+
     // cronジョブを登録
     cron.schedule(cronSchedule, () => {
       logger.info('スケジュールによりデータライフサイクル管理を開始します');
-      runDataLifecycleManagement().catch(err => {
+      runDataLifecycleManagement().catch((err) => {
         logger.error(`スケジュール実行エラー: ${err instanceof Error ? err.message : String(err)}`);
       });
     });
-    
+
     logger.info('データライフサイクル管理スケジュールを登録しました');
     logger.info('Ctrl+Cで終了するまで実行を継続します...');
   } else {
@@ -356,4 +384,4 @@ function processArguments(): void {
 }
 
 // メイン処理
-processArguments(); 
+processArguments();

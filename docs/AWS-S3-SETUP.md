@@ -122,10 +122,7 @@ IAMポリシーの例：
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "glacier:InitiateJob",
-        "glacier:UploadArchive"
-      ],
+      "Action": ["glacier:InitiateJob", "glacier:UploadArchive"],
       "Resource": "*"
     }
   ]
@@ -155,4 +152,4 @@ npm run data-lifecycle:help
 
 3. **リージョンエラー**：環境変数のAWS_REGIONと実際のバケットのリージョンが一致しているか確認してください。
 
-4. **ロギング**：スクリプト実行中のログは`logs/combined.log`に記録されます。問題が発生した場合はこのログを確認してください。 
+4. **ロギング**：スクリプト実行中のログは`logs/combined.log`に記録されます。問題が発生した場合はこのログを確認してください。

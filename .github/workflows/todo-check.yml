@@ -2,11 +2,11 @@ name: Todo項目フォーマットチェック
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
     paths:
       - '.todo/**'
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
     paths:
       - '.todo/**'
 
@@ -15,164 +15,164 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: ラベル必須チェック
-      run: |
-        echo "Todoファイルのラベル必須チェックを実行しています..."
-        # ラベルが欠落している行を検索
-        MISSING_LABELS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "🏷️  Label      :")
-        
-        if [ -n "$MISSING_LABELS" ]; then
-          echo "エラー: 以下のTodo項目にラベルが設定されていません:"
-          echo "$MISSING_LABELS"
-          echo ""
-          echo "各Todo項目には以下のフォーマットでラベルを設定してください:"
-          echo "- [ ] TASK-ID: タイトル"
-          echo "      - 🏷️  Label      : feat / bug / infra / doc / test"
-          exit 1
-        else
-          echo "すべてのTodo項目に適切なラベルが設定されています。"
-        fi
+      - name: ラベル必須チェック
+        run: |
+          echo "Todoファイルのラベル必須チェックを実行しています..."
+          # ラベルが欠落している行を検索
+          MISSING_LABELS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "🏷️  Label      :")
 
-    - name: タスクIDフォーマットチェック
-      run: |
-        echo "タスクIDのフォーマットチェックを実行しています..."
-        # 正しくないタスクIDフォーマットを検索
-        INVALID_IDS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v -E "^\s*- \[([ x])\] [A-Z]{3}-[0-9]{3}:")
-        
-        if [ -n "$INVALID_IDS" ]; then
-          echo "エラー: 以下のTodo項目のタスクIDフォーマットが正しくありません:"
-          echo "$INVALID_IDS"
-          echo ""
-          echo "各Todo項目のタスクIDは「3文字のカテゴリ接頭辞 + ハイフン + 3桁の連番」の形式にしてください:"
-          echo "例: ALG-001, INF-005, DOC-003"
-          exit 1
-        else
-          echo "すべてのTodo項目のタスクIDフォーマットが正しいです。"
-        fi 
-    
-    - name: 進捗状況フォーマットチェック
-      run: |
-        echo "進捗状況のフォーマットチェックを実行しています..."
-        # WIP状態（未完了）かつProgressフィールドが欠落しているタスクを検索
-        WIP_TASKS=$(grep -E "^\s*- \[( )\]" .todo/sprint.mdc)
-        MISSING_PROGRESS=$(echo "$WIP_TASKS" | grep -v "📊 Progress   :")
-        
-        if [ -n "$MISSING_PROGRESS" ]; then
-          echo "エラー: 以下のWIPタスクに進捗状況(Progress)が設定されていません:"
-          echo "$MISSING_PROGRESS"
-          echo ""
-          echo "Sprint内のWIPタスクには以下のフォーマットで進捗状況を設定してください:"
-          echo "- [ ] TASK-ID: タイトル"
-          echo "      - 📊 Progress   : 0% / 25% / 50% / 75% / 100%"
-          exit 1
-        else
-          echo "すべてのWIPタスクに適切な進捗状況が設定されています。"
-        fi
-        
-    - name: 期限日付フォーマットチェック
-      run: |
-        echo "期限日付のフォーマットチェックを実行しています..."
-        # 期限フィールドを持つが、フォーマットが正しくないタスクを検索
-        INVALID_DATES=$(grep -E "^\s+- 📅 Due\s+: " .todo/*.mdc | grep -v -E "^\s+- 📅 Due\s+: [0-9]{4}-[0-9]{2}-[0-9]{2}")
-        
-        if [ -n "$INVALID_DATES" ]; then
-          echo "エラー: 以下のタスクの期限日付フォーマットが正しくありません:"
-          echo "$INVALID_DATES"
-          echo ""
-          echo "期限日付は YYYY-MM-DD 形式で設定してください:"
-          echo "      - 📅 Due        : 2026-01-15"
-          exit 1
-        else
-          echo "すべてのタスクの期限日付フォーマットが正しいです。"
-        fi
-        
-    - name: ヘルスステータスチェック
-      run: |
-        echo "ヘルスステータスのチェックを実行しています..."
-        # ヘルスステータスがないタスクを検索
-        TASKS_WITH_NO_HEALTH=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "🩺 Health     :")
-        
-        if [ -n "$TASKS_WITH_NO_HEALTH" ]; then
-          echo "エラー: 以下のタスクにヘルスステータスが設定されていません:"
-          echo "$TASKS_WITH_NO_HEALTH"
-          echo ""
-          echo "各タスクには以下のフォーマットでヘルスステータスを設定してください:"
-          echo "      - 🩺 Health     : ⏳ / ⚠️ / 🚑 / ✅"
-          exit 1
-        else
-          echo "すべてのタスクに適切なヘルスステータスが設定されています。"
-        fi
-        
-    - name: オーナー必須チェック
-      run: |
-        echo "タスクオーナーのチェックを実行しています..."
-        # オーナーフィールドがないタスクを検索
-        TASKS_WITH_NO_OWNER=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "👤 Owner      :")
-        
-        if [ -n "$TASKS_WITH_NO_OWNER" ]; then
-          echo "エラー: 以下のタスクにオーナーが設定されていません:"
-          echo "$TASKS_WITH_NO_OWNER"
-          echo ""
-          echo "各タスクには以下のフォーマットでオーナーを設定してください:"
-          echo "      - 👤 Owner      : @username"
-          exit 1
-        else
-          echo "すべてのタスクにオーナーが適切に設定されています。"
-        fi
-        
-    - name: 済タスクの健康状態チェック
-      run: |
-        echo "完了タスクの健康状態チェックを実行しています..."
-        # 完了マークがついているがヘルスステータスが✅でないタスクを検索
-        DONE_TASKS=$(grep -E "^\s*- \[(x)\]" .todo/*.mdc)
-        INVALID_HEALTH=$(echo "$DONE_TASKS" | grep -v "🩺 Health     : ✅")
-        
-        if [ -n "$INVALID_HEALTH" ]; then
-          echo "エラー: 以下の完了済みタスクのヘルスステータスが✅になっていません:"
-          echo "$INVALID_HEALTH"
-          echo ""
-          echo "完了済みタスクのヘルスステータスは必ず✅にしてください:"
-          echo "- [x] TASK-ID: タイトル"
-          echo "      - 🩺 Health     : ✅"
-          exit 1
-        else
-          echo "すべての完了済みタスクのヘルスステータスが正しく設定されています。"
-        fi
-        
-    - name: 完了タスクの進捗状況チェック
-      run: |
-        echo "完了タスクの進捗状況チェックを実行しています..."
-        # 完了マークがついているがProgressが100%でないタスクを検索
-        DONE_TASKS=$(grep -E "^\s*- \[(x)\]" .todo/*.mdc)
-        INVALID_PROGRESS=$(echo "$DONE_TASKS" | grep -v "📊 Progress   : 100%")
-        
-        if [ -n "$INVALID_PROGRESS" ]; then
-          echo "エラー: 以下の完了済みタスクの進捗状況が100%になっていません:"
-          echo "$INVALID_PROGRESS"
-          echo ""
-          echo "完了済みタスクの進捗状況は必ず100%にしてください:"
-          echo "- [x] TASK-ID: タイトル"
-          echo "      - 📊 Progress   : 100%"
-          exit 1
-        else
-          echo "すべての完了済みタスクの進捗状況が正しく設定されています。"
-        fi
-        
-    - name: Notesフィールド必須チェック
-      run: |
-        echo "Notesフィールド必須チェックを実行しています..."
-        # Notesフィールドがないタスクを検索
-        TASKS_WITH_NO_NOTES=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "✎ Notes      :")
-        
-        if [ -n "$TASKS_WITH_NO_NOTES" ]; then
-          echo "エラー: 以下のタスクにノート(説明)が設定されていません:"
-          echo "$TASKS_WITH_NO_NOTES"
-          echo ""
-          echo "各タスクには以下のフォーマットでノートを追加してください:"
-          echo "      - ✎ Notes      : (タスクの詳細説明)"
-          exit 1
-        else
-          echo "すべてのタスクにノートが適切に設定されています。"
-        fi 
+          if [ -n "$MISSING_LABELS" ]; then
+            echo "エラー: 以下のTodo項目にラベルが設定されていません:"
+            echo "$MISSING_LABELS"
+            echo ""
+            echo "各Todo項目には以下のフォーマットでラベルを設定してください:"
+            echo "- [ ] TASK-ID: タイトル"
+            echo "      - 🏷️  Label      : feat / bug / infra / doc / test"
+            exit 1
+          else
+            echo "すべてのTodo項目に適切なラベルが設定されています。"
+          fi
+
+      - name: タスクIDフォーマットチェック
+        run: |
+          echo "タスクIDのフォーマットチェックを実行しています..."
+          # 正しくないタスクIDフォーマットを検索
+          INVALID_IDS=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v -E "^\s*- \[([ x])\] [A-Z]{3}-[0-9]{3}:")
+
+          if [ -n "$INVALID_IDS" ]; then
+            echo "エラー: 以下のTodo項目のタスクIDフォーマットが正しくありません:"
+            echo "$INVALID_IDS"
+            echo ""
+            echo "各Todo項目のタスクIDは「3文字のカテゴリ接頭辞 + ハイフン + 3桁の連番」の形式にしてください:"
+            echo "例: ALG-001, INF-005, DOC-003"
+            exit 1
+          else
+            echo "すべてのTodo項目のタスクIDフォーマットが正しいです。"
+          fi
+
+      - name: 進捗状況フォーマットチェック
+        run: |
+          echo "進捗状況のフォーマットチェックを実行しています..."
+          # WIP状態（未完了）かつProgressフィールドが欠落しているタスクを検索
+          WIP_TASKS=$(grep -E "^\s*- \[( )\]" .todo/sprint.mdc)
+          MISSING_PROGRESS=$(echo "$WIP_TASKS" | grep -v "📊 Progress   :")
+
+          if [ -n "$MISSING_PROGRESS" ]; then
+            echo "エラー: 以下のWIPタスクに進捗状況(Progress)が設定されていません:"
+            echo "$MISSING_PROGRESS"
+            echo ""
+            echo "Sprint内のWIPタスクには以下のフォーマットで進捗状況を設定してください:"
+            echo "- [ ] TASK-ID: タイトル"
+            echo "      - 📊 Progress   : 0% / 25% / 50% / 75% / 100%"
+            exit 1
+          else
+            echo "すべてのWIPタスクに適切な進捗状況が設定されています。"
+          fi
+
+      - name: 期限日付フォーマットチェック
+        run: |
+          echo "期限日付のフォーマットチェックを実行しています..."
+          # 期限フィールドを持つが、フォーマットが正しくないタスクを検索
+          INVALID_DATES=$(grep -E "^\s+- 📅 Due\s+: " .todo/*.mdc | grep -v -E "^\s+- 📅 Due\s+: [0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+          if [ -n "$INVALID_DATES" ]; then
+            echo "エラー: 以下のタスクの期限日付フォーマットが正しくありません:"
+            echo "$INVALID_DATES"
+            echo ""
+            echo "期限日付は YYYY-MM-DD 形式で設定してください:"
+            echo "      - 📅 Due        : 2026-01-15"
+            exit 1
+          else
+            echo "すべてのタスクの期限日付フォーマットが正しいです。"
+          fi
+
+      - name: ヘルスステータスチェック
+        run: |
+          echo "ヘルスステータスのチェックを実行しています..."
+          # ヘルスステータスがないタスクを検索
+          TASKS_WITH_NO_HEALTH=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "🩺 Health     :")
+
+          if [ -n "$TASKS_WITH_NO_HEALTH" ]; then
+            echo "エラー: 以下のタスクにヘルスステータスが設定されていません:"
+            echo "$TASKS_WITH_NO_HEALTH"
+            echo ""
+            echo "各タスクには以下のフォーマットでヘルスステータスを設定してください:"
+            echo "      - 🩺 Health     : ⏳ / ⚠️ / 🚑 / ✅"
+            exit 1
+          else
+            echo "すべてのタスクに適切なヘルスステータスが設定されています。"
+          fi
+
+      - name: オーナー必須チェック
+        run: |
+          echo "タスクオーナーのチェックを実行しています..."
+          # オーナーフィールドがないタスクを検索
+          TASKS_WITH_NO_OWNER=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "👤 Owner      :")
+
+          if [ -n "$TASKS_WITH_NO_OWNER" ]; then
+            echo "エラー: 以下のタスクにオーナーが設定されていません:"
+            echo "$TASKS_WITH_NO_OWNER"
+            echo ""
+            echo "各タスクには以下のフォーマットでオーナーを設定してください:"
+            echo "      - 👤 Owner      : @username"
+            exit 1
+          else
+            echo "すべてのタスクにオーナーが適切に設定されています。"
+          fi
+
+      - name: 済タスクの健康状態チェック
+        run: |
+          echo "完了タスクの健康状態チェックを実行しています..."
+          # 完了マークがついているがヘルスステータスが✅でないタスクを検索
+          DONE_TASKS=$(grep -E "^\s*- \[(x)\]" .todo/*.mdc)
+          INVALID_HEALTH=$(echo "$DONE_TASKS" | grep -v "🩺 Health     : ✅")
+
+          if [ -n "$INVALID_HEALTH" ]; then
+            echo "エラー: 以下の完了済みタスクのヘルスステータスが✅になっていません:"
+            echo "$INVALID_HEALTH"
+            echo ""
+            echo "完了済みタスクのヘルスステータスは必ず✅にしてください:"
+            echo "- [x] TASK-ID: タイトル"
+            echo "      - 🩺 Health     : ✅"
+            exit 1
+          else
+            echo "すべての完了済みタスクのヘルスステータスが正しく設定されています。"
+          fi
+
+      - name: 完了タスクの進捗状況チェック
+        run: |
+          echo "完了タスクの進捗状況チェックを実行しています..."
+          # 完了マークがついているがProgressが100%でないタスクを検索
+          DONE_TASKS=$(grep -E "^\s*- \[(x)\]" .todo/*.mdc)
+          INVALID_PROGRESS=$(echo "$DONE_TASKS" | grep -v "📊 Progress   : 100%")
+
+          if [ -n "$INVALID_PROGRESS" ]; then
+            echo "エラー: 以下の完了済みタスクの進捗状況が100%になっていません:"
+            echo "$INVALID_PROGRESS"
+            echo ""
+            echo "完了済みタスクの進捗状況は必ず100%にしてください:"
+            echo "- [x] TASK-ID: タイトル"
+            echo "      - 📊 Progress   : 100%"
+            exit 1
+          else
+            echo "すべての完了済みタスクの進捗状況が正しく設定されています。"
+          fi
+
+      - name: Notesフィールド必須チェック
+        run: |
+          echo "Notesフィールド必須チェックを実行しています..."
+          # Notesフィールドがないタスクを検索
+          TASKS_WITH_NO_NOTES=$(grep -E "^\s*- \[([ x])\]" .todo/*.mdc | grep -v "✎ Notes      :")
+
+          if [ -n "$TASKS_WITH_NO_NOTES" ]; then
+            echo "エラー: 以下のタスクにノート(説明)が設定されていません:"
+            echo "$TASKS_WITH_NO_NOTES"
+            echo ""
+            echo "各タスクには以下のフォーマットでノートを追加してください:"
+            echo "      - ✎ Notes      : (タスクの詳細説明)"
+            exit 1
+          else
+            echo "すべてのタスクにノートが適切に設定されています。"
+          fi

@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
  * fix-todo-issues.ts - Todoタスクの自動修正ツール
- * 
+ *
  * 使い方:
  * npm run todo-fix [options]
- * 
+ *
  * オプション:
  *   --check-only     修正を適用せず、問題の検出のみを行う
  *   --silent         通常の出力を抑制し、エラーのみを表示する
  *   --yes            確認プロンプトをスキップし、すべての修正を自動的に適用する
  *   --fix-dates      期限切れの日付を現在日付+7日に自動修正する
  *   --target <file>  特定のファイルのみを処理する（例: sprint.mdc）
- * 
+ *
  * 自動修正できる項目:
  * - 完了タスク（[x]）の場合:
  *   - Healthを✅に修正
@@ -353,8 +353,12 @@ async function main() {
     try {
       execSync('npm run todo-lint', { stdio: 'inherit' });
     } catch (error) {
-      console.warn(chalk.yellow('Todoファイルの検証中にエラーが発生しましたが、修正処理は完了しました。'));
-      console.warn(chalk.yellow(`エラー内容: ${error instanceof Error ? error.message : String(error)}`));
+      console.warn(
+        chalk.yellow('Todoファイルの検証中にエラーが発生しましたが、修正処理は完了しました。')
+      );
+      console.warn(
+        chalk.yellow(`エラー内容: ${error instanceof Error ? error.message : String(error)}`)
+      );
     }
   } catch (error) {
     console.error(

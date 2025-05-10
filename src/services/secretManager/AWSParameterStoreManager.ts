@@ -12,8 +12,8 @@ import {
   GetParameterCommandOutput,
   ParameterNotFound
 } from '@aws-sdk/client-ssm';
-import { SecretManagerInterface } from "./SecretManagerInterface.js";
-import logger from "../../utils/logger.js";
+import { SecretManagerInterface } from './SecretManagerInterface.js';
+import logger from '../../utils/logger.js';
 
 export interface AWSParameterStoreConfig {
   region?: string;

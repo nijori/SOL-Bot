@@ -3,7 +3,7 @@
 /**
  * ESMテスト実行CI環境セットアップスクリプト
  * REF-026: ESMテスト用CI/CD最適化
- * 
+ *
  * このスクリプトはCI環境でESMテストを安定して実行するための
  * ディレクトリ構造の準備とパーミッション設定を行います。
  */
@@ -39,7 +39,7 @@ function ensureDirectoryExists(dir) {
  */
 function loadEnvironmentConfig() {
   const configPath = path.join(rootDir, '.github', 'actions-env.yml');
-  
+
   try {
     if (fs.existsSync(configPath)) {
       const fileContents = fs.readFileSync(configPath, 'utf8');
@@ -48,15 +48,11 @@ function loadEnvironmentConfig() {
   } catch (error) {
     console.error('環境設定ファイルの読み込みに失敗しました:', error);
   }
-  
+
   // デフォルト設定
   return {
     test: {
-      directories: [
-        'data/test',
-        'data/test-e2e',
-        '.jest-cache'
-      ]
+      directories: ['data/test', 'data/test-e2e', '.jest-cache']
     }
   };
 }
@@ -67,19 +63,15 @@ function loadEnvironmentConfig() {
  */
 function setupTestDirectories(config) {
   // 必須ディレクトリの作成
-  const requiredDirs = [
-    'data/test',
-    'data/test-e2e',
-    '.jest-cache'
-  ];
-  
+  const requiredDirs = ['data/test', 'data/test-e2e', '.jest-cache'];
+
   // 設定ファイルに指定されたディレクトリを追加
   if (config.test && config.test.directories) {
     requiredDirs.push(...config.test.directories);
   }
-  
+
   // 重複を除去して各ディレクトリを作成
-  [...new Set(requiredDirs)].forEach(dir => {
+  [...new Set(requiredDirs)].forEach((dir) => {
     ensureDirectoryExists(path.join(rootDir, dir));
   });
 }
@@ -90,10 +82,10 @@ function setupTestDirectories(config) {
 function setupCIEnvironment() {
   if (isGithubCI) {
     console.log('GitHub Actions CI環境を検出しました。CI固有の設定を適用します。');
-    
+
     // タイムアウト設定などの環境変数設定
     process.env.JEST_TIMEOUT = process.env.JEST_TIMEOUT || '30000';
-    
+
     // CI環境でのパーミッション設定
     try {
       console.log('テストスクリプトの実行権限を設定します');
@@ -107,17 +99,17 @@ function setupCIEnvironment() {
 // メイン実行
 function main() {
   console.log('ESMテスト実行環境のセットアップを開始します...');
-  
+
   // 環境設定の読み込み
   const config = loadEnvironmentConfig();
-  
+
   // テストディレクトリの準備
   setupTestDirectories(config);
-  
+
   // CI環境の追加設定
   setupCIEnvironment();
-  
+
   console.log('ESMテスト実行環境のセットアップが完了しました。');
 }
 
-main(); 
+main();

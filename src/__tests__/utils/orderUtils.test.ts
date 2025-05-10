@@ -1,9 +1,9 @@
-import { 
-  syncOrderForSimulateFill, 
-  syncFillWithOrder, 
-  updateOrderStatus 
-} from "../../utils/orderUtils.js";
-import { Order, OrderStatus, OrderSide, OrderType, Fill } from "../../core/types.js";
+import {
+  syncOrderForSimulateFill,
+  syncFillWithOrder,
+  updateOrderStatus
+} from '../../utils/orderUtils.js';
+import { Order, OrderStatus, OrderSide, OrderType, Fill } from '../../core/types.js';
 
 // ロガーをモック化
 jest.mock('../../utils/logger', () => ({
@@ -230,8 +230,8 @@ describe('OrderUtils', () => {
 
     test('active/open/new状態を正しく処理する', () => {
       const testCases = ['active', 'open', 'new', 'partially_filled'];
-      
-      testCases.forEach(status => {
+
+      testCases.forEach((status) => {
         const order: Order = {
           id: 'order-123',
           symbol: 'SOL/USDT',
@@ -251,7 +251,7 @@ describe('OrderUtils', () => {
       const order: Order = {
         id: 'order-123',
         symbol: 'XRP/USDT',
-        side: OrderSide.BUY, 
+        side: OrderSide.BUY,
         type: OrderType.LIMIT,
         price: 0.5,
         amount: 1000,
@@ -268,7 +268,7 @@ describe('OrderUtils', () => {
         symbol: 'BTC/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
-        price: 50000, 
+        price: 50000,
         amount: 0.1,
         status: OrderStatus.PLACED
       };
@@ -297,4 +297,4 @@ describe('OrderUtils', () => {
       expect(updatedOrder.status).toBe(OrderStatus.PLACED);
     });
   });
-}); 
+});

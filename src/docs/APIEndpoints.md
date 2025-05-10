@@ -81,7 +81,7 @@ GET /api/market/SOLUSDT?timeframe=1h&limit=50
       "low": 35.21,
       "close": 35.67,
       "volume": 123456.78
-    },
+    }
     // ... 他のローソク足データ
   ]
 }
@@ -226,7 +226,7 @@ GET /api/orders?status=filled&symbol=SOLUSDT&limit=10
       "price": 35.67,
       "status": "filled",
       "timestamp": 1656000123456
-    },
+    }
     // ... 他の注文データ
   ],
   "total": 10,
@@ -246,7 +246,7 @@ GET /api/orders?status=filled&symbol=SOLUSDT&limit=10
   "type": "limit",
   "side": "buy",
   "amount": 5.0,
-  "price": 35.50
+  "price": 35.5
 }
 ```
 
@@ -350,7 +350,7 @@ GET /api/backtest/bt-1656030123456
   },
   "equityCurve": [
     [1656000000000, 10000],
-    [1656086400000, 10125],
+    [1656086400000, 10125]
     // ... 他の資産推移データ
   ]
 }
@@ -390,4 +390,4 @@ APIにはレート制限があります。制限は以下の通りです:
 X-Rate-Limit-Limit: 120
 X-Rate-Limit-Remaining: 115
 X-Rate-Limit-Reset: 1656000060
-``` 
+```

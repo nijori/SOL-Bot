@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   lint-and-test:
@@ -32,14 +32,14 @@ jobs:
           mkdir -p .jest-cache
           npm run test:esm -- --detectOpenHandles
         env:
-          NODE_OPTIONS: "--experimental-vm-modules --max-old-space-size=4096"
+          NODE_OPTIONS: '--experimental-vm-modules --max-old-space-size=4096'
 
       - name: Run unit tests with coverage
         run: npm test -- --coverage --coverageThreshold='{"global":{"lines":90,"functions":85,"statements":90}}'
 
       - name: Run smoke test
         run: npm run test:smoke
-        continue-on-error: true  # スモークテストは環境によって失敗する可能性があるため続行
+        continue-on-error: true # スモークテストは環境によって失敗する可能性があるため続行
 
       - name: Check for incomplete todo tasks in PRs
         if: github.event_name == 'pull_request'
@@ -129,10 +129,10 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
-          title: "SOL-Bot デプロイ通知"
+          title: 'SOL-Bot デプロイ通知'
           description: |
             デプロイステータス: 成功 ✅
             ブランチ: ${{ github.ref }}
             コミット: ${{ github.sha }}
             デプロイ日時: $(date)
-            デプロイユーザー: ${{ github.actor }} 
+            デプロイユーザー: ${{ github.actor }}

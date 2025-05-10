@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * manual-todo-lint.ts - Todoタスク検証の簡易実装
- * 
+ *
  * このスクリプトはtodo-lintのNode.js依存部分を最小限にした簡易版です。
  * todo-lintが動作しない場合の代替手段として使用します。
  */
@@ -31,57 +31,67 @@ const VALID_HEALTH_VALUES = ['⏳', '⚠️', '🚑', '✅'];
 const errors: any[] = [];
 
 // タスクIDをキーとするマップ
-const taskIdMap = new Map<string, { file: string, line: number }>();
+const taskIdMap = new Map<string, { file: string; line: number }>();
 
 /**
  * タスクの解析
  */
 function parseTodoFile(filePath: string): void {
   console.log(`ファイルを解析中: ${filePath}`);
-  
+
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n');
-    
+
     let currentTaskId: string | null = null;
     let currentTaskCompleted = false;
     let lineNumber = 0;
     let inFrontMatter = false;
-    
+
     // タスクのフィールド
     let dueDate: string | null = null;
     let owner: string | null = null;
     let label: string | null = null;
     let health: string | null = null;
     let progress: string | null = null;
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       lineNumber = i + 1;
-      
+
       // front-matterブロックのスキップ処理
       if (line.trim() === '---' || line.trim() === '```') {
         inFrontMatter = !inFrontMatter;
         continue;
       }
-      
+
       if (inFrontMatter) {
         continue;
       }
-      
+
       // タスク行の検出
       const taskMatch = line.match(TASK_REGEX);
-      
+
       if (taskMatch) {
         // 前のタスクが存在する場合は検証
         if (currentTaskId) {
-          validateTask(currentTaskId, currentTaskCompleted, dueDate, owner, label, health, progress, filePath, lineNumber - 1);
+          validateTask(
+            currentTaskId,
+            currentTaskCompleted,
+            dueDate,
+            owner,
+            label,
+            health,
+            progress,
+            filePath,
+            lineNumber - 1
+          );
         }
-        
+
         // 新しいタスクを開始
         currentTaskId = taskMatch[2];
         currentTaskCompleted = taskMatch[1].toLowerCase() === 'x';
-        
+
         // タスクIDの重複チェック
         if (!currentTaskId.startsWith('.') && taskIdMap.has(currentTaskId)) {
           const existing = taskIdMap.get(currentTaskId)!;
@@ -94,25 +104,25 @@ function parseTodoFile(filePath: string): void {
         } else {
           taskIdMap.set(currentTaskId, { file: filePath, line: lineNumber });
         }
-        
+
         // フィールドをリセット
         dueDate = null;
         owner = null;
         label = null;
         health = null;
         progress = null;
-        
+
         continue;
       }
-      
+
       // タスクのフィールド行の解析
       if (currentTaskId && line.trim().startsWith('-')) {
         const fieldMatch = line.match(FIELD_REGEX);
-        
+
         if (fieldMatch) {
           const [, fieldIcon, value] = fieldMatch;
           const trimmedValue = value.trim();
-          
+
           // フィールドタイプを判断して設定
           if (fieldIcon.includes('📅') || fieldIcon.toLowerCase().includes('due')) {
             dueDate = trimmedValue;
@@ -128,13 +138,25 @@ function parseTodoFile(filePath: string): void {
         }
       }
     }
-    
+
     // 最後のタスクを検証
     if (currentTaskId) {
-      validateTask(currentTaskId, currentTaskCompleted, dueDate, owner, label, health, progress, filePath, lineNumber);
+      validateTask(
+        currentTaskId,
+        currentTaskCompleted,
+        dueDate,
+        owner,
+        label,
+        health,
+        progress,
+        filePath,
+        lineNumber
+      );
     }
   } catch (error) {
-    console.error(`ファイル解析エラー (${filePath}): ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `ファイル解析エラー (${filePath}): ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -142,14 +164,14 @@ function parseTodoFile(filePath: string): void {
  * タスクの検証
  */
 function validateTask(
-  taskId: string, 
-  isCompleted: boolean, 
-  dueDate: string | null, 
-  owner: string | null, 
-  label: string | null, 
-  health: string | null, 
-  progress: string | null, 
-  filePath: string, 
+  taskId: string,
+  isCompleted: boolean,
+  dueDate: string | null,
+  owner: string | null,
+  label: string | null,
+  health: string | null,
+  progress: string | null,
+  filePath: string,
   lineNumber: number
 ): void {
   // 必須フィールドの確認
@@ -168,7 +190,7 @@ function validateTask(
       line: lineNumber
     });
   }
-  
+
   if (!owner) {
     errors.push({
       type: '必須フィールド欠落',
@@ -177,7 +199,7 @@ function validateTask(
       line: lineNumber
     });
   }
-  
+
   if (!label) {
     errors.push({
       type: '必須フィールド欠落',
@@ -186,7 +208,7 @@ function validateTask(
       line: lineNumber
     });
   }
-  
+
   if (!health) {
     errors.push({
       type: '必須フィールド欠落',
@@ -202,7 +224,7 @@ function validateTask(
       line: lineNumber
     });
   }
-  
+
   if (!progress) {
     errors.push({
       type: '必須フィールド欠落',
@@ -218,7 +240,7 @@ function validateTask(
       line: lineNumber
     });
   }
-  
+
   // 完了マークされたタスクの整合性チェック
   if (isCompleted) {
     // 完了マークされたのにHealth未完了
@@ -230,7 +252,7 @@ function validateTask(
         line: lineNumber
       });
     }
-    
+
     // 完了マークされたのにProgress 100%でない
     if (progress !== '100%') {
       errors.push({
@@ -259,50 +281,53 @@ function validateTask(
 function main() {
   try {
     console.log(`🔍 ${TODO_DIR} のTodoタスクを検証中...\n`);
-    
+
     if (!fs.existsSync(TODO_DIR)) {
       console.error(`エラー: Todoディレクトリが見つかりません: ${TODO_DIR}`);
       process.exit(1);
     }
-    
+
     const files = fs.readdirSync(TODO_DIR);
-    const mdcFiles = files.filter(file => file.endsWith('.mdc'));
-    
+    const mdcFiles = files.filter((file) => file.endsWith('.mdc'));
+
     if (mdcFiles.length === 0) {
       console.warn(`警告: ${TODO_DIR} ディレクトリに .mdc ファイルが見つかりませんでした。`);
       process.exit(0);
     }
-    
+
     // 各ファイルを解析
     for (const file of mdcFiles) {
       parseTodoFile(path.join(TODO_DIR, file));
     }
-    
+
     // 結果の表示
     if (errors.length === 0) {
       console.log('✓ すべてのTodoタスクは有効です！');
       process.exit(0);
     } else {
       console.log(`❌ ${errors.length}件の問題が見つかりました:\n`);
-      
+
       // エラータイプ別にグループ化
-      const errorsByType = errors.reduce((groups, error) => {
-        if (!groups[error.type]) {
-          groups[error.type] = [];
-        }
-        groups[error.type].push(error);
-        return groups;
-      }, {} as Record<string, any[]>);
-      
+      const errorsByType = errors.reduce(
+        (groups, error) => {
+          if (!groups[error.type]) {
+            groups[error.type] = [];
+          }
+          groups[error.type].push(error);
+          return groups;
+        },
+        {} as Record<string, any[]>
+      );
+
       // タイプ別に表示
       for (const [type, typeErrors] of Object.entries(errorsByType)) {
         console.log(`\n【${type}】- ${typeErrors.length}件`);
-        
+
         typeErrors.forEach((error) => {
           console.log(`  • ${path.basename(error.file)}:${error.line} - ${error.message}`);
         });
       }
-      
+
       console.log('\n');
       process.exit(1);
     }
@@ -313,4 +338,4 @@ function main() {
 }
 
 // メイン処理を実行
-main(); 
+main();

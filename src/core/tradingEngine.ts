@@ -15,24 +15,24 @@ import {
   SystemMode,
   RiskLevel,
   TimeFrame
-} from "./types.js";
-import { analyzeMarketState } from "../indicators/marketState.js";
-import { executeTrendStrategy } from "../strategies/trendStrategy.js";
-import { executeRangeStrategy } from "../strategies/rangeStrategy.js";
-import { RISK_PARAMETERS } from "../config/parameters.js";
-import logger from "../utils/logger.js";
-import { OrderManagementSystem } from "./orderManagementSystem.js";
-import { parameterService } from "../config/parameterService.js";
-import { syncOrderForSimulateFill } from "../utils/orderUtils.js";
-import metricsService from "../utils/metrics.js";
-import { ExchangeService } from "../services/exchangeService.js";
-import { DonchianBreakoutStrategy } from "../strategies/DonchianBreakoutStrategy.js";
-import { TrendFollowStrategy } from "../strategies/trendFollowStrategy.js";
-import { MeanReversionStrategy } from "../strategies/meanReversionStrategy.js";
-import { OrderSizingService } from "../services/orderSizingService.js";
-import { PerformanceStats } from "../types/performanceStats.js";
-import { MarketStateResult } from "../types/marketStateResult.js";
-import { checkSignificantPriceChange, calculateVolatility } from "../utils/atrUtils.js";
+} from './types.js';
+import { analyzeMarketState } from '../indicators/marketState.js';
+import { executeTrendStrategy } from '../strategies/trendStrategy.js';
+import { executeRangeStrategy } from '../strategies/rangeStrategy.js';
+import { RISK_PARAMETERS } from '../config/parameters.js';
+import logger from '../utils/logger.js';
+import { OrderManagementSystem } from './orderManagementSystem.js';
+import { parameterService } from '../config/parameterService.js';
+import { syncOrderForSimulateFill } from '../utils/orderUtils.js';
+import metricsService from '../utils/metrics.js';
+import { ExchangeService } from '../services/exchangeService.js';
+import { DonchianBreakoutStrategy } from '../strategies/DonchianBreakoutStrategy.js';
+import { TrendFollowStrategy } from '../strategies/trendFollowStrategy.js';
+import { MeanReversionStrategy } from '../strategies/meanReversionStrategy.js';
+import { OrderSizingService } from '../services/orderSizingService.js';
+import { PerformanceStats } from '../types/performanceStats.js';
+import { MarketStateResult } from '../types/marketStateResult.js';
+import { checkSignificantPriceChange, calculateVolatility } from '../utils/atrUtils.js';
 
 /**
  * TradingEngine用のオプションインターフェース
@@ -1220,7 +1220,7 @@ export class TradingEngine {
    * リスク計算に基づいた注文サイズを取得する
    * OrderSizingServiceが利用可能な場合はそちらを使用し、
    * なければ従来のリスク計算方式で計算する
-   * 
+   *
    * @param entryPrice エントリー価格
    * @param stopPrice ストップ価格
    * @param riskPercent リスク割合（オプション、デフォルトは1%）
@@ -1246,23 +1246,23 @@ export class TradingEngine {
         // エラーが発生した場合は従来の方法にフォールバック
       }
     }
-    
+
     // 従来のリスク計算方式（OrderSizingServiceが使えない場合）
     // 口座残高からのリスク許容額
     const riskAmount = this.account.balance * riskPercent;
-    
+
     // エントリーとストップの距離
     const stopDistance = Math.abs(entryPrice - stopPrice);
-    
+
     // 距離が0の場合のフォールバック（ATR）
     if (stopDistance === 0 || stopDistance < entryPrice * 0.001) {
       // デフォルトでは価格の1%をストップ距離として使用
       return riskAmount / (entryPrice * 0.01);
     }
-    
+
     // 標準的なポジションサイズ計算
     const size = riskAmount / stopDistance;
-    
+
     // 資産の最大25%までの制限
     const maxPositionSize = (this.account.balance * 0.25) / entryPrice;
     return Math.min(size, maxPositionSize);

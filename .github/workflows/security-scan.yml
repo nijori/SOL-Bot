@@ -2,11 +2,11 @@ name: Security Scan
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [master, main]
   pull_request:
-    branches: [ master, main ]
+    branches: [master, main]
   schedule:
-    - cron: '0 0 * * *'  # 毎日UTCの0:00に実行
+    - cron: '0 0 * * *' # 毎日UTCの0:00に実行
 
 jobs:
   secrets-scan:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # 全履歴をフェッチ
+          fetch-depth: 0 # 全履歴をフェッチ
 
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
@@ -86,7 +86,7 @@ jobs:
           scan-type: 'sbom'
           input: ./bom.xml
           format: 'table'
-          exit-code: '0'  # 情報提供のみなので失敗させない
+          exit-code: '0' # 情報提供のみなので失敗させない
 
   security-report:
     name: Security Report Generation
@@ -99,25 +99,25 @@ jobs:
           echo "# Security Scan Report" > security-report.md
           echo "## Scan Date: $(date)" >> security-report.md
           echo "## Overview" >> security-report.md
-          
+
           if [ "${{ needs.secrets-scan.result }}" == "success" ]; then
             echo "- ✅ Secrets Scan: PASSED" >> security-report.md
           else
             echo "- ❌ Secrets Scan: FAILED" >> security-report.md
           fi
-          
+
           if [ "${{ needs.dependency-scan.result }}" == "success" ]; then
             echo "- ✅ Dependency Scan: PASSED" >> security-report.md
           else
             echo "- ❌ Dependency Scan: FAILED" >> security-report.md
           fi
-          
+
           if [ "${{ needs.sbom-generation.result }}" == "success" ]; then
             echo "- ✅ SBOM Generation: PASSED" >> security-report.md
           else
             echo "- ❌ SBOM Generation: FAILED" >> security-report.md
           fi
-          
+
           echo "## Recommendations" >> security-report.md
           echo "- Keep dependencies up to date" >> security-report.md
           echo "- Review SBOM for any deprecated packages" >> security-report.md
@@ -127,4 +127,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: security-report
-          path: ./security-report.md 
+          path: ./security-report.md

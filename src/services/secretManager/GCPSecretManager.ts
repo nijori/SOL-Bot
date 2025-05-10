@@ -5,8 +5,8 @@
  */
 
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { SecretManagerInterface } from "./SecretManagerInterface.js";
-import logger from "../../utils/logger.js";
+import { SecretManagerInterface } from './SecretManagerInterface.js';
+import logger from '../../utils/logger.js';
 
 export interface GCPSecretManagerConfig {
   projectId?: string;

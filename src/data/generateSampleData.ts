@@ -5,9 +5,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Candle } from "../core/types.js";
-import { ParquetDataStore } from "./parquetDataStore.js";
-import logger from "../utils/logger.js";
+import { Candle } from '../core/types.js';
+import { ParquetDataStore } from './parquetDataStore.js';
+import logger from '../utils/logger.js';
 
 // 乱数生成用関数
 function randomBetween(min: number, max: number): number {

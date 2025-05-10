@@ -3,8 +3,8 @@
  * 戦略間で共通のポジションサイジングロジックを提供
  */
 
-import logger from "./logger.js";
-import { ParameterService } from "../config/parameterService.js";
+import logger from './logger.js';
+import { ParameterService } from '../config/parameterService.js';
 
 // パラメータサービスのインスタンスを取得
 const parameterService = ParameterService.getInstance();

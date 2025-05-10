@@ -1,8 +1,8 @@
-import { Order, OrderSide, OrderStatus, OrderType, Position, Fill } from "./types.js";
-import logger from "../utils/logger.js";
-import { OrderOptions, OcoOrderParams } from "../services/exchangeService.js";
-import { ExchangeService } from "../services/exchangeService.js";
-import { updateOrderStatus, syncFillWithOrder } from "../utils/orderUtils.js";
+import { Order, OrderSide, OrderStatus, OrderType, Position, Fill } from './types.js';
+import logger from '../utils/logger.js';
+import { OrderOptions, OcoOrderParams } from '../services/exchangeService.js';
+import { ExchangeService } from '../services/exchangeService.js';
+import { updateOrderStatus, syncFillWithOrder } from '../utils/orderUtils.js';
 // node-cronの型定義
 // @ts-ignore - node-cronの型定義が不完全なため
 import * as cron from 'node-cron';
@@ -760,7 +760,10 @@ export class OrderManagementSystem {
         }
 
         // 取引所から注文情報を取得
-        const orderInfo = await this.exchangeService.fetchOrder(order.exchangeOrderId, order.symbol);
+        const orderInfo = await this.exchangeService.fetchOrder(
+          order.exchangeOrderId,
+          order.symbol
+        );
         if (!orderInfo) {
           continue;
         }

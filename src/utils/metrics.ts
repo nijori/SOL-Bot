@@ -1,6 +1,6 @@
 import * as client from 'prom-client';
 import express from 'express';
-import logger from "./logger.js";
+import logger from './logger.js';
 
 // デフォルトのレジストリを初期化
 const register = new client.Registry();

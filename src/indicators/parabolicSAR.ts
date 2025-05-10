@@ -2,8 +2,8 @@
  * Parabolic SAR (Stop and Reverse) 指標の実装
  * トレンドの転換点を検出し、ストップロスの設定・更新に使用
  */
-import { Candle } from "../core/types.js";
-import { parameterService } from "../config/parameterService.js";
+import { Candle } from '../core/types.js';
+import { parameterService } from '../config/parameterService.js';
 
 // Parabolic SARのデフォルトパラメータ
 const DEFAULT_ACCELERATION_FACTOR_START = 0.02;

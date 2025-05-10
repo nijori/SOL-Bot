@@ -1,7 +1,7 @@
 import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from "../../indicators/marketState.js";
-import { Candle, MarketEnvironment } from "../../core/types.js";
-import { MARKET_PARAMETERS } from "../../config/parameters.js";
+import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState.js';
+import { Candle, MarketEnvironment } from '../../core/types.js';
+import { MARKET_PARAMETERS } from '../../config/parameters.js';
 
 // モックデータを作成するヘルパー関数
 function createMockCandles(

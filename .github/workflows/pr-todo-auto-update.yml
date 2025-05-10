@@ -3,7 +3,7 @@ name: PR マージ時のTodoタスク自動更新
 on:
   pull_request:
     types: [closed]
-    branches: [ master, main ]
+    branches: [master, main]
 
 jobs:
   update-todo-on-merge:
@@ -11,82 +11,82 @@ jobs:
     if: github.event.pull_request.merged == true
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-      
-    - name: タスクIDを抽出して進捗状況を更新
-      run: |
-        PR_TITLE="${{ github.event.pull_request.title }}"
-        PR_BODY="${{ github.event.pull_request.body }}"
-        
-        echo "PRタイトル: $PR_TITLE"
-        
-        # タスクIDのパターン [A-Z]{3}-[0-9]{3}
-        if [[ $PR_TITLE =~ ([A-Z]{3}-[0-9]{3}) ]]; then
-          TASK_ID="${BASH_REMATCH[1]}"
-        elif [[ $PR_BODY =~ (Fixes|Closes|Related to|Resolves) ([A-Z]{3}-[0-9]{3}) ]]; then
-          TASK_ID="${BASH_REMATCH[2]}"
-        else
-          echo "PRタイトルまたはボディからタスクIDを見つけられませんでした。処理をスキップします。"
-          exit 0
-        fi
-        
-        echo "見つかったタスクID: $TASK_ID"
-        
-        # Git認証情報の設定
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@github.com"
-        
-        # すべてのTodoファイル（sprint.mdc、backlog.mdc）を検索
-        TODO_FILES=(".todo/sprint.mdc" ".todo/backlog.mdc")
-        
-        TASK_UPDATED=0
-        
-        for FILE in "${TODO_FILES[@]}"; do
-          if [ ! -f "$FILE" ]; then
-            echo "$FILE が存在しません。"
-            continue
-          fi
-          
-          # ファイル内で一致するタスクID行を検索
-          LINE_NUM=$(grep -n "- \[ \] $TASK_ID:" "$FILE" | cut -d ":" -f 1)
-          
-          if [ -n "$LINE_NUM" ]; then
-            echo "$FILE の $LINE_NUM 行目でタスクが見つかりました"
-            
-            # タスクが未完了の場合は進捗を更新
-            sed -i "${LINE_NUM}s/- \[ \]/- \[x\]/" "$FILE"
-            
-            # Healthステータスを✅に更新
-            HEALTH_LINE=$(grep -n "🩺 Health     :" "$FILE" | grep -A 10 -B 10 "$TASK_ID" | head -n 1 | cut -d ":" -f 1)
-            if [ -n "$HEALTH_LINE" ]; then
-              sed -i "${HEALTH_LINE}s/🩺 Health     : .*/🩺 Health     : ✅/" "$FILE"
-            fi
-            
-            # Progressを100%に更新
-            PROGRESS_LINE=$(grep -n "📊 Progress   :" "$FILE" | grep -A 10 -B 10 "$TASK_ID" | head -n 1 | cut -d ":" -f 1)
-            if [ -n "$PROGRESS_LINE" ]; then
-              sed -i "${PROGRESS_LINE}s/📊 Progress   : .*/📊 Progress   : 100%/" "$FILE"
-            fi
-            
-            echo "$TASK_ID: ステータスが完了に更新されました"
-            TASK_UPDATED=1
-          fi
-        done
-        
-        if [ $TASK_UPDATED -eq 1 ]; then
-          # 変更をコミット
-          git add .todo/*.mdc
-          
-          # 変更がある場合のみコミット
-          if git diff --staged --quiet; then
-            echo "変更はありませんでした。"
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: タスクIDを抽出して進捗状況を更新
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          echo "PRタイトル: $PR_TITLE"
+
+          # タスクIDのパターン [A-Z]{3}-[0-9]{3}
+          if [[ $PR_TITLE =~ ([A-Z]{3}-[0-9]{3}) ]]; then
+            TASK_ID="${BASH_REMATCH[1]}"
+          elif [[ $PR_BODY =~ (Fixes|Closes|Related to|Resolves) ([A-Z]{3}-[0-9]{3}) ]]; then
+            TASK_ID="${BASH_REMATCH[2]}"
           else
-            git commit -m "🤖 $TASK_ID: PRマージによる自動タスク完了更新"
-            git push
-            echo "タスク $TASK_ID が自動的に完了としてマークされました。"
+            echo "PRタイトルまたはボディからタスクIDを見つけられませんでした。処理をスキップします。"
+            exit 0
           fi
-        else
-          echo "更新するタスクが見つかりませんでした。"
-        fi 
+
+          echo "見つかったタスクID: $TASK_ID"
+
+          # Git認証情報の設定
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          # すべてのTodoファイル（sprint.mdc、backlog.mdc）を検索
+          TODO_FILES=(".todo/sprint.mdc" ".todo/backlog.mdc")
+
+          TASK_UPDATED=0
+
+          for FILE in "${TODO_FILES[@]}"; do
+            if [ ! -f "$FILE" ]; then
+              echo "$FILE が存在しません。"
+              continue
+            fi
+            
+            # ファイル内で一致するタスクID行を検索
+            LINE_NUM=$(grep -n "- \[ \] $TASK_ID:" "$FILE" | cut -d ":" -f 1)
+            
+            if [ -n "$LINE_NUM" ]; then
+              echo "$FILE の $LINE_NUM 行目でタスクが見つかりました"
+              
+              # タスクが未完了の場合は進捗を更新
+              sed -i "${LINE_NUM}s/- \[ \]/- \[x\]/" "$FILE"
+              
+              # Healthステータスを✅に更新
+              HEALTH_LINE=$(grep -n "🩺 Health     :" "$FILE" | grep -A 10 -B 10 "$TASK_ID" | head -n 1 | cut -d ":" -f 1)
+              if [ -n "$HEALTH_LINE" ]; then
+                sed -i "${HEALTH_LINE}s/🩺 Health     : .*/🩺 Health     : ✅/" "$FILE"
+              fi
+              
+              # Progressを100%に更新
+              PROGRESS_LINE=$(grep -n "📊 Progress   :" "$FILE" | grep -A 10 -B 10 "$TASK_ID" | head -n 1 | cut -d ":" -f 1)
+              if [ -n "$PROGRESS_LINE" ]; then
+                sed -i "${PROGRESS_LINE}s/📊 Progress   : .*/📊 Progress   : 100%/" "$FILE"
+              fi
+              
+              echo "$TASK_ID: ステータスが完了に更新されました"
+              TASK_UPDATED=1
+            fi
+          done
+
+          if [ $TASK_UPDATED -eq 1 ]; then
+            # 変更をコミット
+            git add .todo/*.mdc
+            
+            # 変更がある場合のみコミット
+            if git diff --staged --quiet; then
+              echo "変更はありませんでした。"
+            else
+              git commit -m "🤖 $TASK_ID: PRマージによる自動タスク完了更新"
+              git push
+              echo "タスク $TASK_ID が自動的に完了としてマークされました。"
+            fi
+          else
+            echo "更新するタスクが見つかりませんでした。"
+          fi

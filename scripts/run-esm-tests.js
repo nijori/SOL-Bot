@@ -17,7 +17,7 @@ const args = process.argv.slice(2);
 const detectOpenHandles = args.includes('--detect-handles');
 const debug = args.includes('--debug');
 const coverage = args.includes('--coverage');
-const testPattern = args.find(arg => arg.startsWith('--pattern='))?.split('=')[1];
+const testPattern = args.find((arg) => arg.startsWith('--pattern='))?.split('=')[1];
 
 // 実行するJestコマンドの構築
 let jestArgs = ['--experimental-vm-modules', 'node_modules/jest/bin/jest.js'];

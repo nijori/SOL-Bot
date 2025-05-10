@@ -1,5 +1,5 @@
-import { executeMeanRevertStrategy } from "../../strategies/meanRevertStrategy.js";
-import { Candle, OrderSide, OrderType, Position, StrategyType } from "../../core/types.js";
+import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy.js';
+import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 
 // テスト用のより堅牢なモックデータファクトリ
 class CandleFactory {
@@ -59,22 +59,22 @@ class CandleFactory {
   static generateGridCrossingCandles(basePrice: number, crossSize: number = 10): Candle[] {
     // 基本的なキャンドルを生成（40本）
     const candles = this.generateCandles(40, basePrice, 2.0);
-    
+
     // 最後の2本でグリッドをまたぐ明確な価格変動を作成
-    const priceMovement = basePrice * crossSize / 100;
-    
+    const priceMovement = (basePrice * crossSize) / 100;
+
     // まず下に動いて
     candles[candles.length - 2].close = basePrice - priceMovement / 2;
     candles[candles.length - 2].open = basePrice - priceMovement / 2;
     candles[candles.length - 2].high = basePrice;
     candles[candles.length - 2].low = basePrice - priceMovement;
-    
+
     // 次に上に動く（グリッドレベルをまたぐ）
     candles[candles.length - 1].close = basePrice + priceMovement;
     candles[candles.length - 1].open = basePrice - priceMovement / 2;
     candles[candles.length - 1].high = basePrice + priceMovement * 1.2;
     candles[candles.length - 1].low = basePrice - priceMovement / 3;
-    
+
     return candles;
   }
 
@@ -92,17 +92,17 @@ class CandleFactory {
   ): Candle[] {
     // 基本的なキャンドルを生成
     const candles = this.generateCandles(40, basePrice, 1.0);
-    
+
     // エスケープ価格を計算
-    const escapeValue = basePrice * escapePercent / 100;
+    const escapeValue = (basePrice * escapePercent) / 100;
     const targetPrice = isUpward ? basePrice + escapeValue : basePrice - escapeValue;
-    
+
     // 最後のキャンドルでエスケープ
     candles[candles.length - 1].close = targetPrice;
     candles[candles.length - 1].open = basePrice;
     candles[candles.length - 1].high = isUpward ? targetPrice + 2 : basePrice + 1;
     candles[candles.length - 1].low = isUpward ? basePrice - 1 : targetPrice - 2;
-    
+
     return candles;
   }
 }
@@ -134,7 +134,7 @@ describe('MeanRevertStrategy Tests', () => {
 
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
-    
+
     // 信号がない場合はテストをスキップ（テストの安定性のため）
     if (result.signals.length === 0) {
       console.log('警告: グリッド信号が生成されませんでした。テストをスキップします。');
@@ -143,7 +143,7 @@ describe('MeanRevertStrategy Tests', () => {
 
     expect(result.signals.length).toBeGreaterThan(0);
     const sellOrders = result.signals.filter((s) => s.side === OrderSide.SELL);
-    
+
     // 売り注文が作成されていない場合も買い注文を確認
     if (sellOrders.length === 0) {
       const buyOrders = result.signals.filter((s) => s.side === OrderSide.BUY);

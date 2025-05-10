@@ -25,7 +25,7 @@
  * 特記事項:
  * - Front-matterブロック（---または```で囲まれた部分）はスキップされます
  * - 先頭に「.」が付いたタスクIDはアーカイブ済みとして処理されます
- * 
+ *
  * 戻り値:
  *   0: 問題なし
  *   1: 問題あり、またはエラー発生
@@ -190,7 +190,7 @@ function getErrorTypeName(type: ValidationErrorType): string {
  */
 function printStatistics(errors: ValidationError[], quiet: boolean): void {
   if (errors.length === 0 || quiet) return;
-  
+
   // エラータイプ別にグループ化
   const errorsByType = errors.reduce(
     (groups, error) => {
@@ -202,28 +202,30 @@ function printStatistics(errors: ValidationError[], quiet: boolean): void {
     },
     {} as Record<string, ValidationError[]>
   );
-  
+
   // 統計情報のヘッダー
   console.log(chalk.blue('\n📊 エラー分布:'));
-  
+
   // タイプ別の統計情報を出力
   const errorTypes = Object.entries(errorsByType).sort((a, b) => b[1].length - a[1].length);
   const maxCount = Math.max(...errorTypes.map(([_, errors]) => errors.length));
   const maxBarLength = 30; // バーの最大長
-  
+
   errorTypes.forEach(([type, typeErrors]) => {
     const typeName = getErrorTypeName(type as ValidationErrorType);
     const colorFn = getColorForErrorType(type as ValidationErrorType);
     const count = typeErrors.length;
     const percentage = Math.round((count / errors.length) * 100);
-    
+
     // 視覚的なバーを作成
     const barLength = Math.max(1, Math.round((count / maxCount) * maxBarLength));
     const bar = '█'.repeat(barLength);
-    
-    console.log(colorFn(`  ${typeName.padEnd(20)} ${count.toString().padStart(3)} (${percentage}%) ${bar}`));
+
+    console.log(
+      colorFn(`  ${typeName.padEnd(20)} ${count.toString().padStart(3)} (${percentage}%) ${bar}`)
+    );
   });
-  
+
   console.log('\n');
 }
 

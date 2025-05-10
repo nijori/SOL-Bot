@@ -10,13 +10,13 @@ declare const process: any;
 declare const module: any;
 
 import ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from "../core/types.js";
-import { DataRepository } from "./dataRepository.js";
-import { ParquetDataStore } from "./parquetDataStore.js";
-import logger from "../utils/logger.js";
+import { Candle, normalizeTimestamp } from '../core/types.js';
+import { DataRepository } from './dataRepository.js';
+import { ParquetDataStore } from './parquetDataStore.js';
+import logger from '../utils/logger.js';
 import cron from 'node-cron';
 import 'dotenv/config';
-import { OPERATION_MODE } from "../config/parameters.js";
+import { OPERATION_MODE } from '../config/parameters.js';
 
 // 取り込み設定
 const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';

@@ -54,7 +54,7 @@ export function calculateVariance(values: number[]): number {
   }
 
   const mean = calculateMean(values);
-  const squaredDiffs = values.map(value => Math.pow(value - mean, 2));
+  const squaredDiffs = values.map((value) => Math.pow(value - mean, 2));
   return calculateSum(squaredDiffs) / (values.length - 1); // 不偏分散
 }
 
@@ -119,7 +119,7 @@ export function calculateCovarianceMatrix(returnsSeries: number[][]): number[][]
   const covariance: number[][] = [];
 
   // 平均を計算
-  const means: number[] = returnsSeries.map(series => calculateMean(series));
+  const means: number[] = returnsSeries.map((series) => calculateMean(series));
 
   // 共分散行列を初期化
   for (let i = 0; i < n; i++) {
@@ -164,7 +164,7 @@ export function calculateSharpeRatio(
 
   // 日次→年次への変換（必要な場合）
   const annualizationFactor = isDaily ? Math.sqrt(252) : 1;
-  const excessReturn = mean - (riskFreeRate / (isDaily ? 252 : 1));
+  const excessReturn = mean - riskFreeRate / (isDaily ? 252 : 1);
 
   return (excessReturn / stdDev) * annualizationFactor;
 }
@@ -184,21 +184,22 @@ export function calculateSortinoRatio(
   if (returns.length <= 1) return 0;
 
   const mean = calculateMean(returns);
-  
+
   // 下方偏差を計算
-  const negativeReturns = returns.filter(ret => ret < targetReturn);
+  const negativeReturns = returns.filter((ret) => ret < targetReturn);
   if (negativeReturns.length === 0) return Infinity; // 下方変動がない場合
-  
+
   const downDeviation = Math.sqrt(
-    negativeReturns.reduce((sum, ret) => sum + Math.pow(ret - targetReturn, 2), 0) / negativeReturns.length
+    negativeReturns.reduce((sum, ret) => sum + Math.pow(ret - targetReturn, 2), 0) /
+      negativeReturns.length
   );
-  
+
   if (downDeviation === 0) return 0;
-  
+
   // 日次→年次への変換（必要な場合）
   const annualizationFactor = isDaily ? Math.sqrt(252) : 1;
-  const excessReturn = mean - (targetReturn / (isDaily ? 252 : 1));
-  
+  const excessReturn = mean - targetReturn / (isDaily ? 252 : 1);
+
   return (excessReturn / downDeviation) * annualizationFactor;
 }
 
@@ -207,25 +208,25 @@ export function calculateSortinoRatio(
  * @param equityCurve 資産推移配列
  * @returns {maxDrawdown: number, drawdownPeriods: {start: number, end: number, depth: number}[]}
  */
-export function calculateDrawdowns(equityCurve: number[]): { 
+export function calculateDrawdowns(equityCurve: number[]): {
   maxDrawdown: number;
-  drawdownPeriods: {start: number; end: number; depth: number}[];
+  drawdownPeriods: { start: number; end: number; depth: number }[];
 } {
   if (equityCurve.length <= 1) {
     return { maxDrawdown: 0, drawdownPeriods: [] };
   }
-  
+
   let peak = equityCurve[0];
   let maxDrawdown = 0;
-  let drawdownPeriods: {start: number; end: number; depth: number}[] = [];
+  const drawdownPeriods: { start: number; end: number; depth: number }[] = [];
   let currentDrawdownStart = 0;
   let inDrawdown = false;
-  
+
   for (let i = 1; i < equityCurve.length; i++) {
     if (equityCurve[i] > peak) {
       // 新しいピークを記録
       peak = equityCurve[i];
-      
+
       // ドローダウンから回復した場合
       if (inDrawdown) {
         inDrawdown = false;
@@ -236,21 +237,20 @@ export function calculateDrawdowns(equityCurve: number[]): {
         inDrawdown = true;
         currentDrawdownStart = i - 1; // ピークのインデックス
       }
-      
+
       // ドローダウン深度を計算
-      const drawdown = 1 - (equityCurve[i] / peak);
-      
+      const drawdown = 1 - equityCurve[i] / peak;
+
       // 最大ドローダウンを更新
       if (drawdown > maxDrawdown) {
         maxDrawdown = drawdown;
       }
-      
+
       // 前のドローダウン期間と結合するか、新しい期間を作成
-      if (drawdownPeriods.length > 0 && 
-          drawdownPeriods[drawdownPeriods.length - 1].end === i - 1) {
+      if (drawdownPeriods.length > 0 && drawdownPeriods[drawdownPeriods.length - 1].end === i - 1) {
         // 既存期間を延長
         drawdownPeriods[drawdownPeriods.length - 1].end = i;
-        
+
         // より深いドローダウンならdepthを更新
         if (drawdown > drawdownPeriods[drawdownPeriods.length - 1].depth) {
           drawdownPeriods[drawdownPeriods.length - 1].depth = drawdown;
@@ -265,6 +265,6 @@ export function calculateDrawdowns(equityCurve: number[]): {
       }
     }
   }
-  
+
   return { maxDrawdown, drawdownPeriods };
-} 
+}

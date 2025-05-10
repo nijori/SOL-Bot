@@ -3,15 +3,15 @@
  *
  * このファイルはローソク足データや取引履歴などの情報を保存・取得するための
  * インターフェースを提供します。実際のストレージはファイルベースまたはデータベースベースで実装できます。
- * 
+ *
  * DAT-014: データストアマルチシンボル拡張
  * TST-013: DataRepository並列E2Eテスト対応
  */
 
 import fs from 'fs';
 import path from 'path';
-import { Candle, Order, PerformanceMetrics } from "../core/types.js";
-import logger from "../utils/logger.js";
+import { Candle, Order, PerformanceMetrics } from '../core/types.js';
+import logger from '../utils/logger.js';
 import { Mutex } from 'async-mutex';
 
 // データフォルダのパス設定
@@ -67,7 +67,7 @@ export class DataRepository {
   private ensureSymbolDirectory(symbol: string, baseDir: string): string {
     const normalizedSymbol = symbol.replace('/', '_');
     const symbolDir = path.join(baseDir, normalizedSymbol);
-    
+
     if (!fs.existsSync(symbolDir)) {
       try {
         fs.mkdirSync(symbolDir, { recursive: true });
@@ -78,7 +78,7 @@ export class DataRepository {
         );
       }
     }
-    
+
     return symbolDir;
   }
 
@@ -118,7 +118,7 @@ export class DataRepository {
   public async saveCandles(symbol: string, timeframe: string, candles: Candle[]): Promise<boolean> {
     const dirs = this.getDataDirectories();
     const symbolDir = this.ensureSymbolDirectory(symbol, dirs.candlesDir);
-    
+
     // ファイル名を作成（例: '1h_20250605.json'）
     const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
     const filename = `${timeframe}_${date}.json`;
@@ -136,28 +136,30 @@ export class DataRepository {
           try {
             const existingData = await fs.promises.readFile(filePath, 'utf8');
             const existingCandles = JSON.parse(existingData) as Candle[];
-            
+
             // 既存のデータとマージ (タイムスタンプでソート)
             allCandles = [...existingCandles, ...candles].sort((a, b) => {
               return (a.timestamp as number) - (b.timestamp as number);
             });
-            
+
             // 重複を除去（同じタイムスタンプのデータは後のものを優先）
             const uniqueCandles: Candle[] = [];
             const timestampSet = new Set<number>();
-            
+
             // 重複を取り除く
-            allCandles.forEach(candle => {
+            allCandles.forEach((candle) => {
               if (!timestampSet.has(candle.timestamp as number)) {
                 timestampSet.add(candle.timestamp as number);
                 uniqueCandles.push(candle);
               }
             });
-            
+
             allCandles = uniqueCandles;
           } catch (error) {
             // 既存ファイルが無効な場合は新しいデータだけを使用
-            logger.warn(`既存のローソク足データの読み込みに失敗しました: ${filePath}. 新しいデータのみを使用します。`);
+            logger.warn(
+              `既存のローソク足データの読み込みに失敗しました: ${filePath}. 新しいデータのみを使用します。`
+            );
           }
         }
 
@@ -186,12 +188,12 @@ export class DataRepository {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
       const symbolDir = path.join(dirs.candlesDir, normalizedSymbol);
-      
+
       if (!fs.existsSync(symbolDir)) {
         logger.warn(`シンボルディレクトリが見つかりません: ${symbolDir}`);
         return [];
       }
-      
+
       const filename = `${timeframe}_${date}.json`;
       const filePath = path.join(symbolDir, filename);
 
@@ -223,7 +225,7 @@ export class DataRepository {
     date: string
   ): Promise<Map<string, Candle[]>> {
     const result = new Map<string, Candle[]>();
-    
+
     for (const symbol of symbols) {
       try {
         const candles = await this.loadCandles(symbol, timeframe, date);
@@ -237,10 +239,10 @@ export class DataRepository {
         // エラーが発生しても処理を続行（部分的な読み込み失敗を許容）
       }
     }
-    
+
     return result;
   }
-  
+
   /**
    * 利用可能なシンボルの一覧を取得する
    * @returns 利用可能なシンボルの配列
@@ -251,11 +253,12 @@ export class DataRepository {
       if (!fs.existsSync(dirs.candlesDir)) {
         return [];
       }
-      
+
       // ディレクトリ名からシンボルを抽出
-      return fs.readdirSync(dirs.candlesDir)
-        .filter(name => fs.statSync(path.join(dirs.candlesDir, name)).isDirectory())
-        .map(dir => dir.replace('_', '/'));
+      return fs
+        .readdirSync(dirs.candlesDir)
+        .filter((name) => fs.statSync(path.join(dirs.candlesDir, name)).isDirectory())
+        .map((dir) => dir.replace('_', '/'));
     } catch (error) {
       logger.error(
         `シンボル一覧取得エラー: ${error instanceof Error ? error.message : String(error)}`
@@ -274,23 +277,23 @@ export class DataRepository {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
       const symbolDir = path.join(dirs.candlesDir, normalizedSymbol);
-      
+
       if (!fs.existsSync(symbolDir)) {
         logger.warn(`シンボルディレクトリが見つかりません: ${symbolDir}`);
         return [];
       }
-      
+
       // ファイル名からタイムフレームを抽出
       const uniqueTimeframes = new Set<string>();
       fs.readdirSync(symbolDir)
-        .filter(file => file.endsWith('.json'))
-        .forEach(file => {
+        .filter((file) => file.endsWith('.json'))
+        .forEach((file) => {
           const matches = file.match(/^([^_]+)_/);
           if (matches && matches[1]) {
             uniqueTimeframes.add(matches[1]);
           }
         });
-        
+
       return Array.from(uniqueTimeframes);
     } catch (error) {
       logger.error(
@@ -310,12 +313,12 @@ export class DataRepository {
   public async saveOrders(orders: Order[], date?: string, symbol?: string): Promise<boolean> {
     const dirs = this.getDataDirectories();
     let targetDir = dirs.ordersDir;
-    
+
     // シンボルが指定されている場合はシンボル固有のディレクトリを使用
     if (symbol) {
       targetDir = this.ensureSymbolDirectory(symbol, dirs.ordersDir);
     }
-    
+
     // 実行日ごとにファイルを作成
     const dateStr = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
     const filename = `orders_${dateStr}.json`;
@@ -340,7 +343,9 @@ export class DataRepository {
         logger.debug(`注文履歴を保存しました: ${filePath}`);
         return true;
       } catch (error) {
-        logger.error(`注文履歴保存エラー: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(
+          `注文履歴保存エラー: ${error instanceof Error ? error.message : String(error)}`
+        );
         return false;
       }
     });
@@ -356,18 +361,18 @@ export class DataRepository {
     try {
       const dirs = this.getDataDirectories();
       let targetDir = dirs.ordersDir;
-      
+
       // シンボルが指定されている場合はシンボル固有のディレクトリを使用
       if (symbol) {
         const normalizedSymbol = symbol.replace('/', '_');
         targetDir = path.join(dirs.ordersDir, normalizedSymbol);
-        
+
         if (!fs.existsSync(targetDir)) {
           logger.warn(`シンボル注文ディレクトリが見つかりません: ${targetDir}`);
           return [];
         }
       }
-      
+
       const filename = `orders_${date}.json`;
       const filePath = path.join(targetDir, filename);
 
@@ -397,7 +402,7 @@ export class DataRepository {
     symbols: string[]
   ): Promise<Map<string, Order[]>> {
     const result = new Map<string, Order[]>();
-    
+
     // 共通の注文履歴を読み込む
     try {
       const commonOrders = await this.loadOrders(date);
@@ -405,9 +410,11 @@ export class DataRepository {
         result.set('common', commonOrders);
       }
     } catch (error) {
-      logger.error(`共通注文履歴読み込みエラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `共通注文履歴読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
-    
+
     // 各シンボルの注文履歴を読み込む
     for (const symbol of symbols) {
       try {
@@ -422,7 +429,7 @@ export class DataRepository {
         // エラーが発生しても処理を続行（部分的な読み込み失敗を許容）
       }
     }
-    
+
     return result;
   }
 
@@ -433,15 +440,19 @@ export class DataRepository {
    * @param symbol シンボル名（省略可。省略時は全シンボル共通のメトリクスとして保存）
    * @returns 成功したかどうか
    */
-  public async savePerformanceMetrics(metrics: PerformanceMetrics, date?: string, symbol?: string): Promise<boolean> {
+  public async savePerformanceMetrics(
+    metrics: PerformanceMetrics,
+    date?: string,
+    symbol?: string
+  ): Promise<boolean> {
     const dirs = this.getDataDirectories();
     let targetDir = dirs.metricsDir;
-    
+
     // シンボルが指定されている場合はシンボル固有のディレクトリを使用
     if (symbol) {
       targetDir = this.ensureSymbolDirectory(symbol, dirs.metricsDir);
     }
-    
+
     const dateStr = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
     const filename = `metrics_${dateStr}.json`;
     const filePath = path.join(targetDir, filename);
@@ -457,19 +468,21 @@ export class DataRepository {
           try {
             const existingData = await fs.promises.readFile(filePath, 'utf8');
             const existingMetrics = JSON.parse(existingData) as PerformanceMetrics;
-            
+
             // 既存メトリクスと新しいメトリクスをマージ
             // 新しいデータを優先するが、不足しているフィールドは既存データから補完
             const mergedMetrics = {
               ...existingMetrics,
               ...metrics
             };
-            
+
             await fs.promises.writeFile(filePath, JSON.stringify(mergedMetrics, null, 2));
             logger.debug(`パフォーマンスメトリクスを更新しました: ${filePath}`);
             return true;
           } catch (error) {
-            logger.warn(`既存のメトリクスデータの読み込みに失敗しました: ${filePath}. 新しいデータで上書きします。`);
+            logger.warn(
+              `既存のメトリクスデータの読み込みに失敗しました: ${filePath}. 新しいデータで上書きします。`
+            );
           }
         }
 
@@ -491,22 +504,25 @@ export class DataRepository {
    * @param symbol シンボル名（省略可。省略時は全シンボル共通のメトリクスを読み込み）
    * @returns パフォーマンスメトリクス
    */
-  public async loadPerformanceMetrics(date: string, symbol?: string): Promise<PerformanceMetrics | null> {
+  public async loadPerformanceMetrics(
+    date: string,
+    symbol?: string
+  ): Promise<PerformanceMetrics | null> {
     try {
       const dirs = this.getDataDirectories();
       let targetDir = dirs.metricsDir;
-      
+
       // シンボルが指定されている場合はシンボル固有のディレクトリを使用
       if (symbol) {
         const normalizedSymbol = symbol.replace('/', '_');
         targetDir = path.join(dirs.metricsDir, normalizedSymbol);
-        
+
         if (!fs.existsSync(targetDir)) {
           logger.warn(`シンボルメトリクスディレクトリが見つかりません: ${targetDir}`);
           return null;
         }
       }
-      
+
       const filename = `metrics_${date}.json`;
       const filePath = path.join(targetDir, filename);
 
@@ -524,7 +540,7 @@ export class DataRepository {
       return null;
     }
   }
-  
+
   /**
    * 複数シンボルのパフォーマンスメトリクスを一括で読み込む
    * @param date 日付（形式: 'YYYYMMDD'）
@@ -536,7 +552,7 @@ export class DataRepository {
     symbols: string[]
   ): Promise<Map<string, PerformanceMetrics>> {
     const result = new Map<string, PerformanceMetrics>();
-    
+
     // 共通のメトリクスを読み込む
     try {
       const commonMetrics = await this.loadPerformanceMetrics(date);
@@ -544,9 +560,11 @@ export class DataRepository {
         result.set('common', commonMetrics);
       }
     } catch (error) {
-      logger.error(`共通メトリクス読み込みエラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `共通メトリクス読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
-    
+
     // 各シンボルのメトリクスを読み込む
     for (const symbol of symbols) {
       try {
@@ -561,7 +579,7 @@ export class DataRepository {
         // エラーが発生しても処理を続行（部分的な読み込み失敗を許容）
       }
     }
-    
+
     return result;
   }
 
@@ -576,26 +594,27 @@ export class DataRepository {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
       const symbolDir = path.join(dirs.candlesDir, normalizedSymbol);
-      
+
       if (!fs.existsSync(symbolDir)) {
         logger.warn(`シンボルディレクトリが見つかりません: ${symbolDir}`);
         return [];
       }
-      
+
       // ディレクトリ内のファイルを取得し、指定されたタイムフレームのファイルのみをフィルタリング
-      const files = fs.readdirSync(symbolDir)
-        .filter(file => file.startsWith(`${timeframe}_`) && file.endsWith('.json'))
+      const files = fs
+        .readdirSync(symbolDir)
+        .filter((file) => file.startsWith(`${timeframe}_`) && file.endsWith('.json'))
         .sort(); // 日付でソート
-      
+
       if (files.length === 0) {
         logger.warn(`${symbol}の${timeframe}データが見つかりません`);
         return [];
       }
-      
+
       // 最新のファイルを取得
       const latestFile = files[files.length - 1];
       const filePath = path.join(symbolDir, latestFile);
-      
+
       const data = await fs.promises.readFile(filePath, 'utf8');
       return JSON.parse(data) as Candle[];
     } catch (error) {

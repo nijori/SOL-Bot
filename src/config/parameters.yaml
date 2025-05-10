@@ -4,106 +4,106 @@
 # 相場環境判定用パラメータ
 market:
   # EMA設定
-  short_term_ema: ${SHORT_TERM_EMA:-10}  # 短期EMA期間
-  long_term_ema: ${LONG_TERM_EMA:-50}    # 長期EMA期間
-  atr_period: ${ATR_PERIOD:-14}          # ATR計算期間
-  
+  short_term_ema: ${SHORT_TERM_EMA:-10} # 短期EMA期間
+  long_term_ema: ${LONG_TERM_EMA:-50} # 長期EMA期間
+  atr_period: ${ATR_PERIOD:-14} # ATR計算期間
+
   # 相場判定のしきい値
-  trend_slope_threshold: 0.2             # EMAの傾きがこの値より大きいとトレンド判定
-  volatility_threshold: 2.0              # ATRがこの値倍以上に増えると高ボラティリティ判定
-  atr_percentage_threshold: ${ATR_PERCENTAGE_THRESHOLD:-6.0}  # ATR%がこの値未満だとLOW_VOL判定
-  
+  trend_slope_threshold: 0.2 # EMAの傾きがこの値より大きいとトレンド判定
+  volatility_threshold: 2.0 # ATRがこの値倍以上に増えると高ボラティリティ判定
+  atr_percentage_threshold: ${ATR_PERCENTAGE_THRESHOLD:-6.0} # ATR%がこの値未満だとLOW_VOL判定
+
   # EMA傾き計算のボラティリティ適応閾値
-  slope_periods_high_vol_threshold: ${SLOPE_HIGH_VOL_THRESHOLD:-8.0}  # この値より高いATR%では短い期間を使用
-  slope_periods_low_vol_threshold: ${SLOPE_LOW_VOL_THRESHOLD:-3.0}    # この値より低いATR%では長い期間を使用
-  slope_periods_default: ${SLOPE_PERIODS_DEFAULT:-5}                  # デフォルトの傾き計算期間
-  slope_periods_high_vol_value: ${SLOPE_HIGH_VOL_VALUE:-3}            # 高ボラティリティ時の期間
-  slope_periods_low_vol_value: ${SLOPE_LOW_VOL_VALUE:-8}              # 低ボラティリティ時の期間
+  slope_periods_high_vol_threshold: ${SLOPE_HIGH_VOL_THRESHOLD:-8.0} # この値より高いATR%では短い期間を使用
+  slope_periods_low_vol_threshold: ${SLOPE_LOW_VOL_THRESHOLD:-3.0} # この値より低いATR%では長い期間を使用
+  slope_periods_default: ${SLOPE_PERIODS_DEFAULT:-5} # デフォルトの傾き計算期間
+  slope_periods_high_vol_value: ${SLOPE_HIGH_VOL_VALUE:-3} # 高ボラティリティ時の期間
+  slope_periods_low_vol_value: ${SLOPE_LOW_VOL_VALUE:-8} # 低ボラティリティ時の期間
 
 # トレンド戦略用パラメータ
 trend:
-  donchian_period: ${DONCHIAN_PERIOD:-20}  # ドンチャンチャネル期間
-  adx_period: ${ADX_PERIOD:-14}            # ADX計算期間
-  adx_threshold: ${ADX_THRESHOLD:-25}      # ADXがこの値以上で強いトレンド判定
-  
+  donchian_period: ${DONCHIAN_PERIOD:-20} # ドンチャンチャネル期間
+  adx_period: ${ADX_PERIOD:-14} # ADX計算期間
+  adx_threshold: ${ADX_THRESHOLD:-25} # ADXがこの値以上で強いトレンド判定
+
   # 動的パラメータ
-  atr_trailing_stop_multiplier: ${TRAILING_STOP_FACTOR:-1.2}  # トレイリングストップ = ATR * 1.2
-  add_on_position_multiplier: 0.5           # 1R進むごとに0.5R追加、最大2回
-  position_sizing: 0.2                      # ポジションサイズ（利用可能資金の20%）
+  atr_trailing_stop_multiplier: ${TRAILING_STOP_FACTOR:-1.2} # トレイリングストップ = ATR * 1.2
+  add_on_position_multiplier: 0.5 # 1R進むごとに0.5R追加、最大2回
+  position_sizing: 0.2 # ポジションサイズ（利用可能資金の20%）
 
 # レンジ戦略用パラメータ
 range:
-  range_period: 30                           # 30日間の高値・安値をレンジ境界として使用
-  grid_levels_min: 3                         # 最小グリッドレベル数
-  grid_levels_max: 10                        # 最大グリッドレベル数
-  grid_width_multiplier: ${GRID_ATR_MULTIPLIER:-0.6}   # ATR%の0.6倍をグリッド幅計算に使用
-  position_sizing: 0.1                        # ポジションサイズ（利用可能資金の10%）
+  range_period: 30 # 30日間の高値・安値をレンジ境界として使用
+  grid_levels_min: 3 # 最小グリッドレベル数
+  grid_levels_max: 10 # 最大グリッドレベル数
+  grid_width_multiplier: ${GRID_ATR_MULTIPLIER:-0.6} # ATR%の0.6倍をグリッド幅計算に使用
+  position_sizing: 0.1 # ポジションサイズ（利用可能資金の10%）
 
 # リスク管理パラメータ
 risk:
-  max_risk_per_trade: ${MAX_RISK_PER_TRADE:-0.01}   # 取引ごとの最大リスク（口座の1%）
-  max_daily_loss: ${MAX_DAILY_LOSS:-0.05}           # 1日の最大損失（口座の5%）
-  emergency_gap_threshold: 0.15                     # 15%の急落を緊急事態とみなす
-  emergency_position_reduction: 0.5                 # 緊急時にポジションを50%削減
-  emergency_recovery_threshold: 0.075              # BLACK_SWAN_THRESHOLD/2（7.5%）未満の変動が続くと通常戦略に復帰
-  emergency_recovery_hours: 24                     # この時間（時間単位）、閾値未満の変動が続くと通常戦略に復帰
-  
+  max_risk_per_trade: ${MAX_RISK_PER_TRADE:-0.01} # 取引ごとの最大リスク（口座の1%）
+  max_daily_loss: ${MAX_DAILY_LOSS:-0.05} # 1日の最大損失（口座の5%）
+  emergency_gap_threshold: 0.15 # 15%の急落を緊急事態とみなす
+  emergency_position_reduction: 0.5 # 緊急時にポジションを50%削減
+  emergency_recovery_threshold: 0.075 # BLACK_SWAN_THRESHOLD/2（7.5%）未満の変動が続くと通常戦略に復帰
+  emergency_recovery_hours: 24 # この時間（時間単位）、閾値未満の変動が続くと通常戦略に復帰
+
   # ATR==0フォールバック設定
-  defaultAtrPercentage: ${DEFAULT_ATR_PERCENTAGE:-0.02}    # ATRが0または極小時に使用するデフォルト値（価格の2%）
-  minStopDistancePercentage: ${MIN_STOP_DISTANCE_PERCENTAGE:-0.01}  # 最小ストップ距離（価格の1%）
-  minAtrValue: ${MIN_ATR_VALUE:-0.0001}                   # ATRの最小有効値（価格の0.01%）
-  
+  defaultAtrPercentage: ${DEFAULT_ATR_PERCENTAGE:-0.02} # ATRが0または極小時に使用するデフォルト値（価格の2%）
+  minStopDistancePercentage: ${MIN_STOP_DISTANCE_PERCENTAGE:-0.01} # 最小ストップ距離（価格の1%）
+  minAtrValue: ${MIN_ATR_VALUE:-0.0001} # ATRの最小有効値（価格の0.01%）
+
   # ATR%自動キャリブレーション設定
-  minLookbackCandles: ${MIN_LOOKBACK_CANDLES:-30}        # キャリブレーションに必要な最小ロウソク足数
-  maxCalibrationLookback: ${MAX_CALIBRATION_LOOKBACK:-90}  # キャリブレーションに使用する最大ロウソク足数
-  calibrationCacheTTLHours: ${CALIBRATION_CACHE_TTL:-24}   # キャリブレーション結果キャッシュの有効期間（時間）
-  
+  minLookbackCandles: ${MIN_LOOKBACK_CANDLES:-30} # キャリブレーションに必要な最小ロウソク足数
+  maxCalibrationLookback: ${MAX_CALIBRATION_LOOKBACK:-90} # キャリブレーションに使用する最大ロウソク足数
+  calibrationCacheTTLHours: ${CALIBRATION_CACHE_TTL:-24} # キャリブレーション結果キャッシュの有効期間（時間）
+
   # ボラティリティプロファイル閾値
-  volatilityLowThreshold: ${VOLATILITY_LOW_THRESHOLD:-2.0}       # 低ボラティリティの閾値（ATR%）
-  volatilityMediumThreshold: ${VOLATILITY_MEDIUM_THRESHOLD:-5.0}  # 中ボラティリティの閾値（ATR%）
-  volatilityHighThreshold: ${VOLATILITY_HIGH_THRESHOLD:-10.0}     # 高ボラティリティの閾値（ATR%）
+  volatilityLowThreshold: ${VOLATILITY_LOW_THRESHOLD:-2.0} # 低ボラティリティの閾値（ATR%）
+  volatilityMediumThreshold: ${VOLATILITY_MEDIUM_THRESHOLD:-5.0} # 中ボラティリティの閾値（ATR%）
+  volatilityHighThreshold: ${VOLATILITY_HIGH_THRESHOLD:-10.0} # 高ボラティリティの閾値（ATR%）
 
 # ログと監視パラメータ
 monitoring:
   log_level: ${LOG_LEVEL:-info}
-  performance_metric_interval: 86400000            # パフォーマンス評価間隔（1日）
-  heartbeatInterval: 60000                         # ハートビート間隔（ミリ秒）
-  orderStatusCheckInterval: 300000                 # 注文ステータス確認間隔（ミリ秒）
-  slackWebhookEnabled: true                        # Slack通知の有効化
+  performance_metric_interval: 86400000 # パフォーマンス評価間隔（1日）
+  heartbeatInterval: 60000 # ハートビート間隔（ミリ秒）
+  orderStatusCheckInterval: 300000 # 注文ステータス確認間隔（ミリ秒）
+  slackWebhookEnabled: true # Slack通知の有効化
 
 # バックテストパラメータ
 backtest:
   start_date: ${BACKTEST_START_DATE:-2023-01-01}
   end_date: ${BACKTEST_END_DATE:-2023-12-31}
-  commission_rate: 0.001                          # 0.1%の取引手数料
-  slippage: 0.001                                 # 0.1%のスリッページ
+  commission_rate: 0.001 # 0.1%の取引手数料
+  slippage: 0.001 # 0.1%のスリッページ
 
 # モード設定
 operation:
-  mode: ${OPERATION_MODE:-simulation}              # live, simulation, backtest 
+  mode: ${OPERATION_MODE:-simulation} # live, simulation, backtest
 
 # 全体設定
 general:
-  symbol: "SOL/USDT"
+  symbol: 'SOL/USDT'
   timeframes:
-    - "1m"
-    - "15m"
-    - "1h"
-    - "1d"
-  operationMode: "LIVE"  # DEV, BACKTEST, PAPER, LIVE
-  debugLevel: "INFO"     # DEBUG, INFO, WARN, ERROR
+    - '1m'
+    - '15m'
+    - '1h'
+    - '1d'
+  operationMode: 'LIVE' # DEV, BACKTEST, PAPER, LIVE
+  debugLevel: 'INFO' # DEBUG, INFO, WARN, ERROR
 
 # リスク管理設定
 riskManagement:
-  maxRiskPerTrade: 0.01    # 口座残高の1%
-  dailyDrawdownStop: 0.05  # 5%ドローダウンで停止
+  maxRiskPerTrade: 0.01 # 口座残高の1%
+  dailyDrawdownStop: 0.05 # 5%ドローダウンで停止
   blackSwanThreshold: 0.15 # 15%の急落でエマージェンシー戦略発動
-  maxPositionSize: 0.35    # 口座残高の35%
+  maxPositionSize: 0.35 # 口座残高の35%
 
 # レジーム判定パラメータ
 regimeDetection:
-  emaSlopeThreshold: 0.15      # EMA傾きの閾値（度）
-  atrPercentageThreshold: 6.0  # ATR％の閾値
+  emaSlopeThreshold: 0.15 # EMA傾きの閾値（度）
+  atrPercentageThreshold: 6.0 # ATR％の閾値
   emaPeriods:
     short: 10
     long: 55
@@ -114,24 +114,24 @@ trendFollowStrategy:
   adxThreshold: 25
   initialRiskR: 1.0
   targetR: 2.5
-  trailingStopFactor: 1.2      # ATR×1.2のトレイリングストップ
-  pyramidThreshold: 1.0        # 1R以上の含み益で追加ポジション
-  pyramidSizeMultiplier: 0.5   # 0.5R追加
-  maxPyramids: 2               # 最大2回の追加
+  trailingStopFactor: 1.2 # ATR×1.2のトレイリングストップ
+  pyramidThreshold: 1.0 # 1R以上の含み益で追加ポジション
+  pyramidSizeMultiplier: 0.5 # 0.5R追加
+  maxPyramids: 2 # 最大2回の追加
 
 # レンジ/グリッド戦略パラメータ
 rangeStrategy:
   rangePeriod: 30
-  rangeMultiplier: 0.9         # 最新30日間のドンチアンレンジ×0.9
-  gridAtrMultiplier: 0.6       # ATR×0.6でグリッド幅を計算
-  minSpreadPercentage: 0.3     # 最小スプレッド0.3%
-  escapeThreshold: 0.02        # レンジ上限/下限±2%でエスケープ
-  netPositionDeltaMax: 0.15    # 15%以上の偏りでヘッジ
+  rangeMultiplier: 0.9 # 最新30日間のドンチアンレンジ×0.9
+  gridAtrMultiplier: 0.6 # ATR×0.6でグリッド幅を計算
+  minSpreadPercentage: 0.3 # 最小スプレッド0.3%
+  escapeThreshold: 0.02 # レンジ上限/下限±2%でエスケープ
+  netPositionDeltaMax: 0.15 # 15%以上の偏りでヘッジ
 
 # 注文執行設定
 orderExecution:
-  defaultOrderType: "LIMIT"
+  defaultOrderType: 'LIMIT'
   usePostOnly: true
   useIceberg: true
   retryAttempts: 5
-  retryDelays: [1000, 2000, 4000, 8000, 16000]  # ミリ秒単位の指数バックオフ 
+  retryDelays: [1000, 2000, 4000, 8000, 16000] # ミリ秒単位の指数バックオフ

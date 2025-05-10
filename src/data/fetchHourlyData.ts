@@ -7,8 +7,8 @@
  * npm run fetch-hourly -- --symbol SOL/USDT --days 7
  */
 
-import { MarketDataFetcher } from "./marketDataFetcher.js";
-import logger from "../utils/logger.js";
+import { MarketDataFetcher } from './marketDataFetcher.js';
+import logger from '../utils/logger.js';
 
 // コマンドライン引数の解析
 const args = process.argv.slice(2);

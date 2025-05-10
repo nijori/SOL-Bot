@@ -22,10 +22,10 @@ declare const module: {
 };
 
 import * as dotenv from 'dotenv';
-import { OptunaOptimizer } from "./optunaOptimizer.js";
-import { MetricType } from "../types/optimizer.js";
-import { parameterSpace } from "./parameterSpace.js";
-import logger from "../utils/logger.js";
+import { OptunaOptimizer } from './optunaOptimizer.js';
+import { MetricType } from '../types/optimizer.js';
+import { parameterSpace } from './parameterSpace.js';
+import logger from '../utils/logger.js';
 
 // 環境変数の読み込み
 dotenv.config();

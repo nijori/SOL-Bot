@@ -3,7 +3,7 @@
 /**
  * ESMテスト安全実行スクリプト
  * REF-025: ESMテスト安定性の向上
- * 
+ *
  * このスクリプトはESMテストの安定性を向上させるために以下を行います：
  * 1. 環境変数の適切な設定
  * 2. テスト専用のクリーンアップ環境の準備
@@ -31,7 +31,7 @@ let testPaths = [];
 let jestArgs = ['--detectOpenHandles']; // Jest追加引数
 
 // 引数のパース
-args.forEach(arg => {
+args.forEach((arg) => {
   if (arg.startsWith('--timeout=')) {
     testTimeout = parseInt(arg.split('=')[1], 10);
   } else if (arg.startsWith('--')) {
@@ -69,14 +69,14 @@ try {
     stdio: 'inherit',
     env: {
       ...process.env,
-      FORCE_COLOR: '1', // 色付き出力を強制
+      FORCE_COLOR: '1' // 色付き出力を強制
     }
   });
   console.log('\n✅ テスト実行が正常に完了しました。');
   process.exit(0);
 } catch (error) {
   console.error(`\n❌ テスト実行がエラーで失敗しました: ${error.message}`);
-  
+
   // クリーンアップファイルがあれば実行
   const cleanupScript = path.join(rootDir, 'scripts', 'cleanup-test-resources.js');
   if (fs.existsSync(cleanupScript)) {
@@ -88,6 +88,6 @@ try {
       console.error(`クリーンアップ中にエラーが発生しました: ${cleanupError.message}`);
     }
   }
-  
+
   process.exit(1);
-} 
+}

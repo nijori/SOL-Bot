@@ -10,4 +10,4 @@
     "verbatimModuleSyntax": true
   },
   "include": ["src/**/*.ts"]
-} 
+}

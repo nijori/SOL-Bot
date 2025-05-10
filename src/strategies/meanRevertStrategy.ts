@@ -11,10 +11,10 @@ import {
   Position,
   StrategyResult,
   StrategyType
-} from "../core/types.js";
-import { RANGE_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from "../config/parameters.js";
-import { parameterService } from "../config/parameterService.js";
-import { calculateVWAP } from "../indicators/marketState.js";
+} from '../core/types.js';
+import { RANGE_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
+import { parameterService } from '../config/parameterService.js';
+import { calculateVWAP } from '../indicators/marketState.js';
 
 // 戦略設計書に基づくパラメータをYAML設定から取得
 const RANGE_PERIOD = parameterService.get<number>('rangeStrategy.rangePeriod', 30);

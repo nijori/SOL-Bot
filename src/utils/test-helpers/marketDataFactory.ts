@@ -1,6 +1,6 @@
 /**
  * REF-029: ESMテスト用市場データ生成ユーティリティ
- * 
+ *
  * このファイルはテスト用の市場データ（ローソク足、注文、ポジションなど）を
  * 生成するための関数とクラスを提供します。
  * 固定シード値に基づく再現性のあるデータ生成と、様々な市場シナリオに対応した
@@ -81,7 +81,7 @@ export class MarketDataFactory {
     count = 30,
     volatility = 1.0,
     timeframe = 60000, // 1分足をデフォルトに
-    startTime = Date.now() - (60000 * count) // count本分の時間をさかのぼる
+    startTime = Date.now() - 60000 * count // count本分の時間をさかのぼる
   }: {
     symbol?: string;
     basePrice?: number;
@@ -94,21 +94,21 @@ export class MarketDataFactory {
     let currentPrice = basePrice;
 
     for (let i = 0; i < count; i++) {
-      const timestamp = startTime + (i * timeframe);
-      
+      const timestamp = startTime + i * timeframe;
+
       // ボラティリティに基づいた価格変動を生成
       const priceChange = this.generateNoise(basePrice * (volatility / 100));
       currentPrice += priceChange;
-      
+
       // 高値・安値の決定（ランダム要素を加える）
       const highLowRange = basePrice * (volatility / 200);
       const high = currentPrice + this.randomRange(0, highLowRange);
       const low = currentPrice - this.randomRange(0, highLowRange);
-      
+
       // 始値・終値の決定（高値と安値の間に収める）
       const open = this.randomRange(low, high);
       const close = this.randomRange(low, high);
-      
+
       // 出来高の生成（ボラティリティに比例）
       const volume = basePrice * 10 * (1 + Math.abs(priceChange) / basePrice);
 
@@ -150,29 +150,29 @@ export class MarketDataFactory {
   } = {}): TestCandle[] {
     const candles: TestCandle[] = [];
     let currentPrice = basePrice;
-    const startTime = Date.now() - (timeframe * count);
-    
+    const startTime = Date.now() - timeframe * count;
+
     // 1日あたりのトレンド変化率をタイムフレームあたりに変換
     const timeframesPerDay = 86400000 / timeframe;
-    const trendPerTimeframe = (basePrice * trendStrength / 100) / timeframesPerDay;
-    
+    const trendPerTimeframe = (basePrice * trendStrength) / 100 / timeframesPerDay;
+
     for (let i = 0; i < count; i++) {
-      const timestamp = startTime + (i * timeframe);
-      
+      const timestamp = startTime + i * timeframe;
+
       // トレンドによる価格変化
       const trendChange = isUptrend ? trendPerTimeframe : -trendPerTimeframe;
-      
+
       // ボラティリティによるランダム変動
       const randomChange = this.generateNoise(basePrice * (volatility / 100));
-      
+
       // 価格の更新（トレンド + ランダム変動）
       currentPrice += trendChange + randomChange;
-      
+
       // 高値・安値の生成
       const highLowRange = basePrice * (volatility / 200);
       let high = currentPrice + this.randomRange(0, highLowRange);
       let low = currentPrice - this.randomRange(0, highLowRange);
-      
+
       // トレンド方向に高値・安値をバイアス
       if (isUptrend) {
         high += highLowRange * 0.5;
@@ -181,7 +181,7 @@ export class MarketDataFactory {
         high -= highLowRange * 0.2;
         low -= highLowRange * 0.5;
       }
-      
+
       // 始値・終値の決定（トレンド方向にバイアス）
       let open, close;
       if (isUptrend) {
@@ -191,7 +191,7 @@ export class MarketDataFactory {
         open = this.randomRange(currentPrice, high);
         close = this.randomRange(low, currentPrice);
       }
-      
+
       // ボラティリティに比例した出来高
       const volume = basePrice * 10 * (1 + Math.abs(trendChange + randomChange) / basePrice);
 
@@ -230,44 +230,44 @@ export class MarketDataFactory {
     timeframe?: number;
   } = {}): TestCandle[] {
     const candles: TestCandle[] = [];
-    const startTime = Date.now() - (timeframe * count);
-    
+    const startTime = Date.now() - timeframe * count;
+
     // レンジの上限と下限を計算
     const rangeLow = basePrice * (1 - rangeWidth / 100);
     const rangeHigh = basePrice * (1 + rangeWidth / 100);
     const rangeMiddle = (rangeLow + rangeHigh) / 2;
-    
+
     // サイン波を使ってレンジ内での価格変動をシミュレート
     for (let i = 0; i < count; i++) {
-      const timestamp = startTime + (i * timeframe);
-      
+      const timestamp = startTime + i * timeframe;
+
       // サイン波での位置（0-1の範囲）
       const phase = (i % 20) / 20;
       const sineValue = Math.sin(phase * Math.PI * 2);
-      
+
       // サイン波をレンジに変換
-      const rangePosition = rangeMiddle + sineValue * (rangeHigh - rangeLow) / 2;
-      
+      const rangePosition = rangeMiddle + (sineValue * (rangeHigh - rangeLow)) / 2;
+
       // ボラティリティによるノイズを加える
       const noise = this.generateNoise(basePrice * (volatility / 200));
       const currentPrice = rangePosition + noise;
-      
+
       // レンジ内に収める（万が一範囲を超えた場合）
       const clampedPrice = Math.max(rangeLow, Math.min(rangeHigh, currentPrice));
-      
+
       // 高値・安値の生成
       const highLowRange = basePrice * (volatility / 100);
       let high = clampedPrice + this.randomRange(0, highLowRange);
       let low = clampedPrice - this.randomRange(0, highLowRange);
-      
+
       // レンジ内に収める
       high = Math.min(high, rangeHigh + highLowRange * 0.3);
       low = Math.max(low, rangeLow - highLowRange * 0.3);
-      
+
       // 始値・終値（高値と安値の間）
       const open = this.randomRange(low, high);
       const close = this.randomRange(low, high);
-      
+
       // ボラティリティに応じた出来高（レンジ相場では全体的に低め）
       const volume = basePrice * 5 * (1 + Math.abs(noise) / basePrice);
 
@@ -315,30 +315,30 @@ export class MarketDataFactory {
     if (breakoutAt >= count) {
       breakoutAt = Math.floor(count * 0.7); // 本数を超える場合は70%の位置に設定
     }
-    
+
     const candles: TestCandle[] = [];
-    const startTime = Date.now() - (timeframe * count);
-    
+    const startTime = Date.now() - timeframe * count;
+
     // レンジの上限と下限を計算
     const rangeLow = basePrice * (1 - rangeWidth / 100);
     const rangeHigh = basePrice * (1 + rangeWidth / 100);
     const rangeMiddle = (rangeLow + rangeHigh) / 2;
-    
+
     // ブレイク後の目標価格
-    const breakoutTarget = isUpside 
-      ? basePrice * (1 + breakoutStrength / 100) 
+    const breakoutTarget = isUpside
+      ? basePrice * (1 + breakoutStrength / 100)
       : basePrice * (1 - breakoutStrength / 100);
-    
+
     for (let i = 0; i < count; i++) {
-      const timestamp = startTime + (i * timeframe);
+      const timestamp = startTime + i * timeframe;
       let currentPrice;
-      
+
       if (i < breakoutAt) {
         // ブレイク前はレンジ相場
         const phase = (i % 20) / 20;
         const sineValue = Math.sin(phase * Math.PI * 2);
-        currentPrice = rangeMiddle + sineValue * (rangeHigh - rangeLow) / 2;
-        
+        currentPrice = rangeMiddle + (sineValue * (rangeHigh - rangeLow)) / 2;
+
         // レンジ上限/下限に近づくほど確率的に増加
         if (isUpside && i >= breakoutAt - 5) {
           currentPrice = Math.min(rangeHigh, currentPrice * (1 + 0.005 * (i - (breakoutAt - 5))));
@@ -348,27 +348,27 @@ export class MarketDataFactory {
       } else {
         // ブレイク後は目標価格に向けて変化
         const progressToTarget = Math.min(1, (i - breakoutAt) / 10); // 10本かけて目標に到達
-        
+
         if (isUpside) {
           currentPrice = rangeHigh + progressToTarget * (breakoutTarget - rangeHigh);
         } else {
           currentPrice = rangeLow - progressToTarget * (rangeLow - breakoutTarget);
         }
       }
-      
+
       // ボラティリティによるノイズ
       const noise = this.generateNoise(basePrice * (volatility / 100));
       currentPrice += noise;
-      
+
       // 高値・安値の生成
       const highLowRange = basePrice * (volatility / 100);
-      
+
       // ブレイク時はボラティリティを高める
-      const volBoost = (i >= breakoutAt && i <= breakoutAt + 5) ? 2.0 : 1.0;
-      
+      const volBoost = i >= breakoutAt && i <= breakoutAt + 5 ? 2.0 : 1.0;
+
       let high = currentPrice + this.randomRange(0, highLowRange * volBoost);
       let low = currentPrice - this.randomRange(0, highLowRange * volBoost);
-      
+
       // ブレイク時は方向に沿った高値/安値
       if (i === breakoutAt) {
         if (isUpside) {
@@ -379,10 +379,10 @@ export class MarketDataFactory {
           low = Math.min(low, rangeLow * 0.98);
         }
       }
-      
+
       // 始値・終値（ブレイク時は方向に合わせる）
       let open, close;
-      
+
       if (i === breakoutAt) {
         if (isUpside) {
           open = this.randomRange(currentPrice * 0.99, currentPrice);
@@ -395,7 +395,7 @@ export class MarketDataFactory {
         open = this.randomRange(low * 1.02, high * 0.98);
         close = this.randomRange(low * 1.02, high * 0.98);
       }
-      
+
       // 出来高（ブレイク時は増加）
       let volume = basePrice * 10;
       if (i >= breakoutAt && i <= breakoutAt + 5) {
@@ -441,34 +441,34 @@ export class MarketDataFactory {
     timeframe?: number;
   } = {}): TestCandle[] {
     const candles: TestCandle[] = [];
-    const startTime = Date.now() - (timeframe * count);
+    const startTime = Date.now() - timeframe * count;
     let currentPrice = basePrice;
-    
+
     for (let i = 0; i < count; i++) {
-      const timestamp = startTime + (i * timeframe);
-      
+      const timestamp = startTime + i * timeframe;
+
       // 現在のボラティリティを計算
       let currentVolatility = baseVolatility;
       if (i >= spikeAt && i < spikeAt + spikeDuration) {
         // スパイク中はボラティリティを増加
         const spikeProgress = (i - spikeAt) / spikeDuration;
         const spikeFactor = spikeStrength * Math.sin(spikeProgress * Math.PI); // 山型のスパイク
-        currentVolatility *= (1 + spikeFactor);
+        currentVolatility *= 1 + spikeFactor;
       }
-      
+
       // ボラティリティに基づく価格変動
       const priceChange = this.generateNoise(basePrice * (currentVolatility / 100));
       currentPrice += priceChange;
-      
+
       // 高値・安値（ボラティリティに比例）
       const highLowRange = basePrice * (currentVolatility / 100);
       const high = currentPrice + this.randomRange(0, highLowRange);
       const low = currentPrice - this.randomRange(0, highLowRange);
-      
+
       // 始値・終値
       const open = this.randomRange(low * 1.05, high * 0.95);
       const close = this.randomRange(low * 1.05, high * 0.95);
-      
+
       // 出来高（ボラティリティに比例）
       const volume = basePrice * 10 * (1 + currentVolatility / baseVolatility);
 
@@ -495,50 +495,53 @@ export class MarketDataFactory {
     if (candles.length < 20) {
       return MarketStatus.UNKNOWN; // データ不足
     }
-    
+
     // 価格変動の傾向を分析
-    const prices = candles.map(c => c.close);
+    const prices = candles.map((c) => c.close);
     const firstHalf = prices.slice(0, Math.floor(prices.length / 2));
     const secondHalf = prices.slice(Math.floor(prices.length / 2));
-    
+
     const firstAvg = firstHalf.reduce((sum, price) => sum + price, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, price) => sum + price, 0) / secondHalf.length;
-    
+
     // 価格変動の範囲
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const range = max - min;
     const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
     const rangePercent = (range / avgPrice) * 100;
-    
+
     // ボラティリティ（標準偏差）
-    const variance = prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length;
+    const variance =
+      prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length;
     const stdDev = Math.sqrt(variance);
     const volatilityPercent = (stdDev / avgPrice) * 100;
-    
+
     // 最新5本のボラティリティ
     const recentPrices = prices.slice(-5);
     const recentAvg = recentPrices.reduce((sum, price) => sum + price, 0) / recentPrices.length;
-    const recentVariance = recentPrices.reduce((sum, price) => sum + Math.pow(price - recentAvg, 2), 0) / recentPrices.length;
+    const recentVariance =
+      recentPrices.reduce((sum, price) => sum + Math.pow(price - recentAvg, 2), 0) /
+      recentPrices.length;
     const recentStdDev = Math.sqrt(recentVariance);
     const recentVolatilityPercent = (recentStdDev / recentAvg) * 100;
-    
+
     // ブレイクアウト検出（直近のボラティリティが急増）
     if (recentVolatilityPercent > volatilityPercent * 2) {
       return MarketStatus.BREAKOUT;
     }
-    
+
     // トレンド検出（前半と後半の平均価格の差）
-    const trendStrength = Math.abs(secondAvg - firstAvg) / firstAvg * 100;
+    const trendStrength = (Math.abs(secondAvg - firstAvg) / firstAvg) * 100;
     if (trendStrength > 3) {
       return secondAvg > firstAvg ? MarketStatus.UPTREND : MarketStatus.DOWNTREND;
     }
-    
+
     // レンジ検出（全体の価格変動が小さい）
     if (rangePercent < 5) {
       return MarketStatus.RANGE;
     }
-    
+
     return MarketStatus.UNKNOWN;
   }
 
@@ -564,29 +567,28 @@ export class MarketDataFactory {
   } = {}): Position[] {
     const positions: Position[] = [];
     const now = Date.now();
-    
+
     for (let i = 0; i < count; i++) {
       // 約定価格（指定範囲内でランダム）
       const priceVariation = avgPrice * (priceRange / 100);
       const entryPrice = avgPrice + this.generateNoise(priceVariation);
-      
+
       // 約定時刻（過去1週間以内でランダム）
       const timestamp = now - this.randomRange(0, 7 * 86400000);
-      
+
       // 売買方向（longRatioの確率でロング）
       const side = this.random() < longRatio ? OrderSide.BUY : OrderSide.SELL;
-      
+
       // ポジションサイズ（合計サイズの中でランダムに分配）
       const sizeRatio = this.randomRange(0.1, 0.5); // 合計の10%〜50%
-      const amount = totalSize * sizeRatio / entryPrice;
-      
+      const amount = (totalSize * sizeRatio) / entryPrice;
+
       // 現在価格（約定価格から少し変動）
       const currentPrice = entryPrice * (1 + this.generateNoise(priceRange / 200));
-      
+
       // 未実現損益
-      const priceDiff = side === OrderSide.BUY 
-        ? currentPrice - entryPrice 
-        : entryPrice - currentPrice;
+      const priceDiff =
+        side === OrderSide.BUY ? currentPrice - entryPrice : entryPrice - currentPrice;
       const unrealizedPnl = priceDiff * amount;
 
       positions.push({
@@ -627,33 +629,34 @@ export class MarketDataFactory {
   } = {}): Order[] {
     const orders: Order[] = [];
     const now = Date.now();
-    
+
     for (let i = 0; i < count; i++) {
       // 注文タイプ（limitRatioの確率で指値）
       const type = this.random() < limitRatio ? OrderType.LIMIT : OrderType.MARKET;
-      
+
       // 売買方向（buyRatioの確率で買い）
       const side = this.random() < buyRatio ? OrderSide.BUY : OrderSide.SELL;
-      
+
       // 注文価格（指値の場合は現在価格から乖離、成行の場合は現在価格）
       let price: number | undefined;
       if (type === OrderType.LIMIT) {
         const priceVariation = marketPrice * (priceRange / 100);
-        price = side === OrderSide.BUY 
-          ? marketPrice * (1 - this.randomRange(0.001, 0.02)) // 買いは現在より少し安く
-          : marketPrice * (1 + this.randomRange(0.001, 0.02)); // 売りは現在より少し高く
+        price =
+          side === OrderSide.BUY
+            ? marketPrice * (1 - this.randomRange(0.001, 0.02)) // 買いは現在より少し安く
+            : marketPrice * (1 + this.randomRange(0.001, 0.02)); // 売りは現在より少し高く
       } else {
         // 成行注文の場合は価格を指定しない
         price = undefined;
       }
-      
+
       // 注文サイズ（合計サイズの中でランダムに分配）
       const sizeRatio = this.randomRange(0.05, 0.3); // 合計の5%〜30%
-      const amount = totalSize * sizeRatio / (price || marketPrice);
-      
+      const amount = (totalSize * sizeRatio) / (price || marketPrice);
+
       // 注文ID
       const id = `order_${Date.now()}_${i}_${this.random().toString(36).substring(2, 8)}`;
-      
+
       // 注文作成時刻（過去1日以内でランダム）
       const timestamp = now - this.randomRange(0, 86400000);
 
@@ -671,4 +674,4 @@ export class MarketDataFactory {
 
     return orders;
   }
-} 
+}

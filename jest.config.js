@@ -9,12 +9,12 @@ export default {
     '^.+\\.tsx?$': [
       'ts-jest',
       {
-        useESM: true,
+        useESM: true
       }
     ]
   },
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^(\\.{1,2}/.*)\\.js$': '$1'
   },
   // REF-025: ESMテスト安定性の向上 - グローバルセットアップファイルを追加
   setupFilesAfterEnv: ['./scripts/jest-setup-esm.js'],
@@ -45,4 +45,4 @@ export default {
       statements: 90
     }
   }
-}; 
+};

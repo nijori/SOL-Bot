@@ -4,11 +4,11 @@
 # テスト環境設定
 test:
   # ESMテスト用Node環境変数
-  node_options: "--experimental-vm-modules --max-old-space-size=4096"
-  
+  node_options: '--experimental-vm-modules --max-old-space-size=4096'
+
   # テストのタイムアウト
   timeout: 60000
-  
+
   # テストディレクトリ設定
   directories:
     - src/__tests__/core
@@ -16,7 +16,7 @@ test:
     - src/__tests__/strategies
     - src/__tests__/services
     - src/__tests__/utils
-  
+
   # カバレッジ閾値
   coverage_threshold:
     global:
@@ -28,10 +28,10 @@ test:
 build:
   # ビルドディレクトリ
   output_dir: dist
-  
+
   # ビルドモード
   mode: production
-  
+
   # ビルド環境変数
   env:
     NODE_ENV: production
@@ -40,9 +40,9 @@ build:
 deploy:
   # アーティファクト保持期間（日）
   retention_days: 30
-  
+
   # EC2設定
   ec2:
     app_dir: /opt/solbot
     releases_dir: /opt/solbot/releases
-    current_link: /opt/solbot/current 
+    current_link: /opt/solbot/current

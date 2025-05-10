@@ -7,9 +7,9 @@ import {
   Position,
   StrategyResult,
   StrategyType
-} from "../core/types.js";
-import { RANGE_PARAMETERS, MARKET_PARAMETERS } from "../config/parameters.js";
-import { parameterService } from "../config/parameterService.js";
+} from '../core/types.js';
+import { RANGE_PARAMETERS, MARKET_PARAMETERS } from '../config/parameters.js';
+import { parameterService } from '../config/parameterService.js';
 
 // グリッド関連のパラメータをYAML設定から取得
 const GRID_ATR_MULTIPLIER = parameterService.get<number>('rangeStrategy.gridAtrMultiplier', 0.6);

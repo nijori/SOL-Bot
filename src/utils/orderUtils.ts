@@ -1,5 +1,5 @@
-import { Order, OrderStatus, Fill } from "../core/types.js";
-import logger from "./logger.js";
+import { Order, OrderStatus, Fill } from '../core/types.js';
+import logger from './logger.js';
 
 /**
  * simulateFill処理用に注文オブジェクトを更新する

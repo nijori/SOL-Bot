@@ -2,7 +2,7 @@ name: ESM Tests Workflow
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [master, main, develop]
     paths:
       - 'src/**'
       - 'scripts/**'
@@ -10,7 +10,7 @@ on:
       - 'package.json'
       - '.github/workflows/esm-tests.yml'
   pull_request:
-    branches: [ master, main, develop ]
+    branches: [master, main, develop]
     paths:
       - 'src/**'
       - 'scripts/**'
@@ -32,7 +32,7 @@ jobs:
         node-version: [18.x, 20.x]
         test-group: [core, data, strategies, services, utils]
       fail-fast: false # 一つの失敗で全体が停止しないようにする
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
 
       - name: Run ESM Tests with Matrix Strategy
         env:
-          NODE_OPTIONS: "--experimental-vm-modules --max-old-space-size=4096"
+          NODE_OPTIONS: '--experimental-vm-modules --max-old-space-size=4096'
           TEST_GROUP: ${{ matrix.test-group }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.testPattern }}" != "" ]; then
@@ -94,9 +94,9 @@ jobs:
                 ;;
             esac
           fi
-          
+
           echo "Running tests for pattern: $TEST_PATTERN"
-          
+
           # ESM専用のテスト実行スクリプトでテストを実行
           node --experimental-vm-modules ./scripts/run-esm-tests-safely.js $TEST_PATTERN --ci --cacheDirectory=.jest-cache
 
@@ -105,7 +105,7 @@ jobs:
         run: |
           # 既存のカバレッジディレクトリがあれば削除
           rm -rf coverage || true
-          
+
           # カバレッジレポート生成（テスト実行が完了していることが前提）
           node --experimental-vm-modules ./node_modules/.bin/jest --ci --coverage --coverageReporters=text --coverageReporters=lcov --coverageReporters=html --testMatch="[${{ matrix.test-group }}]**/*.test.mjs"
 
@@ -122,7 +122,7 @@ jobs:
     needs: esm-tests
     runs-on: ubuntu-latest
     if: success() || failure() # 上のジョブが失敗してもレポート作成
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -135,7 +135,7 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Install coverage tools
         run: |
           npm install -g istanbul-merge istanbul-reports istanbul-lib-coverage istanbul-lib-report nyc
@@ -150,13 +150,13 @@ jobs:
       - name: Merge coverage reports
         run: |
           mkdir -p merged-coverage
-          
+
           # カバレッジレポートのマージ
           istanbul-merge --out merged-coverage/coverage-final.json coverage-reports/*/lcov.info
-          
+
           # HTMLレポート生成
           istanbul report --root merged-coverage --dir merged-coverage/html html
-          
+
           # コンソール出力用テキストレポート
           istanbul report --root merged-coverage text
 
@@ -166,7 +166,7 @@ jobs:
           name: merged-coverage-report
           path: merged-coverage
           retention-days: 30
-      
+
       - name: Add Coverage PR Comment
         if: github.event_name == 'pull_request'
         uses: marocchino/sticky-pull-request-comment@v2
@@ -179,7 +179,7 @@ jobs:
     needs: [esm-tests, merge-coverage]
     runs-on: ubuntu-latest
     if: always() # 常に実行
-    
+
     steps:
       - name: Check previous job status
         id: status
@@ -191,7 +191,7 @@ jobs:
             echo "result=失敗 ❌" >> $GITHUB_OUTPUT
             echo "emoji=❌" >> $GITHUB_OUTPUT
           fi
-          
+
           # テスト完了日時
           echo "completed_at=$(date)" >> $GITHUB_OUTPUT
 
@@ -201,10 +201,10 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ needs.esm-tests.result }}
-          title: "SOL-Bot ESMテスト結果"
+          title: 'SOL-Bot ESMテスト結果'
           description: |
             テスト結果: ${{ steps.status.outputs.emoji }} ${{ steps.status.outputs.result }}
             ブランチ: ${{ github.ref }}
             コミット: ${{ github.sha }}
             完了時刻: ${{ steps.status.outputs.completed_at }}
-            ${{ github.event_name == 'workflow_dispatch' ? format('実行者: {0}', github.actor) : '' }} 
+            ${{ github.event_name == 'workflow_dispatch' ? format('実行者: {0}', github.actor) : '' }}

@@ -22,7 +22,7 @@ export {
 } from './SecretManagerFactory';
 
 // デフォルトエクスポート - 簡単アクセス用のファクトリーインスタンス
-import { SecretManagerFactory } from "./SecretManagerFactory.js";
+import { SecretManagerFactory } from './SecretManagerFactory.js';
 
 /**
  * デフォルトのシークレットマネージャーインスタンスを取得

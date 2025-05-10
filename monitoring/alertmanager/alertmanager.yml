@@ -22,4 +22,4 @@ receivers:
         message: '{{ template "discord.default.message" . }}'
 
 templates:
-  - '/etc/alertmanager/templates/discord.tmpl' 
+  - '/etc/alertmanager/templates/discord.tmpl'

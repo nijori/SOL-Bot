@@ -20,24 +20,24 @@
 
 ただし「ペアだけ替えて即運用」は危険。以下の８点を片付けるまではバックテスト必須です。
 
-| # | 必須度 | やること | 具体的指摘 / 工数感 |
-|---|--------|----------|-------------------|
-| 1 | ★★★★★ | 取引単位＆最小ロットの抽象化 | ccxtのmarketオブジェクトからprecision.amount, limits.amount.minを取得してOrderSizingServiceを新設。<br>→ 現状はamount = 0.1 + rand()等で強制生成している箇所があり、BTC/USDTだと0.1 BTC = 数万$になる。 |
-| 2 | ★★★★★ | スプレッド・手数料・滑りのペア別設定 | parameters.yamlのbacktest.slippage / commission_rateをシンボルごとにネスト。<br>例: backtest.slippage.SOLUSDT: 0.001, backtest.slippage.BTCUSDT: 0.0002 |
-| 3 | ★★★★☆ | ボラティリティ依存パラメータ(ATR%系)の自動キャリブレーション | ATR％が低いペア(ADA, XRP)ではGRID_ATR_MULTIPLIER=0.6が広すぎる。<br>→ 直近N日のATR%平均から倍率を動的決定する関数を用意。 |
-| 4 | ★★★★☆ | データストアのマルチシンボル対応 | ParquetDataStoreが<symbol>/<timeframe>.parquet前提ならOK。<br>もしdata/candles/sol/…に固定ならディレクトリ構成を動的に。 |
-| 5 | ★★★☆☆ | ポートフォリオリスク管理 | いまは「口座残高 × max_risk_per_trade」しか見ていない。<br>複数ペアで同時ポジションを持つとリスク集中を見落とす。<br>→ PortfolioRiskGuardを実装し、シンボル横断で<br>　- 最大同方向デルタ<br>　- 一日あたり総VAR<br>をチェック。 |
-| 6 | ★★★☆☆ | スケジューラ／マルチエンジン起動 | ペアごとにTradingEngineを並列起動するか、１エンジンで<br>キャンドルをループ(O(n·m))するか設計方針を決める。<br>単純にはペア×タイムフレーム分だけNodeプロセスorWorkerで分ける方が楽。 |
-| 7 | ★★☆☆☆ | 戦略適性の自動判定 | SOLは高速トレンド追随が効くがXRPはレンジ傾向強め――<br>market.recommendedStrategyをペア別のpriorで重み付け。 |
-| 8 | ★★☆☆☆ | バックテスト／スモークテストCIのテンプレ化 | npm run backtest:smoke --symbol BTCUSDTのようにシンボルを引数化して<br>GitHub Actionsで主要8ペアを毎PRテスト。 |
+| #   | 必須度 | やること                                                     | 具体的指摘 / 工数感                                                                                                                                                                                                              |
+| --- | ------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | ★★★★★  | 取引単位＆最小ロットの抽象化                                 | ccxtのmarketオブジェクトからprecision.amount, limits.amount.minを取得してOrderSizingServiceを新設。<br>→ 現状はamount = 0.1 + rand()等で強制生成している箇所があり、BTC/USDTだと0.1 BTC = 数万$になる。                          |
+| 2   | ★★★★★  | スプレッド・手数料・滑りのペア別設定                         | parameters.yamlのbacktest.slippage / commission_rateをシンボルごとにネスト。<br>例: backtest.slippage.SOLUSDT: 0.001, backtest.slippage.BTCUSDT: 0.0002                                                                          |
+| 3   | ★★★★☆  | ボラティリティ依存パラメータ(ATR%系)の自動キャリブレーション | ATR％が低いペア(ADA, XRP)ではGRID_ATR_MULTIPLIER=0.6が広すぎる。<br>→ 直近N日のATR%平均から倍率を動的決定する関数を用意。                                                                                                        |
+| 4   | ★★★★☆  | データストアのマルチシンボル対応                             | ParquetDataStoreが<symbol>/<timeframe>.parquet前提ならOK。<br>もしdata/candles/sol/…に固定ならディレクトリ構成を動的に。                                                                                                         |
+| 5   | ★★★☆☆  | ポートフォリオリスク管理                                     | いまは「口座残高 × max_risk_per_trade」しか見ていない。<br>複数ペアで同時ポジションを持つとリスク集中を見落とす。<br>→ PortfolioRiskGuardを実装し、シンボル横断で<br>　- 最大同方向デルタ<br>　- 一日あたり総VAR<br>をチェック。 |
+| 6   | ★★★☆☆  | スケジューラ／マルチエンジン起動                             | ペアごとにTradingEngineを並列起動するか、１エンジンで<br>キャンドルをループ(O(n·m))するか設計方針を決める。<br>単純にはペア×タイムフレーム分だけNodeプロセスorWorkerで分ける方が楽。                                             |
+| 7   | ★★☆☆☆  | 戦略適性の自動判定                                           | SOLは高速トレンド追随が効くがXRPはレンジ傾向強め――<br>market.recommendedStrategyをペア別のpriorで重み付け。                                                                                                                      |
+| 8   | ★★☆☆☆  | バックテスト／スモークテストCIのテンプレ化                   | npm run backtest:smoke --symbol BTCUSDTのようにシンボルを引数化して<br>GitHub Actionsで主要8ペアを毎PRテスト。                                                                                                                   |
 
 ### 「今すぐ触る」レベルのハードコード箇所
 
-| 行 | 例 | 対応 |
-|----|-----|------|
-| parameters.yaml → general.symbol: "SOL/USDT" | まずここを削り、.envまたはCLIで渡す | |
-| smokeTest.ts → symbol: 'SOLUSDT' / --symbol無視 | CLI引数に切り替え | |
-| BacktestRunner default → 'SOLUSDT' | 単なるfallbackとしてOKだがREADMEに"default is SOL"と明記 | |
+| 行                                              | 例                                                       | 対応 |
+| ----------------------------------------------- | -------------------------------------------------------- | ---- |
+| parameters.yaml → general.symbol: "SOL/USDT"    | まずここを削り、.envまたはCLIで渡す                      |      |
+| smokeTest.ts → symbol: 'SOLUSDT' / --symbol無視 | CLI引数に切り替え                                        |      |
+| BacktestRunner default → 'SOLUSDT'              | 単なるfallbackとしてOKだがREADMEに"default is SOL"と明記 |      |
 
 ### 推奨アーキテクチャ図（ざっくり）
 
@@ -66,12 +66,15 @@
 ### 実装段階と優先順位
 
 #### フェーズ1: 基本対応（最小MVP、2週間）
+
 1. **OrderSizingService実装** (UTIL-002、高優先)
+
    - ccxt.market情報を活用したロットサイズと精度計算
    - 通貨ペア別の最小取引単位を自動取得
    - BTCなど高額通貨でも適切なリスク量計算
 
 2. **設定ファイル構造変更** (CONF-006、高優先)
+
    - `parameters.yaml`をネスト構造に変更
    - 通貨ペア別設定セクション追加
    - デフォルト値とペア固有値の階層設計
@@ -82,12 +85,15 @@
    - CLI引数のREADME文書化
 
 #### フェーズ2: 動的パラメータ調整（3週間）
+
 1. **ATR%自動キャリブレーション** (ALG-040、高優先)
+
    - 通貨ペア別ボラティリティ特性の分析機能
    - 直近N日間ATR%統計値に基づく動的パラメータ
    - ATR比率による戦略パラメータのスケーリング関数
 
 2. **データストア拡張** (DAT-014、中優先)
+
    - データディレクトリ構造の動的生成
    - マルチシンボルクエリ最適化
    - 通貨ペア別メタデータ保存機能
@@ -98,12 +104,15 @@
    - 過去データに基づく適性判定
 
 #### フェーズ3: ポートフォリオリスク管理（4週間）
+
 1. **PortfolioRiskGuard実装** (RISK-006、高優先)
+
    - シンボル横断でのポジション集中度監視
    - VAR（Value at Risk）計算エンジン
    - 最大同時リスク量制限機能
 
 2. **マルチエンジン構成** (INF-023、中優先)
+
    - 通貨ペア別TradingEngineの並列実行
    - プロセス間通信のためのメッセージバス
    - Worker Threadsによるリソース効率化
@@ -116,23 +125,28 @@
 ### バックテスト戦略とCI/CD統合
 
 #### バックテスト自動化
+
 1. マルチシンボルバックテストコマンド: `npm run backtest:multi -- --symbols BTC,ETH,SOL,ADA,XRP,BNB,DOT,AVAX`
 2. 各ペアの特性データ自動抽出: ボラティリティ(ATR%), 平均スプレッド, トレンド追随性指標
 3. 過去1/3/6ヵ月の最適パラメータセット自動計算とYAML出力
 
 #### CI/CD統合
+
 1. GitHub Actionsで主要8ペアのスモークテスト自動実行
 2. PRマージ前の要件:
    - すべてのペアでスモークテスト合格
    - パフォーマンス指標(Sharpe)が既存より10%以上低下しないこと
 
 ### テスト計画
+
 1. **ユニットテスト**: 各コンポーネント単体の機能検証
+
    - OrderSizingServiceの精度テスト (各ペアでの計算精度)
    - 動的パラメータ調整関数の挙動テスト (極端値対応)
    - PoirtfolioRiskGuard機能テスト (様々なポジション構成)
 
 2. **統合テスト**: 複数モジュール連携の検証
+
    - マルチシンボルバックテスト実行テスト
    - 複数エンジン起動時のリソース消費・安定性テスト
 
@@ -168,12 +182,14 @@ for (const sym of symbols) {
 ## テスト駆動開発（TDD）アプローチの推進
 
 ### TDDのメリット
+
 - リグレッション（機能後退）の早期発見
 - コードの品質と保守性の向上
 - 仕様に忠実な実装
 - リファクタリングの安全性担保
 
 ### 具体的な実装計画
+
 1. まず新機能のテストケースを作成
 2. テストが失敗することを確認（赤）
 3. 最小限の実装でテストを通過させる（緑）
@@ -187,6 +203,7 @@ for (const sym of symbols) {
 4. OrderSizingService実装（OMS-014）
 
 ### テスト戦略
+
 - 新規コードは90%以上のカバレッジを目標に
 - 既存修正コードは75%以上に向上
 - エッジケース（ゼロ値、極小値、境界値）の網羅的テスト

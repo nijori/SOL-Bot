@@ -62,11 +62,13 @@ SOL-bot用のカスタムGitleaks設定は、リポジトリルートの`.gitlea
 ### pre-commitフックが動作しない場合
 
 1. pre-commitが正しくインストールされているか確認します：
+
    ```bash
    pre-commit --version
    ```
 
 2. pre-commitフックが正しくインストールされているか確認します：
+
    ```bash
    ls -la .git/hooks/pre-commit
    ```
@@ -83,4 +85,4 @@ SOL-bot用のカスタムGitleaks設定は、リポジトリルートの`.gitlea
 ## 参考情報
 
 - [Gitleaks公式ドキュメント](https://github.com/gitleaks/gitleaks)
-- [pre-commit公式ドキュメント](https://pre-commit.com/) 
+- [pre-commit公式ドキュメント](https://pre-commit.com/)

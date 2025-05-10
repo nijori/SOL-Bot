@@ -68,14 +68,16 @@ beforeAll(() => {
   process.on('exit', () => {
     const hasActiveTimers = activeTimers.size > 0;
     const hasActiveIntervals = activeIntervals.size > 0;
-    
+
     if (hasActiveTimers || hasActiveIntervals) {
-      console.warn(`⚠️ クリーンアップされていないタイマー検出: ${activeTimers.size} タイマー, ${activeIntervals.size} インターバル`);
-      
+      console.warn(
+        `⚠️ クリーンアップされていないタイマー検出: ${activeTimers.size} タイマー, ${activeIntervals.size} インターバル`
+      );
+
       // タイマー・インターバルの自動クリーンアップ
-      [...activeTimers].forEach(timer => originalClearTimeout(timer));
-      [...activeIntervals].forEach(interval => originalClearInterval(interval));
-      
+      [...activeTimers].forEach((timer) => originalClearTimeout(timer));
+      [...activeIntervals].forEach((interval) => originalClearInterval(interval));
+
       activeTimers.clear();
       activeIntervals.clear();
     }
@@ -86,9 +88,9 @@ beforeAll(() => {
 afterAll(async () => {
   // グローバルリソースのクリーンアップ
   global.__CLEANUP_RESOURCES();
-  
+
   // 未解決のプロミスやタイマーを終了させるための遅延
-  await new Promise(resolve => {
+  await new Promise((resolve) => {
     setTimeout(() => {
       // イベントリスナーを削除して潜在的なメモリリークを防止
       process.removeAllListeners('unhandledRejection');
@@ -96,17 +98,17 @@ afterAll(async () => {
       resolve();
     }, 100);
   });
-  
+
   // タイマーのクリア
   jest.clearAllTimers();
-  
+
   // モックのリセット
   jest.clearAllMocks();
-  
+
   // 未解放のタイマーとインターバルをクリーンアップ
-  [...activeTimers].forEach(timer => originalClearTimeout(timer));
-  [...activeIntervals].forEach(interval => originalClearInterval(interval));
-  
+  [...activeTimers].forEach((timer) => originalClearTimeout(timer));
+  [...activeIntervals].forEach((interval) => originalClearInterval(interval));
+
   activeTimers.clear();
   activeIntervals.clear();
 }, 10000); // タイムアウト時間を10秒に延長
@@ -115,7 +117,7 @@ afterAll(async () => {
 afterEach(() => {
   // タイマーのクリア
   jest.clearAllTimers();
-  
+
   // モックのリセット
   jest.clearAllMocks();
 });
@@ -124,22 +126,22 @@ afterEach(() => {
 global.cleanupAsyncResources = async () => {
   // すべてのモックをリセット
   jest.clearAllMocks();
-  
+
   // タイマーをリセット
   jest.clearAllTimers();
   jest.useRealTimers();
-  
+
   // グローバルタイマーをクリア
   if (global.setInterval && global.setInterval.mockClear) {
     global.setInterval.mockClear();
   }
-  
+
   if (global.clearInterval && global.clearInterval.mockClear) {
     global.clearInterval.mockClear();
   }
-  
+
   // 未解決のプロミスやタイマーを終了させるための遅延
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(() => {
       // イベントリスナーを削除
       process.removeAllListeners('unhandledRejection');
@@ -147,4 +149,4 @@ global.cleanupAsyncResources = async () => {
       resolve();
     }, 100);
   });
-}; 
+};

@@ -1,5 +1,5 @@
-import { executeTrendStrategy } from "../../strategies/trendStrategy.js";
-import { Candle, OrderSide, OrderType, Position, StrategyType } from "../../core/types.js";
+import { executeTrendStrategy } from '../../strategies/trendStrategy.js';
+import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 
 // モックロガーを作成して警告を抑制
 jest.mock('../../utils/logger', () => ({

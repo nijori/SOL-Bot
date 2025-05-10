@@ -1,7 +1,7 @@
 import { EMA, ATR, ADX } from 'technicalindicators';
-import { Candle, MarketEnvironment, MarketAnalysisResult, StrategyType } from "../core/types.js";
-import { MARKET_PARAMETERS } from "../config/parameters.js";
-import { parameterService } from "../config/parameterService.js";
+import { Candle, MarketEnvironment, MarketAnalysisResult, StrategyType } from '../core/types.js';
+import { MARKET_PARAMETERS } from '../config/parameters.js';
+import { parameterService } from '../config/parameterService.js';
 
 // EMA傾き計算のボラティリティ適応閾値をパラメータサービスから取得
 const SLOPE_HIGH_VOL_THRESHOLD = parameterService.get<number>(
@@ -806,7 +806,7 @@ export function volBasedAllocationWeights(
   const atrPercentages = getSymbolsAtrPercentages(symbolCandles);
   const inverseWeights: Record<string, number> = {};
   let totalInverseWeight = 0;
-  
+
   // ATRパーセンテージの逆数を計算（ボラティリティが低いほど配分が多くなる）
   Object.entries(atrPercentages).forEach(([symbol, atrPercentage]) => {
     // ATRが0または非常に小さい場合のガード
@@ -814,21 +814,21 @@ export function volBasedAllocationWeights(
       console.warn(`[MarketState] ${symbol}のATRパーセンテージが極小値です: ${atrPercentage}%`);
       atrPercentage = 0.1; // 最小値として0.1%を設定
     }
-    
+
     // 逆数を計算（ボラティリティ÷定数で調整）
     const inverseWeight = 1 / atrPercentage;
     inverseWeights[symbol] = inverseWeight;
     totalInverseWeight += inverseWeight;
   });
-  
+
   // 正規化して合計が1.0になるようにする
   const normalizedWeights: Record<string, number> = {};
-  
+
   Object.entries(inverseWeights).forEach(([symbol, weight]) => {
     normalizedWeights[symbol] = weight / totalInverseWeight;
   });
-  
+
   console.log('[MarketState] ボラティリティベース配分:', normalizedWeights);
-  
+
   return normalizedWeights;
 }

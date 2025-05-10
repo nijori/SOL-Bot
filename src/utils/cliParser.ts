@@ -5,8 +5,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import logger from "./logger.js";
-import { CliOptions, MultiSymbolConfig } from "../types/cli-options.js";
+import logger from './logger.js';
+import { CliOptions, MultiSymbolConfig } from '../types/cli-options.js';
 
 export class CliParser {
   /**
@@ -16,24 +16,24 @@ export class CliParser {
    */
   static parse(args: string[] = process.argv.slice(2)): CliOptions {
     const options: CliOptions = {};
-    
+
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
-      
+
       if (arg.startsWith('--')) {
         const key = arg.substring(2);
-        
+
         // 次の引数が別のオプションでなければ値として扱う
         if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
           const value = args[++i];
-          
+
           // 特殊なオプションを処理
           if (key === 'symbols') {
             // カンマ区切りの複数シンボルを配列に変換
-            options.symbols = value.split(',').map(s => s.trim());
+            options.symbols = value.split(',').map((s) => s.trim());
           } else if (key === 'timeframes') {
             // カンマ区切りの複数タイムフレームを配列に変換
-            options.timeframes = value.split(',').map(t => t.trim());
+            options.timeframes = value.split(',').map((t) => t.trim());
           } else if (key === 'config-override') {
             // 設定オーバーライドをパース
             options['config-override'] = value;
@@ -48,10 +48,10 @@ export class CliParser {
         }
       }
     }
-    
+
     return options;
   }
-  
+
   /**
    * 設定オーバーライド文字列またはファイルをパースする
    * @param configOverride JSON文字列またはJSONファイルパス
@@ -62,21 +62,20 @@ export class CliParser {
       // 文字列がファイルパスかJSONかを判断
       if (fs.existsSync(configOverride)) {
         // ファイルから読み込む
-        const configStr = fs.readFileSync(
-          path.resolve(configOverride),
-          'utf8'
-        );
+        const configStr = fs.readFileSync(path.resolve(configOverride), 'utf8');
         return JSON.parse(configStr) as MultiSymbolConfig;
       } else {
         // JSON文字列として解析
         return JSON.parse(configOverride) as MultiSymbolConfig;
       }
     } catch (error) {
-      logger.error(`設定オーバーライドの解析に失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `設定オーバーライドの解析に失敗しました: ${error instanceof Error ? error.message : String(error)}`
+      );
       return null;
     }
   }
-  
+
   /**
    * ヘルプメッセージを表示する
    */
@@ -116,4 +115,4 @@ SOL-Bot CLI ヘルプ
   npm start -- --config-override ./config-override.json
     `);
   }
-} 
+}

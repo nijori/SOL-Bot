@@ -7,9 +7,9 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as yaml from 'js-yaml';
-import logger from "../utils/logger.js";
+import logger from '../utils/logger.js';
 import 'dotenv/config';
-import { MultiSymbolConfig, SymbolConfig } from "../types/cli-options.js";
+import { MultiSymbolConfig, SymbolConfig } from '../types/cli-options.js';
 
 /**
  * IParameterServiceインターフェース
@@ -317,9 +317,9 @@ export class ParameterService implements IParameterService {
 
     // シンボル固有の設定がない場合はデフォルト設定を返す
     if (!this.symbolOverrides[symbol]) {
-      return { 
+      return {
         ...this.getAllParameters(),
-        ...this.symbolOverrides.default 
+        ...this.symbolOverrides.default
       };
     }
 
@@ -334,15 +334,15 @@ export class ParameterService implements IParameterService {
       if (target === null || typeof target !== 'object') return { ...source };
 
       const result = { ...target };
-      
-      Object.keys(source).forEach(key => {
+
+      Object.keys(source).forEach((key) => {
         if (source[key] instanceof Object && key in target) {
           result[key] = deepMerge(target[key], source[key]);
         } else {
           result[key] = source[key];
         }
       });
-      
+
       return result;
     };
 

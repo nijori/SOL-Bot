@@ -8,9 +8,16 @@
 import { execSync, spawn, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { DataRepository } from "../../data/dataRepository.js";
-import { Candle, Order, PerformanceMetrics, OrderType, OrderSide, OrderStatus } from "../../core/types.js";
-import logger from "../../utils/logger.js";
+import { DataRepository } from '../../data/dataRepository.js';
+import {
+  Candle,
+  Order,
+  PerformanceMetrics,
+  OrderType,
+  OrderSide,
+  OrderStatus
+} from '../../core/types.js';
+import logger from '../../utils/logger.js';
 
 // テスト用データディレクトリ
 const TEST_DATA_DIR = path.join(process.cwd(), 'data', 'test-e2e');
@@ -19,10 +26,16 @@ const TEST_ORDERS_DIR = path.join(TEST_DATA_DIR, 'orders');
 const TEST_METRICS_DIR = path.join(TEST_DATA_DIR, 'metrics');
 
 // テスト用ヘルパープロセスのパス
-const WORKER_SCRIPT_PATH = path.join(process.cwd(), 'src', '__tests__', 'data', 'dataRepositoryWorker.js');
+const WORKER_SCRIPT_PATH = path.join(
+  process.cwd(),
+  'src',
+  '__tests__',
+  'data',
+  'dataRepositoryWorker.js'
+);
 
 // テスト設定
-const NUM_WORKERS = 5;         // テスト用ワーカー数
+const NUM_WORKERS = 5; // テスト用ワーカー数
 const OPERATIONS_PER_WORKER = 20; // 各ワーカーが実行する操作数
 const TEST_SYMBOL = 'TEST/USDT';
 const TEST_TIMEFRAME = '1h';
@@ -44,11 +57,11 @@ interface ExtendedPerformanceMetrics extends PerformanceMetrics {
  */
 function createMockCandles(count: number, startTimestamp: number = Date.now()): Candle[] {
   const candles: Candle[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     const timestamp = startTimestamp + i * 60000; // 1分間隔
-    const price = 1000 + Math.random() * 100;     // 1000-1100のランダムな価格
-    
+    const price = 1000 + Math.random() * 100; // 1000-1100のランダムな価格
+
     candles.push({
       timestamp,
       open: price,
@@ -58,7 +71,7 @@ function createMockCandles(count: number, startTimestamp: number = Date.now()): 
       volume: Math.random() * 100
     });
   }
-  
+
   return candles;
 }
 
@@ -67,11 +80,11 @@ function createMockCandles(count: number, startTimestamp: number = Date.now()): 
  */
 function createMockOrders(count: number): Order[] {
   const orders: Order[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     const timestamp = Date.now() + i * 1000; // 1秒間隔
     const price = 1000 + Math.random() * 100;
-    
+
     orders.push({
       id: `order-${i}-${Date.now()}`,
       symbol: TEST_SYMBOL,
@@ -83,7 +96,7 @@ function createMockOrders(count: number): Order[] {
       status: OrderStatus.OPEN
     });
   }
-  
+
   return orders;
 }
 
@@ -116,28 +129,32 @@ function createMockPerformanceMetrics(): ExtendedPerformanceMetrics {
  * テスト用のワーカープロセスを起動
  */
 function startWorker(workerId: number): ChildProcess {
-  const worker = spawn('node', [
-    WORKER_SCRIPT_PATH,
-    workerId.toString(),
-    NUM_WORKERS.toString(),
-    OPERATIONS_PER_WORKER.toString(),
-    TEST_SYMBOL,
-    TEST_TIMEFRAME,
-    TEST_DATA_DIR
-  ], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: process.env
-  });
-  
+  const worker = spawn(
+    'node',
+    [
+      WORKER_SCRIPT_PATH,
+      workerId.toString(),
+      NUM_WORKERS.toString(),
+      OPERATIONS_PER_WORKER.toString(),
+      TEST_SYMBOL,
+      TEST_TIMEFRAME,
+      TEST_DATA_DIR
+    ],
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: process.env
+    }
+  );
+
   // ログ出力のリダイレクト
   worker.stdout.on('data', (data) => {
     console.log(`[Worker ${workerId}] ${data.toString().trim()}`);
   });
-  
+
   worker.stderr.on('data', (data) => {
     console.error(`[Worker ${workerId}] ERROR: ${data.toString().trim()}`);
   });
-  
+
   return worker;
 }
 
@@ -149,13 +166,13 @@ function setupTestDirectories() {
   if (fs.existsSync(TEST_DATA_DIR)) {
     fs.rmSync(TEST_DATA_DIR, { recursive: true, force: true });
   }
-  
+
   // テストディレクトリを作成
   fs.mkdirSync(TEST_DATA_DIR, { recursive: true });
   fs.mkdirSync(TEST_CANDLES_DIR, { recursive: true });
   fs.mkdirSync(TEST_ORDERS_DIR, { recursive: true });
   fs.mkdirSync(TEST_METRICS_DIR, { recursive: true });
-  
+
   // 通貨ペア用のディレクトリも作成
   const normalizedSymbol = TEST_SYMBOL.replace('/', '_');
   fs.mkdirSync(path.join(TEST_CANDLES_DIR, normalizedSymbol), { recursive: true });
@@ -169,7 +186,7 @@ function setupTestDirectories() {
 function generateWorkerScript() {
   // トランスパイル済みのJSファイルを生成するため、TypeScriptファイルを作成してからコンパイル
   const tsWorkerPath = WORKER_SCRIPT_PATH.replace('.js', '.ts');
-  
+
   const workerCode = `/**
  * DataRepository テスト用ワーカープロセス
  */
@@ -340,7 +357,7 @@ run().then(() => process.exit(0)).catch(err => {
   // ワーカースクリプトを書き込み
   fs.mkdirSync(path.dirname(tsWorkerPath), { recursive: true });
   fs.writeFileSync(tsWorkerPath, workerCode);
-  
+
   // TypeScriptファイルをコンパイル
   try {
     execSync(`npx tsc ${tsWorkerPath} --outDir ${path.dirname(WORKER_SCRIPT_PATH)}`);
@@ -355,49 +372,53 @@ run().then(() => process.exit(0)).catch(err => {
 function validateDataIntegrity() {
   const normalizedSymbol = TEST_SYMBOL.replace('/', '_');
   const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
-  
+
   // 各ファイルの存在チェック
   const metricsPath = path.join(TEST_METRICS_DIR, normalizedSymbol, `metrics_${date}.json`);
   const ordersPath = path.join(TEST_ORDERS_DIR, normalizedSymbol, `orders_${date}.json`);
-  const candlesPath = path.join(TEST_CANDLES_DIR, normalizedSymbol, `${TEST_TIMEFRAME}_${date}.json`);
-  
+  const candlesPath = path.join(
+    TEST_CANDLES_DIR,
+    normalizedSymbol,
+    `${TEST_TIMEFRAME}_${date}.json`
+  );
+
   const files = [metricsPath, ordersPath, candlesPath];
-  const missingFiles = files.filter(file => !fs.existsSync(file));
-  
+  const missingFiles = files.filter((file) => !fs.existsSync(file));
+
   if (missingFiles.length > 0) {
     console.error('以下のファイルが見つかりません:', missingFiles);
     return false;
   }
-  
+
   // ファイルが正しいJSONかチェック
   try {
     const metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));
     const orders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
     const candles = JSON.parse(fs.readFileSync(candlesPath, 'utf8'));
-    
+
     // メトリクスが正しいか
     if (!metrics.totalTrades || !metrics.winningTrades) {
       console.error('メトリクスデータが不完全です');
       return false;
     }
-    
+
     // 注文データが配列か
     if (!Array.isArray(orders)) {
       console.error('注文データが配列ではありません');
       return false;
     }
-    
+
     // ローソク足データが配列か
     if (!Array.isArray(candles)) {
       console.error('ローソク足データが配列ではありません');
       return false;
     }
-    
+
     console.log('データ整合性チェックに成功しました');
     console.log(`- メトリクス: ${metrics.totalTrades} トレード`);
     console.log(`- 注文: ${orders.length} 件`);
     console.log(`- ローソク足: ${candles.length} 本`);
-    
+
     return true;
   } catch (error) {
     console.error('データ整合性チェックに失敗しました:', error);
@@ -412,19 +433,19 @@ async function runE2ETest(): Promise<boolean> {
   try {
     console.log('DataRepository並列E2Eテストを開始します');
     console.log(`ワーカー数: ${NUM_WORKERS}, 操作数/ワーカー: ${OPERATIONS_PER_WORKER}`);
-    
+
     // テスト用ディレクトリをセットアップ
     setupTestDirectories();
-    
+
     // ワーカースクリプトを生成
     generateWorkerScript();
-    
+
     // ワーカープロセスを起動
     const workers: ChildProcess[] = [];
     for (let i = 0; i < NUM_WORKERS; i++) {
       workers.push(startWorker(i));
     }
-    
+
     // すべてのワーカーの完了を待機
     const results = await Promise.all(
       workers.map(
@@ -437,17 +458,17 @@ async function runE2ETest(): Promise<boolean> {
           })
       )
     );
-    
+
     // すべてのワーカーが成功したかチェック
-    const allSucceeded = results.every(result => result);
+    const allSucceeded = results.every((result) => result);
     if (!allSucceeded) {
       console.error('一部のワーカーが失敗しました');
       return false;
     }
-    
+
     // データの整合性をチェック
     const dataIntegrity = validateDataIntegrity();
-    
+
     return dataIntegrity;
   } catch (error) {
     console.error('E2Eテスト実行中にエラーが発生しました:', error);
@@ -458,9 +479,9 @@ async function runE2ETest(): Promise<boolean> {
 describe('DataRepository 並列E2Eテスト (TST-013)', () => {
   // テスト実行時間を長めに設定
   jest.setTimeout(60000);
-  
+
   it('複数プロセスからの同時書き込みを正しく処理できること', async () => {
     const result = await runE2ETest();
     expect(result).toBe(true);
   });
-}); 
+});

@@ -2,7 +2,7 @@
  * メモリ使用量モニタリングユーティリティ
  * バックテストなどの大量のデータを扱う処理でメモリ使用状況を追跡
  */
-import logger from "./logger.js";
+import logger from './logger.js';
 
 /**
  * メモリ使用情報

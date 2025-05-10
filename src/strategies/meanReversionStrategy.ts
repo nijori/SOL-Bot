@@ -1,14 +1,14 @@
 /**
  * MeanReversionStrategy
- * 
+ *
  * 価格の平均回帰性を利用した戦略
  * 平均値から乖離した価格が再び平均に回帰する性質を利用
- * 
+ *
  * 注意: これはTST-012テスト用のテンポラリな実装です
  */
 
-import { Candle } from "../core/types.js";
-import { StrategyResult } from "../types/strategyResult.js";
+import { Candle } from '../core/types.js';
+import { StrategyResult } from '../types/strategyResult.js';
 
 export class MeanReversionStrategy {
   // コンストラクタ
@@ -28,4 +28,4 @@ export class MeanReversionStrategy {
       }
     };
   }
-} 
+}

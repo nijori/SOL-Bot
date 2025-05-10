@@ -3,8 +3,8 @@
  * マルチタイムフレームデータ取得を実行するスクリプト
  */
 
-import { MultiTimeframeDataFetcher, Timeframe } from "./MultiTimeframeDataFetcher.js";
-import logger from "../utils/logger.js";
+import { MultiTimeframeDataFetcher, Timeframe } from './MultiTimeframeDataFetcher.js';
+import logger from '../utils/logger.js';
 import 'dotenv/config';
 
 // コマンドライン引数の解析

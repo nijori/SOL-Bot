@@ -20,7 +20,7 @@ const isQuiet = args.includes('--quiet');
 
 // メモリ制限の解析
 let memoryLimit = DEFAULT_MEMORY_LIMIT;
-const memoryArgIndex = args.findIndex(arg => arg === '--memory' || arg === '-m');
+const memoryArgIndex = args.findIndex((arg) => arg === '--memory' || arg === '-m');
 if (memoryArgIndex !== -1 && args.length > memoryArgIndex + 1) {
   const memoryValue = parseInt(args[memoryArgIndex + 1], 10);
   if (!isNaN(memoryValue) && memoryValue > 0) {
@@ -32,7 +32,7 @@ if (memoryArgIndex !== -1 && args.length > memoryArgIndex + 1) {
 
 // バッチサイズの解析
 let batchSize = DEFAULT_BATCH_SIZE;
-const batchArgIndex = args.findIndex(arg => arg === '--batch-size' || arg === '-b');
+const batchArgIndex = args.findIndex((arg) => arg === '--batch-size' || arg === '-b');
 if (batchArgIndex !== -1 && args.length > batchArgIndex + 1) {
   const batchValue = parseInt(args[batchArgIndex + 1], 10);
   if (!isNaN(batchValue) && batchValue > 0) {
@@ -44,7 +44,7 @@ if (batchArgIndex !== -1 && args.length > batchArgIndex + 1) {
 
 // GC間隔の解析
 let gcInterval = DEFAULT_GC_INTERVAL;
-const gcArgIndex = args.findIndex(arg => arg === '--gc-interval' || arg === '-g');
+const gcArgIndex = args.findIndex((arg) => arg === '--gc-interval' || arg === '-g');
 if (gcArgIndex !== -1 && args.length > gcArgIndex + 1) {
   const gcValue = parseInt(args[gcArgIndex + 1], 10);
   if (!isNaN(gcValue) && gcValue > 0) {
@@ -56,7 +56,7 @@ if (gcArgIndex !== -1 && args.length > gcArgIndex + 1) {
 
 // メモリモニタリングフラグの解析
 let memoryMonitoring = true;
-const monitorArgIndex = args.findIndex(arg => arg === '--no-memory-monitor' || arg === '--nm');
+const monitorArgIndex = args.findIndex((arg) => arg === '--no-memory-monitor' || arg === '--nm');
 if (monitorArgIndex !== -1) {
   memoryMonitoring = false;
   // 引数を削除
@@ -102,7 +102,9 @@ if (!isQuiet) {
   console.log(`- バッチサイズ: ${batchSize}キャンドル`);
   console.log(`- GC間隔: ${gcInterval}キャンドルごと`);
   console.log(`- メモリモニタリング: ${memoryMonitoring ? '有効' : '無効'}`);
-  console.log(`\n${isDryRun ? '[DRY RUN] 実行はスキップします' : '最適化バックテストを開始します...'}\n`);
+  console.log(
+    `\n${isDryRun ? '[DRY RUN] 実行はスキップします' : '最適化バックテストを開始します...'}\n`
+  );
 }
 
 // DRY_RUNモードでなければ実際にコマンドを実行
@@ -120,4 +122,4 @@ if (!isDryRun) {
     }
     process.exit(code);
   });
-} 
+}

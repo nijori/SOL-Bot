@@ -1,6 +1,6 @@
 /**
  * REF-028: ESM環境用Jestモックヘルパー
- * 
+ *
  * このファイルはESM環境でJestモックを適切に動作させるためのヘルパー関数を提供します。
  * CommonJSとESMの違いを吸収し、テストコードのモック定義を簡素化します。
  */
@@ -9,7 +9,7 @@ import { jest } from '@jest/globals';
 
 /**
  * ESM環境でモジュールをモック化するヘルパー関数
- * 
+ *
  * @param {string} modulePath モック対象のモジュールパス
  * @param {Function} factory モック実装を返す関数
  * @param {Object} options オプション設定（virtual: trueなど）
@@ -17,23 +17,27 @@ import { jest } from '@jest/globals';
 export function mockModule(modulePath, factory, options = {}) {
   // モジュールパスに.js拡張子を追加（ESM要件）
   const normalizedPath = modulePath.endsWith('.js') ? modulePath : `${modulePath}.js`;
-  
+
   // ESM環境でのjest.mock呼び出し
-  jest.mock(normalizedPath, () => {
-    // factory関数から実装を取得
-    const implementation = factory();
-    
-    // ESMフラグを追加
-    return {
-      __esModule: true,
-      ...implementation
-    };
-  }, options);
+  jest.mock(
+    normalizedPath,
+    () => {
+      // factory関数から実装を取得
+      const implementation = factory();
+
+      // ESMフラグを追加
+      return {
+        __esModule: true,
+        ...implementation
+      };
+    },
+    options
+  );
 }
 
 /**
  * モック実装を返すファクトリ関数を作成
- * 
+ *
  * @param {string} className モック化するクラス名
  * @param {Object} methodMocks メソッドのモック実装
  * @returns {Object} モック実装を含むオブジェクト
@@ -44,7 +48,7 @@ export function createMockFactory(className, methodMocks = {}) {
     const mockClass = jest.fn().mockImplementation(() => {
       // インスタンスメソッドのモック
       const instance = {};
-      
+
       // 指定されたメソッドのモック実装を設定
       Object.entries(methodMocks).forEach(([methodName, implementation]) => {
         if (typeof implementation === 'function') {
@@ -55,10 +59,10 @@ export function createMockFactory(className, methodMocks = {}) {
           instance[methodName] = jest.fn().mockImplementation(implementation);
         }
       });
-      
+
       return instance;
     });
-    
+
     // 名前付きエクスポートとデフォルトエクスポートの両方に対応
     return {
       [className]: mockClass,
@@ -69,7 +73,7 @@ export function createMockFactory(className, methodMocks = {}) {
 
 /**
  * シンプルなモック実装を作成（メソッドの返り値を指定）
- * 
+ *
  * @param {string} className モック化するクラス名
  * @param {Object} methodReturns メソッドの返り値マップ
  * @returns {Object} モック実装
@@ -80,20 +84,20 @@ export function createSimpleMock(className, methodReturns = {}) {
     acc[methodName] = jest.fn().mockReturnValue(returnValue);
     return acc;
   }, {});
-  
+
   return createMockFactory(className, methodMocks)();
 }
 
 /**
  * モジュール内の複数のクラスをモック化
- * 
+ *
  * @param {Object} classFactories クラス名とファクトリ関数のマップ
  * @returns {Object} 複数クラスのモック実装
  */
 export function createMultiMock(classFactories) {
   return () => {
     const mocks = {};
-    
+
     // 各クラスのモック実装を生成して統合
     Object.entries(classFactories).forEach(([className, factory]) => {
       if (typeof factory === 'function') {
@@ -105,7 +109,7 @@ export function createMultiMock(classFactories) {
         mocks[className] = jest.fn();
       }
     });
-    
+
     return mocks;
   };
-} 
+}

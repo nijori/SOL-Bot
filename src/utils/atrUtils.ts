@@ -4,9 +4,9 @@
  */
 
 import { ATR } from 'technicalindicators';
-import { Candle } from "../core/types.js";
-import { parameterService } from "../config/parameterService.js";
-import logger from "./logger.js";
+import { Candle } from '../core/types.js';
+import { parameterService } from '../config/parameterService.js';
+import logger from './logger.js';
 
 // ATR==0の場合のフォールバック設定をパラメータから取得
 const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);

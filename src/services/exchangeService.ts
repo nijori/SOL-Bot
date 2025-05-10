@@ -6,14 +6,14 @@
  */
 
 import ccxt from 'ccxt';
-import { Candle, Order, OrderSide, OrderType, OrderStatus } from "../core/types.js";
-import logger from "../utils/logger.js";
+import { Candle, Order, OrderSide, OrderType, OrderStatus } from '../core/types.js';
+import logger from '../utils/logger.js';
 import {
   orderTypeToCcxt,
   ccxtToOrderType,
   ORDER_TYPE_TO_CCXT_MAPPING,
   CCXT_TO_ORDER_TYPE_MAPPING
-} from "../utils/orderTypeUtils.js";
+} from '../utils/orderTypeUtils.js';
 
 /**
  * 注文オプションのインターフェース
@@ -700,16 +700,18 @@ export class ExchangeService {
     try {
       // マーケット情報をロード
       await this.exchange.loadMarkets();
-      
+
       // シンボルが存在するか確認
       if (!(symbol in this.exchange.markets)) {
         logger.error(`シンボルが見つかりません: ${symbol}`);
         return null;
       }
-      
+
       return this.exchange.markets[symbol];
     } catch (error) {
-      logger.error(`マーケット情報取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `マーケット情報取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw new Error(`マーケット情報を取得できません: ${symbol}`);
     }
   }
@@ -728,7 +730,9 @@ export class ExchangeService {
     try {
       return await this.exchange.fetchTicker(symbol);
     } catch (error) {
-      logger.error(`ティッカー取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(
+        `ティッカー取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
       throw new Error(`ティッカーを取得できません: ${symbol}`);
     }
   }

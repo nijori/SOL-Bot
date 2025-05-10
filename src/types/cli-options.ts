@@ -9,11 +9,11 @@
 export interface CommonCliOptions {
   // 動作モード
   mode?: 'live' | 'simulation' | 'backtest';
-  
+
   // 詳細出力
   verbose?: boolean;
   quiet?: boolean;
-  
+
   // ヘルプ
   help?: boolean;
 }
@@ -26,17 +26,17 @@ export interface BacktestCliOptions extends CommonCliOptions {
   'start-date'?: string;
   'end-date'?: string;
   days?: number;
-  
+
   // バックテスト設定
   'initial-balance'?: number;
   slippage?: number;
   'commission-rate'?: number;
-  
+
   // パフォーマンス最適化
   'batch-size'?: number;
   'gc-interval'?: number;
   'no-memory-monitor'?: boolean;
-  
+
   // テストモード
   'smoke-test'?: boolean;
 }
@@ -47,14 +47,14 @@ export interface BacktestCliOptions extends CommonCliOptions {
 export interface MultiSymbolCliOptions extends CommonCliOptions {
   // 単一シンボル（後方互換性のため）
   symbol?: string;
-  
+
   // 複数シンボル
   symbols?: string[]; // カンマ区切りの複数シンボル
-  
+
   // タイムフレーム
   timeframe?: string;
   timeframes?: string[]; // カンマ区切りの複数タイムフレーム
-  
+
   // 設定オーバーライド
   'config-override'?: string; // JSON形式の文字列 or ファイルパス
 }
@@ -86,4 +86,4 @@ export interface SymbolConfig {
 export interface MultiSymbolConfig {
   default: SymbolConfig;
   [symbol: string]: SymbolConfig;
-} 
+}

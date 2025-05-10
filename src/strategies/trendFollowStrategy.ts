@@ -11,13 +11,13 @@ import {
   Position,
   StrategyResult,
   StrategyType
-} from "../core/types.js";
-import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from "../config/parameters.js";
-import { parameterService } from "../config/parameterService.js";
-import { calculateParabolicSAR, ParabolicSARResult } from "../indicators/parabolicSAR.js";
-import { ParameterService } from "../config/parameterService.js";
-import { calculateRiskBasedPositionSize } from "../utils/positionSizing.js";
-import { calculateATR, getValidStopDistance } from "../utils/atrUtils.js";
+} from '../core/types.js';
+import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
+import { parameterService } from '../config/parameterService.js';
+import { calculateParabolicSAR, ParabolicSARResult } from '../indicators/parabolicSAR.js';
+import { ParameterService } from '../config/parameterService.js';
+import { calculateRiskBasedPositionSize } from '../utils/positionSizing.js';
+import { calculateATR, getValidStopDistance } from '../utils/atrUtils.js';
 
 // 戦略パラメータをYAML設定から取得
 const DONCHIAN_PERIOD = parameterService.get<number>('trendFollowStrategy.donchianPeriod', 20);
@@ -152,7 +152,7 @@ function calculateADX(candles: Candle[], period: number): number {
  * @param stopPrice ストップ価格
  * @param maxRiskPercentage 1トレードあたりの最大リスク率
  * @returns 適切なポジションサイズ
- * 
+ *
  * @deprecated 今後はOrderSizingServiceを使用する予定
  */
 function calculateRiskBasedPositionSize(

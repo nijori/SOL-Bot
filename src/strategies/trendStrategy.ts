@@ -7,9 +7,9 @@ import {
   Position,
   StrategyResult,
   StrategyType
-} from "../core/types.js";
-import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from "../config/parameters.js";
-import { parameterService } from "../config/parameterService.js";
+} from '../core/types.js';
+import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
+import { parameterService } from '../config/parameterService.js';
 
 // トレイリングストップとピラミッディングのパラメータをYAML設定から取得
 const TRAILING_STOP_FACTOR = parameterService.get<number>(

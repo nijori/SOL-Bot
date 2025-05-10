@@ -5,8 +5,8 @@
  * ローカル開発やCIでの使用を想定しています。
  */
 
-import { SecretManagerInterface } from "./SecretManagerInterface.js";
-import logger from "../../utils/logger.js";
+import { SecretManagerInterface } from './SecretManagerInterface.js';
+import logger from '../../utils/logger.js';
 import dotenv from 'dotenv';
 
 // .envファイルを読み込む

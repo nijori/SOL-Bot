@@ -5,8 +5,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { SecretManagerInterface } from "./SecretManagerInterface.js";
-import logger from "../../utils/logger.js";
+import { SecretManagerInterface } from './SecretManagerInterface.js';
+import logger from '../../utils/logger.js';
 
 export class FileSecretManager implements SecretManagerInterface {
   private readonly secretsFilePath: string;

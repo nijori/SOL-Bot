@@ -25,4 +25,4 @@ SOL-Botをすぐに始めるには：
 3. 設定ファイルを作成: `.env.example`を`.env`にコピーして編集
 4. バックテストを実行: `npm run cli:backtest`
 
-より詳細な情報は[ユーザーマニュアル](./UserManual.md)を参照してください。 
+より詳細な情報は[ユーザーマニュアル](./UserManual.md)を参照してください。

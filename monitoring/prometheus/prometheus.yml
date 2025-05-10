@@ -8,12 +8,12 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # Alertmanagerのエンドポイント
-          - alertmanager:9093
+            # Alertmanagerのエンドポイント
+            - alertmanager:9093
 
 # アラートルールの読み込み設定
 rule_files:
-  - "alert_rules.yml"
+  - 'alert_rules.yml'
 
 # メトリクス収集対象の設定
 scrape_configs:
@@ -47,4 +47,4 @@ scrape_configs:
       - targets: ['cadvisor:8080']
         labels:
           instance: 'cadvisor'
-          service: 'container_metrics' 
+          service: 'container_metrics'

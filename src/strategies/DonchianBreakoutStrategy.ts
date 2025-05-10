@@ -1,9 +1,9 @@
 /**
  * DonchianBreakoutStrategy
- * 
+ *
  * ドンチャンチャネルのブレイクアウトを利用した戦略
  * 一定期間の高値/安値をブレイクした際にエントリー
- * 
+ *
  * 注意: これはTST-012テスト用のテンポラリな実装です
  */
 
@@ -16,13 +16,13 @@ import {
   Position,
   StrategyResult,
   StrategyType
-} from "../core/types.js";
-import { TREND_PARAMETERS, RISK_PARAMETERS } from "../config/parameters.js";
-import logger from "../utils/logger.js";
-import { parameterService } from "../config/parameterService.js";
-import { ParameterService } from "../config/parameterService.js";
-import { calculateRiskBasedPositionSize } from "../utils/positionSizing.js";
-import { calculateATR } from "../utils/atrUtils.js";
+} from '../core/types.js';
+import { TREND_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
+import logger from '../utils/logger.js';
+import { parameterService } from '../config/parameterService.js';
+import { ParameterService } from '../config/parameterService.js';
+import { calculateRiskBasedPositionSize } from '../utils/positionSizing.js';
+import { calculateATR } from '../utils/atrUtils.js';
 
 // ATR==0の場合のフォールバック設定
 const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>(

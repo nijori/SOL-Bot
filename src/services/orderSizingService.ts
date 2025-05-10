@@ -1,26 +1,32 @@
 /**
  * OrderSizingService
- * 
+ *
  * マルチアセット対応の第一歩として、
  * symbol/riskAmount/stopDistanceからロットサイズを計算するサービスを実装。
- * 
+ *
  * - 各ペアの取引単位と最小ロットサイズの適切な計算
  * - 高額通貨（BTC, ETH）と小額通貨の両方で精度対応
  * - リスク金額からの注文量適切変換
  */
 
-import { ExchangeService } from "./exchangeService.js";
-import { SymbolInfoService, SymbolInfo } from "./symbolInfoService.js";
-import logger from "../utils/logger.js";
-import { ParameterService } from "../config/parameterService.js";
+import { ExchangeService } from './exchangeService.js';
+import { SymbolInfoService, SymbolInfo } from './symbolInfoService.js';
+import logger from '../utils/logger.js';
+import { ParameterService } from '../config/parameterService.js';
 
 // パラメータサービスのインスタンスを取得
 const parameterService = ParameterService.getInstance();
 
 // リスク関連のパラメータを取得
 const DEFAULT_RISK_PERCENTAGE = parameterService.get<number>('risk.max_risk_per_trade', 0.01);
-const DEFAULT_FALLBACK_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
-const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>('risk.minStopDistancePercentage', 0.01);
+const DEFAULT_FALLBACK_ATR_PERCENTAGE = parameterService.get<number>(
+  'risk.defaultAtrPercentage',
+  0.02
+);
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>(
+  'risk.minStopDistancePercentage',
+  0.01
+);
 
 export class OrderSizingService {
   private exchangeService: ExchangeService;
@@ -55,7 +61,7 @@ export class OrderSizingService {
     try {
       // 通貨ペア情報を取得
       const symbolInfo = await this.symbolInfoService.getSymbolInfo(symbol);
-      
+
       // 現在価格が指定されていない場合は取引所から取得
       if (!currentPrice) {
         try {
@@ -74,7 +80,9 @@ export class OrderSizingService {
 
       // ストップ距離のチェックと修正
       if (stopDistance <= 0 || stopDistance < currentPrice * 0.0001) {
-        logger.warn(`ストップ距離が非常に小さいまたは0です: ${stopDistance}. フォールバック値を使用します。`);
+        logger.warn(
+          `ストップ距離が非常に小さいまたは0です: ${stopDistance}. フォールバック値を使用します。`
+        );
         stopDistance = currentPrice * MIN_STOP_DISTANCE_PERCENTAGE;
       }
 
@@ -97,7 +105,9 @@ export class OrderSizingService {
       return orderSize;
     } catch (error) {
       logger.error(`注文サイズ計算エラー: ${symbol}`, error);
-      throw new Error(`注文サイズの計算に失敗しました: ${symbol} - ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `注文サイズの計算に失敗しました: ${symbol} - ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -126,7 +136,7 @@ export class OrderSizingService {
           logger.warn(`シンボル ${symbol} のストップ距離が指定されていません`);
           return;
         }
-        
+
         const currentPrice = currentPrices ? currentPrices[symbol] : undefined;
         const orderSize = await this.calculateOrderSize(
           symbol,
@@ -135,14 +145,14 @@ export class OrderSizingService {
           currentPrice,
           riskPercentage
         );
-        
+
         result.set(symbol, orderSize);
       } catch (error) {
         logger.error(`シンボル ${symbol} の注文サイズ計算に失敗:`, error);
         // エラーは無視して処理を続行（個別の失敗を許容）
       }
     });
-    
+
     await Promise.all(promises);
     return result;
   }
@@ -154,11 +164,7 @@ export class OrderSizingService {
    * @param symbolInfo シンボル情報
    * @returns 制約を適用した注文サイズ
    */
-  private applyMarketConstraints(
-    orderSize: number,
-    price: number,
-    symbolInfo: SymbolInfo
-  ): number {
+  private applyMarketConstraints(orderSize: number, price: number, symbolInfo: SymbolInfo): number {
     // 最小ロットサイズ制約
     const minAmount = symbolInfo.minAmount || 0;
     if (orderSize < minAmount) {
@@ -175,7 +181,7 @@ export class OrderSizingService {
       logger.debug(
         `注文コスト(${orderSize * price})が最小コスト(${minCost})より小さいため、サイズを調整します: ${newSize}`
       );
-      
+
       // 最小コストを満たすためのサイズが最小ロットサイズより大きい場合のみ適用
       if (newSize > minAmount) {
         orderSize = newSize;
@@ -219,12 +225,12 @@ export class OrderSizingService {
     try {
       const symbolInfo = await this.symbolInfoService.getSymbolInfo(symbol);
       const tickSize = symbolInfo.tickSize;
-      
+
       if (!tickSize) {
         logger.warn(`ティックサイズが見つかりません: ${symbol}、価格精度でフォールバックします`);
         return this.roundToPrecision(price, symbolInfo.pricePrecision);
       }
-      
+
       return Math.floor(price / tickSize) * tickSize;
     } catch (error) {
       logger.error(`価格の丸め処理エラー: ${symbol}`, error);
@@ -232,7 +238,7 @@ export class OrderSizingService {
       return Math.floor(price * 100000000) / 100000000;
     }
   }
-  
+
   /**
    * シンボル情報サービスを取得する
    * @returns シンボル情報サービスのインスタンス
@@ -240,4 +246,4 @@ export class OrderSizingService {
   public getSymbolInfoService(): SymbolInfoService {
     return this.symbolInfoService;
   }
-} 
+}

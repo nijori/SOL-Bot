@@ -11,9 +11,9 @@ import {
   OptimizationResult,
   OptimizerConfig,
   MetricType
-} from "../types/optimizer.js";
-import { parameterSpace } from "./parameterSpace.js";
-import { BacktestRunner } from "../core/backtestRunner.js";
+} from '../types/optimizer.js';
+import { parameterSpace } from './parameterSpace.js';
+import { BacktestRunner } from '../core/backtestRunner.js';
 
 export class OptunaOptimizer {
   private config: OptimizerConfig;

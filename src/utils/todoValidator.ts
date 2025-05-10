@@ -76,7 +76,7 @@ export function parseTodoFile(filePath: string): TodoTask[] {
         inFrontMatter = !inFrontMatter;
         continue;
       }
-      
+
       if (inFrontMatter) {
         continue;
       }
@@ -120,7 +120,9 @@ export function parseTodoFile(filePath: string): TodoTask[] {
           } else if (fieldIcon.includes('👤') || fieldIcon.toLowerCase().includes('owner')) {
             currentTask.owner = trimmedValue;
           } else if (fieldIcon.includes('🔗') || fieldIcon.toLowerCase().includes('depends-on')) {
-            currentTask.dependsOn = trimmedValue ? trimmedValue.split(',').map((id) => id.trim()) : [];
+            currentTask.dependsOn = trimmedValue
+              ? trimmedValue.split(',').map((id) => id.trim())
+              : [];
           } else if (fieldIcon.includes('🏷️') || fieldIcon.toLowerCase().includes('label')) {
             currentTask.label = trimmedValue;
           } else if (fieldIcon.includes('🩺') || fieldIcon.toLowerCase().includes('health')) {
@@ -187,7 +189,7 @@ export function checkDuplicateTaskIds(tasks: TodoTask[]): ValidationError[] {
   const idMap = new Map<string, TodoTask>();
 
   // 先頭に「.」があるタスクIDはコメントアウトされたものとして無視
-  const activeTaskIds = tasks.filter(task => !task.id.startsWith('.'));
+  const activeTaskIds = tasks.filter((task) => !task.id.startsWith('.'));
 
   for (const task of activeTaskIds) {
     if (idMap.has(task.id)) {
@@ -277,22 +279,22 @@ export function checkProgressHealthConsistency(tasks: TodoTask[]): ValidationErr
 export function isValidDateFormat(dateStr: string): boolean {
   // YYYY-MM-DD形式の正規表現（より厳密なバリデーション）
   const datePattern = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-  
+
   if (!datePattern.test(dateStr)) {
     return false;
   }
-  
+
   // 日付として有効かチェック（例：2月30日などの無効な日付を検出）
   const date = new Date(dateStr + 'T00:00:00Z');
   if (isNaN(date.getTime())) {
     return false;
   }
-  
+
   // 月と日が元の入力と一致するか確認（例：2023-02-31 → 2023-03-03 になる問題の検出）
   const parts = dateStr.split('-').map(Number);
   const month = date.getUTCMonth() + 1; // getUTCMonth()は0-11を返す
   const day = date.getUTCDate();
-  
+
   return parts[1] === month && parts[2] === day;
 }
 
@@ -327,7 +329,7 @@ export function checkPastDueDates(tasks: TodoTask[]): ValidationError[] {
     try {
       // タイムゾーン統一のため、日付をUTC正規化して比較
       const dueDate = new Date(task.dueDate + 'T00:00:00Z');
-      
+
       if (dueDate < today) {
         errors.push({
           type: ValidationErrorType.PAST_DUE_DATE,
@@ -614,10 +616,12 @@ export function validateTodoFiles(todoDir: string): ValidationError[] {
 
     // すべてのタスクを取得
     const tasks = getAllTasks(todoDir);
-    
+
     // タスクが取得できなかった場合のエラーハンドリング
     if (tasks.length === 0) {
-      console.warn(`警告: ${todoDir} ディレクトリにタスクが見つかりませんでした。ファイル形式や内容を確認してください。`);
+      console.warn(
+        `警告: ${todoDir} ディレクトリにタスクが見つかりませんでした。ファイル形式や内容を確認してください。`
+      );
     }
 
     // 各種検証を実行
@@ -636,7 +640,9 @@ export function validateTodoFiles(todoDir: string): ValidationError[] {
 
     return errors;
   } catch (error) {
-    console.error(`Todoファイルの検証中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Todoファイルの検証中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`
+    );
     // エラーを再スローして呼び出し元で処理できるようにする
     throw error;
   }

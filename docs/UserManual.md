@@ -123,6 +123,7 @@ CRON_SCHEDULE="0 3 * * *" # スケジュール設定（デフォルト：毎日�
 特定の設定を上書きする場合は、JSONファイルを作成して`--config-override`オプションで指定します：
 
 例（`custom-config.json`）:
+
 ```json
 {
   "general": {
@@ -148,6 +149,7 @@ CRON_SCHEDULE="0 3 * * *" # スケジュール設定（デフォルト：毎日�
 ```
 
 コマンド実行時に以下のように指定します：
+
 ```bash
 npm run cli -- --config-override custom-config.json
 ```
@@ -199,6 +201,7 @@ npm run cli -- --help
 ```
 
 出力例：
+
 ```
 使用方法: cli [options]
 
@@ -327,6 +330,7 @@ npm run cli -- --mode backtest --symbols SOL/USDT,BTC/USDT,ETH/USDT --config-ove
 ### ライブトレードの開始
 
 ライブトレードを開始する前に、以下を確認してください：
+
 - 取引所のAPIキーが正しく設定されていること
 - 十分なバックテストが行われていること
 - リスク管理パラメータが適切に設定されていること
@@ -462,6 +466,7 @@ grep "error" logs/combined.log
 SOL-Botは完全にESM（ECMAScript Modules）に対応しています。これにより以下のメリットがあります：
 
 1. **最新のJavaScript/TypeScriptモジュールシステム**
+
    - `import/export` 構文を使用した明示的なモジュール管理
    - ツリーシェイキングによる最適化
    - トップレベルawait対応
@@ -608,6 +613,7 @@ npm run cli -- --market-regime-report
 ```
 
 コマンド実行時に以下のように指定します：
+
 ```bash
 npm run cli -- --mode live --dynamic-params dynamic-params.json
 ```
@@ -669,4 +675,4 @@ npm run cli -- --mode live --allocation-strategy CUSTOM --allocation-ratio "SOL/
 
 ```bash
 npm run cli -- --mode live --symbols SOL/USDT,BTC/USDT,ETH/USDT --allocation-config allocation-config.json
-``` 
+```

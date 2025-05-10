@@ -2,7 +2,7 @@
  * Optunaのパラメータ空間を定義するファイル
  * 最適化対象のパラメータ範囲とデフォルト値を定義します
  */
-import { IParameterSpace, ParameterType } from "../types/optimizer.js";
+import { IParameterSpace, ParameterType } from '../types/optimizer.js';
 
 /**
  * 最適化対象パラメータの探索空間定義

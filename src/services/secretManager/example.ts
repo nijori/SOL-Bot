@@ -5,8 +5,8 @@
  * 実際のコードでの参照用で、実行することは意図されていません。
  */
 
-import { secretManager, SecretManagerFactory, SecretManagerType } from "./index.js";
-import logger from "../../utils/logger.js";
+import { secretManager, SecretManagerFactory, SecretManagerType } from './index.js';
+import logger from '../../utils/logger.js';
 
 /**
  * デフォルトのシークレットマネージャーを使用する例

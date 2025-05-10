@@ -20,7 +20,7 @@ function mockModuleHelper(moduleName) {
       execute: jest.fn().mockResolvedValue({ signals: [] })
     };
   });
-  
+
   // 名前付きエクスポート用モック
   return {
     __esModule: true,
@@ -30,19 +30,27 @@ function mockModuleHelper(moduleName) {
 }
 
 // モジュールのモック化
-jest.mock('../../strategies/meanReversionStrategy.js', () => {
-  return {
-    __esModule: true,
-    MeanReversionStrategy: jest.fn()
-  }
-}, { virtual: true });
+jest.mock(
+  '../../strategies/meanReversionStrategy.js',
+  () => {
+    return {
+      __esModule: true,
+      MeanReversionStrategy: jest.fn()
+    };
+  },
+  { virtual: true }
+);
 
-jest.mock('../../strategies/DonchianBreakoutStrategy.js', () => {
-  return {
-    __esModule: true,
-    DonchianBreakoutStrategy: jest.fn()
-  }
-}, { virtual: true });
+jest.mock(
+  '../../strategies/DonchianBreakoutStrategy.js',
+  () => {
+    return {
+      __esModule: true,
+      DonchianBreakoutStrategy: jest.fn()
+    };
+  },
+  { virtual: true }
+);
 
 // 必要に応じて追加のモックをここに定義
 console.log('Jest setup complete - Module mocks configured (ESM)');
@@ -50,23 +58,27 @@ console.log('Jest setup complete - Module mocks configured (ESM)');
 // 便利なモックヘルパー
 globalThis.mockESMModule = (modulePath, implementation) => {
   const normalizedPath = modulePath.endsWith('.js') ? modulePath : `${modulePath}.js`;
-  
-  jest.mock(normalizedPath, () => {
-    return {
-      __esModule: true,
-      ...implementation
-    };
-  }, { virtual: true });
+
+  jest.mock(
+    normalizedPath,
+    () => {
+      return {
+        __esModule: true,
+        ...implementation
+      };
+    },
+    { virtual: true }
+  );
 };
 
 // モック作成用短縮関数
 globalThis.createMock = (className, methods = {}) => {
   const mockClass = jest.fn();
-  
+
   // インスタンスメソッドを定義
   mockClass.mockImplementation(() => {
     const instance = {};
-    
+
     // 各メソッドをモック化
     Object.entries(methods).forEach(([methodName, returnValue]) => {
       if (typeof returnValue === 'function') {
@@ -75,11 +87,11 @@ globalThis.createMock = (className, methods = {}) => {
         instance[methodName] = jest.fn().mockReturnValue(returnValue);
       }
     });
-    
+
     return instance;
   });
-  
+
   return {
     [className]: mockClass
   };
-}; 
+};

@@ -4,9 +4,9 @@
  */
 
 import ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from "../core/types.js";
-import { ParquetDataStore } from "./parquetDataStore.js";
-import logger from "../utils/logger.js";
+import { Candle, normalizeTimestamp } from '../core/types.js';
+import { ParquetDataStore } from './parquetDataStore.js';
+import logger from '../utils/logger.js';
 import * as cron from 'node-cron';
 import 'dotenv/config';
 import path from 'path';

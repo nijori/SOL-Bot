@@ -1,5 +1,5 @@
-import { executeRangeStrategy } from "../../strategies/rangeStrategy.js";
-import { Candle, OrderSide, OrderType, Position, StrategyType } from "../../core/types.js";
+import { executeRangeStrategy } from '../../strategies/rangeStrategy.js';
+import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 
 // モックの設定はファイルの先頭で行う必要があります
 jest.mock('technicalindicators', () => ({
