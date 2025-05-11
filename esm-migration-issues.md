@@ -477,7 +477,16 @@ REF-031タスクでは、TypeScriptのビルド設定を調整して、安定し
    - インポートパスの解決が簡素化され、拡張子省略のサポートが改善
    - テスト環境と本番環境での一貫した動作が確保された
 
-REF-031の変更により、ビルドプロセスが安定化し、CommonJS形式の出力を確実に生成できるようになりました。これは、段階的なESM移行の中で当面の実働環境の安定性を確保するために重要なステップです。
+---
+
+**補足: 実装上の工夫・検証内容（2024-06-09時点）**
+
+- import.meta依存コードのCJS/ESM両対応のため、`src/utils/importMetaHelper.ts`に互換ヘルパーを実装し、`isMainModule()`や`getCurrentFileUrl()`等の関数でCJS/ESM判定・ファイルURL取得を統一。
+- backtestRunner.ts, smokeTest.ts, MultiTimeframeDataFetcher.ts, cli.ts等の「スクリプト直接実行判定」ロジックをimportMetaHelper経由に統一し、CJS/ESM両モードでの動作を担保。
+- インポートパスから.js拡張子を除去し、相対パスの一貫性を確保。CJS/ESM両対応のためのパス修正を複数ファイルで実施。
+- ts-node実行時のmodule解決エラー対策として、package.jsonのスクリプトをcross-env＋TS_NODE_COMPILER_OPTIONSで明示的にcommonjs指定に変更。
+- `scripts/verify-ref-031.js`で「CJSビルド」「importMetaHelperのビルド内容」「tsconfig.build.jsonの設定値」を自動検証し、安定性を担保。
+- これにより、CJS/ESM両環境での安定したビルド・実行・テストが可能となった。
 
 ## REF-032: テストファイルのインポートパス修正
 

@@ -1,3 +1,17 @@
+// REF-031対応: グローバル型拡張
+declare global {
+  var __ESM_ENVIRONMENT: boolean;
+}
+
+// REF-031対応: CommonJS/ESM環境検出
+if (typeof module !== 'undefined' && module.exports) {
+  // CommonJS環境
+  global.__ESM_ENVIRONMENT = false;
+} else {
+  // ESM環境
+  global.__ESM_ENVIRONMENT = true;
+}
+
 import 'dotenv/config';
 import express from 'express';
 import cron from 'node-cron';

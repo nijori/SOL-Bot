@@ -1,49 +1,72 @@
 /**
- * examples/dual-format-usage.mjs
- * ESMからソルボットモジュールを使用する例
+ * ESMからSOL-Botライブラリを使用する例
  * 
  * REF-033: ESMとCommonJSの共存基盤構築
  */
 
-// ESMスタイルのインポート
-import { TradingEngine, BacktestRunner, OrderType } from '../index.mjs';
-import { require, __dirname } from '../utils/esm-compat.mjs';
+// ESM形式でライブラリをインポート
+import { 
+  TradingEngine, 
+  BacktestRunner, 
+  TrendFollowStrategy, 
+  MeanReversionStrategy,
+  logger
+} from '../../dist/index.mjs';
 
-// メインの処理関数
+// 個別モジュールからの直接インポート
+import { OrderManagementSystem } from '../../dist/core/index.mjs';
+import * as atrUtils from '../../dist/utils/atrUtils.js';
+
+// ESM/CJS互換ヘルパーのインポート
+import { require, __dirname, isESMEnvironment } from '../../dist/utils/esm-compat.mjs';
+
 async function main() {
-  console.log('ESMからソルボットモジュールを使用するサンプル');
+  console.log('ESM環境からSOL-Botライブラリを使用する例');
   
   try {
-    // モジュールの使用例
-    console.log('\n使用例：');
+    // 環境確認
+    console.log(`実行環境: ${isESMEnvironment() ? 'ESM' : 'CommonJS'}`);
+    console.log(`__dirname: ${__dirname}`);
     
-    // トレーディングエンジンのクラスをチェック
-    console.log('- トレーディングエンジンクラスを確認: ', typeof TradingEngine === 'function' ? 'OK' : 'エラー');
+    // TradingEngineの使用
+    const engine = new TradingEngine({
+      symbol: 'SOL/USDT',
+      initialBalance: 1000
+    });
+    console.log(`トレーディングエンジンを作成: ${engine.getSymbol()}`);
     
-    // BacktestRunnerのクラスをチェック
-    console.log('- バックテストランナークラスを確認: ', typeof BacktestRunner === 'function' ? 'OK' : 'エラー');
+    // BacktestRunnerの使用
+    const runner = new BacktestRunner({
+      symbol: 'SOL/USDT',
+      startDate: new Date('2023-01-01'),
+      endDate: new Date('2023-01-31')
+    });
+    console.log(`バックテストランナーを作成: ${runner.getConfig().symbol}`);
     
-    // 注文種別をチェック
-    console.log('- 注文種別を確認: ', OrderType ? 'OK' : 'エラー');
+    // 戦略の使用
+    const trendStrategy = new TrendFollowStrategy({ symbol: 'SOL/USDT' });
+    const reversionStrategy = new MeanReversionStrategy({ symbol: 'SOL/USDT' });
+    console.log(`戦略を作成: ${trendStrategy.constructor.name}, ${reversionStrategy.constructor.name}`);
     
-    // ESM互換レイヤーの使用例
-    console.log('\nESM互換レイヤーの使用例:');
-    console.log('- __dirname:', __dirname);
+    // OMSの使用
+    const oms = new OrderManagementSystem();
+    console.log(`OMSを作成: ${oms.constructor.name}`);
     
-    // requireを使用してCommonJSモジュールをロード
+    // ATRユーティリティの使用
+    console.log(`ATR計算関数を取得: ${typeof atrUtils.calculateATR === 'function' ? 'Success' : 'Failed'}`);
+    
+    // requireを使用してCommonJSモジュールをロード（ESM環境から）
     const fs = require('fs');
-    const fileExists = fs.existsSync(__dirname + '/dual-format-usage.mjs');
-    console.log('- fs.existsSync():', fileExists ? 'OK' : 'エラー');
+    console.log(`requireでfsモジュールをロード: ${typeof fs.readFileSync === 'function' ? 'Success' : 'Failed'}`);
     
-    console.log('\nテスト完了 - ESMからのモジュール利用が正常に動作しています');
+    // loggerの使用
+    logger.info('ESMからのログ出力テスト');
     
-  } catch (err) {
-    console.error('エラーが発生しました:', err);
+    console.log('ESM環境から全モジュールを正常に使用できました。');
+  } catch (error) {
+    console.error('エラーが発生しました:', error);
   }
 }
 
-// スクリプトの実行
-main().catch(err => {
-  console.error('実行エラー:', err);
-  process.exit(1);
-}); 
+// スクリプトを実行
+main().catch(err => console.error('トップレベルエラー:', err)); 

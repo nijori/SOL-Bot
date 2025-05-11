@@ -9,9 +9,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { getCurrentFileUrl, fileUrlToPath } from '../utils/importMetaHelper';
 
-// ESMでは__dirnameがないため、import.meta.urlを使用
-const __filename = fileURLToPath(import.meta.url);
+// ESMでは__dirnameがないため、importMetaHelperを使用
+const __filename = fileUrlToPath(getCurrentFileUrl());
 const __dirname = path.dirname(__filename);
 
 // プロジェクトルートからの相対パス

@@ -1,17 +1,36 @@
 /**
  * バックテスト実行クラス
  * 指定されたパラメータと期間でバックテストを実行し、結果を返す
+ * TST-052: デュアルフォーマット実行の互換性向上
  */
 import * as fs from 'fs';
 import * as path from 'path';
-import { ParquetDataStore } from '../data/parquetDataStore.js';
-import { TradingEngine } from './tradingEngine.js';
-import { applyParameters } from '../config/parameterService.js';
-import { BACKTEST_PARAMETERS } from '../config/parameters.js';
-import { Candle, normalizeTimestamp } from './types.js';
-import logger from '../utils/logger.js';
-import { OrderManagementSystem } from './orderManagementSystem.js';
-import { MemoryMonitor } from '../utils/memoryMonitor.js';
+import { ParquetDataStore } from '../data/parquetDataStore';
+import { TradingEngine } from './tradingEngine';
+import { applyParameters } from '../config/parameterService';
+import { BACKTEST_PARAMETERS } from '../config/parameters';
+import { Candle, normalizeTimestamp } from './types';
+import logger from '../utils/logger';
+import { OrderManagementSystem } from './orderManagementSystem';
+import { MemoryMonitor } from '../utils/memoryMonitor';
+
+// isMainModuleを直接importせず、実行時に動的に判定
+// CommonJS/ESM互換性問題を解決するための対応
+let isMainModuleFn: () => boolean;
+
+try {
+  // Dynamic import to avoid static parse errors
+  const importMetaHelper = require('../utils/importMetaHelper');
+  isMainModuleFn = importMetaHelper.isMainModule;
+} catch (err) {
+  // Fallback for environments where dynamic require fails
+  isMainModuleFn = () => {
+    if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+      return require.main === module;
+    }
+    return false;
+  };
+}
 
 /**
  * バックテスト設定インターフェース
@@ -883,111 +902,112 @@ function parseCommandLineArgs(): { [key: string]: string | boolean } {
 }
 
 /**
- * メイン関数 - コマンドラインから実行された場合に使用
+ * main関数とCLI関連機能
  */
 async function main() {
-  const args = parseCommandLineArgs();
+  try {
+    // コマンドライン引数を解析
+    const args = parseCommandLineArgs();
 
-  // 日付処理
-  let startDateStr = (args['start-date'] as string) || '';
-  let endDateStr = (args['end-date'] as string) || '';
+    // クエット(静音)モードの設定
+    const isQuiet = args.quiet === true;
 
-  // quietモードの検出
-  const quiet = args['quiet'] === true;
+    // スモークテストの設定
+    const isSmokeTest = args['smoke-test'] === true;
 
-  if (!startDateStr || !endDateStr) {
-    // デフォルトは過去30日
-    const days = Number(args['days'] as string) || 30;
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // シンボルを取得
+    const symbol = (args.symbol as string) || process.env.SYMBOL || 'SOL/USDT';
 
-    if (!quiet) {
-      logger.info(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+    // タイムフレームを取得
+    const timeframeHours = args.timeframe
+      ? parseFloat(args.timeframe as string)
+      : process.env.TIMEFRAME_HOURS
+      ? parseFloat(process.env.TIMEFRAME_HOURS)
+      : 1;
+
+    // 初期残高を取得
+    const initialBalance = args.balance
+      ? parseFloat(args.balance as string)
+      : process.env.INITIAL_BALANCE
+      ? parseFloat(process.env.INITIAL_BALANCE)
+      : 1000;
+
+    // 日数を取得
+    const days = args.days ? parseInt(args.days as string, 10) : 90; // デフォルト90日
+
+    // 終了日を取得（デフォルトは現在日付）
+    const endDate = args.end
+      ? new Date(args.end as string)
+      : new Date();
+
+    // 開始日を計算（終了日から指定日数を引く）
+    const startDate = args.start
+      ? new Date(args.start as string)
+      : new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // バックテスト設定を作成
+    const config: BacktestConfig = {
+      symbol,
+      timeframeHours,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0],
+      initialBalance,
+      isSmokeTest,
+      quiet: isQuiet,
+      batchSize: 5000, // 一度に処理するキャンドルの数
+      memoryMonitoring: true, // メモリモニタリングを有効化
+      gcInterval: 10000 // GCを10000キャンドルごとに実行
+    };
+
+    // カスタムパラメータの設定
+    if (args.params) {
+      try {
+        config.parameters = JSON.parse(args.params as string);
+      } catch (e) {
+        logger.error(`カスタムパラメータのパース中にエラーが発生しました: ${e}`);
+      }
+    }
+
+    // バックテストランナーを作成して実行
+    const runner = new BacktestRunner(config);
+    const result = await runner.run();
+
+    // 結果を出力 (quiet=trueの場合はメトリクスのみ)
+    if (isQuiet) {
+      console.log(JSON.stringify(result.metrics));
     } else {
-      console.log(`[BacktestRunner] スモークテストモードで実行 (${days}日間)`);
+      logger.info(`=== バックテスト結果 ===`);
+      logger.info(`総利益率: ${(result.metrics.totalReturn * 100).toFixed(2)}%`);
+      logger.info(`シャープレシオ: ${result.metrics.sharpeRatio.toFixed(2)}`);
+      logger.info(`最大ドローダウン: ${(result.metrics.maxDrawdown * 100).toFixed(2)}%`);
+      logger.info(`勝率: ${(result.metrics.winRate * 100).toFixed(2)}%`);
+      logger.info(`プロフィットファクター: ${result.metrics.profitFactor.toFixed(2)}`);
+      logger.info(`カルマーレシオ: ${result.metrics.calmarRatio.toFixed(2)}`);
+      logger.info(`ソルティノレシオ: ${result.metrics.sortinoRatio.toFixed(2)}`);
+      logger.info(`平均利益: ${result.metrics.averageWin.toFixed(2)}`);
+      logger.info(`平均損失: ${result.metrics.averageLoss.toFixed(2)}`);
+      logger.info(`最大連続勝ち: ${result.metrics.maxConsecutiveWins}`);
+      logger.info(`最大連続負け: ${result.metrics.maxConsecutiveLosses}`);
+      logger.info(`総取引数: ${result.trades.length}`);
+      logger.info(`処理時間: ${(result.metrics.processingTimeMS || 0) / 1000} 秒`);
+
+      if (result.metrics.peakMemoryUsageMB) {
+        logger.info(`ピークメモリ使用量: ${result.metrics.peakMemoryUsageMB.toFixed(2)} MB`);
+      }
     }
 
-    endDateStr = endDate.toISOString();
-    startDateStr = startDate.toISOString();
-  }
-
-  // 追加パラメータの処理
-  const paramStrings = args['params'] ? (args['params'] as string).split(',') : [];
-  const parameters: Record<string, any> = {};
-
-  for (const paramString of paramStrings) {
-    const [key, value] = paramString.split('=');
-    if (key && value) {
-      // 数値に変換可能な場合は数値化
-      const numValue = Number(value);
-      parameters[key] = isNaN(numValue) ? value : numValue;
-    }
-  }
-
-  // スモークテスト
-  const isSmokeTest = args['smoke-test'] === true;
-
-  // 設定オブジェクトの作成
-  const config: BacktestConfig = {
-    symbol: (args['symbol'] as string) || 'SOL/USDT',
-    timeframeHours: parseFloat((args['timeframe'] as string) || '1'),
-    startDate: startDateStr,
-    endDate: endDateStr,
-    initialBalance: parseFloat((args['balance'] as string) || '10000'),
-    isSmokeTest,
-    quiet,
-    parameters
-  };
-
-  // スリッページと手数料があれば設定
-  if (args['slippage']) {
-    config.slippage = parseFloat(args['slippage'] as string);
-  }
-
-  if (args['commission']) {
-    config.commissionRate = parseFloat(args['commission'] as string);
-  }
-
-  if (!quiet) {
-    logger.info(`[BacktestRunner] 設定:`, config);
-  }
-
-  const runner = new BacktestRunner(config);
-  const result = await runner.run();
-
-  // 結果のJSON出力
-  const outputPath =
-    (args['output'] as string) ||
-    `./backtest-result-${new Date().toISOString().replace(/:/g, '-')}.json`;
-  fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
-
-  if (!quiet) {
-    logger.info(`[BacktestRunner] 結果を保存: ${outputPath}`);
+    // 成功ステータスで終了
+    process.exit(0);
+  } catch (error) {
+    logger.error(`バックテスト実行中にエラーが発生しました: ${error}`);
+    process.exit(1);
   }
 }
 
-// ESMとCJSどちらでも動作するスクリプト直接実行の検出
-const isRunningDirectly = () => {
-  return (
-    // グローバルフラグ（モックでテスト時）
-    (typeof global !== 'undefined' && 
-     '__isMainModule' in global && 
-     (global as any).__isMainModule === true) ||
-    // CJS環境
-    (typeof require !== 'undefined' && 
-     typeof module !== 'undefined' && 
-     require.main === module) ||
-    // ESM環境
-    (typeof import.meta !== 'undefined' && 
-     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
-  );
-};
-
-// スクリプトが直接実行された場合はCLIモードで実行
-if (isRunningDirectly()) {
-  BacktestRunner.runFromCli().catch((err) => {
-    console.error('バックテスト実行エラー:', err);
+// 直接実行された場合にmain関数を呼び出す
+if (isMainModuleFn()) {
+  main().catch((error) => {
+    logger.error(`致命的なエラーが発生しました: ${error}`);
     process.exit(1);
   });
 }

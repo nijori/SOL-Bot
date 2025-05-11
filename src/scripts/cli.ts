@@ -11,6 +11,7 @@ import { parameterService } from '../config/parameterService.js';
 import { BacktestRunner } from '../core/backtestRunner.js';
 import { OperationMode } from '../config/parameters.js';
 import 'dotenv/config';
+import { isMainModule } from '../utils/importMetaHelper';
 
 /**
  * メイン関数
@@ -201,20 +202,15 @@ function parseTimeframeToHours(timeframe: string): number {
   }
 }
 
-// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+// REF-031対応: ESMとCJSどちらでも動作するスクリプト直接実行の検出
 const isRunningDirectly = () => {
   return (
     // グローバルフラグ（モックでテスト時）
     (typeof global !== 'undefined' && 
      '__isMainModule' in global && 
      (global as any).__isMainModule === true) ||
-    // CJS環境
-    (typeof require !== 'undefined' && 
-     typeof module !== 'undefined' && 
-     require.main === module) ||
-    // ESM環境
-    (typeof import.meta !== 'undefined' && 
-     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
+    // import.metaを使わない方法で判定
+    isMainModule()
   );
 };
 

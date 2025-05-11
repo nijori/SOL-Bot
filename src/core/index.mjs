@@ -1,28 +1,22 @@
 /**
- * core/index.mjs
- * SOL-Bot コアモジュール ESM エントリポイント
+ * coreモジュールのESMエントリポイント
  * 
  * REF-033: ESMとCommonJSの共存基盤構築
  */
 
-// コアモジュールの直接インポートとエクスポート
+// コアモジュールのエクスポート
 export { TradingEngine, createTradingEngine } from './tradingEngine.js';
 export { BacktestRunner, runBacktest } from './backtestRunner.js';
 export { OrderManagementSystem } from './orderManagementSystem.js';
 export * from './types.js';
-export { MultiSymbolTradingEngine } from './multiSymbolTradingEngine.js';
-export { MultiSymbolBacktestRunner } from './multiSymbolBacktestRunner.js';
 
-// 便利なグループ化エクスポート
-export const core = {
-  TradingEngine: './tradingEngine.js',
-  BacktestRunner: './backtestRunner.js',
-  OrderManagementSystem: './orderManagementSystem.js',
-  MultiSymbolTradingEngine: './multiSymbolTradingEngine.js',
-  MultiSymbolBacktestRunner: './multiSymbolBacktestRunner.js'
-};
+// ESMからCommonJSモジュールをロードするヘルパー
+export { require, __filename, __dirname } from '../utils/esm-compat.mjs';
 
 // デフォルトエクスポート
 export default {
-  core
+  TradingEngine: './tradingEngine.js',
+  BacktestRunner: './backtestRunner.js',
+  OrderManagementSystem: './orderManagementSystem.js',
+  types: './types.js'
 }; 

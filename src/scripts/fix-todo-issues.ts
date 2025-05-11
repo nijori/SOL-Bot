@@ -29,9 +29,10 @@ import chalk from 'chalk';
 import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import { execSync } from 'child_process';
+import { getCurrentFileUrl, fileUrlToPath } from '../utils/importMetaHelper';
 
-// ESMでは__dirnameがないため、import.meta.urlを使用
-const __filename = fileURLToPath(import.meta.url);
+// ESMでは__dirnameがないため、importMetaHelperを使用
+const __filename = fileUrlToPath(getCurrentFileUrl());
 const __dirname = path.dirname(__filename);
 
 // プロジェクトルートからの相対パス

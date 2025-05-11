@@ -5,6 +5,50 @@ alwaysApply: false
 ---
 # SOL-Bot アーカイブ
 
+## 緊急スプリント：実働化優先対応（2023-12-12完了）
+
+- [x] REF-030: JestのESM関連設定調整
+      - 📅 Due        : 2023-12-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : jest.config.jsを更新し、import.meta対応とトランスフォーム設定の調整。moduleNameMapperパターンを最適化し、importMetaMock.jsを追加。テスト実行スクリプトも修正完了
+
+- [x] REF-031: tsconfig.build.jsonの出力設定調整
+      - 📅 Due        : 2025-05-25
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-030
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : tsconfig.build.jsonのCJS化・パス修正・import.meta互換ヘルパー実装完了。主要ファイルのCJS/ESM両対応化も実装。検証スクリプトでビルドと設定を確認。2024-06-09完了
+
+- [x] REF-032: テストファイルのインポートパス修正
+      - 📅 Due        : 2023-12-14
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : テストファイルのインポートパス修正スクリプト（fix-test-imports.js）を実装し、実行完了。壊れたパス（.js拡張子）を正規表現で自動修正。型名など他の問題は今後のタスクで対応。
+
+- [x] REF-033: ESMとCommonJSの共存基盤構築
+      - 📅 Due        : 2025-06-10
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : conditional exportとtypesフィールドを整備。CJS/ESM双方の互換レイヤー（src/utils/esm-compat.mjsとcjs-wrapper.js）、各モジュールのインデックスファイル作成完了。dual-format-usageの例も実装。
+
+- [x] REF-034: テスト実行環境の最終安定化
+      - 📅 Due        : 2025-05-30
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : REF-031
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : リソーストラッカー実装完了。タイムアウト設定・非同期リソース自動クリーンアップを実装
+
 ## 🗓 2026-W10スプリント（追加機能開発・ユーザビリティ向上スプリント）
 
 - [x] ALG-018: 新しい戦略パラメータの実装
@@ -976,6 +1020,7 @@ alwaysApply: false
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : ESモジュール環境のloggerインポート問題を修正。todoValidator.tsとtodo-lint.tsのlogger依存をconsole.logに変更。問題の原因はESMでのインポートパス指定方法の不適切な使用。
+
 
 
 

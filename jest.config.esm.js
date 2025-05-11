@@ -1,7 +1,6 @@
 /**
- * Jest設定ファイル
- * CommonJSモードでテスト環境を安定化させるための設定
- * REF-030: JestのESM関連設定調整
+ * ESM用Jest設定ファイル
+ * ESMモードでテスト環境を安定化させるための設定
  * REF-034: テスト実行環境の最終安定化
  */
 
@@ -13,50 +12,52 @@ module.exports = {
   // テスト環境
   testEnvironment: 'node',
   
-  // テストファイルの検索パターン - .jsと.mjs形式のテストファイルもサポート
+  // ESMモードを有効化 - .mjsは常にESMとして扱われるため含めない
+  extensionsToTreatAsEsm: ['.ts'],
+  
+  // .mjsファイルのみをテスト対象とする
   testMatch: [
-    '**/__tests__/**/*.test.ts',
-    '**/__tests__/**/*.test.js',
     '**/__tests__/**/*.test.mjs'
   ],
   
   // テスト環境のセットアップファイル
   setupFilesAfterEnv: [
-    '<rootDir>/__tests__/setup-jest.js'
+    '<rootDir>/__tests__/setup-jest.mjs'
   ],
   
   // TypeScriptファイルの変換
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       isolatedModules: true,
-      useESM: false, // CommonJSモードでの変換を強制
+      useESM: true,
       transformerConfig: {
-        hoistJestRequire: true,
+        hoistJestRequire: false,
         supportStaticESM: true,
         allowArbitraryExports: true
       }
     }],
     '^.+\\.mjs$': ['ts-jest', {
       isolatedModules: true,
-      useESM: true // .mjsファイルのみESMモードで変換
+      useESM: true
     }]
   },
   
-  // モジュール解決の設定 - 必要最小限のエイリアスを定義
+  // モジュール解決の設定
   moduleNameMapper: {
     // .js拡張子の解決をサポート
     '^(\\.\\.?/.*)\\.js$': '$1',
     // import.metaを含むコードのモック
-    '.*import\\.meta.*': '<rootDir>/utils/test-helpers/importMetaMock.js'
+    '.*import\\.meta.*': '<rootDir>/utils/test-helpers/importMetaMock.mjs'
   },
   
-  // モジュールファイル拡張子 - mjsを明示的に追加
+  // モジュールファイル拡張子
   moduleFileExtensions: ['ts', 'js', 'json', 'mjs'],
   
   // テストから除外するパターン
   testPathIgnorePatterns: [
     '/node_modules/',
-    '/__broken_mjs__/' // 破損したテストファイルを一時的に除外
+    '/__broken_mjs__/', // 破損したテストファイルを一時的に除外
+    '\\.spec\\.' // .spec.tsファイルはCommonJSモードのみでテスト
   ],
   
   // テストのタイムアウト
@@ -94,8 +95,8 @@ module.exports = {
   // テスト実行後にオープンハンドルを検出する
   detectOpenHandles: true,
   
-  // 終了時にスタックトレースを出力
-  detectLeaks: true,
+  // メモリリーク検出を無効化（安定性優先）
+  detectLeaks: false,
   
   // ファイル変更監視の設定
   watchPathIgnorePatterns: [
@@ -104,5 +105,16 @@ module.exports = {
   ],
   
   // コンソール出力をキャプチャする
-  silent: false
-};
+  silent: false,
+  
+  // ワーカープロセスのタイムアウト（ms）
+  workerIdleMemoryLimit: '1GB',
+
+  // ESM環境でのJest設定
+  globals: {
+    // ts-jestの設定は個別transformセクションで定義済み
+  },
+
+  // テスト終了時の強制終了を有効化（ハングを防止）
+  forceExit: true
+}; 

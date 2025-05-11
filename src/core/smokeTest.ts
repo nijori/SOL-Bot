@@ -13,7 +13,8 @@ import { exec } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
+import { isMainModule } from '../utils/importMetaHelper';
 
 const execAsync = promisify(exec);
 
@@ -249,20 +250,15 @@ function reportResults(results: any, validation: any): void {
   logger.info(`総合評価: ${validation.allPassed ? '✅ 合格' : '❌ 不合格'}`);
 }
 
-// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+// REF-031対応: ESMとCJSどちらでも動作するスクリプト直接実行の検出
 const isRunningDirectly = () => {
   return (
     // グローバルフラグ（モックでテスト時）
     (typeof global !== 'undefined' && 
      '__isMainModule' in global && 
      (global as any).__isMainModule === true) ||
-    // CJS環境
-    (typeof require !== 'undefined' && 
-     typeof module !== 'undefined' && 
-     require.main === module) ||
-    // ESM環境
-    (typeof import.meta !== 'undefined' && 
-     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
+    // import.metaを使わない方法で判定
+    isMainModule()
   );
 };
 

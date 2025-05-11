@@ -1,54 +1,46 @@
 /**
- * core/index.js
- * SOL-Bot コアモジュール CommonJS エントリポイント
+ * coreモジュールのCommonJSエントリポイント
  * 
  * REF-033: ESMとCommonJSの共存基盤構築
  */
 
 const { createESMProxy } = require('../utils/cjs-wrapper');
 
-// コアモジュールのプロキシを作成
-const tradingEngine = createESMProxy('../core/tradingEngine.js');
-const backtestRunner = createESMProxy('../core/backtestRunner.js');
-const orderManagementSystem = createESMProxy('../core/orderManagementSystem.js');
-const types = createESMProxy('../core/types.js');
-const multiSymbolTradingEngine = createESMProxy('../core/multiSymbolTradingEngine.js');
-const multiSymbolBacktestRunner = createESMProxy('../core/multiSymbolBacktestRunner.js');
+// coreモジュールをプロキシでエクスポート
+const tradingEngine = createESMProxy('./tradingEngine.js');
+const backtestRunner = createESMProxy('./backtestRunner.js');
+const orderManagementSystem = createESMProxy('./orderManagementSystem.js');
+const types = createESMProxy('./types.js');
 
 /**
- * 非同期でモジュールをロードするヘルパー関数
- * @returns {Promise<Object>} ロードされたモジュール
+ * コアモジュールを初期化する
+ * @returns {Promise<Object>} 初期化されたコアモジュール
  */
 async function initCoreModules() {
-  // すべてのモジュールを並列にロード
-  await Promise.all([
+  const [
+    tradingEngineModule,
+    backtestRunnerModule,
+    omsModule,
+    typesModule
+  ] = await Promise.all([
     tradingEngine(),
     backtestRunner(),
     orderManagementSystem(),
-    types(),
-    multiSymbolTradingEngine(),
-    multiSymbolBacktestRunner()
+    types()
   ]);
-  
-  console.log('SOL-Bot core modules loaded successfully in CommonJS mode');
-  
+
   return {
-    tradingEngine,
-    backtestRunner,
-    orderManagementSystem,
-    types,
-    multiSymbolTradingEngine,
-    multiSymbolBacktestRunner
+    tradingEngine: tradingEngineModule,
+    backtestRunner: backtestRunnerModule,
+    orderManagementSystem: omsModule,
+    types: typesModule
   };
 }
 
-// エクスポート
 module.exports = {
   initCoreModules,
   tradingEngine,
   backtestRunner,
   orderManagementSystem,
-  types,
-  multiSymbolTradingEngine,
-  multiSymbolBacktestRunner
+  types
 }; 

@@ -1,15 +1,15 @@
 /**
- * cjs-wrapper.js
- * CommonJS環境からESMモジュールを使用するためのラッパーユーティリティ
+ * CommonJSからESMモジュールを使用するためのラッパーユーティリティ
  * 
- * REF-033: ESMとCommonJSの共存基盤構築
+ * このモジュールを使用することで、CommonJS環境からESMモジュールを簡単に利用できます。
+ * 動的インポートを使用してESMモジュールをロードし、CommonJSモジュールから使用可能な形式に変換します。
  */
 
 /**
  * ESMモジュール用のラッパー関数を作成
  * 
- * @param {string} esmModulePath ESMモジュールのパス
- * @returns {Function} ラッパー関数
+ * @param {string} esmModulePath - ESMモジュールのパス
+ * @return {Function} ESMモジュールを非同期ロードする関数
  */
 const createESMWrapper = (esmModulePath) => {
   return async function() {
@@ -25,80 +25,94 @@ const createESMWrapper = (esmModulePath) => {
 };
 
 /**
- * ESMモジュールをCommonJSスタイルに変換
+ * ESMモジュールをCommonJSからプロキシ経由でアクセスするためのユーティリティ
  * 
- * @param {Object} esmModule ESMモジュール
- * @returns {Object} CommonJS形式に変換されたモジュール
+ * @param {string} esmModulePath - ESMモジュールのパス
+ * @param {Function} transformFn - オプションの変換関数（モジュールの変換方法をカスタマイズする場合）
+ * @return {Object} ESMモジュールへのプロキシオブジェクト
  */
-const convertESMtoCJS = (esmModule) => {
-  if (!esmModule) return null;
+const createESMProxy = (esmModulePath, transformFn = null) => {
+  let cachedModule = null;
+  let loading = false;
+  let loadPromise = null;
   
-  // デフォルトエクスポートがある場合はそれを優先
-  if (esmModule.default) {
-    const result = { ...esmModule };
-    Object.defineProperty(result, '__esModule', { value: true });
-    return result;
-  }
+  const loadModule = async () => {
+    if (cachedModule) return cachedModule;
+    if (loading) return loadPromise;
+    
+    loading = true;
+    loadPromise = import(esmModulePath)
+      .then(imported => {
+        cachedModule = transformFn ? transformFn(imported) : imported;
+        loading = false;
+        return cachedModule;
+      })
+      .catch(err => {
+        loading = false;
+        console.error(`Error importing ESM module ${esmModulePath}:`, err);
+        throw err;
+      });
+    
+    return loadPromise;
+  };
   
-  return esmModule;
+  // プロキシオブジェクトを返す
+  return new Proxy({}, {
+    get: function(target, prop) {
+      // 特殊メソッド（then等）はプロミスとして動作するために必要
+      if (prop === 'then') {
+        return loadModule().then.bind(loadModule());
+      }
+      
+      // その他のプロパティアクセスはモジュールロード後に転送
+      return async function(...args) {
+        const module = await loadModule();
+        if (typeof module[prop] === 'function') {
+          return module[prop](...args);
+        } else {
+          return module[prop];
+        }
+      };
+    },
+    apply: function(target, thisArg, args) {
+      return loadModule().then(module => {
+        if (typeof module === 'function') {
+          return module.apply(thisArg, args);
+        } else if (typeof module.default === 'function') {
+          return module.default.apply(thisArg, args);
+        } else {
+          throw new Error(`Module ${esmModulePath} is not a function`);
+        }
+      });
+    }
+  });
 };
 
 /**
- * ESMモジュールをCommonJSからプロキシ経由でアクセスするためのラッパーを作成
+ * ESMモジュールをCommonJSフォーマットに変換するヘルパー関数
  * 
- * @param {string} esmModulePath ESMモジュールのパス
- * @param {Function} transformFn 変換関数（オプション）
- * @returns {Object} プロキシオブジェクト
+ * @param {Object} esmModule - ESMからインポートされたモジュール
+ * @return {Object} CommonJS形式に変換されたモジュール
  */
-const createESMProxy = (esmModulePath, transformFn = null) => {
-  let moduleCache = null;
-  let loading = false;
-  const pendingRequests = [];
-
-  const loadModule = async () => {
-    if (loading) {
-      return new Promise((resolve) => {
-        pendingRequests.push(resolve);
-      });
-    }
+const convertESMtoCJS = (esmModule) => {
+  // defaultエクスポートがある場合は、それをメインのエクスポートとして使用
+  if (esmModule.default) {
+    const converted = typeof esmModule.default === 'function' 
+      ? function(...args) { return esmModule.default(...args); }
+      : Object.assign({}, esmModule.default);
     
-    try {
-      loading = true;
-      const imported = await import(esmModulePath);
-      moduleCache = transformFn ? transformFn(imported) : convertESMtoCJS(imported);
-      
-      // 保留中のリクエストを解決
-      pendingRequests.forEach(resolve => resolve(moduleCache));
-      pendingRequests.length = 0;
-      
-      return moduleCache;
-    } catch (err) {
-      console.error(`Error loading ESM module ${esmModulePath}:`, err);
-      throw err;
-    } finally {
-      loading = false;
-    }
-  };
-
-  // プロキシを返す
-  return new Proxy({}, {
-    get: (target, prop) => {
-      if (!moduleCache) {
-        throw new Error(`Module ${esmModulePath} is not loaded yet. You must await the module loader first.`);
+    // 他の名前付きエクスポートも追加
+    Object.keys(esmModule).forEach(key => {
+      if (key !== 'default') {
+        converted[key] = esmModule[key];
       }
-      
-      if (prop === 'default' && !moduleCache.default) {
-        return moduleCache;
-      }
-      
-      return moduleCache[prop];
-    },
+    });
     
-    // ロードメソッドを追加
-    apply: (target, thisArg, args) => {
-      return loadModule();
-    }
-  });
+    return converted;
+  }
+  
+  // defaultエクスポートがない場合はそのまま返す
+  return esmModule;
 };
 
 module.exports = {

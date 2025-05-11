@@ -1,16 +1,35 @@
 /**
  * MultiTimeframeDataFetcher.ts
  * 複数の時間足（1m, 15m, 1h, 1d）データを取得して保存するクラス
+ * TST-052: デュアルフォーマット実行の互換性向上
  */
 
-import ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from '../core/types.js';
-import { ParquetDataStore } from './parquetDataStore.js';
-import logger from '../utils/logger.js';
-import * as cron from 'node-cron';
+import * as ccxt from 'ccxt';
+import { Candle, normalizeTimestamp } from '../core/types';
+import { ParquetDataStore } from './parquetDataStore';
+import logger from '../utils/logger';
+import cron from 'node-cron';
 import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
+
+// isMainModuleを直接importせず、実行時に動的に判定
+// CommonJS/ESM互換性問題を解決するための対応
+let isMainModuleFn: () => boolean;
+
+try {
+  // Dynamic import to avoid static parse errors
+  const importMetaHelper = require('../utils/importMetaHelper');
+  isMainModuleFn = importMetaHelper.isMainModule;
+} catch (err) {
+  // Fallback for environments where dynamic require fails
+  isMainModuleFn = () => {
+    if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+      return require.main === module;
+    }
+    return false;
+  };
+}
 
 // 設定パラメータ
 const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
@@ -309,38 +328,83 @@ export class MultiTimeframeDataFetcher {
   }
 }
 
-// ESMとCJSどちらでも動作するスクリプト直接実行の検出
-const isRunningDirectly = () => {
-  return (
-    // グローバルフラグ（モックでテスト時）
-    (typeof global !== 'undefined' && 
-     '__isMainModule' in global && 
-     (global as any).__isMainModule === true) ||
-    // CJS環境
-    (typeof require !== 'undefined' && 
-     typeof module !== 'undefined' && 
-     require.main === module) ||
-    // ESM環境
-    (typeof import.meta !== 'undefined' && 
-     import.meta.url === `file://${process.argv[1]}`)
-  );
-};
-
-// スクリプトとして直接実行された場合
-if (isRunningDirectly()) {
-  (async () => {
+/**
+ * CLIから直接実行された場合のメイン処理
+ */
+async function main() {
+  try {
+    // コマンドライン引数解析
+    const args = process.argv.slice(2);
+    const options: Record<string, any> = {};
+    
+    // オプション解析
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if (arg.startsWith('--')) {
+        const [key, value] = arg.slice(2).split('=');
+        options[key] = value || true;
+      }
+    }
+    
+    const symbol = options.symbol || DEFAULT_SYMBOL;
+    const timeframes: Timeframe[] = [];
+    
+    if (options.timeframe) {
+      const requestedTimeframes = options.timeframe.split(',');
+      for (const tf of requestedTimeframes) {
+        if (Object.values(Timeframe).includes(tf as Timeframe)) {
+          timeframes.push(tf as Timeframe);
+        } else {
+          logger.warn(`無効な時間足: ${tf}`);
+        }
+      }
+    } else {
+      // デフォルトでは全時間足
+      timeframes.push(...Object.values(Timeframe));
+    }
+    
+    const isCron = options.cron === true || options.schedule === true;
+    
+    logger.info(`データ取得設定: シンボル=${symbol}, 時間足=${timeframes.join(',')}, スケジュール=${isCron}`);
+    
     const fetcher = new MultiTimeframeDataFetcher();
-
-    // 初期データロード（全タイムフレーム）
-    await fetcher.fetchAllTimeframes();
-
-    // 定期実行ジョブを開始
-    fetcher.startAllScheduledJobs();
-
-    // プロセス終了時にリソースを解放
-    process.on('SIGINT', () => {
+    
+    if (isCron) {
+      // cronモードの場合はスケジュール実行
+      for (const timeframe of timeframes) {
+        fetcher.startScheduledJob(timeframe as Timeframe, symbol);
+      }
+      logger.info('スケジュール実行を開始しました。停止するにはCtrl+Cを押してください。');
+    } else {
+      // 単発実行モード
+      const results: Record<string, boolean> = {};
+      
+      for (const timeframe of timeframes) {
+        logger.info(`${timeframe}データの取得を開始します...`);
+        const success = await fetcher.fetchAndSaveTimeframe(timeframe as Timeframe, symbol);
+        results[timeframe] = success;
+      }
+      
+      // 結果サマリを表示
+      logger.info('==== 実行結果 ====');
+      for (const [timeframe, success] of Object.entries(results)) {
+        logger.info(`${timeframe}: ${success ? '成功' : '失敗'}`);
+      }
+      
+      // 実行終了
       fetcher.close();
       process.exit(0);
-    });
-  })();
+    }
+  } catch (error) {
+    logger.error(`実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
+}
+
+// スクリプトが直接実行された場合はCLIモードで実行
+if (isMainModuleFn()) {
+  main().catch(error => {
+    logger.error(`致命的なエラー: ${error}`);
+    process.exit(1);
+  });
 }

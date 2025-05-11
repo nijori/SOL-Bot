@@ -18,50 +18,57 @@ alwaysApply: false
 
 P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んでいきます。
 
-## 緊急タスク（ESM移行計画の見直し）
+<!-- REF-030〜REF-034タスクはスプリントに移動して完了しました -->
 
-- [ ] REF-030: JestのESM関連設定調整
-      - 📅 Due        : 2023-12-12
+## テスト残タスクリスト
+
+- [ ] TST-050: MeanReversionStrategyテストのESM対応修正
+      - 📅 Due        : 2026-05-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 25%
+      - ✎ Notes      : meanReversionStrategy.test.mjsの構文エラー（文字列リテラル問題、カンマ区切り問題）を修正。OrderSideなどの型のESM環境でのインポート問題を解決。テストが--forceExitオプションなしでも正常終了するよう修正。
+
+- [ ] TST-051: テスト環境のビルド出力問題解決
+      - 📅 Due        : 2026-05-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : build
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 10%
+      - ✎ Notes      : tsconfig.cjs.jsonとtsconfig.esm.jsonの検証。index.jsやindex.mjsなどの主要ファイルが生成されない問題を修正。sourceMap設定の最適化とtsconfig設定ファイルの精査。
+
+- [ ] TST-052: デュアルフォーマット実行の互換性向上
+      - 📅 Due        : 2026-05-12
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : jest.config.jsのmoduleNameMapperを現状維持し、testMatchパターンを調整。rootsとrootDirが適切に設定されているか確認し、`.mjs`ファイルの取り扱いを調整
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 25%
+      - ✎ Notes      : Node.js v22でのCommonJS/ESM混在環境の問題解決。CommonJS実行時の「require is not defined」エラーとESM実行時の「Cannot find module」エラーを修正。Node.js実行オプションの最適化。
 
-- [ ] REF-031: tsconfig.build.jsonの出力設定調整
-      - 📅 Due        : 2023-12-13
+- [ ] TST-053: テスト安定性向上のためのクリーンアップ強化
+      - 📅 Due        : 2026-05-15
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : tsconfig.build.jsonのmodule設定を"NodeNext"から"commonjs"に変更し、moduleResolutionも"Node"に調整して安定したCommonJS出力を確保
+      - 📊 Progress   : 50%
+      - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
 
-- [ ] REF-032: テストファイルのインポートパス修正
-      - 📅 Due        : 2023-12-14
+- [ ] TST-054: CI/CDパイプラインのテスト安定性強化
+      - 📅 Due        : 2026-05-18
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
+      - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 相対パスインポートの統一（.js拡張子を除去）とモジュール解決の問題修正
+      - ✎ Notes      : GitHub ActionsのESMテスト用ワークフローの強化。タイムアウト設定の最適化、テスト失敗時の詳細ログ収集。テスト用のキャッシュ戦略改善。forceExit、detectOpenHandlesなどのオプションの統一。
 
-- [ ] REF-033: ESMとCommonJSの共存基盤構築
-      - 📅 Due        : 2023-12-18
+- [ ] TST-055: モジュールモックの一貫性向上
+      - 📅 Due        : 2026-05-22
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-032, REF-033, REF-034
-      - 🏷️  Label      : infra
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 「CommonJSレイヤーを挟んでESMを呼ぶ」仕組みの確立と、テスト環境の安定化
-
-- [ ] REF-034: テスト実行環境の最終安定化
-      - 📅 Due        : 2023-12-22
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-035
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : すべてのテストが「0 failures」で通る状態を達成し、段階的ESM化の土台を構築
-
+      - ✎ Notes      : @jest/globals importの標準化。jest.mockパターンの統一。テスト用モッククラスの共通ライブラリ化。モックファクトリー関数の実装と展開。
 
 ## P0 ― 安全ネット（"やらかさない"仕組みを先に敷く）
 

@@ -39,9 +39,10 @@ import { validateTodoFiles, ValidationError, ValidationErrorType } from '../util
 // import logger from '../utils/logger.js.js';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { getCurrentFileUrl, fileUrlToPath, isMainModule } from '../utils/importMetaHelper';
 
-// ESMでは__dirnameがないため、import.meta.urlを使用
-const __filename = fileURLToPath(import.meta.url);
+// ESMでは__dirnameがないため、importMetaHelperを使用
+const __filename = fileUrlToPath(getCurrentFileUrl());
 const __dirname = path.dirname(__filename);
 
 // プロジェクトルートからの相対パス
@@ -281,6 +282,6 @@ export function runTodoLint(customTodoDir?: string, opts?: any): number {
 }
 
 // ファイルが直接実行された場合のみmain関数を実行
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule()) {
   process.exit(runTodoLint());
 }

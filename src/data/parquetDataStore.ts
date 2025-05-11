@@ -8,8 +8,8 @@ import fs from 'fs';
 import path from 'path';
 // duckdbのインポート方法を修正
 import * as duckdb from 'duckdb';
-import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types.js';
-import logger from '../utils/logger.js';
+import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types';
+import logger from '../utils/logger';
 
 // このファイル内で使用するfs、pathのinterface
 interface FileSystem {

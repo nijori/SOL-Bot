@@ -1,93 +1,113 @@
 /**
- * index.js
- * SOL-Bot CommonJS エントリポイント
+ * CommonJSモジュールとして機能し、ESMモジュールをラップして提供するエントリポイント
  * 
- * REF-033: ESMとCommonJSの共存基盤構築
+ * REF-033: ESMとCommonJSの共存基盤構築の一部
  */
 
-// このファイルはCommonJSモジュールとして機能し、ESMモジュールをラップして提供します
-const { createESMProxy } = require('./utils/cjs-wrapper');
+const { createESMProxy, convertESMtoCJS } = require('./utils/cjs-wrapper');
+
+// 環境変数のロード (非同期の前に行う)
+require('dotenv').config();
 
 // コアモジュールのプロキシをエクスポート
 const tradingEngine = createESMProxy('./core/tradingEngine.js');
 const backtestRunner = createESMProxy('./core/backtestRunner.js');
 const orderManagementSystem = createESMProxy('./core/orderManagementSystem.js');
-const types = createESMProxy('./core/types.js');
-
-// 戦略モジュールのプロキシをエクスポート
-const trendFollowStrategy = createESMProxy('./strategies/trendFollowStrategy.js');
-const meanReversionStrategy = createESMProxy('./strategies/meanReversionStrategy.js');
-const donchianBreakoutStrategy = createESMProxy('./strategies/DonchianBreakoutStrategy.js');
-
-// ユーティリティモジュールのプロキシをエクスポート
-const atrUtils = createESMProxy('./utils/atrUtils.js');
-const positionSizing = createESMProxy('./utils/positionSizing.js');
+const exchangeService = createESMProxy('./services/exchangeService.js');
 const logger = createESMProxy('./utils/logger.js');
 
-// サービスモジュールのプロキシをエクスポート
-const exchangeService = createESMProxy('./services/exchangeService.js');
+// 設定モジュール
+const parameters = createESMProxy('./config/parameters.js');
+const parameterService = createESMProxy('./config/parameterService.js');
+
+// 戦略モジュール
+const strategies = {
+  trendFollowStrategy: createESMProxy('./strategies/trendFollowStrategy.js'),
+  meanReversionStrategy: createESMProxy('./strategies/meanReversionStrategy.js'),
+  donchianBreakoutStrategy: createESMProxy('./strategies/donchianBreakoutStrategy.js')
+};
+
+// ユーティリティモジュール
+const utils = {
+  logger: logger,
+  metrics: createESMProxy('./utils/metrics.js'),
+  cliParser: createESMProxy('./utils/cliParser.js')
+};
+
+// データ関連モジュール
+const data = {
+  dataService: createESMProxy('./data/dataService.js'),
+  multiTimeframeDataFetcher: createESMProxy('./data/multiTimeframeDataFetcher.js')
+};
+
+// インジケーター関連モジュール
+const indicators = {
+  trendIndicators: createESMProxy('./indicators/trendIndicators.js'),
+  volatilityIndicators: createESMProxy('./indicators/volatilityIndicators.js')
+};
 
 /**
- * 非同期でモジュールをロードするヘルパー関数
- * @returns {Promise<Object>} ロードされたモジュール
+ * 非同期ロード用のヘルパー関数
+ * すべてのモジュールを並列にロードします
+ * 
+ * @returns {Promise<Object>} ロードされたモジュールを含むオブジェクト
  */
 async function initModules() {
   // すべてのモジュールを並列にロード
-  await Promise.all([
+  const [
+    tradingEngineModule,
+    backtestRunnerModule,
+    omsModule,
+    exchangeServiceModule,
+    parametersModule,
+    parameterServiceModule,
+    loggerModule,
+    metricsModule,
+    trendFollowStrategyModule,
+    meanReversionStrategyModule,
+    donchianBreakoutStrategyModule
+  ] = await Promise.all([
     tradingEngine(),
     backtestRunner(),
     orderManagementSystem(),
-    types(),
-    trendFollowStrategy(),
-    meanReversionStrategy(),
-    donchianBreakoutStrategy(),
-    atrUtils(),
-    positionSizing(),
+    exchangeService(),
+    parameters(),
+    parameterService(),
     logger(),
-    exchangeService()
+    utils.metrics(),
+    strategies.trendFollowStrategy(),
+    strategies.meanReversionStrategy(),
+    strategies.donchianBreakoutStrategy()
   ]);
-  
-  console.log('SOL-Bot modules loaded successfully in CommonJS mode');
-  
+
   return {
-    tradingEngine,
-    backtestRunner,
-    orderManagementSystem,
-    types,
+    tradingEngine: tradingEngineModule,
+    backtestRunner: backtestRunnerModule,
+    orderManagementSystem: omsModule,
+    exchangeService: exchangeServiceModule,
+    parameters: parametersModule,
+    parameterService: parameterServiceModule,
+    logger: loggerModule,
+    metrics: metricsModule,
     strategies: {
-      trendFollowStrategy,
-      meanReversionStrategy,
-      donchianBreakoutStrategy
-    },
-    utils: {
-      atrUtils,
-      positionSizing,
-      logger
-    },
-    services: {
-      exchangeService
+      trendFollowStrategy: trendFollowStrategyModule,
+      meanReversionStrategy: meanReversionStrategyModule,
+      donchianBreakoutStrategy: donchianBreakoutStrategyModule
     }
   };
 }
 
-// エクスポート
+// モジュールをエクスポート
 module.exports = {
   initModules,
   tradingEngine,
   backtestRunner,
   orderManagementSystem,
-  types,
-  strategies: {
-    trendFollowStrategy,
-    meanReversionStrategy,
-    donchianBreakoutStrategy
-  },
-  utils: {
-    atrUtils,
-    positionSizing,
-    logger
-  },
-  services: {
-    exchangeService
-  }
+  exchangeService,
+  parameterService,
+  parameters,
+  strategies,
+  utils,
+  data,
+  indicators
 }; 

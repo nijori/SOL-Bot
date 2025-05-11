@@ -7,13 +7,14 @@
 3. [市場分析と戦略](#市場分析と戦略)
 4. [注文管理システム（OMS）](#注文管理システムoms)
 5. [データ処理と最適化](#データ処理と最適化)
-6. [テストとCI/CD](#テストとcicd)
-7. [セキュリティと運用](#セキュリティと運用)
-8. [監視システム](#監視システム)
-9. [Todoタスク管理](#todoタスク管理)
-10. [マルチアセット対応計画](#マルチアセット対応計画)
-11. [ドキュメント体系](#ドキュメント体系)
-12. [開発環境とツール](#開発環境とツール)
+6. [モジュールシステム](#モジュールシステム)
+7. [テストとCI/CD](#テストとcicd)
+8. [セキュリティと運用](#セキュリティと運用)
+9. [監視システム](#監視システム)
+10. [Todoタスク管理](#todoタスク管理)
+11. [マルチアセット対応計画](#マルチアセット対応計画)
+12. [ドキュメント体系](#ドキュメント体系)
+13. [開発環境とツール](#開発環境とツール)
 
 ## フォルダ構成
 
@@ -229,6 +230,97 @@ MarketState分析では、以下の環境を識別します：
 - **評価指標**: シャープレシオ、カルマーレシオ、ソルティノレシオ
 - **ウォークフォワード検証**: 過学習防止のための期間分割テスト
 
+## モジュールシステム
+
+### ESMとCommonJSの共存基盤
+
+SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシステムで使用できるデュアルフォーマットパッケージとして実装されています。
+
+#### 互換性レイヤー
+
+- **`src/utils/esm-compat.mjs`**: ESM環境でCommonJSモジュールを使用するためのヘルパー
+  - `createRequire`による`require`関数の提供
+  - `__filename`と`__dirname`の互換実装
+  - `resolveDir`と`resolveFilePath`のパス解決ヘルパー関数
+  - `isESMEnvironment`と`isMainModule`の実行環境判定関数
+  - CommonJSモジュールのデフォルトエクスポート取得
+- **`src/utils/cjs-wrapper.js`**: CommonJSからESMモジュールを使用するためのラッパー
+  - `createESMWrapper`: ESMモジュールのダイナミックインポート用ラッパー
+  - `createESMProxy`: ESMモジュールへのプロキシアクセス（非同期ロードとキャッシング機能付き）
+  - `convertESMtoCJS`: ESMからCommonJS形式への変換
+
+#### デュアルフォーマットエントリポイント設計
+
+- **`src/index.js`**: CommonJSエントリポイント
+  - ESMモジュールをプロキシ経由でエクスポート
+  - `initModules`関数による非同期ロード機能
+  - キャッシュ機能による効率的なモジュールアクセス
+- **`src/index.mjs`**: ESMエントリポイント
+  - 直接ESMインポートによる効率的なエクスポート
+  - 名前付きエクスポートとデフォルトエクスポートの提供
+  - グループ化されたモジュールエクスポート
+
+#### モジュールグループ別インデックスファイル
+
+各モジュールグループごとに専用のエントリポイントを提供：
+- `src/core/index.js`と`src/core/index.mjs`
+- `src/strategies/index.js`と`src/strategies/index.mjs`
+- `src/utils/index.js`と`src/utils/index.mjs`
+- その他各モジュールグループでも同様の構造
+
+#### package.json設定
+
+- **Conditional Exports**: Node.jsのパッケージエントリポイント条件分岐
+  ```json
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.mjs",
+      "require": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    }
+    // その他のモジュールパス...
+  }
+  ```
+
+- **デュアルフォーマットビルド設定**:
+  - `tsconfig.cjs.json`: CommonJSビルド用設定
+  - `tsconfig.esm.json`: ESMビルド用設定
+  - npm scriptsによる両方のビルドの自動実行
+
+#### 使用例
+
+- **ESM環境での利用**:
+  ```javascript
+  import { TradingEngine, BacktestRunner } from 'sol-bot';
+  // または特定のモジュールグループを直接インポート
+  import { TradingEngine } from 'sol-bot/core';
+  ```
+
+- **CommonJS環境での利用**:
+  ```javascript
+  const solBot = require('sol-bot');
+  // モジュールは非同期ロードが必要
+  await solBot.initModules();
+  const { tradingEngine } = solBot;
+  ```
+
+- **ESM/CJS相互運用**:
+  ```javascript
+  // ESMからCommonJSモジュールを使用
+  import { require, __dirname } from 'sol-bot/utils/esm-compat.mjs';
+  const legacyModule = require('legacy-module');
+  
+  // CommonJSからESMモジュールを使用
+  const { createESMProxy } = require('./utils/cjs-wrapper');
+  const esmModule = createESMProxy('./path/to/esm-module.js');
+  await esmModule(); // 非同期ロード
+  ```
+
 ## テストとCI/CD
 
 ### テスト環境
@@ -238,59 +330,29 @@ MarketState分析では、以下の環境を識別します：
 
   - Jest設定ファイルのESM設定
   - テストファイルの.mjs拡張子対応
-  - TypeScriptからJavaScriptへの変換と型アノテーション削除
-  - 自動変換スクリプトによる効率的な移行
-  - CommonJSからESMインポート形式への自動変換
-  - インポートパスの自動修正と.js拡張子の追加
+  - テスト実行用カスタムスクリプト
   - Jestモック関数のESM互換実装
   - **進捗状況**: ESM対応は完了 ✅
-    - 完了タスク:
-      - REF-021: テスト変換スクリプト改良
-      - REF-022: 複雑なテストファイルのESM対応
-      - REF-023: テスト実行フローのESM対応
-      - REF-024: ESM型アノテーション削除の最終処理
-      - REF-025: ESMテスト安定性の向上
-      - REF-026: ESMテスト用CI/CD最適化
-      - REF-027: ESMインポートパス問題修正
-      - REF-028: Jestモック関数のESM対応
-      - REF-029: ESMテストのモックデータ生成改善
-      - TST-015: MeanRevertStrategyテストの安定性強化
 
 - **テストヘルパーユーティリティ**:
   - `export-esm-mock.mjs`: ESM環境でのモック作成ヘルパー
   - `test-cleanup-utils.js`: 非同期処理クリーンアップユーティリティ
   - カスタムテストランナー（ハング検出と強制終了機能付き）
-  - モックデータファクトリー関数（市場シナリオ生成）
-    - `MarketDataFactory`: 再現性のある市場データ生成（トレンド、レンジ、ブレイクアウト等）
-    - `TestScenarioFactory`: 戦略テスト用シナリオ生成（各戦略タイプに最適化）
+  - モックデータファクトリー関数
+    - `MarketDataFactory`: 市場データ生成
+    - `TestScenarioFactory`: 戦略テスト用シナリオ生成
     - 固定シード値によるランダムデータの再現性確保
-    - 異常系テスト用のエラーシナリオ生成
+
 - **ESM対応ドキュメント**:
   - `ESM-Migration-Guide.md`: ESM環境での開発とテストのガイド
-    - ESMとJestの互換性説明
-    - CommonJSからESMへの変換例
-    - よくある問題と解決策
-    - モック作成ベストプラクティス
-    - 移行チェックリスト
   - `esm-migration-issues.md`: 移行プロセスで見つかった問題と解決策の記録
-    - 各REFタスクの詳細な進捗記録
-    - 問題の技術的解説と解決アプローチ
-    - コード例と推奨パターン
+
 - **テストカバレッジ目標**:
   - 全体コード: 90%以上（CI/CDによる自動検証）
   - ブランチ: 80%以上
   - 関数: 85%以上
   - 行: 90%以上
   - ステートメント: 90%以上
-- **テスト優先順位**:
-  - 論理バグ修正（特にSARシグナル）
-  - 共通ユーティリティ（ATRフォールバック）
-  - リスク計算（ポジションサイジング）
-- **並列E2Eテスト**:
-  - 複数プロセスからの同時書き込み競合検証
-  - ミューテックスロックとアトミック書き込みの検証
-  - テスト用ワーカープロセスによる並列アクセス再現
-  - データ整合性自動検証
 
 ### スモークテスト
 
@@ -681,6 +743,37 @@ SOL-Botのドキュメント体系は、利用者、管理者、開発者向け�
   - @aws-sdk: S3/Glacierデータアーカイブ
 
 ## モジュール構成
+
+### ESMとCommonJSの共存
+-Jest自体がESMをネイティブにサポートしていないことから、現状のJestはCommonJSベースで、ESMモジュールをテストするために様々なワークアラウンドが必要
+ 現状の Jest は内部的に CommonJS をベースに動いており、ESM をネイティブでフルサポートしているわけではありません。
+
+-Jest のアーキテクチャ
+  -Jest 本体やプラグイン群は CommonJS モジュールとして書かれており、Node.js の ESM ローダーに完全対応するにはまだ"橋渡し"が必要な部分があります。
+
+-公式の ESM 実験機能
+  Node.js の --experimental-vm-modules フラグや、ts-jest/presets/default-esm などのプリセットで ESM テストは可能ですが、テストランナー、モジュールリゾルバ、トランスフォーム周りで細かな不整合や未対応ケースが残っていて、繰り返しワークアラウンドが必要になるのが現状です。
+
+-踏まえESM フルサポートまでの「つなぎ」として一旦 CommonJS モードと共存し実装。将来的に ESM へ移行するメリットは確かにありますが、今は「動くものを動かす」ことにフォーカス。
+
+- **デュアルフォーマットパッケージ**: 両方のモジュールシステムに対応
+- **package.json設定**:
+  - `"type": "module"` は指定せず、拡張子で区別
+  - `"exports"` フィールドで両形式の入口点を指定
+  - `"main"`: `"dist/index.js"` (CommonJS)
+  - `"module"`: `"dist/index.mjs"` (ESM)
+- **拡張子規約**:
+  - `.js`: CommonJSモジュール
+  - `.mjs`: ESMモジュール
+  - `.d.ts`: TypeScript型定義
+- **ビルドプロセス**:
+  - `npm run build:cjs`: CommonJSビルド
+  - `npm run build:esm`: ESMビルド
+  - `npm run build`: 両方のビルドを実行
+- **推奨ベストプラクティス**:
+  - 新規モジュールはESMで作成（`.mjs`拡張子）
+  - インポート時は拡張子を明示（`.js`または`.mjs`）
+  - 名前付きインポートの使用を推奨、ワイルドカードは避ける
 
 ### 環境変数
 

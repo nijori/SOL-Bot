@@ -1,53 +1,50 @@
 /**
- * テスト実行後のクリーンアップスクリプト
- * REF-023: テスト実行フローのESM対応
+ * ESMテスト用リソースのクリーンアップスクリプト
+ * REF-030: JestのESM関連設定調整
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const fs = require('fs');
+const path = require('path');
 
-// ESMでの__dirnameの代替
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-
-// テスト用の一時ディレクトリをクリーンアップ
-const testDirs = [path.join(rootDir, 'data', 'test-e2e'), path.join(rootDir, 'data', 'test')];
-
-console.log('🧹 テスト用一時ディレクトリをクリーンアップしています...');
-
-for (const dir of testDirs) {
-  if (fs.existsSync(dir)) {
-    try {
-      // ディレクトリ内のすべてのファイルを削除
-      const files = fs.readdirSync(dir);
+/**
+ * テスト用リソースのクリーンアップ
+ */
+module.exports = async function() {
+  // 一時テストディレクトリをクリーンアップ
+  try {
+    const rootDir = path.resolve(__dirname, '..');
+    const tempTestDir = path.join(rootDir, '.temp-test');
+    
+    if (fs.existsSync(tempTestDir)) {
+      // ディレクトリ内のファイルを削除
+      const files = fs.readdirSync(tempTestDir);
       for (const file of files) {
-        const filePath = path.join(dir, file);
-        const stat = fs.statSync(filePath);
-
-        if (stat.isDirectory()) {
-          // サブディレクトリを再帰的に処理（必要に応じて実装）
-          // 現在はトップレベルのファイルのみ削除
-        } else {
+        const filePath = path.join(tempTestDir, file);
+        
+        try {
           fs.unlinkSync(filePath);
-          console.log(`  削除: ${filePath}`);
+        } catch (err) {
+          console.warn(`⚠️ 一時ファイルの削除に失敗しました: ${filePath}`);
         }
       }
-      console.log(`✅ ${dir} をクリーンアップしました`);
-    } catch (err) {
-      console.error(`❌ ${dir} のクリーンアップ中にエラーが発生しました:`, err);
+      
+      // ディレクトリ自体を削除
+      try {
+        fs.rmdirSync(tempTestDir, { recursive: true });
+        console.log(`✅ 一時テストディレクトリを削除しました: ${tempTestDir}`);
+      } catch (err) {
+        console.warn(`⚠️ 一時テストディレクトリの削除に失敗しました: ${tempTestDir}`);
+      }
     }
+    
+    // 未使用のオープンハンドルの警告
+    if (global.__HANDLES_DETECTOR && typeof global.__HANDLES_DETECTOR.report === 'function') {
+      global.__HANDLES_DETECTOR.report();
+      global.__HANDLES_DETECTOR.reset();
+    }
+    
+    console.log('🧹 テストリソースのクリーンアップが完了しました');
+  } catch (err) {
+    console.error('❌ テストリソースのクリーンアップ中にエラーが発生しました:', err);
   }
-}
-
-// テスト時に作成される可能性のある一時ファイルのパターン
-const tempFilesPattern = [
-  path.join(rootDir, 'temp-*'),
-  path.join(rootDir, '*.lock'),
-  path.join(rootDir, 'test-*.json')
-];
-
-// 将来的に特定の一時ファイルを削除する必要がある場合はここに実装
-
-console.log('✅ クリーンアップが完了しました');
+};

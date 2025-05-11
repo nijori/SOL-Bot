@@ -1,51 +1,49 @@
 /**
- * examples/dual-format-usage.js
- * CommonJSからソルボットモジュールを使用する例
+ * CommonJSからSOL-Botライブラリを使用する例
  * 
  * REF-033: ESMとCommonJSの共存基盤構築
  */
 
-// CommonJSスタイルのインポート
-const solBot = require('../index.js');
-const core = require('../core/index.js');
+// ライブラリをCommonJSスタイルでインポート
+const solbot = require('../../dist/index.js');
 
-// メインの処理関数
 async function main() {
-  console.log('CommonJSからソルボットモジュールを使用するサンプル');
+  console.log('CommonJS環境からSOL-Botライブラリを使用する例');
   
   try {
-    // モジュールの初期化が必要
-    console.log('モジュールを初期化中...');
-    await solBot.initModules();
+    // モジュールを初期化（ESMモジュールの非同期ロード）
+    const modules = await solbot.initModules();
     
-    // コアモジュールのロード
-    console.log('コアモジュールを初期化中...');
-    await core.initCoreModules();
+    // トレーディングエンジンを使用
+    const { TradingEngine } = modules.tradingEngine;
+    const engine = new TradingEngine({
+      symbol: 'SOL/USDT',
+      initialBalance: 1000
+    });
     
-    // モジュールの使用例
-    console.log('\n使用例：');
+    console.log(`トレーディングエンジンを作成: ${engine.getSymbol()}`);
     
-    // トレーディングエンジンのクラスを取得
-    const TradingEngine = solBot.tradingEngine.TradingEngine;
-    console.log('- トレーディングエンジンクラスを取得: ', typeof TradingEngine === 'function' ? 'OK' : 'エラー');
+    // 戦略の使用
+    const { TrendFollowStrategy } = modules.strategies.trendFollowStrategy;
+    const strategy = new TrendFollowStrategy({
+      symbol: 'SOL/USDT'
+    });
     
-    // BacktestRunnerのクラスを取得
-    const BacktestRunner = core.backtestRunner.BacktestRunner;
-    console.log('- バックテストランナークラスを取得: ', typeof BacktestRunner === 'function' ? 'OK' : 'エラー');
+    console.log(`戦略を作成: ${strategy.constructor.name}`);
     
-    // 注文種別を取得
-    const OrderType = solBot.types.OrderType;
-    console.log('- 注文種別を取得: ', OrderType ? 'OK' : 'エラー');
+    // ユーティリティの使用
+    const { calculateATR } = modules.utils.atrUtils;
+    console.log('ATR計算関数を取得:', calculateATR ? 'Success' : 'Failed');
     
-    console.log('\nテスト完了 - CommonJSからのモジュール利用が正常に動作しています');
+    // logger使用例
+    const { logger } = modules;
+    logger.info('CommonJSからのログ出力テスト');
     
-  } catch (err) {
-    console.error('エラーが発生しました:', err);
+    console.log('CommonJS環境から全モジュールを正常にロードできました。');
+  } catch (error) {
+    console.error('エラーが発生しました:', error);
   }
 }
 
-// スクリプトの実行
-main().catch(err => {
-  console.error('実行エラー:', err);
-  process.exit(1);
-}); 
+// スクリプトを実行
+main().catch(err => console.error('トップレベルエラー:', err)); 
