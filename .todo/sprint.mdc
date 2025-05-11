@@ -67,9 +67,9 @@ alwaysApply: false
       - 📅 Due        : 2026-05-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 75%
+      - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。todoValidator.test.tsとparameterService.test.tsに実装済み。残り他のテストファイル（戦略テスト等）にも適用が必要。
 
 - [ ] TST-054: CI/CDパイプラインのテスト安定性強化
       - 📅 Due        : 2026-05-18
