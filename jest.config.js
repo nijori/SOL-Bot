@@ -21,21 +21,31 @@ export default {
   // 実装側は .ts、テスト内で .js を書いても .ts にリライト
   moduleFileExtensions: ['ts', 'js', 'json'],
 
+  // moduleNameMapperの順序が重要
   moduleNameMapper: {
-    // 「../.../*.js」だけを → 「../.../*.ts」に置き換え
-    '^(\.{2,}\/.*)\.js$': '$1.ts'
+    // node_modules内のモジュールはそのまま処理
+    '^node_modules/(.*)$': '<rootDir>/../node_modules/$1',
+    
+    // 相対パス内のJSファイル拡張子をTSに変換（ただしnode_modules内は除外）
+    '^((?!node_modules).+)\\.js$': '$1.ts',
   },
 
   // ts-jest で ESM モード変換
   transform: {
-    '^.+\.(t|j)sx?$': [
+    '^.+\\.(t|j)sx?$': [
       'ts-jest',
-      { useESM: true, tsconfig: 'tsconfig.build.json' },
+      { 
+        useESM: true, 
+        tsconfig: 'tsconfig.build.json',
+        allowSyntheticDefaultImports: true
+      },
     ],
   },
 
-  // デフォルトの resolver をそのまま使う
-  // resolver: undefined,
+  // node_modules内のモジュールは変換しない
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@babel|react-is)/)'
+  ],
 
   // setupFilesAfterEnv は rootDir (=src) からの相対
   setupFilesAfterEnv: ['<rootDir>/../scripts/jest-setup-esm.js'],
