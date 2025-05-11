@@ -10,6 +10,9 @@ alwaysApply: false
 
 
 
+
+
+
 ---
 
 # SOL-Bot スプリント
@@ -47,7 +50,7 @@ alwaysApply: false
       - 🏷️  Label      : infra
       - 🩺 Health     : ⚠️
       - 📊 Progress   : 75%
-      - ✎ Notes      : tsconfig.build.jsonのmodule設定を"NodeNext"から"es2022"に変更し、import.metaのエラーを解消。DuckDBのall()メソッド呼び出しをanyにキャストして修正。ビルド成功
+      - ✎ Notes      : tsconfig.build.jsonの設定を調整しビルド成功。ただし、import.meta使用箇所があるためmoduleは一時的に"es2022"を使用。将来的にはCommonJSに移行する計画をドキュメント化（typescript-build-settings.md）
 
 - [ ] REF-032: テストファイルのインポートパス修正
       - 📅 Due        : 2023-12-14
@@ -64,7 +67,7 @@ alwaysApply: false
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 「CommonJSレイヤーを挟んでESMを呼ぶ」仕組みの確立と、テスト環境の安定化
+      - ✎ Notes      : "CommonJSレイヤーを挟んでESMを呼ぶ"仕組みの確立と、テスト環境の安定化
 
 - [ ] REF-034: テスト実行環境の最終安定化
       - 📅 Due        : 2023-12-22
@@ -73,7 +76,7 @@ alwaysApply: false
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : すべてのテストが「0 failures」で通る状態を達成し、段階的ESM化の土台を構築
+      - ✎ Notes      : すべてのテストが"0 failures"で通る状態を達成し、段階的ESM化の土台を構築
 
 
 ## 🗓 2026-W11スプリント（P0→P1：安全ネット＆インフラHardening）
@@ -170,6 +173,9 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
 
 
 
