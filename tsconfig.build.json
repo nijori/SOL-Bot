@@ -2,12 +2,14 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "es2022",
+    "moduleResolution": "Node",
     "target": "es2022",
     "sourceMap": true,
     "declaration": true,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/__tests__/**/*", "**/*.test.ts", "**/*.test.mjs"]

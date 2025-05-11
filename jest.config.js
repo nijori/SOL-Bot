@@ -13,12 +13,14 @@ module.exports = {
   
   // テストファイルの検索パターン
   testMatch: [
-    '**/__tests__/**/*.test.ts'
+    '**/__tests__/**/*.test.ts',
+    '**/__tests__/**/*.test.mjs'
   ],
   
   // TypeScriptファイルの変換
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.mjs$': 'ts-jest'
   },
   
   // モジュール解決の設定
@@ -28,7 +30,7 @@ module.exports = {
   },
   
   // モジュールファイル拡張子
-  moduleFileExtensions: ['ts', 'js', 'json'],
+  moduleFileExtensions: ['ts', 'js', 'json', 'mjs'],
   
   // テストから除外するパターン
   testPathIgnorePatterns: [
@@ -40,5 +42,13 @@ module.exports = {
   testTimeout: 30000,
   
   // 詳細なログ
-  verbose: true
+  verbose: true,
+  
+  // rootsの明示的な設定
+  roots: ['<rootDir>'],
+  
+  // 変換を無視するパターン（npmモジュール）
+  transformIgnorePatterns: [
+    '/node_modules/(?!source-map)'
+  ]
 };

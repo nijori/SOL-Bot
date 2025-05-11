@@ -181,9 +181,7 @@ export class ParquetDataStore {
       `);
 
       // データを取得
-      const result = this.conn
-        .exec(
-          `
+      const result = (this.conn.exec(`
         SELECT 
           timestamp,
           open,
@@ -193,9 +191,7 @@ export class ParquetDataStore {
           volume
         FROM ${tableName}
         ORDER BY timestamp ASC;
-      `
-        )
-        .all();
+      `) as any).all();
 
       // ビューを削除
       this.conn.exec(`DROP VIEW ${tableName};`);
@@ -291,7 +287,7 @@ export class ParquetDataStore {
       query += ` ORDER BY timestamp ASC;`;
 
       // クエリを実行
-      const result = this.conn.exec(query).all();
+      const result = (this.conn.exec(query) as any).all();
 
       // ビューを削除
       this.conn.exec(`DROP VIEW ${tableName};`);
@@ -408,7 +404,7 @@ export class ParquetDataStore {
           LIMIT ${remainingLimit};
         `;
 
-        const result = this.conn.exec(query).all();
+        const result = (this.conn.exec(query) as any).all();
 
         // ビューを削除
         this.conn.exec(`DROP VIEW ${tableName};`);
