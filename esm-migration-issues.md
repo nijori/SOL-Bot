@@ -326,61 +326,100 @@ REF-029タスクでは、テスト用のモックデータ生成ユーティリ�
 
 ## REF-030: JestのESM関連設定調整
 
-REF-030タスクでは、Jest設定ファイルのESM関連設定を調整し、テスト実行環境の安定化を図ります。
+REF-030タスクでは、Jest設定ファイルのESM関連設定を調整し、テスト実行環境の安定化を実現しました。
 
-1. **現状の課題分析**
+1. **問題の特定と解決**
 
-   - jest.config.jsのmoduleNameMapperが複雑化し、一部のモジュール解決に問題が発生
-   - テストの実行環境がESMとCommonJSの混在によって不安定化
-   - rootsとrootDirの設定が最適化されていない
-   - .mjsファイルの取り扱いが統一されていない
+   - import.metaの使用に関するエラーを解消するためのモック実装
+   - モジュール解決パスの最適化
+   - トランスフォーム設定の見直しとnode_modules内の特定パッケージ処理
 
-2. **設定の最適化方針**
+2. **実装した主な改善点**
 
-   - moduleNameMapperを最小限に保ち、基本的なパスエイリアスのみを定義
-   - testMatchパターンを調整し、.mjsと.tsファイルの両方を適切に扱えるように設定
-   - rootDirと関連設定を見直し、src/src のような二重参照を解消
-   - transformIgnorePatternを調整し、node_modules内の問題のあるモジュールを適切に処理
-
-3. **実装した変更**
-
-   - moduleNameMapperの簡素化:
+   - モジュール解決の最適化:
    ```javascript
-   // 簡素化されたmoduleNameMapper
+   // 最適化されたmoduleNameMapper
    moduleNameMapper: {
      '^(\\.\\.?/.*)\\.js$': '$1', // .js拡張子の解決のみをサポート
+     '.*import\\.meta.*': '<rootDir>/utils/test-helpers/importMetaMock.js' // import.metaのモック
    }
    ```
 
-   - testMatchパターンの最適化:
+   - TypeScriptトランスフォーム設定の強化:
    ```javascript
-   testMatch: [
-     '**/__tests__/**/*.test.ts',
-     '**/__tests__/**/*.test.mjs'
+   transform: {
+     '^.+\\.tsx?$': ['ts-jest', {
+       isolatedModules: true,
+       useESM: false, // CommonJSモードでの変換を強制
+       transformerConfig: {
+         hoistJestRequire: true,
+         supportStaticESM: true,
+         allowArbitraryExports: true
+       }
+     }],
+     '^.+\\.mjs$': ['ts-jest', {
+       isolatedModules: true,
+       useESM: true // .mjsファイルのみESMモードで変換
+     }]
+   }
+   ```
+
+   - ESM関連モジュールへの対応:
+   ```javascript
+   transformIgnorePatterns: [
+     'node_modules/(?!(source-map|duckdb|ccxt|technicalindicators)/)'
    ]
    ```
 
-   - rootsとrootDirの適切な設定:
-   ```javascript
-   rootDir: 'src',
-   roots: ['<rootDir>'],
-   ```
+3. **サポートスクリプトの整備**
 
-   - .mjsファイルのトランスフォーム設定:
+   - **importMetaMock.js**: import.meta.urlなどをモックする専用ヘルパー
    ```javascript
-   transform: {
-     '^.+\\.tsx?$': 'ts-jest',
-     '^.+\\.mjs$': 'ts-jest',
+   // ESM環境でのimport.metaモック
+   module.exports = {
+     __esModule: true,
+     
+     // import.meta.urlモック
+     get url() {
+       return `file://${path.resolve(__dirname, '../../').replace(/\\/g, '/')}/`;
+     }
    }
    ```
 
-4. **検証と効果**
-   - エラーメッセージの明確化と解釈の容易化
-   - テスト実行時のモジュール解決問題の減少
-   - テスト起動時間の改善
-   - ESMとCommonJSファイルの混在環境での安定性向上
+   - **fix-jest-mocks-for-esm.js**: モック関連の問題を自動修正するスクリプト
+   ```javascript
+   // ファイル内のモックパターン
+   const mockPatterns = [
+     {
+       search: /jest\.mock\(['"]([^'"]+)['"]\)/g,
+       replace: (match, p1) => `jest.mock('${p1}', () => ({ __esModule: true, ...jest.requireActual('${p1}') }))`
+     },
+     // その他のパターン...
+   ];
+   ```
 
-REF-030の実装により、テスト環境の基本的な設定を最適化し、複雑化したJest設定を整理することができました。これにより、テスト実行の安定性が向上し、モジュール解決の問題が軽減されました。この変更は、段階的なESM移行プロセスの基盤となります。
+   - **setup-esm-test-flow.js**: テスト実行前の環境設定スクリプト
+   - **cleanup-test-resources.js**: テスト後のリソースクリーンアップスクリプト
+   - **run-esm-tests-safely.js**: 安全なESMテスト実行スクリプト（タイムアウト検出機能付き）
+
+4. **package.jsonへの追加**
+
+   新しいテスト実行コマンドの追加:
+   ```json
+   "test:all": "npm run test && npm run test:esm",
+   "test:stable": "npm run test:detect-handles",
+   "test:cjs": "jest",
+   "test:mjs": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js"
+   ```
+
+5. **検証と成果**
+   
+   - 複数のテストファイルが正常に実行可能になった
+   - "Cannot use 'import.meta' outside a module"エラーを解消
+   - jest.mockとjest.spyOnの互換性問題を解決
+   - テスト実行の安定性が向上
+
+REF-030タスクの実装により、テスト環境の問題点が多く解消され、安定したテスト実行が可能になりました。特にimport.meta関連の問題解決と、ccxtやtechnicalindicatorsなどのESM互換性問題のあるパッケージへの対応が重要な改善点でした。また、安全なテスト実行スクリプトの導入により、テストプロセスのハングやリソースリークを防止できるようになりました。
 
 ## REF-031: tsconfig.build.jsonの出力設定調整
 
@@ -709,111 +748,119 @@ REF-033の実装により、ESMとCommonJSの共存環境が整備され、既�
 
 ## REF-034: テスト実行環境の最終安定化
 
-REF-034タスクでは、テスト実行環境の最終的な安定化を図り、すべてのテストが正常に実行できる環境を確立します。
+### 問題点
+- ✓ テスト実行後に「Jest did not exit」というエラーが頻発している
+- ✓ 非同期処理や副作用の後始末が不完全で、テスト終了後もリソースが残っている
+- ✓ タイムアウト設定やクリーンアップロジックが統一されていない
+- ✓ 特にESMモジュールのテストで不安定さが顕著
 
-1. **テスト実行環境の問題分析**
+### 解決策
+- ✓ 実装済み：テストリソースのトラッキングと自動クリーンアップを行うユーティリティ作成
+  - `ResourceTracker`クラスでタイマー、イベントリスナー、ファイルなどのリソースを管理
+  - CommonJS版とESM版の両方を実装
+  - タイマーオーバーライドによる自動トラッキング機能
+- ✓ 実装済み：Jest設定の改善
+  - `detectOpenHandles: true`設定でハンドルリーク検知を強化
+  - 共通のセットアップファイル（setup-jest.js/mjs）でテスト環境を一貫化
+  - `randomize: true`設定でテスト間の依存関係検出を容易に
+- ✓ 実装済み：タイムアウト監視とフォールバック終了機構
+  - run-esm-tests-stable.jsスクリプトで強制タイムアウト機能を実装
+  - 一時リソースのクリーンアップを確実に実行
+- ✓ 実装済み：共通テストユーティリティ関数
+  - `cleanupAsyncOperations`で非同期処理の完全クリーンアップ
+  - `createTestDirectory`で安全な一時ディレクトリ管理
+  - `setupMockEnvironment`で一貫したモック環境構築
 
-   - テスト実行時の「Jest did not exit」エラー
-   - 非同期操作のクリーンアップ不備
-   - モック関数の解放忘れ
-   - テスト間の状態漏れ
-   - タイムアウト設定の不適切な値
+### 使用方法
 
-2. **テスト安定化の実装**
+1. テストファイル内でリソースクリーンアップを利用：
 
-   - afterEach/afterAllフックの標準化:
-   ```javascript
-   // テストクリーンアップの標準パターン
-   afterEach(() => {
-     jest.clearAllMocks();
-     // 非同期オペレーションのクリーンアップ
-     return new Promise(resolve => {
-       // 保留中のタイマーをクリア
-       setTimeout(resolve, 100);
-     });
-   });
-   
-   afterAll(async () => {
-     await testCleanup.cleanupAllResources();
-   });
-   ```
+```javascript
+// CommonJSファイル内
+const { cleanupAsyncOperations } = require('../utils/test-helpers/test-cleanup');
 
-   - テストユーティリティの拡張:
-   ```javascript
-   // test-cleanup.js
-   const testCleanup = {
-     pendingTimers: new Set(),
-     pendingPromises: new Set(),
-     
-     trackTimer(id) {
-       this.pendingTimers.add(id);
-     },
-     
-     trackPromise(promise) {
-       this.pendingPromises.add(promise);
-     },
-     
-     async cleanupAllResources() {
-       // タイマーをクリア
-       this.pendingTimers.forEach(clearTimeout);
-       this.pendingTimers.clear();
-       
-       // 保留中のプロミスを解決
-       await Promise.allSettled([...this.pendingPromises]);
-       this.pendingPromises.clear();
-       
-       // その他のリソースクリーンアップ
-     }
-   };
-   ```
+describe('あるテスト', () => {
+  afterEach(async () => {
+    await cleanupAsyncOperations();
+  });
+  
+  // テストケース...
+});
+```
 
-   - テスト設定の最適化:
-   ```javascript
-   // jest.config.js の調整
-   testTimeout: 30000,
-   setupFilesAfterEnv: ['<rootDir>/__tests__/setup-tests.js'],
-   ```
+```javascript
+// ESMファイル内
+import { cleanupAsyncOperations } from '../utils/test-helpers/test-cleanup.mjs';
 
-3. **テスト分離の強化**
+describe('あるテスト', () => {
+  afterEach(async () => {
+    await cleanupAsyncOperations();
+  });
+  
+  // テストケース...
+});
+```
 
-   - グローバル状態のリセット:
-   ```javascript
-   // setup-tests.js
-   beforeEach(() => {
-     // 環境変数をリセット
-     process.env = { ...originalEnv };
-     
-     // グローバルキャッシュをクリア
-     global.__data_cache__ = {};
-     
-     // シングルトンインスタンスをリセット
-     resetAllSingletons();
-   });
-   ```
+2. 安定化されたテスト実行コマンド：
 
-   - ファイルシステムの分離:
-   ```javascript
-   // テスト用の一時ディレクトリ
-   const testDir = path.join(os.tmpdir(), `test-${Date.now()}-${Math.random().toString(36).substring(2)}`);
-   
-   beforeEach(() => {
-     fs.mkdirSync(testDir, { recursive: true });
-   });
-   
-   afterEach(() => {
-     fs.rmSync(testDir, { recursive: true, force: true });
-   });
-   ```
+```bash
+# 安定化されたESMテスト実行
+npm run test:stable:esm
 
-4. **成果と検証**
-   - すべてのテストが実行可能になる（失敗するテストがあっても実行自体はクラッシュしない）
-   - コアモジュールが正常に動作する
-   - データ取得と取引機能が動作する
-   - バックテストが実行可能
+# 全テスト（CJS + ESM）を安定化環境で実行
+npm run test:stable:all
 
-REF-034の実装により、テスト実行環境が大幅に安定化し、すべてのテストが正常に実行できるようになりました。これは、段階的なESM移行プロセスの土台となります。
+# タイムアウト制限付きテスト実行
+npm run test:timebomb
+```
 
-## 以下は優先度低、いずれ余裕あればやる。
+3. リソーストラッカーの直接使用：
+
+```javascript
+import { getResourceTracker } from '../utils/test-helpers/test-cleanup.mjs';
+
+describe('リソース管理テスト', () => {
+  let tracker;
+  
+  beforeEach(() => {
+    tracker = getResourceTracker();
+  });
+  
+  afterEach(async () => {
+    await tracker.cleanup();
+  });
+  
+  test('リソースを追跡', () => {
+    // 明示的にリソースを追跡
+    const server = createServer();
+    tracker.track(server);
+    
+    // テスト完了後、serverは自動的にcloseされる
+  });
+});
+```
+
+### 今後の課題と推奨事項
+
+1. **CI環境でのテスト安定性向上**
+   - CI環境での最大実行時間を適切に設定（推奨: 5分）
+   - `test:timebomb`スクリプトを活用してハングを防止
+
+2. **テスト分離の徹底**
+   - 各テストで独自のリソースセットを使用する
+   - グローバル状態を変更するテストは避ける
+
+3. **テスト品質の向上**
+   - テストカバレッジを継続的に高める
+   - モックの一貫した使用方法を統一
+
+4. **ランダムオーダー実行による隠れた依存関係の検出**
+   - `npm run test -- --randomize`を定期実行して依存関係を検出
+
+5. **ESMとCommonJSテストの統合**
+   - 長期的にはESMテストへの完全移行を目指す
+   - 当面はデュアル対応を継続
+
 ## REF-035: ESM対応アプローチの段階的修正計画
 
 REF-035タスクでは、ESM化実装アプローチを見直し、より実用的で段階的な移行計画を策定しました。
@@ -920,14 +967,13 @@ REF-036タスクでは、CommonJSとESMが混在する現状の環境での安�
 - REF-027 (ESMインポートパス問題修正) - 完了 ✅
 - REF-028 (Jestモック関数のESM対応) - 完了 ✅
 - REF-029 (ESMテストのモックデータ生成改善) - 完了 ✅
-- REF-030 (JestのESM関連設定調整) - 計画中 ⏳
-- REF-031 (tsconfig.build.jsonの出力設定調整) - 計画中 ⏳
+- REF-030 (JestのESM関連設定調整) - 完了 ✅
+- REF-031 (tsconfig.build.jsonの出力設定調整) - 完了 ✅
 - REF-032 (テストファイルのインポートパス修正) - 完了 ✅
 - REF-033 (ESMとCommonJSの共存基盤構築) - 完了 ✅
 - REF-034 (テスト実行環境の最終安定化) - 完了 ✅
 
 次のステップ:
-- REF-030: JestのESM関連設定調整
 - REF-031: tsconfig.build.jsonの出力設定調整
 - REF-033: ESMとCommonJSの共存基盤構築
 - REF-034: テスト実行環境の最終安定化
