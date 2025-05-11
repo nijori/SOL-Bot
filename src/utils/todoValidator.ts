@@ -548,7 +548,7 @@ export function checkEmptyFieldValues(tasks: TodoTask[]): ValidationError[] {
 
   for (const task of tasks) {
     // 必須フィールドに値が設定されていて、かつ空白だけではないことをチェック
-    if (task.dueDate !== null && task.dueDate.trim() === '') {
+    if (task.dueDate !== null && task.dueDate !== undefined && task.dueDate.trim() === '') {
       errors.push({
         type: ValidationErrorType.EMPTY_FIELD_VALUE,
         message: `タスク ${task.id} の期限日付が空です`,
@@ -558,7 +558,7 @@ export function checkEmptyFieldValues(tasks: TodoTask[]): ValidationError[] {
       });
     }
 
-    if (task.owner !== null && task.owner.trim() === '') {
+    if (task.owner !== null && task.owner !== undefined && task.owner.trim() === '') {
       errors.push({
         type: ValidationErrorType.EMPTY_FIELD_VALUE,
         message: `タスク ${task.id} の担当者が空です`,
@@ -568,7 +568,7 @@ export function checkEmptyFieldValues(tasks: TodoTask[]): ValidationError[] {
       });
     }
 
-    if (task.label !== null && task.label.trim() === '') {
+    if (task.label !== null && task.label !== undefined && task.label.trim() === '') {
       errors.push({
         type: ValidationErrorType.EMPTY_FIELD_VALUE,
         message: `タスク ${task.id} のラベルが空です`,
@@ -578,7 +578,7 @@ export function checkEmptyFieldValues(tasks: TodoTask[]): ValidationError[] {
       });
     }
 
-    if (task.health !== null && task.health.trim() === '') {
+    if (task.health !== null && task.health !== undefined && task.health.trim() === '') {
       errors.push({
         type: ValidationErrorType.EMPTY_FIELD_VALUE,
         message: `タスク ${task.id} のHealth状態が空です`,
@@ -588,7 +588,7 @@ export function checkEmptyFieldValues(tasks: TodoTask[]): ValidationError[] {
       });
     }
 
-    if (task.progress !== null && task.progress.trim() === '') {
+    if (task.progress !== null && task.progress !== undefined && task.progress.trim() === '') {
       errors.push({
         type: ValidationErrorType.EMPTY_FIELD_VALUE,
         message: `タスク ${task.id} の進捗率が空です`,

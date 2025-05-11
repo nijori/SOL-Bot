@@ -34,7 +34,8 @@ jest.mock('../../utils/todoValidator', () => {
 // fsモジュールのモック
 jest.mock('fs', () => ({
   readFileSync: jest.fn(),
-  readdirSync: jest.fn()
+  readdirSync: jest.fn(),
+  existsSync: jest.fn().mockReturnValue(true)
 }));
 
 // ロガーのモック
@@ -59,6 +60,7 @@ describe('TodoValidator', () => {
   // テスト前に毎回モックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
+    (fs.existsSync as jest.Mock).mockReturnValue(true);
   });
 
   describe('parseTodoFile', () => {
@@ -392,13 +394,13 @@ describe('TodoValidator', () => {
       expect(errors).toHaveLength(3);
       expect(errors[0].taskId).toBe('TST-001');
       expect(errors[0].type).toBe(ValidationErrorType.MISSING_REQUIRED_FIELD);
-      expect(errors[0].message).toContain('Owner');
+      expect(errors[0].message).toContain('owner');
 
       expect(errors[1].taskId).toBe('TST-002');
-      expect(errors[1].message).toContain('期限日');
+      expect(errors[1].message).toContain('dueDate');
 
       expect(errors[2].taskId).toBe('TST-002');
-      expect(errors[2].message).toContain('ラベル');
+      expect(errors[2].message).toContain('label');
     });
   });
 
@@ -472,6 +474,7 @@ describe('TodoValidator', () => {
       // モックデータ
       const mockFiles = ['sprint.mdc'];
       (fs.readdirSync as jest.Mock).mockReturnValue(mockFiles);
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
 
       // 単純なmockFileContent (エラーを含む)
       const mockFileContent =
