@@ -68,7 +68,7 @@ alwaysApply: false
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
+      - 📊 Progress   : 75%
       - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
 
 - [ ] TST-054: CI/CDパイプラインのテスト安定性強化
