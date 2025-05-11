@@ -72,7 +72,9 @@
     "test:cleanup": "node scripts/cleanup-test-resources.js",
     "test:runner": "node scripts/run-esm-tests.js",
     "test:runner:detect": "node scripts/run-esm-tests.js --detect-handles",
-    "test:runner:coverage": "node scripts/run-esm-tests.js --coverage"
+    "test:runner:coverage": "node scripts/run-esm-tests.js --coverage",
+    "fix:test-imports": "node src/scripts/fix-test-imports.js",
+    "fix:test-imports:dry": "node src/scripts/fix-test-imports-dry-run.js"
   },
   "keywords": [
     "crypto",
