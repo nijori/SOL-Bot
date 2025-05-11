@@ -309,8 +309,25 @@ export class MultiTimeframeDataFetcher {
   }
 }
 
+// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+const isRunningDirectly = () => {
+  return (
+    // グローバルフラグ（モックでテスト時）
+    (typeof global !== 'undefined' && 
+     '__isMainModule' in global && 
+     (global as any).__isMainModule === true) ||
+    // CJS環境
+    (typeof require !== 'undefined' && 
+     typeof module !== 'undefined' && 
+     require.main === module) ||
+    // ESM環境
+    (typeof import.meta !== 'undefined' && 
+     import.meta.url === `file://${process.argv[1]}`)
+  );
+};
+
 // スクリプトとして直接実行された場合
-if (typeof require !== 'undefined' && require.main === module) {
+if (isRunningDirectly()) {
   (async () => {
     const fetcher = new MultiTimeframeDataFetcher();
 

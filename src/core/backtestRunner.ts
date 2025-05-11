@@ -967,8 +967,25 @@ async function main() {
   }
 }
 
+// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+const isRunningDirectly = () => {
+  return (
+    // グローバルフラグ（モックでテスト時）
+    (typeof global !== 'undefined' && 
+     '__isMainModule' in global && 
+     (global as any).__isMainModule === true) ||
+    // CJS環境
+    (typeof require !== 'undefined' && 
+     typeof module !== 'undefined' && 
+     require.main === module) ||
+    // ESM環境
+    (typeof import.meta !== 'undefined' && 
+     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
+  );
+};
+
 // スクリプトが直接実行された場合はCLIモードで実行
-if (require.main === module) {
+if (isRunningDirectly()) {
   BacktestRunner.runFromCli().catch((err) => {
     console.error('バックテスト実行エラー:', err);
     process.exit(1);

@@ -201,8 +201,25 @@ function parseTimeframeToHours(timeframe: string): number {
   }
 }
 
+// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+const isRunningDirectly = () => {
+  return (
+    // グローバルフラグ（モックでテスト時）
+    (typeof global !== 'undefined' && 
+     '__isMainModule' in global && 
+     (global as any).__isMainModule === true) ||
+    // CJS環境
+    (typeof require !== 'undefined' && 
+     typeof module !== 'undefined' && 
+     require.main === module) ||
+    // ESM環境
+    (typeof import.meta !== 'undefined' && 
+     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
+  );
+};
+
 // スクリプトが直接実行された場合にメイン関数を実行
-if (require.main === module) {
+if (isRunningDirectly()) {
   main().catch((error) => {
     logger.error('致命的なエラー:', error);
     process.exit(1);

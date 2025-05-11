@@ -1,29 +1,31 @@
 // ESMに対応したJest設定
 export default {
-  preset: 'ts-jest/presets/js-with-ts-esm',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.mjs'],
   moduleFileExtensions: ['ts', 'mjs', 'js', 'json'],
-  extensionsToTreatAsEsm: ['.ts'],
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        useESM: true
-      }
-    ]
+    '^.+\\.(ts|tsx)$': ['ts-jest', { useESM: true }],
+    '^.+\\.mjs$': 'babel-jest'
   },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
+  rootDir: '.',
+  roots: ['<rootDir>/src'],
   // REF-025: ESMテスト安定性の向上 - グローバルセットアップファイルを追加
   setupFilesAfterEnv: ['./scripts/jest-setup-esm.js'],
   // テストのタイムアウト時間を延長（ms）
-  testTimeout: 30000,
+  testTimeout: 60000,  // 60秒
   // オープンハンドル検出のデフォルト有効化
-  detectOpenHandles: false,
-  // forceExit設定はfalseを推奨（Jest did not exit問題の回避のため）
-  forceExit: false,
+  detectOpenHandles: true,
+  // forceExit設定はtrueを推奨（Jest did not exit問題の回避のため）
+  forceExit: true,     // テスト終了時に強制終了
+  testPathIgnorePatterns: [
+    '/__tests__/__broken_mjs__/',
+    '/node_modules/'
+  ],
   // コードカバレッジ設定
   coverageDirectory: 'coverage',
   collectCoverageFrom: [

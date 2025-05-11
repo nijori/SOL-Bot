@@ -3,11 +3,12 @@
  * DuckDBとParquetを利用して効率的なデータ保存と取得を行う
  */
 
-// fs, path, processなどのNode.js組み込み型を定義
-declare const require: any;
-declare const process: {
-  cwd(): string;
-};
+// 外部モジュールのインポート
+import fs from 'fs';
+import path from 'path';
+import * as duckdbModule from 'duckdb';
+import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types.js';
+import logger from '../utils/logger.js';
 
 // このファイル内で使用するfs、pathのinterface
 interface FileSystem {
@@ -23,12 +24,6 @@ interface FileSystem {
 interface Path {
   join(...paths: string[]): string;
 }
-
-// モジュールをrequireで読み込み
-const fs = require('fs') as FileSystem;
-const path = require('path') as Path;
-import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types.js';
-import logger from '../utils/logger.js';
 
 // duckdbの型定義
 interface DuckDBConnection {
@@ -52,8 +47,8 @@ interface DuckDB {
   Database: new (path: string) => DuckDBDatabase;
 }
 
-// duckdbをimportする
-const duckdb: DuckDB = require('duckdb');
+// ESM対応方法でduckdbの参照を取得
+const duckdb = duckdbModule as unknown as DuckDB;
 
 // データフォルダのパス設定
 const DATA_DIR = path.join(process.cwd(), 'data');

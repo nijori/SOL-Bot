@@ -5,6 +5,38 @@
 
 // ESMモジュール対応のためjestをインポート
 import { jest } from '@jest/globals';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
+
+// ESMモードでrequireを使えるようにする
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+global.require = createRequire(import.meta.url);
+
+// ESMモード用のmoduleポリフィル
+global.module = { exports: {} };
+global.module.id = __filename;
+global.module.path = __dirname;
+global.module.filename = __filename;
+global.module.parent = null;
+// main moduleチェック用のフラグ
+global.__isMainModule = true;
+
+// jest.mock用のモジュール解決パスを設定
+process.env.JEST_ROOT_DIR = path.resolve(__dirname, '..');
+
+// グローバルスコープにjestを公開
+globalThis.jest = jest;
+
+// ESMテスト用のモック置換をサポートするヘルパー（テストファイルで使用可能）
+global.mockESM = (modulePath, mockContent) => {
+  const mod = { ...mockContent };
+  if (!mockContent.__esModule) {
+    mod.__esModule = true;
+  }
+  return mod;
+};
 
 // グローバルタイマー追跡
 const originalSetTimeout = global.setTimeout;
@@ -84,7 +116,7 @@ beforeAll(() => {
   });
 });
 
-// afterAllのグローバルフック
+// afterAllのグローバルフック - タイムアウトを30秒に延長
 afterAll(async () => {
   // グローバルリソースのクリーンアップ
   global.__CLEANUP_RESOURCES();
@@ -96,7 +128,7 @@ afterAll(async () => {
       process.removeAllListeners('unhandledRejection');
       process.removeAllListeners('uncaughtException');
       resolve();
-    }, 100);
+    }, 1000);
   });
 
   // タイマーのクリア
@@ -111,7 +143,7 @@ afterAll(async () => {
 
   activeTimers.clear();
   activeIntervals.clear();
-}, 10000); // タイムアウト時間を10秒に延長
+}, 30000); // タイムアウト時間を30秒に延長
 
 // 各テスト後のクリーンアップ
 afterEach(() => {

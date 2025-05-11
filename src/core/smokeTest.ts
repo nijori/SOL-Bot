@@ -249,9 +249,26 @@ function reportResults(results: any, validation: any): void {
   logger.info(`総合評価: ${validation.allPassed ? '✅ 合格' : '❌ 不合格'}`);
 }
 
-// スクリプトのエントリーポイント
-if (require.main === module) {
-  runSmokeTest();
+// ESMとCJSどちらでも動作するスクリプト直接実行の検出
+const isRunningDirectly = () => {
+  return (
+    // グローバルフラグ（モックでテスト時）
+    (typeof global !== 'undefined' && 
+     '__isMainModule' in global && 
+     (global as any).__isMainModule === true) ||
+    // CJS環境
+    (typeof require !== 'undefined' && 
+     typeof module !== 'undefined' && 
+     require.main === module) ||
+    // ESM環境
+    (typeof import.meta !== 'undefined' && 
+     import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/')))
+  );
+};
+
+// エントリーポイント
+if (isRunningDirectly()) {
+  runSmokeTest().catch(console.error);
 }
 
 export { runSmokeTest };
