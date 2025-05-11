@@ -1,6 +1,6 @@
 import * as winston from 'winston';
 // 循環参照を避けるため、parametersからの直接インポートを削除
-// import { MONITORING_PARAMETERS } from '../config/parameters';
+// import { MONITORING_PARAMETERS } from '../config/parameters.js';
 
 // 環境変数からログレベルを取得するか、デフォルト値を使用
 const logLevel = process.env.LOG_LEVEL || 'info';

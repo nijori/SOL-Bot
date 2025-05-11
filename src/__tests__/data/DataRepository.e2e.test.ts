@@ -6,8 +6,8 @@
  */
 
 import { execSync, spawn, ChildProcess } from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { DataRepository } from '../../data/dataRepository.js';
 import {
   Candle,
@@ -192,8 +192,8 @@ function generateWorkerScript() {
  */
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../data/dataRepository';
-import { OrderType, OrderSide, OrderStatus } from '../../core/types';
+import { DataRepository } from '../../data/dataRepository.js';
+import { OrderType, OrderSide, OrderStatus } from '../../core/types.js';
 
 // コマンドライン引数の取得
 const workerId = parseInt(process.argv[2], 10);

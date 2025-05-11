@@ -6,21 +6,21 @@
  * BT-008: MultiSymbolBacktestRunner並列化
  */
 
-import { BacktestRunner, BacktestConfig, BacktestResult } from './backtestRunner';
+import { BacktestRunner, BacktestConfig, BacktestResult } from './backtestRunner.js';
 import {
   MultiSymbolBacktestConfig,
   MultiSymbolBacktestResult,
   AllocationStrategy,
   AllocationWeights
-} from '../types/multiSymbolTypes';
-import logger from '../utils/logger';
-import { MemoryMonitor } from '../utils/memoryMonitor';
-import { parameterService } from '../config/parameterService';
-import { normalizeTimestamp } from './types';
+} from '../types/multiSymbolTypes.js';
+import logger from '../utils/logger.js';
+import { MemoryMonitor } from '../utils/memoryMonitor.js';
+import { parameterService } from '../config/parameterService.js';
+import { normalizeTimestamp } from './types.js';
 import * as path from 'path';
 import * as fs from 'fs';
 import pLimit from 'p-limit';
-import { volBasedAllocationWeights } from '../indicators/marketState';
+import { volBasedAllocationWeights } from '../indicators/marketState.js';
 
 /**
  * マルチシンボルバックテスト実行クラス
