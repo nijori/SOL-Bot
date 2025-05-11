@@ -57,14 +57,14 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : テストファイルのインポートパス修正スクリプト（fix-test-imports.js）を実装し、実行完了。壊れたパス（.js拡張子）を正規表現で自動修正。型名など他の問題は今後のタスクで対応。
 
-- [ ] REF-033: ESMとCommonJSの共存基盤構築
+- [x] REF-033: ESMとCommonJSの共存基盤構築
       - 📅 Due        : 2023-12-18
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : REF-032
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 75%
-      - ✎ Notes      : ESMとCommonJSの共存環境を整備。package.jsonのConditional Exports設定、アダプターパターンによる相互連携、typesフィールド追加でTypeScript対応
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ESM/CJS共存のためのアダプターパターン実装完了。互換性レイヤー（esm-compat.mjs、cjs-wrapper.js）、デュアルフォーマットエントリポイント、Conditional Exports with Types、分離ビルド環境を構築
 
 - [ ] REF-034: テスト実行環境の最終安定化
       - 📅 Due        : 2023-12-22
@@ -170,6 +170,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
