@@ -14,12 +14,18 @@ repo-root/
 運用サイクル:
 Backlog にインプット → 週次スクラムで Sprint へ選別 → 完了タスクは ~~打消し~~ にして 3 か月後 Archive へ。
 
-大重要★
-Todoファイルの整合性をみるためにtodo-lintは定期的に実行
+重要★
 作成するbotの要件は適宜C:\Users\nijor\Dev\SOL_bot\SOLUSDT_Algo_Strategy_Designを参照
 またTodoの更新はC:\Users\nijor\Dev\SOL_bot\.todo\todo-format.mdも参照
 git周りはC:\Users\nijor\Dev\SOL_bot\.github\workflowsを参照
 将来的な開発はC:\Users\nijor\Dev\SOL_bot\plan.mdに記載あり
+
+大重要★
+以前大事故が起こりました。もう同じ事故を起こさないために。下記を守って下さい。
+習慣/具体例
+破壊的操作は必ずブランチで/git switch -c codemod/import-js
+ツールは Dry-Run で	/ npx jscodeshift … --dry
+コミット間隔を細かく / こまめに git add -p → git commit -m "logical unit"
 
 2. タスク行フォーマット
 

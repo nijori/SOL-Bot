@@ -18,6 +18,51 @@ alwaysApply: false
 
 P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んでいきます。
 
+## 緊急タスク（ESM移行計画の見直し）
+
+- [ ] REF-030: JestのESM関連設定調整
+      - 📅 Due        : 2023-12-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : jest.config.jsのmoduleNameMapperを現状維持し、testMatchパターンを調整。rootsとrootDirが適切に設定されているか確認し、`.mjs`ファイルの取り扱いを調整
+
+- [ ] REF-031: tsconfig.build.jsonの出力設定調整
+      - 📅 Due        : 2023-12-13
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : tsconfig.build.jsonのmodule設定を"NodeNext"から"commonjs"に変更し、moduleResolutionも"Node"に調整して安定したCommonJS出力を確保
+
+- [ ] REF-032: テストファイルのインポートパス修正
+      - 📅 Due        : 2023-12-14
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 相対パスインポートの統一（.js拡張子を除去）とモジュール解決の問題修正
+
+- [ ] REF-033: ESMとCommonJSの共存基盤構築
+      - 📅 Due        : 2023-12-18
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-032, REF-033, REF-034
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 「CommonJSレイヤーを挟んでESMを呼ぶ」仕組みの確立と、テスト環境の安定化
+
+- [ ] REF-034: テスト実行環境の最終安定化
+      - 📅 Due        : 2023-12-22
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-035
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : すべてのテストが「0 failures」で通る状態を達成し、段階的ESM化の土台を構築
+
+
 ## P0 ― 安全ネット（"やらかさない"仕組みを先に敷く）
 
 // SEC-004タスクはスプリントに移動しました
@@ -139,6 +184,27 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - ✎ Notes      : docs/onboarding.md作成。5〜10分で環境構築からバックテスト実行、コード修正、テスト実行までのQuick Startフローを整備。
 
 ## P5 ― Go-Live（実弾投入 & 監視運用開始）
+
+
+## PXX ― いずれやるタスク。
+- [ ] REF-037: ESM移行計画の見直しと段階的アプローチ
+      - 📅 Due        : 2023-12-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ずっとESM環境完全化を目指していたがとん挫。ESM化の優先度を下げ、段階的移行プランを策定。実働化を阻害しない範囲で対応。REF-037,038は緊急度低。
+
+- [ ] REF-038: CommonJS/ESM混在環境の安定化
+      - 📅 Due        : 2023-12-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-030
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ずっとESM環境完全化を目指していたがとん挫。現状のCommonJS/ESM混在環境でのテスト安定化。Jest設定の最小変更で対応。REF-037,038は緊急度低。
+
+
 
 ## 完了済みタスク（アーカイブ待ち）
 
@@ -321,4 +387,6 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : ESM変換後の.mjsファイルに残っている壊れたインポートパスを修正するスクリプト（fix-esm-import-paths.js）を実装完了。'path: '→'path'、'url: '→'url'、__dirname"→__dirname、'../../'strategies/meanReversionStrategy''→'../../strategies/meanReversionStrategy.js'のような壊れたパターンを検出し修正。正規表現による置換パターンを多数実装し、全ファイルを自動的に修正。パスの正規化、拡張子の追加、壊れた文字列や構文の修正により、ESM環境でのモジュール解決問題を解決。package.jsonに「fix:esm-imports」コマンドも追加。
+
+
 
