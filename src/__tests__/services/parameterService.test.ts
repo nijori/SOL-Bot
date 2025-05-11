@@ -30,6 +30,15 @@ jest.mock('../../utils/logger.js', () => ({
   error: jest.fn()
 }));
 
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
+
 describe('ParameterService', () => {
   // テスト用のモックYAMLデータ
   const mockYamlContent = `
@@ -75,9 +84,36 @@ operation:
     process.env = { ...originalEnv };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // 環境変数を元に戻す
     process.env = originalEnv;
+    
+    // リソースのクリーンアップ
+    jest.clearAllMocks();
+    jest.resetAllMocks();
+    
+    // イベントリスナーを明示的に削除
+    process.removeAllListeners('unhandledRejection');
+    process.removeAllListeners('uncaughtException');
+    
+    // グローバルリソーストラッカーがある場合はクリーンアップを実行
+    if (global.__RESOURCE_TRACKER) {
+      await global.__RESOURCE_TRACKER.cleanup();
+    }
+    
+    // 未解決のプロミスがあれば完了させるために少し待機
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    // グローバルリソーストラッカーがある場合は最終クリーンアップを実行
+    if (global.__RESOURCE_TRACKER) {
+      await global.__RESOURCE_TRACKER.cleanup(true);
+    }
+    
+    // 非同期処理の完全なクリーンアップを待機
+    await new Promise(resolve => setTimeout(resolve, 500));
   });
 
   /**
