@@ -144,3 +144,77 @@ export function getValidStopDistance(
 
   return stopDistance;
 }
+
+/**
+ * ATR（Average True Range）に関連するユーティリティ関数
+ */
+
+/**
+ * 直近の価格変動が有意か判定する
+ * @param current 現在価格
+ * @param previous 前回価格
+ * @param atr ATR値
+ * @param multiplier 倍率（デフォルト: 2.0）
+ * @returns 有意な変動があればtrue
+ */
+export function checkSignificantPriceChange(
+  current: number,
+  previous: number,
+  atr: number,
+  multiplier: number = 2.0
+): boolean {
+  const change = Math.abs(current - previous);
+  return change > atr * multiplier;
+}
+
+/**
+ * 価格のボラティリティを計算する
+ * @param candles キャンドルデータ配列
+ * @param period 期間（デフォルト: 14）
+ * @returns ボラティリティ値（ATR）
+ */
+export function calculateVolatility(candles: Candle[], period: number = 14): number {
+  if (candles.length < period + 1) {
+    return 0;
+  }
+
+  // ATRの計算
+  let atrSum = 0;
+  
+  for (let i = 1; i <= period; i++) {
+    const current = candles[candles.length - i];
+    const previous = candles[candles.length - i - 1];
+    
+    // True Rangeの計算
+    const tr = Math.max(
+      current.high - current.low,
+      Math.abs(current.high - previous.close),
+      Math.abs(current.low - previous.close)
+    );
+    
+    atrSum += tr;
+  }
+  
+  return atrSum / period;
+}
+
+/**
+ * ATRに基づくストップロス価格を計算
+ * @param price 現在価格
+ * @param atr ATR値
+ * @param multiplier 倍率（デフォルト: 2.0）
+ * @param side 取引サイド ('buy' または 'sell')
+ * @returns ストップロス価格
+ */
+export function calculateATRStopLoss(
+  price: number,
+  atr: number,
+  multiplier: number = 2.0,
+  side: 'buy' | 'sell'
+): number {
+  if (side === 'buy') {
+    return price - (atr * multiplier);
+  } else {
+    return price + (atr * multiplier);
+  }
+}

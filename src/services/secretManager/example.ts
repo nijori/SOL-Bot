@@ -5,7 +5,8 @@
  * 実際のコードでの参照用で、実行することは意図されていません。
  */
 
-import { secretManager, SecretManagerFactory, SecretManagerType } from './index.js';
+import { createSecretManager } from './index.js';
+import { SecretManagerFactory, SecretManagerType } from './SecretManagerFactory.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -14,6 +15,7 @@ import logger from '../../utils/logger.js';
 async function useDefaultSecretManager() {
   try {
     // デフォルトのシークレットマネージャーでシークレットを取得
+    const secretManager = createSecretManager();
     const apiKey = await secretManager.getSecret('exchange.api_key');
     const apiSecret = await secretManager.getSecret('exchange.api_secret');
 

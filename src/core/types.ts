@@ -126,12 +126,23 @@ export interface Account {
   dailyPnlPercentage: number;
 }
 
+/**
+ * アカウント状態の型定義
+ */
+export type AccountState = 'NORMAL' | 'MARGIN_CALL' | 'LIQUIDATION' | 'RESTRICTED';
+
+/**
+ * タイムフレーム型定義
+ */
+export type TimeFrame = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w';
+
 // 戦略の実行結果
 export interface StrategyResult {
   strategy: StrategyType;
   signals: Order[];
   timestamp: number;
   error?: string; // エラーメッセージ（オプショナル）
+  metadata?: any; // メタデータ（オプショナル）
 }
 
 // 市場分析の結果
@@ -162,6 +173,8 @@ export interface PerformanceMetrics {
  */
 export enum SystemMode {
   NORMAL = 'normal',
+  RISK_REDUCTION = 'risk_reduction',
+  STANDBY = 'standby',
   EMERGENCY = 'emergency',
   KILL_SWITCH = 'kill_switch'
 }

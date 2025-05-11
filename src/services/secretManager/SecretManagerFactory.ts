@@ -67,6 +67,23 @@ export interface SecretManagerOptions {
 }
 
 /**
+ * シークレットマネージャー設定型
+ */
+export interface SecretManagerConfig {
+  type?: string;
+  filePath?: string;
+  envPrefix?: string;
+  aws?: {
+    region?: string;
+    profile?: string;
+  };
+  gcp?: {
+    projectId?: string;
+    credentials?: any;
+  };
+}
+
+/**
  * シークレットマネージャーファクトリークラス
  */
 export class SecretManagerFactory {
@@ -158,4 +175,63 @@ export class SecretManagerFactory {
   public static resetInstance(): void {
     SecretManagerFactory.instance = undefined as unknown as SecretManagerInterface;
   }
+}
+
+/**
+ * シークレットマネージャーのインスタンスを作成する関数
+ * @param config シークレットマネージャーの設定
+ * @returns シークレットマネージャーのインスタンス
+ */
+export function createSecretManager(config?: SecretManagerConfig): SecretManagerInterface {
+  const options: SecretManagerOptions = {};
+  
+  if (config) {
+    // 種類の変換
+    if (config.type) {
+      switch (config.type.toLowerCase()) {
+        case 'file':
+          options.type = SecretManagerType.FILE;
+          break;
+        case 'env':
+          options.type = SecretManagerType.ENV;
+          break;
+        case 'aws':
+        case 'aws-parameter-store':
+          options.type = SecretManagerType.AWS_PARAMETER_STORE;
+          break;
+        case 'gcp':
+        case 'gcp-secret-manager':
+          options.type = SecretManagerType.GCP_SECRET_MANAGER;
+          break;
+      }
+    }
+    
+    // 各種設定
+    options.filePath = config.filePath;
+    options.envPrefix = config.envPrefix;
+    
+    if (config.aws) {
+      options.awsConfig = {
+        region: config.aws.region,
+        profile: config.aws.profile
+      };
+    }
+    
+    if (config.gcp) {
+      options.gcpConfig = {
+        projectId: config.gcp.projectId,
+        credentials: config.gcp.credentials
+      };
+    }
+  }
+  
+  return SecretManagerFactory.getSecretManager(options);
+}
+
+/**
+ * 利用可能なシークレットマネージャータイプを一覧する関数
+ * @returns 利用可能なシークレットマネージャーのタイプ一覧
+ */
+export function listAvailableManagers(): string[] {
+  return Object.values(SecretManagerType);
 }

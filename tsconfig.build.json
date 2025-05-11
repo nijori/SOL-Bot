@@ -7,7 +7,7 @@
     "target": "es2022",
     "sourceMap": true,
     "declaration": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"]
 }

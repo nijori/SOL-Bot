@@ -12,6 +12,7 @@ import {
   GetParameterCommandOutput,
   ParameterNotFound
 } from '@aws-sdk/client-ssm';
+import { fromIni } from '@aws-sdk/credential-providers';
 import { SecretManagerInterface } from './SecretManagerInterface.js';
 import logger from '../../utils/logger.js';
 
@@ -38,11 +39,14 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
     this.withDecryption = config.withDecryption !== undefined ? config.withDecryption : true;
 
     // SSMClientの初期化
-    this.ssmClient = new SSMClient({
-      region,
-      // プロファイルが指定されている場合は認証情報を設定
-      ...(config.profile && { credentials: { profile: config.profile } })
-    });
+    const clientConfig: any = { region };
+    
+    // プロファイルが指定されている場合は認証情報を設定
+    if (config.profile) {
+      clientConfig.credentials = fromIni({ profile: config.profile });
+    }
+    
+    this.ssmClient = new SSMClient(clientConfig);
 
     logger.info(`AWS Parameter Store接続初期化: region=${region}, pathPrefix=${this.pathPrefix}`);
   }

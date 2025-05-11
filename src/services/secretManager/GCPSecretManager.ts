@@ -8,14 +8,30 @@ import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { SecretManagerInterface } from './SecretManagerInterface.js';
 import logger from '../../utils/logger.js';
 
+/**
+ * GCP Secret Manager設定オプション
+ */
 export interface GCPSecretManagerConfig {
+  /**
+   * GCPプロジェクトID
+   */
   projectId?: string;
+
+  /**
+   * 認証情報
+   */
+  credentials?: any;
+
+  /**
+   * 認証情報ファイル名
+   */
   keyFilename?: string;
 }
 
 export class GCPSecretManager implements SecretManagerInterface {
   private client: SecretManagerServiceClient;
   private readonly projectId: string;
+  private readonly credentials: any;
 
   /**
    * コンストラクタ
@@ -23,6 +39,7 @@ export class GCPSecretManager implements SecretManagerInterface {
    */
   constructor(config: GCPSecretManagerConfig = {}) {
     this.projectId = config.projectId || process.env.GCP_PROJECT_ID || '';
+    this.credentials = config.credentials;
 
     if (!this.projectId) {
       throw new Error(

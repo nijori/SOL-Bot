@@ -273,10 +273,12 @@ export class DonchianBreakoutStrategy {
   }
 
   // 戦略実行
-  async execute(candles: Candle[]): Promise<StrategyResult> {
+  public execute(candles: Candle[]): StrategyResult {
     // テスト用にダミーの結果を返す
     return {
+      strategy: StrategyType.DONCHIAN_BREAKOUT,
       signals: [],
+      timestamp: Date.now(),
       metadata: {
         strategy: 'DonchianBreakout',
         timeframe: '1h',

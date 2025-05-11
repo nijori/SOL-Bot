@@ -321,9 +321,10 @@ function main() {
 
       // タイプ別に表示
       for (const [type, typeErrors] of Object.entries(errorsByType)) {
-        console.log(`\n【${type}】- ${typeErrors.length}件`);
+        const errors = typeErrors as any[]; // 型キャストを追加
+        console.log(`\n【${type}】- ${errors.length}件`);
 
-        typeErrors.forEach((error) => {
+        errors.forEach((error) => {
           console.log(`  • ${path.basename(error.file)}:${error.line} - ${error.message}`);
         });
       }

@@ -16,7 +16,6 @@ import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/
 import { parameterService } from '../config/parameterService.js';
 import { calculateParabolicSAR, ParabolicSARResult } from '../indicators/parabolicSAR.js';
 import { ParameterService } from '../config/parameterService.js';
-import { calculateRiskBasedPositionSize } from '../utils/positionSizing.js';
 import { calculateATR, getValidStopDistance } from '../utils/atrUtils.js';
 
 // 戦略パラメータをYAML設定から取得
@@ -46,6 +45,7 @@ const PROFIT_LOCK_THRESHOLD = parameterService.get<number>(
   'trendFollowStrategy.profitLockThreshold',
   3.0
 );
+// 利益確定の割合（PROFIT_LOCK_THRESHOLDに達した場合に確定する利益の割合）
 const PROFIT_LOCK_PERCENTAGE = parameterService.get<number>(
   'trendFollowStrategy.profitLockPercentage',
   0.5
@@ -58,21 +58,13 @@ const PROFIT_LOCK_PERCENTAGE = parameterService.get<number>(
  * @returns Donchianチャネルの上限と下限
  */
 function calculateDonchian(candles: Candle[], period: number): { upper: number; lower: number } {
-  // 必要なローソク足の数を確認
   if (candles.length < period) {
-    throw new Error(`Donchianチャネル計算には最低${period}本のローソク足が必要です`);
+    return { upper: 0, lower: 0 };
   }
 
-  // 指定期間内の最高値と最安値を計算
-  const lookbackCandles = candles.slice(-period);
-
-  let highest = -Infinity;
-  let lowest = Infinity;
-
-  for (const candle of lookbackCandles) {
-    highest = Math.max(highest, candle.high);
-    lowest = Math.min(lowest, candle.low);
-  }
+  const recentCandles = candles.slice(-period);
+  const highest = Math.max(...recentCandles.map((c) => c.high));
+  const lowest = Math.min(...recentCandles.map((c) => c.low));
 
   return {
     upper: highest,
@@ -81,53 +73,44 @@ function calculateDonchian(candles: Candle[], period: number): { upper: number; 
 }
 
 /**
- * Parabolic SARを使用したエントリーシグナルを検出する関数
+ * Parabolic SARの買いシグナルをチェック
  * @param candles ローソク足データ
- * @param currentSAR 現在のSAR値
- * @returns true: シグナル検出, false: シグナルなし
+ * @param currentSAR 現在のSAR計算結果
+ * @returns 買いシグナルならtrue
  */
 export function isSARBuySignal(candles: Candle[], currentSAR: ParabolicSARResult): boolean {
-  // データ不足チェック
-  if (candles.length < 2) return false;
+  // 最新のローソク足
+  const latestCandle = candles[candles.length - 1];
 
-  // 前回のSARステータスを計算
-  const previousCandles = candles.slice(0, -1); // 最新のキャンドルを除いた配列
-  const previousSAR = calculateParabolicSAR(previousCandles);
-
-  // トレンド転換を検出: 以前はダウントレンドで現在はアップトレンド
-  return currentSAR.isUptrend && !previousSAR.isUptrend;
+  // SARが価格より下にあり、上昇トレンドである場合は買いシグナル
+  return currentSAR.isUptrend && currentSAR.sar < latestCandle.low;
 }
 
 /**
- * Parabolic SARを使用した売りシグナルを検出する関数
+ * Parabolic SARの売りシグナルをチェック
  * @param candles ローソク足データ
- * @param currentSAR 現在のSAR値
- * @returns true: シグナル検出, false: シグナルなし
+ * @param currentSAR 現在のSAR計算結果
+ * @returns 売りシグナルならtrue
  */
 export function isSARSellSignal(candles: Candle[], currentSAR: ParabolicSARResult): boolean {
-  // データ不足チェック
-  if (candles.length < 2) return false;
+  // 最新のローソク足
+  const latestCandle = candles[candles.length - 1];
 
-  // 前回のSARステータスを計算
-  const previousCandles = candles.slice(0, -1); // 最新のキャンドルを除いた配列
-  const previousSAR = calculateParabolicSAR(previousCandles);
-
-  // トレンド転換を検出: 以前はアップトレンドで現在はダウントレンド
-  return !currentSAR.isUptrend && previousSAR.isUptrend;
+  // SARが価格より上にあり、下降トレンドである場合は売りシグナル
+  return !currentSAR.isUptrend && currentSAR.sar > latestCandle.high;
 }
 
 /**
- * ADXの計算
+ * ADXを計算する関数
  * @param candles ローソク足データ
  * @param period 期間
  * @returns ADX値
  */
 function calculateADX(candles: Candle[], period: number): number {
-  if (candles.length < period + 2) {
-    return 0; // 十分なデータがない場合は0を返す
+  if (candles.length < period * 2) {
+    return 0;
   }
 
-  // ADX計算の入力を作成
   const adxInput = {
     high: candles.map((c) => c.high),
     low: candles.map((c) => c.low),
@@ -136,11 +119,13 @@ function calculateADX(candles: Candle[], period: number): number {
   };
 
   try {
-    // ADXを計算
-    const adxResult = ADX.calculate(adxInput);
-    return adxResult[adxResult.length - 1].adx;
+    const result = ADX.calculate(adxInput);
+    if (result.length === 0) {
+      return 0;
+    }
+    return result[result.length - 1].adx;
   } catch (error) {
-    console.error('[TrendFollowStrategy] ADX計算エラー:', error);
+    console.error(`[TrendFollowStrategy] ADX計算エラー: ${error}`);
     return 0;
   }
 }
@@ -151,6 +136,7 @@ function calculateADX(candles: Candle[], period: number): number {
  * @param entryPrice エントリー価格
  * @param stopPrice ストップ価格
  * @param maxRiskPercentage 1トレードあたりの最大リスク率
+ * @param strategyName 戦略名（ログ用）
  * @returns 適切なポジションサイズ
  *
  * @deprecated 今後はOrderSizingServiceを使用する予定
@@ -159,7 +145,8 @@ function calculateRiskBasedPositionSize(
   accountBalance: number,
   entryPrice: number,
   stopPrice: number,
-  maxRiskPercentage: number = RISK_PARAMETERS.MAX_RISK_PER_TRADE
+  maxRiskPercentage: number = RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+  strategyName: string = 'Strategy'
 ): number {
   // 口座残高から使用可能なリスク額を計算
   const riskAmount = accountBalance * maxRiskPercentage;

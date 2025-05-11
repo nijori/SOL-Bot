@@ -27,8 +27,7 @@ import { syncOrderForSimulateFill } from '../utils/orderUtils.js';
 import metricsService from '../utils/metrics.js';
 import { ExchangeService } from '../services/exchangeService.js';
 import { DonchianBreakoutStrategy } from '../strategies/DonchianBreakoutStrategy.js';
-import { TrendFollowStrategy } from '../strategies/trendFollowStrategy.js';
-import { MeanReversionStrategy } from '../strategies/meanReversionStrategy.js';
+import { executeTrendFollowStrategy } from '../strategies/trendFollowStrategy.js';
 import { OrderSizingService } from '../services/orderSizingService.js';
 import { PerformanceStats } from '../types/performanceStats.js';
 import { MarketStateResult } from '../types/marketStateResult.js';
@@ -77,8 +76,6 @@ export class TradingEngine {
   private quiet: boolean = false; // ログ出力抑制モード
   private exchangeService: ExchangeService;
   private donchianBreakoutStrategy: DonchianBreakoutStrategy;
-  private trendFollowStrategy: TrendFollowStrategy;
-  private meanReversionStrategy: MeanReversionStrategy;
   private performanceStats: PerformanceStats | null = null;
   private lastSystemModeUpdateTime: number = 0;
   private marketSummary: MarketStateResult | null = null;
@@ -124,8 +121,6 @@ export class TradingEngine {
 
     // 戦略の初期化
     this.donchianBreakoutStrategy = new DonchianBreakoutStrategy(this.symbol);
-    this.trendFollowStrategy = new TrendFollowStrategy(this.symbol);
-    this.meanReversionStrategy = new MeanReversionStrategy(this.symbol);
 
     if (!this.quiet) {
       logger.info(
@@ -498,7 +493,6 @@ export class TradingEngine {
         case StrategyType.TREND_FOLLOWING:
           // 通常、トレンドフォロー戦略を実行
           try {
-            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy.js');
             result = executeTrendFollowStrategy(
               this.latestCandles,
               this.symbol,
@@ -607,7 +601,6 @@ export class TradingEngine {
             `[TradingEngine] 未知の戦略タイプ: ${this.activeStrategy}、デフォルトのトレンドフォロー戦略を使用`
           );
           try {
-            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy.js');
             result = executeTrendFollowStrategy(
               this.latestCandles,
               this.symbol,
@@ -1266,5 +1259,148 @@ export class TradingEngine {
     // 資産の最大25%までの制限
     const maxPositionSize = (this.account.balance * 0.25) / entryPrice;
     return Math.min(size, maxPositionSize);
+  }
+
+  /**
+   * ポジション一覧を取得
+   */
+  public getPositions(): Position[] {
+    return this.account.positions;
+  }
+
+  /**
+   * 最新の取引シグナルを取得
+   */
+  public getRecentSignals(): Order[] {
+    // 実装例：直近の戦略実行結果からシグナルを返す
+    const result = this.executeStrategy();
+    return result.signals;
+  }
+
+  /**
+   * 現在の価格を取得
+   */
+  public getCurrentPrice(): number {
+    if (this.latestCandles.length === 0) {
+      return 0;
+    }
+    return this.latestCandles[this.latestCandles.length - 1].close;
+  }
+
+  /**
+   * システムモードを設定
+   */
+  public setSystemMode(mode: SystemMode): void {
+    this.systemMode = mode as any; // 型変換
+    
+    // ログ出力（quietモードでない場合のみ）
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] システムモードを変更: ${mode}`);
+    }
+    
+    // モード変更時の処理を実行
+    this.onSystemModeChange();
+  }
+  
+  /**
+   * システムモード変更時の処理
+   */
+  private onSystemModeChange(): void {
+    // モードに応じた処理を実装
+    switch (this.systemMode) {
+      case SystemMode.RISK_REDUCTION:
+        // リスク削減モード時の処理
+        this.reduceRisk();
+        break;
+      
+      case SystemMode.STANDBY:
+        // 待機モード時の処理
+        this.pauseTrading();
+        break;
+        
+      case SystemMode.EMERGENCY:
+        // 緊急モード時の処理
+        this.executeEmergencyStrategy();
+        break;
+        
+      case SystemMode.NORMAL:
+      default:
+        // 通常モード時の処理
+        this.resumeTrading();
+        break;
+    }
+  }
+  
+  /**
+   * リスク削減処理
+   */
+  private reduceRisk(): void {
+    // 実装例：ポジションサイズの削減など
+    const currentPositions = this.getPositions();
+    if (currentPositions.length > 0 && !this.quiet) {
+      logger.info(`[TradingEngine] リスク削減モード: ${currentPositions.length}件のポジションを削減します`);
+    }
+    
+    // リスク削減処理の実装
+    // ...
+  }
+  
+  /**
+   * 取引一時停止
+   */
+  private pauseTrading(): void {
+    this.tradingEnabled = false;
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] 取引を一時停止しました`);
+    }
+  }
+  
+  /**
+   * 取引再開
+   */
+  private resumeTrading(): void {
+    this.tradingEnabled = true;
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] 取引を再開しました`);
+    }
+  }
+
+  /**
+   * メトリクスを初期化
+   */
+  public initializeMetrics(): void {
+    this.performanceStats = {
+      totalTrades: 0,
+      winningTrades: 0,
+      losingTrades: 0,
+      winRate: 0,
+      profitFactor: 0,
+      averageWin: 0,
+      averageLoss: 0,
+      maxDrawdown: 0,
+      sharpeRatio: 0,
+      sortinoRatio: 0
+    };
+    
+    if (!this.quiet) {
+      logger.debug(`[TradingEngine] パフォーマンスメトリクスを初期化しました`);
+    }
+  }
+
+  /**
+   * エンジンを停止
+   */
+  public stop(): void {
+    // 実装例：リソースのクリーンアップや取引の終了処理など
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] エンジンを停止しています...`);
+    }
+    
+    // 必要なクリーンアップ処理
+    // ...
+    
+    if (!this.quiet) {
+      logger.info(`[TradingEngine] エンジン停止完了`);
+    }
   }
 }

@@ -5,18 +5,20 @@
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
  */
 
-import { TradingEngine, TradingEngineOptions } from './tradingEngine.js';
-import {
-  MultiSymbolEngineConfig,
-  AllocationStrategy,
-  PortfolioRiskAnalysis
-} from '../types/multiSymbolTypes.js';
-import { Candle, Position, Order, OrderSide, OrderType, SystemMode, RiskLevel } from './types.js';
-import logger from '../utils/logger.js';
-import { OrderManagementSystem } from './orderManagementSystem.js';
+import { TradingEngine } from './tradingEngine.js';
 import { UnifiedOrderManager } from '../services/UnifiedOrderManager.js';
 import { ExchangeService } from '../services/exchangeService.js';
 import { OrderSizingService } from '../services/orderSizingService.js';
+import { SymbolInfoService } from '../services/symbolInfoService.js';
+import {
+  MultiSymbolEngineConfig,
+  PortfolioRiskAnalysis,
+  AllocationStrategy
+} from '../types/multiSymbolTypes.js';
+import { Candle, Order, OrderSide, Position, SystemMode as CoreSystemMode } from './types.js';
+import { ITradingEngine, SystemMode, TradingEngineOptions } from '../types/tradingEngineTypes.js';
+import logger from '../utils/logger.js';
+import { OrderManagementSystem } from './orderManagementSystem.js';
 import { calculatePearsonCorrelation } from '../utils/mathUtils.js';
 import { volBasedAllocationWeights } from '../indicators/marketState.js';
 
@@ -36,7 +38,7 @@ export class MultiSymbolTradingEngine {
   private unifiedOrderManager: UnifiedOrderManager | null = null;
   private isBacktest: boolean = false;
   private quietMode: boolean = false;
-  private systemMode: SystemMode = SystemMode.NORMAL;
+  private systemMode: CoreSystemMode = CoreSystemMode.NORMAL;
   private previousCandles: Record<string, Candle[]> = {};
   private equityHistory: { timestamp: number; total: number; bySymbol: Record<string, number> }[] =
     [];
@@ -210,7 +212,7 @@ export class MultiSymbolTradingEngine {
         isSmokeTest: symbolParams.isSmokeTest,
         quiet: true, // 個別ログは抑制（全体ログのみ表示）
         exchangeService: new ExchangeService(), // 実際の実装では適切なExchangeServiceを設定
-        orderSizingService: new OrderSizingService() // 実際の実装では適切なOrderSizingServiceを設定
+        orderSizingService: new OrderSizingService(new ExchangeService()) // ExchangeServiceを渡す
       };
 
       // エンジンを作成して保存
@@ -632,28 +634,32 @@ export class MultiSymbolTradingEngine {
   /**
    * エクイティ履歴を更新
    */
-  private updateEquityHistory(timestamp: number): void {
-    const symbolEquity: Record<string, number> = {};
+  private updateEquityHistory(timestamp: number | string): void {
+    // タイムスタンプを数値に変換
+    const numericTimestamp = typeof timestamp === 'string' 
+      ? new Date(timestamp).getTime() 
+      : timestamp;
+    
+    const equityBySymbol: Record<string, number> = {};
     let totalEquity = 0;
 
-    // 各シンボルのエクイティを計算
+    // 各シンボルのエクイティを取得
     for (const [symbol, engine] of this.engines.entries()) {
-      const equity = engine.getEquity?.() || 0;
-      symbolEquity[symbol] = equity;
+      const equity = engine.getEquity();
+      equityBySymbol[symbol] = equity;
       totalEquity += equity;
     }
 
-    // ポートフォリオエクイティを更新
     this.portfolioEquity = totalEquity;
 
-    // エクイティ履歴に追加
+    // 履歴に追加
     this.equityHistory.push({
-      timestamp,
+      timestamp: numericTimestamp,
       total: totalEquity,
-      bySymbol: { ...symbolEquity }
+      bySymbol: equityBySymbol
     });
 
-    // 履歴サイズを制限（最大1000ポイント）
+    // 履歴が長すぎる場合は古いものを削除
     if (this.equityHistory.length > 1000) {
       this.equityHistory.shift();
     }
@@ -694,26 +700,24 @@ export class MultiSymbolTradingEngine {
   /**
    * 全体システムモードを取得
    */
-  public getSystemMode(): SystemMode {
+  public getSystemMode(): CoreSystemMode {
     return this.systemMode;
   }
 
   /**
-   * 全体システムモードを設定
+   * システムモードを設定
    */
-  public setSystemMode(mode: SystemMode): void {
+  public setSystemMode(mode: CoreSystemMode): void {
     this.systemMode = mode;
-
-    // 各エンジンにシステムモードを伝播
+    
+    // 各エンジンにもモードを伝播
     for (const engine of this.engines.values()) {
-      if (engine['setSystemMode']) {
-        // privateメソッドにアクセス
-        engine['setSystemMode'](mode);
-      }
+      // CoreSystemModeからStringに変換して渡す
+      engine.setSystemMode(mode);
     }
 
     if (!this.quietMode) {
-      logger.info(`[MultiSymbolTradingEngine] システムモードを変更: ${mode}`);
+      logger.info(`[MultiSymbolTradingEngine] システムモードを変更しました: ${mode}`);
     }
   }
 

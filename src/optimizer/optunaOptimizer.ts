@@ -41,7 +41,7 @@ export class OptunaOptimizer {
     console.log(`[OptunaOptimizer] 評価指標: ${this.config.metric}`);
 
     // Optunaの学習を作成
-    this.study = await optuna.create_study({
+    this.study = optuna.Study.create({
       direction: this.isMinimizationMetric() ? 'minimize' : 'maximize',
       study_name: `${this.config.symbol}_${this.config.metric}`
     });
@@ -52,25 +52,26 @@ export class OptunaOptimizer {
     });
 
     // 最高のトライアルを取得
-    const bestTrial = this.study.best_trial;
+    const bestTrial = this.study.best_params;
+    const bestValue = this.study.best_value;
 
     // 全トライアルの結果を取得
     const allTrials = this.study.trials.map((trial) => ({
       parameters: trial.params,
-      value: trial.value
+      value: trial.value || 0 // 値が未定義の場合は0をデフォルト値とする
     }));
 
     const result: OptimizationResult = {
-      bestParameters: bestTrial.params,
-      bestValue: bestTrial.value,
+      bestParameters: bestTrial,
+      bestValue: bestValue,
       allTrials
     };
 
     // 結果をYAMLファイルに保存
     this.saveResultsToYaml(result);
 
-    console.log(`[OptunaOptimizer] 最適化完了: 最良値 = ${bestTrial.value}`);
-    console.log(`[OptunaOptimizer] 最適パラメータ:`, bestTrial.params);
+    console.log(`[OptunaOptimizer] 最適化完了: 最良値 = ${bestValue}`);
+    console.log(`[OptunaOptimizer] 最適パラメータ:`, bestTrial);
 
     return result;
   }
@@ -82,8 +83,7 @@ export class OptunaOptimizer {
   private async objectiveFunction(trial: optuna.Trial): Promise<number> {
     // トライアルからパラメータを生成
     const params = this.createTrialParameters(trial);
-    console.log(`[OptunaOptimizer] トライアル ${trial.number} パラメータ:`, params);
-
+    
     try {
       // バックテストを実行して評価指標を取得
       const backtestRunner = new BacktestRunner({
@@ -128,10 +128,9 @@ export class OptunaOptimizer {
           metricValue = results.metrics.sharpeRatio;
       }
 
-      console.log(`[OptunaOptimizer] トライアル ${trial.number} 評価: ${metricValue}`);
       return metricValue;
     } catch (error) {
-      console.error(`[OptunaOptimizer] トライアル ${trial.number} エラー:`, error);
+      console.error(`[OptunaOptimizer] エラー:`, error);
       // エラー時は不適な値を返す
       return this.isMinimizationMetric() ? 9999 : -9999;
     }
@@ -147,10 +146,14 @@ export class OptunaOptimizer {
     Object.entries(this.config.parameterSpace).forEach(([key, def]) => {
       switch (def.type) {
         case ParameterType.FLOAT:
-          params[key] = trial.suggest_float(key, def.min, def.max, { step: def.step });
+          if (def.step) {
+            params[key] = trial.suggest_float(key, def.min, def.max, def.step);
+          } else {
+            params[key] = trial.suggest_float(key, def.min, def.max);
+          }
           break;
         case ParameterType.INTEGER:
-          params[key] = trial.suggest_int(key, def.min, def.max, def.step || 1);
+          params[key] = trial.suggest_int(key, def.min, def.max);
           break;
         case ParameterType.CATEGORICAL:
           params[key] = trial.suggest_categorical(key, def.choices);

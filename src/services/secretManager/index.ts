@@ -1,47 +1,21 @@
 /**
- * シークレットマネージャーモジュール
- *
- * API Key、秘密鍵などの機密情報を安全に管理するためのインターフェースを提供します。
- * 複数のバックエンド（ファイル、環境変数、AWS Parameter Store、GCP Secret Manager）に対応しています。
- */
-
-/**
- * シークレットマネージャーの集約インターフェース
- * シークレットの取得・保存方法を抽象化
+ * Secret Manager Module
  * 
- * SEC-001: シークレット管理基盤
+ * シークレット管理のための中央モジュール
+ * 環境に応じた適切なSecretManagerの実装を提供
  */
 
-// インターフェース
-export { SecretManagerInterface } from './SecretManagerInterface.js';
-
-// 実装クラス
+// 削除: 存在しないファイルへの参照を外します
+// 他のマネージャーは実態のあるファイルからインポート
 export { FileSecretManager } from './FileSecretManager.js';
-export { EnvSecretManager } from './EnvSecretManager.js';
+export { EnvSecretManager }  from './EnvSecretManager.js';
 export { AWSParameterStoreManager } from './AWSParameterStoreManager.js';
+export { GCPSecretManager }      from './GCPSecretManager.js';
+// SecretManagerFactory のエクスポートを整理
+export { createSecretManager, listAvailableManagers } from './SecretManagerFactory.js';
+
+// 型の再エクスポートはexport typeで統一
 export type { AWSParameterStoreConfig } from './AWSParameterStoreManager.js';
-export { GCPSecretManager } from './GCPSecretManager.js';
 export type { GCPSecretManagerConfig } from './GCPSecretManager.js';
-
-// ファクトリー
-export { SecretManagerFactory } from './SecretManagerFactory.js';
-export { SecretManagerType } from './SecretManagerFactory.js';
-export type { SecretManagerOptions } from './SecretManagerFactory.js';
-
-// ファクトリー関数をエクスポート
-export {
-  createSecretManager,
-  listAvailableManagers,
-  SecretManagerConfig
-} from './SecretManagerFactory.js';
-
-// デフォルトエクスポート - 簡単アクセス用のファクトリーインスタンス
-import { SecretManagerFactory } from './SecretManagerFactory.js';
-
-/**
- * デフォルトのシークレットマネージャーインスタンスを取得
- */
-export const secretManager = SecretManagerFactory.getSecretManager();
-
-// デフォルトエクスポート
-export default secretManager;
+export type { SecretManagerConfig } from './SecretManagerFactory.js';
+export type { SecretManagerInterface } from './SecretManagerInterface.js';

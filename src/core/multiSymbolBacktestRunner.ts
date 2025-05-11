@@ -21,6 +21,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import pLimit from 'p-limit';
 import { volBasedAllocationWeights } from '../indicators/marketState.js';
+import { ExtendedBacktestResult, toExtendedBacktestResult } from '../types/extendedBacktestTypes.js';
 
 /**
  * マルチシンボルバックテスト実行クラス
@@ -48,12 +49,7 @@ export class MultiSymbolBacktestRunner {
       this.memoryMonitor.startMonitoring();
     }
 
-    // 資金配分戦略の処理
-    this.calculateAllocationWeights();
-
-    // 各シンボル用のバックテストランナーを初期化
-    this.initializeSymbolRunners();
-
+    // 注意: 初期化はinitializeメソッドで実行
     if (!config.quiet) {
       logger.info(
         `[MultiSymbolBacktestRunner] ${config.symbols.length}個のシンボルで初期化しました`
@@ -68,9 +64,20 @@ export class MultiSymbolBacktestRunner {
   }
 
   /**
+   * 非同期初期化処理
+   */
+  async initialize(): Promise<void> {
+    // 資金配分戦略の処理
+    await this.calculateAllocationWeights();
+
+    // 各シンボル用のバックテストランナーを初期化
+    this.initializeSymbolRunners();
+  }
+
+  /**
    * 資金配分比率を計算
    */
-  private calculateAllocationWeights(): void {
+  private async calculateAllocationWeights(): Promise<void> {
     const strategy = this.config.allocationStrategy || AllocationStrategy.EQUAL;
     const symbols = this.config.symbols;
 
@@ -262,6 +269,9 @@ export class MultiSymbolBacktestRunner {
    * マルチシンボルバックテストを実行
    */
   async run(): Promise<MultiSymbolBacktestResult> {
+    // 初期化を実行
+    await this.initialize();
+    
     // 処理時間計測開始
     const startTime = Date.now();
 
@@ -278,7 +288,7 @@ export class MultiSymbolBacktestRunner {
 
     try {
       // 各シンボルのバックテスト結果を格納するオブジェクト
-      const symbolResults: Record<string, BacktestResult> = {};
+      const symbolResults: Record<string, ExtendedBacktestResult> = {};
       let totalEquity = 0;
       const allEquityPoints = new Map<number, Record<string, number>>();
 
@@ -299,7 +309,12 @@ export class MultiSymbolBacktestRunner {
           const symbolStartTime = Date.now();
 
           // バックテスト実行
-          const result = await runner.run();
+          const originalResult = await runner.run();
+          
+          // 拡張結果に変換
+          // 各シンボルの初期残高を計算（allocationWeightsから取得）
+          const symbolInitialBalance = this.config.initialBalance * this.allocationWeights[symbol];
+          const result = toExtendedBacktestResult(originalResult, symbolInitialBalance);
 
           // シンボルごとの実行時間
           const symbolDuration = Date.now() - symbolStartTime;
@@ -445,7 +460,7 @@ export class MultiSymbolBacktestRunner {
    * バックテスト結果をファイルに保存
    */
   private async saveResultsToFile(
-    symbolResults: Record<string, BacktestResult>,
+    symbolResults: Record<string, ExtendedBacktestResult>,
     combinedMetrics: any,
     executionStats: any
   ): Promise<void> {
@@ -487,7 +502,7 @@ export class MultiSymbolBacktestRunner {
   /**
    * 複数シンボルのパフォーマンス指標を結合計算
    */
-  private calculateCombinedMetrics(symbolResults: Record<string, BacktestResult>): any {
+  private calculateCombinedMetrics(symbolResults: Record<string, ExtendedBacktestResult>): any {
     // 各シンボルのメトリクスを集計
     const totalTrades = Object.values(symbolResults).reduce(
       (sum, result) => sum + result.trades.length,
@@ -552,7 +567,7 @@ export class MultiSymbolBacktestRunner {
    * シンボル間のリターン相関行列を計算
    */
   private calculateCorrelationMatrix(
-    symbolResults: Record<string, BacktestResult>
+    symbolResults: Record<string, ExtendedBacktestResult>
   ): Record<string, Record<string, number>> {
     const symbols = Object.keys(symbolResults);
     const correlationMatrix: Record<string, Record<string, number>> = {};
@@ -580,20 +595,22 @@ export class MultiSymbolBacktestRunner {
   }
 
   /**
-   * エクイティ履歴からリターン系列を計算
+   * リターン配列を計算
    */
   private calculateReturns(
-    equityHistory: { timestamp: number | string; equity: number }[]
+    equityHistory: number[] | { timestamp: number | string; equity: number }[]
   ): number[] {
+    // 入力がnumber[]の場合と、オブジェクト配列の場合で処理を分ける
+    const equityValues = Array.isArray(equityHistory) && typeof equityHistory[0] === 'number'
+      ? equityHistory as number[]
+      : (equityHistory as { timestamp: number | string; equity: number }[]).map(point => point.equity);
+    
+    // リターン計算 (日次変化率)
     const returns: number[] = [];
-
-    for (let i = 1; i < equityHistory.length; i++) {
-      const prevEquity = equityHistory[i - 1].equity;
-      const currentEquity = equityHistory[i].equity;
-      const returnValue = (currentEquity - prevEquity) / prevEquity;
-      returns.push(returnValue);
+    for (let i = 1; i < equityValues.length; i++) {
+      const dailyReturn = (equityValues[i] - equityValues[i - 1]) / equityValues[i - 1];
+      returns.push(dailyReturn);
     }
-
     return returns;
   }
 
@@ -764,7 +781,7 @@ export class MultiSymbolBacktestRunner {
     }
 
     // パラメータサービスからパラメータを取得
-    const parameters = parameterService.getParameters();
+    const parameters = parameterService.getAllParameters();
     config.parameters = parameters;
 
     // マルチシンボルバックテストを実行

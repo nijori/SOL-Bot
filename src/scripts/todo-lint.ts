@@ -34,7 +34,7 @@
 import * as path from 'path';
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { validateTodoFiles, ValidationError, ValidationErrorType } from '../utils/todoValidator.js.js';
+import { validateTodoFiles, ValidationError, ValidationErrorType } from '../utils/todoValidator.js';
 // loggerのインポートを削除し、代わりにconsole.logを使用
 // import logger from '../utils/logger.js.js';
 import { fileURLToPath } from 'url';
