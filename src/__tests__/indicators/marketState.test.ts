@@ -266,7 +266,7 @@ describe('MarketState Indicators', () => {
       const candles = createMockCandles(200, 1000, 'range');
 
       // 元のパラメータを保存
-      const originalModule = require('../../config/parameters');
+      const originalModule = require('../../config/parameters.js');
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {

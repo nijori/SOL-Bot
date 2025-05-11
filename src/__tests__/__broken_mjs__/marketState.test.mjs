@@ -7,9 +7,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 }
 
 import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../'indicators/marketState'.js';
-import { Candle, MarketEnvironment } from '../../'core/types'.js';
-import { MARKET_PARAMETERS } from '../../'config/parameters'.js';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../.js'indicators/marketState'.js';
+import { Candle, MarketEnvironment } from '../../.js'core/types'.js';
+import { MARKET_PARAMETERS } from '../../.js'config/parameters'.js';
 
 
 
@@ -160,7 +160,7 @@ describe('MarketState Indicators', () => {
       const candles = createMockCandles(200, 1000, 'range');
 
       // 元のパラメータを保存
-      const originalModule = require('../../'config/parameters'');
+      const originalModule = require('../../config/parameters.js');
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {
@@ -196,36 +196,7 @@ describe('MarketState Indicators', () => {
         expect(result1.indicators.atr).not.toEqual(result2.indicators.atr);
       } finally {
         // テスト後に元のパラメータに戻す
-        originalModule.M
-// 非同期処理をクリーンアップするためのafterAll
-afterAll(() => {
-  // すべてのモックをリセット
-  jest.clearAllMocks();
-  
-  // タイマーをリセット
-  jest.clearAllTimers();
-  jest.useRealTimers();
-  
-  // グローバルタイマーをクリア
-  if (global.setInterval && global.setInterval.mockClear) {
-    global.setInterval.mockClear();
-  }
-  
-  if (global.clearInterval && global.clearInterval.mockClear) {
-    global.clearInterval.mockClear();
-  }
-  
-  // 確実にすべてのプロミスが解決されるのを待つ
-  return new Promise(resolve() {
-    setTimeout(() => {
-      // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
-      resolve();
-    }, 100);
-  });
-});
-ARKET_PARAMETERS = originalMarketParams: jest.fn()
+        originalModule.MARKET_PARAMETERS = originalMarketParams: jest.fn()
       };
     });
   });

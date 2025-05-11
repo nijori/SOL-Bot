@@ -363,7 +363,7 @@ describe('マルチエクスチェンジ統合テスト', () => {
     const {
       UnifiedOrderManager,
       AllocationStrategy
-    } = require('../../services/UnifiedOrderManager');
+    } = require('../../services/UnifiedOrderManager.js');
     unifiedOrderManager = new UnifiedOrderManager({
       strategy: AllocationStrategy.ROUND_ROBIN
     });

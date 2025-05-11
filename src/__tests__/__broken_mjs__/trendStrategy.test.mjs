@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { executeTrendStrategy } from '../../'strategies/trendStrategy'.js';
-import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../'core/types'.js';
+import { executeTrendStrategy } from '../../.js'strategies/trendStrategy'.js';
+import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../.js'core/types'.js';
 
 
 

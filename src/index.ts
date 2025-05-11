@@ -26,7 +26,7 @@ const isCliMode = process.argv.length > 2;
 
 // CLIモードの場合はCLIを実行
 if (isCliMode) {
-  import('./scripts/cli').then((cli) => {
+  import('./scripts/cli.js').then((cli) => {
     // CLIモジュールをロードして実行する
     logger.info('CLIモードで実行しています');
   });

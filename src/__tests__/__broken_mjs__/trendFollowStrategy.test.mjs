@@ -6,10 +6,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { Candle, OrderSide, Position } from '../../'core/types'.js';
+import { Candle, OrderSide, Position } from '../../.js'core/types'.js';
 import */../'strategies/trendFollowStrategy'.js';
-import { calculateParabolicSAR, ParabolicSARResult } from '../../'indicators/parabolicSAR'.js';
-import { calculateATR", getValidStopDistance } from '../../'utils/atrUtils'.js';
+import { calculateParabolicSAR, ParabolicSARResult } from '../../.js'indicators/parabolicSAR'.js';
+import { calculateATR", getValidStopDistance } from '../../.js'utils/atrUtils'.js';
 
 
 

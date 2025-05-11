@@ -12,10 +12,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolBacktestRunner } from '../../'core/multiSymbolBacktestRunner'.js';
-import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../'types/multiSymbolTypes'.js';
-import { BacktestRunner } from '../../'core/backtestRunner'.js';
-import { Candle } from '../../'core/types'.js';
+import { MultiSymbolBacktestRunner } from '../../.js'core/multiSymbolBacktestRunner'.js';
+import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../.js'types/multiSymbolTypes'.js';
+import { BacktestRunner } from '../../.js'core/backtestRunner'.js';
+import { Candle } from '../../.js'core/types'.js';
 
 /**
  * MultiSymbolBacktestRunnerのテスト

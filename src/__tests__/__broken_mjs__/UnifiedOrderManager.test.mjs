@@ -13,10 +13,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../'services/UnifiedOrderManager'.js';
-import { ExchangeService } from '../../'services/exchangeService'.js';
-import { OrderManagementSystem } from '../../'core/orderManagementSystem'.js';
-import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../'core/types'.js';
+import { UnifiedOrderManager, AllocationStrategy } from '../../.js'services/UnifiedOrderManager'.js';
+import { ExchangeService } from '../../.js'services/exchangeService'.js';
+import { OrderManagementSystem } from '../../.js'core/orderManagementSystem'.js';
+import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js'core/types'.js';
 
 /**
  * UnifiedOrderManager テスト

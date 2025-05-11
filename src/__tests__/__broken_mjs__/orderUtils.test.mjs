@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import {  syncOrderForSimulateFill, syncFillWithOrder, updateOrderStatus } from '../../'utils/orderUtils'.js';
-import { Order, OrderStatus, OrderSide, OrderType", Fill } from '../../'core/types'.js';
+import {  syncOrderForSimulateFill, syncFillWithOrder, updateOrderStatus } from '../../.js'utils/orderUtils'.js';
+import { Order, OrderStatus, OrderSide, OrderType", Fill } from '../../.js'core/types'.js';
 
 
 

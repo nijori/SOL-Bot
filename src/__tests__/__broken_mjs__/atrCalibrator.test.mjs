@@ -1,3 +1,9 @@
+/**
+ * Test file for ATR Calibrator
+ * 
+ * このファイルは壊れたMJSファイルからの修復プロセス中です
+ */
+
 // ESM環境向けに変換されたテストファイル
 import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
 
@@ -6,9 +12,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { ATRCalibrator, CalibrationResult", atrCalibrator } from '../../'utils/atrCalibrator'.js';
-import { Candle } from '../../'core/types'.js';
-import { parameterService } from '../../'config/parameterService'.js';
+import { ATRCalibrator, CalibrationResult", atrCalibrator } from '../../.js'utils/atrCalibrator'.js';
+import { Candle } from '../../.js'core/types'.js';
+import { parameterService } from '../../.js'config/parameterService'.js';
 
 
 
@@ -164,7 +170,7 @@ describe('ATRCalibrator', () => {
   describe('ボラティリティプロファイル', () => {
     test('低ボラティリティ(LOW)の分類', () => {
       // ATR値をモックで調整
-      require('../../'utils/atrUtils'').calculateATR.mockImplementationOnce(() => 1); // 100ドルの1%
+      require('../../utils/atrUtils.js').calculateATR.mockImplementationOnce(() => 1); // 100ドルの1%
       
       const symbol = ''USDC/USDT'';
       const candles = createMockCandles(50, 100);
@@ -181,7 +187,7 @@ describe('ATRCalibrator', () => {
     
     test('中ボラティリティ(MEDIUM)の分類', () => {
       // ATR値をモックで調整
-      require('../../'utils/atrUtils'').calculateATR.mockImplementationOnce(() => 3); // 100ドルの3%
+      require('../../utils/atrUtils.js').calculateATR.mockImplementationOnce(() => 3); // 100ドルの3%
       
       const symbol = ''BTC/USDT'';
       const candles = createMockCandles(50, 100);
@@ -198,7 +204,7 @@ describe('ATRCalibrator', () => {
     
     test('高ボラティリティ(HIGH)の分類', () => {
       // ATR値をモックで調整
-      require('../../'utils/atrUtils'').calculateATR.mockImplementationOnce(() => 7); // 100ドルの7%
+      require('../../utils/atrUtils.js').calculateATR.mockImplementationOnce(() => 7); // 100ドルの7%
       
       const symbol = ''DOGE/USDT'';
       const candles = createMockCandles(50, 100);
@@ -215,7 +221,7 @@ describe('ATRCalibrator', () => {
     
     test('極高ボラティリティ(EXTREME)の分類', () => {
       // ATR値をモックで調整
-      require('../../'utils/atrUtils'').calculateATR.mockImplementationOnce(() => 15); // 100ドルの15%
+      require('../../utils/atrUtils.js').calculateATR.mockImplementationOnce(() => 15); // 100ドルの15%
       
       const symbol = ''SHIB/USDT'';
       const candles = createMockCandles(50, 100);
@@ -237,7 +243,7 @@ describe('ATRCalibrator', () => {
       const candles = createMockCandles(50, 0.5);
       
       // スパイを最初に設定
-      const calculateATRSpy = jest.spyOn(require('../../'utils/atrUtils''), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils.js'), 'calculateATR');
       calculateATRSpy.mockClear(); // スパイをクリア
       
       // 1回目のキャリブレーション
@@ -278,7 +284,7 @@ describe('ATRCalibrator', () => {
       calibrator.calibrateATR(symbol", candles);
       
       // キャッシュからの取得をモニターするためのスパイ
-      const calculateATRSpy = jest.spyOn(require('../../'utils/atrUtils''), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils.js'), 'calculateATR');
       
       // TTL期限切れを待ってからテスト
       setTimeout(() => {

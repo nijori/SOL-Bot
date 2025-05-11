@@ -11,9 +11,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { OrderSizingService } from '../../'services/orderSizingService'.js';
-import { ExchangeService } from '../../'services/exchangeService'.js';
-import { SymbolInfoService, SymbolInfo } from '../../'services/symbolInfoService'.js';
+import { OrderSizingService } from '../../.js'services/orderSizingService'.js';
+import { ExchangeService } from '../../.js'services/exchangeService'.js';
+import { SymbolInfoService, SymbolInfo } from '../../.js'services/symbolInfoService'.js';
 
 /**
  * OrderSizingServiceのテスト

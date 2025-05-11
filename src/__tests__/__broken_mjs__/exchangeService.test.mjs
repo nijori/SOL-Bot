@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { ExchangeService } from '../../'services/exchangeService'.js';
-import { OrderSide, OrderType } from '../../'core/types'.js';
+import { ExchangeService } from '../../.js'services/exchangeService'.js';
+import { OrderSide, OrderType } from '../../.js'core/types'.js';
 
 
 

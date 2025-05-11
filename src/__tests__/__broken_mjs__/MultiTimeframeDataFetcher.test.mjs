@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiTimeframeDataFetcher", Timeframe } from '../../'data/MultiTimeframeDataFetcher'.js';
-import { ParquetDataStore } from '../../'data/parquetDataStore'.js';
+import { MultiTimeframeDataFetcher", Timeframe } from '../../.js'data/MultiTimeframeDataFetcher'.js';
+import { ParquetDataStore } from '../../.js'data/parquetDataStore'.js';
 import ccxt from 'ccxt';
 
 

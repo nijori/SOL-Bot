@@ -12,11 +12,11 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolTradingEngine } from '../../'core/multiSymbolTradingEngine'.js';
-import { TradingEngine } from '../../'core/tradingEngine'.js';
-import { UnifiedOrderManager } from '../../'services/UnifiedOrderManager'.js';
-import { AllocationStrategy } from '../../'types/multiSymbolTypes'.js';
-import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../'core/types'.js';
+import { MultiSymbolTradingEngine } from '../../.js'core/multiSymbolTradingEngine'.js';
+import { TradingEngine } from '../../.js'core/tradingEngine'.js';
+import { UnifiedOrderManager } from '../../.js'services/UnifiedOrderManager'.js';
+import { AllocationStrategy } from '../../.js'types/multiSymbolTypes'.js';
+import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../.js'core/types'.js';
 
 /**
  * MultiSymbolTradingEngineのテスト

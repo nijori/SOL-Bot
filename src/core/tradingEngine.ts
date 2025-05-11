@@ -498,7 +498,7 @@ export class TradingEngine {
         case StrategyType.TREND_FOLLOWING:
           // 通常、トレンドフォロー戦略を実行
           try {
-            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy');
+            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy.js');
             result = executeTrendFollowStrategy(
               this.latestCandles,
               this.symbol,
@@ -524,7 +524,7 @@ export class TradingEngine {
         case StrategyType.RANGE_TRADING:
           // レンジ相場用の戦略を実行
           try {
-            const { executeRangeStrategy } = require('../strategies/rangeStrategy');
+            const { executeRangeStrategy } = require('../strategies/rangeStrategy.js');
             result = executeRangeStrategy(this.latestCandles, this.symbol, positions);
             logger.info(
               `[TradingEngine] レンジ戦略を実行: ${result.signals.length}件のシグナル生成`
@@ -545,7 +545,7 @@ export class TradingEngine {
         case StrategyType.MEAN_REVERT:
           // ミーンリバース戦略を実行
           try {
-            const { executeMeanRevertStrategy } = require('../strategies/meanRevertStrategy');
+            const { executeMeanRevertStrategy } = require('../strategies/meanRevertStrategy.js');
             result = executeMeanRevertStrategy(
               this.latestCandles,
               this.symbol,
@@ -573,7 +573,7 @@ export class TradingEngine {
           try {
             const {
               executeDonchianBreakoutStrategy
-            } = require('../strategies/DonchianBreakoutStrategy');
+            } = require('../strategies/DonchianBreakoutStrategy.js');
             result = executeDonchianBreakoutStrategy(
               this.latestCandles,
               this.symbol,
@@ -607,7 +607,7 @@ export class TradingEngine {
             `[TradingEngine] 未知の戦略タイプ: ${this.activeStrategy}、デフォルトのトレンドフォロー戦略を使用`
           );
           try {
-            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy');
+            const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy.js');
             result = executeTrendFollowStrategy(
               this.latestCandles,
               this.symbol,

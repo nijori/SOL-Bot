@@ -10,7 +10,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { ParameterService, parameterService, IParameterService, createMockParameterService, applyParameters } from '../../'config/parameterService'.js';
+import { ParameterService, parameterService, IParameterService, createMockParameterService, applyParameters } from '../../.js'config/parameterService'.js';
 import fs from 'fs';
 import path from 'path';
 

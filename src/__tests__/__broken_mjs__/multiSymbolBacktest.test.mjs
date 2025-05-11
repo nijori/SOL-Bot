@@ -19,12 +19,12 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { BacktestConfig, BacktestRunner, BacktestResult } from '../../'core/backtestRunner'.js';
-import { Candle } from '../../'core/types'.js';
-import { ExchangeService } from '../../'services/exchangeService'.js';
-import { OrderSizingService } from '../../'services/orderSizingService'.js';
-import { TradingEngine } from '../../'core/tradingEngine'.js';
-import { OrderManagementSystem } from '../../'core/orderManagementSystem'.js';
+import { BacktestConfig, BacktestRunner, BacktestResult } from '../../.js'core/backtestRunner'.js';
+import { Candle } from '../../.js'core/types'.js';
+import { ExchangeService } from '../../.js'services/exchangeService'.js';
+import { OrderSizingService } from '../../.js'services/orderSizingService'.js';
+import { TradingEngine } from '../../.js'core/tradingEngine'.js';
+import { OrderManagementSystem } from '../../.js'core/orderManagementSystem'.js';
 
 /**
  * マルチシンボルバックテスト検証テスト (TST-012) - 完全実装版

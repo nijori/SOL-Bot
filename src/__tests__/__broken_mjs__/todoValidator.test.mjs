@@ -8,7 +8,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 
 import fs from 'fs';
 import path from 'path';
-import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from '../../'utils/todoValidator'.js';
+import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from '../../.js'utils/todoValidator'.js';
 
 
 
