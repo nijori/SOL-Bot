@@ -63,12 +63,12 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : importMetaHelper.tsの改良でESM/CJS互換性を強化。backtestRunner.tsとMultiTimeframeDataFetcher.tsの修正でimport.meta依存問題を解決。parameterService.tsを改良してデフォルトエクスポートを追加。todoValidatorのnullチェックを強化し、テスト失敗を解消。テストフレームワークの互換性問題を解決した。
 
-- [ ] TST-053: テスト安定性向上のためのクリーンアップ強化
+- [x] TST-053: テスト安定性向上のためのクリーンアップ強化
       - 📅 Due        : 2026-05-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 75%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
 
 - [ ] TST-054: CI/CDパイプラインのテスト安定性強化
