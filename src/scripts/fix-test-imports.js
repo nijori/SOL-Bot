@@ -26,7 +26,7 @@ const stats = {
 function fixImportPaths(content) {
   let modified = content;
 
-  // 壊れたインポートパスの修正パターン
+  // 壊れたインポートパスの修正パターン - インポートパスに集中する
   const replacements = [
     // '../../.js''core/types''.js' → '../../core/types'
     [/'\.\.\/\.\.\/\.js''([^']+)''\.js'/g, '\'../../$1\''],
@@ -46,9 +46,8 @@ function fixImportPaths(content) {
     // jest.mock('../../''data/parquetDataStore''.js') → jest.mock('../../data/parquetDataStore')
     [/jest\.mock\('\.\.\/\.\.\/''([^']+)''\.js'\)/g, 'jest.mock(\'../../$1\')'],
     
-    // 壊れた型名の修正
-    [/(\w+)\)/g, '$1'],
-    [/(\w+)\"/g, '$1'],
+    // import型の修正
+    [/import \{ ([^}]+)"\s+\} from/g, 'import { $1 } from'],
     
     // const { describe, it, expect, jest } = require('@jest/globals') → import { describe, it, expect, jest } from '@jest/globals'
     [/const \{([^}]+)\} = require\('@jest\/globals'\)/g, 'import {$1} from \'@jest/globals\'']

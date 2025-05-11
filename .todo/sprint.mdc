@@ -14,6 +14,7 @@ alwaysApply: false
 
 
 
+
 ---
 
 # SOL-Bot スプリント
@@ -53,13 +54,13 @@ alwaysApply: false
       - 📊 Progress   : 75%
       - ✎ Notes      : tsconfig.build.jsonの設定を調整しビルド成功。ただし、import.meta使用箇所があるためmoduleは一時的に"es2022"を使用。将来的にはCommonJSに移行する計画をドキュメント化（typescript-build-settings.md）
 
-- [ ] REF-032: テストファイルのインポートパス修正
+- [x] REF-032: テストファイルのインポートパス修正
       - 📅 Due        : 2023-12-14
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : テストファイルのインポートパス修正スクリプト（fix-test-imports.js）を実装。壊れたパスを正規表現で自動修正。Dry Runモードも追加
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : テストファイルのインポートパス修正スクリプト（fix-test-imports.js）を実装し、実行完了。壊れたパス（.js拡張子）を正規表現で自動修正。型名など他の問題は今後のタスクで対応。
 
 - [ ] REF-033: ESMとCommonJSの共存基盤構築
       - 📅 Due        : 2023-12-18
@@ -174,6 +175,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
