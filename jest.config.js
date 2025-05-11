@@ -3,50 +3,49 @@
  * ESMモジュールとしてTypeScriptテストを実行するための設定
  */
 
+/** @type {import('ts-jest').JestConfigWithTsJest} */
 export default {
+  // → projectRoot/src がテストのルートになります
+  rootDir: 'src',
+
   // ESM＋TypeScript対応のプリセット
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
+
+  // 拡張子 .ts/.tsx を ESM 扱いに
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
 
-  // どの拡張子のテストを拾うか
+  // src/__tests__/**/*.test.ts を拾う
   testMatch: ['**/__tests__/**/*.test.ts'],
-  
-  // モジュール拡張子
+
+  // 実装側は .ts、テスト内で .js を書いても .ts にリライト
   moduleFileExtensions: ['ts', 'js', 'json'],
 
-  // TS を ts-jest で ESM モードに変換
-  transform: {
-    '^.+\\.(t|j)sx?$': ['ts-jest', {
-      useESM: true,
-      tsconfig: 'tsconfig.build.json',
-    }],
-  },
-
-  // モジュールパスマッピング
   moduleNameMapper: {
-    // 相対パスで末尾 .js を strip
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-    // さらに、テスト中に .ts ファイルを .js とみなしたい場合は .ts→.js も
-    '^(\\.{1,2}/.*)\\.ts$': '$1.js',
+    // 「../.../*.js」だけを → 「../.../*.ts」に置き換え
+    '^(\.{2,}\/.*)\.js$': '$1.ts'
   },
 
-  // ESM のままパス解決させる
-  resolver: null,
+  // ts-jest で ESM モード変換
+  transform: {
+    '^.+\.(t|j)sx?$': [
+      'ts-jest',
+      { useESM: true, tsconfig: 'tsconfig.build.json' },
+    ],
+  },
 
-  // グローバルセットアップ
-  setupFilesAfterEnv: ['./scripts/jest-setup-esm.js'],
-  
-  // テスト実行設定
+  // デフォルトの resolver をそのまま使う
+  // resolver: undefined,
+
+  // setupFilesAfterEnv は rootDir (=src) からの相対
+  setupFilesAfterEnv: ['<rootDir>/../scripts/jest-setup-esm.js'],
+
+  // これ以降はお好みで
   testTimeout: 30000,
   verbose: true,
 
-  // テスト検出を最適化
-  roots: ['<rootDir>/src'],
-  
-  // テスト除外パターン
   testPathIgnorePatterns: [
-    '/node_modules/', 
-    '/__broken_mjs__/'
+    '/node_modules/',
+    '/__broken_mjs__/',
   ],
 };
