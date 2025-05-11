@@ -192,8 +192,8 @@ function generateWorkerScript() {
  */
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../data/dataRepository.js.js';
-import { OrderType, OrderSide, OrderStatus } from '../../core/types.js.js';
+import { DataRepository } from '../../data/dataRepository.js';
+import { OrderType, OrderSide, OrderStatus } from '../../core/types.js';
 
 // コマンドライン引数の取得
 const workerId = parseInt(process.argv[2], 10);
@@ -354,12 +354,11 @@ run().then(() => process.exit(0)).catch(err => {
 });
 `;
 
-  // ワーカースクリプトを書き込み
-  fs.mkdirSync(path.dirname(tsWorkerPath), { recursive: true });
-  fs.writeFileSync(tsWorkerPath, workerCode);
-
-  // TypeScriptファイルをコンパイル
   try {
+    // TypeScriptファイルを書き込む
+    fs.writeFileSync(tsWorkerPath, workerCode);
+    
+    // TypeScriptファイルをコンパイル
     execSync(`npx tsc ${tsWorkerPath} --outDir ${path.dirname(WORKER_SCRIPT_PATH)}`);
     console.log(`ワーカースクリプトをコンパイルしました: ${WORKER_SCRIPT_PATH}`);
   } catch (error) {

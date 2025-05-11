@@ -15,7 +15,7 @@ jest.mock('technicalindicators', () => ({
 }));
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -23,7 +23,7 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 // パラメータサービスをモック
-jest.mock('../../config/parameterService', () => ({
+jest.mock('../../config/parameterService.js', () => ({
   parameterService: {
     get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
       // テスト用のデフォルト値を返す
@@ -59,7 +59,7 @@ jest.mock('../../config/parameterService', () => ({
 }));
 
 // RANGE_PARAMETERS と MARKET_PARAMETERS のモック
-jest.mock('../../config/parameters', () => ({
+jest.mock('../../config/parameters.js', () => ({
   RANGE_PARAMETERS: {
     RANGE_PERIOD: 30,
     GRID_LEVELS_MIN: 3,

@@ -10,7 +10,7 @@ import { BacktestRunner } from '../../core/backtestRunner.js';
 import { Candle } from '../../core/types.js';
 
 // BacktestRunnerをモック
-jest.mock('../../core/backtestRunner');
+jest.mock('../../core/backtestRunner.js');
 
 // モックデータを提供するユーティリティ関数
 function createMockCandles(

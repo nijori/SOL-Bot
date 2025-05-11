@@ -6,7 +6,7 @@ import {
 import { Order, OrderStatus, OrderSide, OrderType, Fill } from '../../core/types.js';
 
 // ロガーをモック化
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   __esModule: true,
   default: {
     debug: jest.fn(),

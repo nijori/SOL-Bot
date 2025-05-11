@@ -8,11 +8,11 @@ import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService.
 import { ExchangeService } from '../../services/exchangeService.js';
 
 // ExchangeServiceのモック
-jest.mock('../../services/exchangeService');
+jest.mock('../../services/exchangeService.js');
 const MockedExchangeService = ExchangeService as jest.MockedClass<typeof ExchangeService>;
 
 // ロガーをモック
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),

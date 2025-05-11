@@ -11,8 +11,8 @@ import { OrderManagementSystem } from '../../core/orderManagementSystem.js';
 import { Order, OrderSide, OrderType, OrderStatus, Position } from '../../core/types.js';
 
 // モックの作成
-jest.mock('../../services/exchangeService');
-jest.mock('../../core/orderManagementSystem');
+jest.mock('../../services/exchangeService.js');
+jest.mock('../../core/orderManagementSystem.js');
 
 describe('UnifiedOrderManager', () => {
   let unifiedManager: UnifiedOrderManager;

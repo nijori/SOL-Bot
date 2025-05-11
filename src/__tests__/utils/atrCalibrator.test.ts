@@ -3,7 +3,7 @@ import { Candle } from '../../core/types.js';
 import { parameterService } from '../../config/parameterService.js';
 
 // パラメータサービスをモック
-jest.mock('../../config/parameterService', () => ({
+jest.mock('../../config/parameterService.js', () => ({
   parameterService: {
     get: jest.fn((key: string, defaultValue: any) => {
       // テスト用のパラメータマッピング
@@ -22,7 +22,7 @@ jest.mock('../../config/parameterService', () => ({
 }));
 
 // atrUtilsモジュールをモック
-jest.mock('../../utils/atrUtils', () => ({
+jest.mock('../../utils/atrUtils.js', () => ({
   calculateATR: jest.fn((candles: Candle[], period: number) => {
     // モック実装：最終価格の3%をATRとして返す
     if (!candles || candles.length === 0) return 0;

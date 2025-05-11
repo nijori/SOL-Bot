@@ -21,7 +21,7 @@ jest.mock('express', () => {
 });
 
 // loggerのモック
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),

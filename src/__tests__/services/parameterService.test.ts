@@ -21,7 +21,7 @@ const originalEnv = process.env;
 
 // モック設定
 jest.mock('fs');
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),

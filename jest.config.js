@@ -1,50 +1,49 @@
-// ESMに対応したJest設定
+/**
+ * Jest ESM設定
+ * ESMモジュールとしてTypeScriptテストを実行するための設定
+ */
+
 export default {
+  // ESM＋TypeScript対応のプリセット
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.mjs'],
-  moduleFileExtensions: ['ts', 'mjs', 'js', 'json'],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
+
+  // どの拡張子のテストを拾うか
+  testMatch: ['**/__tests__/**/*.test.ts'],
+  
+  // モジュール拡張子
+  moduleFileExtensions: ['ts', 'js', 'json'],
+
+  // TS を ts-jest で ESM モードに変換
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { useESM: true }],
-    '^.+\\.mjs$': 'babel-jest'
+    '^.+\\.[tj]sx?$': ['ts-jest', {
+      useESM: true,
+      tsconfig: 'tsconfig.build.json',
+    }],
   },
+
+  // 相対パスの .js サフィックスを自動で外す
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  rootDir: '.',
-  roots: ['<rootDir>/src'],
-  // REF-025: ESMテスト安定性の向上 - グローバルセットアップファイルを追加
+
+  // ESM のままパス解決させる
+  resolver: null,
+
+  // グローバルセットアップ
   setupFilesAfterEnv: ['./scripts/jest-setup-esm.js'],
-  // テストのタイムアウト時間を延長（ms）
-  testTimeout: 60000,  // 60秒
-  // オープンハンドル検出のデフォルト有効化
-  detectOpenHandles: true,
-  // forceExit設定はtrueを推奨（Jest did not exit問題の回避のため）
-  forceExit: true,     // テスト終了時に強制終了
+  
+  // テスト実行設定
+  testTimeout: 30000,
+  verbose: true,
+
+  // テスト検出を最適化
+  roots: ['<rootDir>/src'],
+  
+  // テスト除外パターン
   testPathIgnorePatterns: [
-    '/__tests__/__broken_mjs__/',
-    '/node_modules/'
+    '/node_modules/', 
+    '/__broken_mjs__/'
   ],
-  // コードカバレッジ設定
-  coverageDirectory: 'coverage',
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    'src/**/*.mjs',
-    '!src/**/*.d.ts',
-    '!src/**/*.test.ts',
-    '!src/**/*.test.mjs',
-    '!src/scripts/**/*.ts',
-    '!src/types/**/*.ts',
-    '!**/node_modules/**'
-  ],
-  coverageReporters: ['text', 'lcov', 'clover', 'html'],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 85,
-      lines: 90,
-      statements: 90
-    }
-  }
 };

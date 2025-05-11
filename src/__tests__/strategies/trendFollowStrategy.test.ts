@@ -4,7 +4,7 @@ import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/para
 import { calculateATR, getValidStopDistance } from '../../utils/atrUtils.js';
 
 // モック設定
-jest.mock('../../indicators/parabolicSAR', () => {
+jest.mock('../../indicators/parabolicSAR.js', () => {
   // 実際のcalculateParabolicSAR関数を保持
   const originalModule = jest.requireActual('../../indicators/parabolicSAR');
 
@@ -15,14 +15,14 @@ jest.mock('../../indicators/parabolicSAR', () => {
   };
 });
 
-jest.mock('../../utils/atrUtils', () => {
+jest.mock('../../utils/atrUtils.js', () => {
   return {
     calculateATR: jest.fn(),
     getValidStopDistance: jest.fn()
   };
 });
 
-jest.mock('../../utils/positionSizing', () => {
+jest.mock('../../utils/positionSizing.js', () => {
   return {
     calculateRiskBasedPositionSize: jest.fn().mockReturnValue(100) // デフォルトで100を返す
   };

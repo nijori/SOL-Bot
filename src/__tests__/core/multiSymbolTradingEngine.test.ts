@@ -11,9 +11,9 @@ import { AllocationStrategy } from '../../types/multiSymbolTypes.js';
 import { Candle, Order, OrderSide, OrderType, SystemMode } from '../../core/types.js';
 
 // TradingEngineをモック
-jest.mock('../../core/tradingEngine');
+jest.mock('../../core/tradingEngine.js');
 // UnifiedOrderManagerをモック
-jest.mock('../../services/UnifiedOrderManager');
+jest.mock('../../services/UnifiedOrderManager.js');
 
 // モックデータを提供するユーティリティ関数
 function createMockCandle(symbol: string, price: number, timestamp: number = Date.now()): Candle {

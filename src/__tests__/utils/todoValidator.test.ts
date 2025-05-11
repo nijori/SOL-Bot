@@ -17,7 +17,7 @@ import {
 } from '../../utils/todoValidator.js';
 
 // 自分自身をモックする（テスト内で関数をモック可能に）
-jest.mock('../../utils/todoValidator', () => {
+jest.mock('../../utils/todoValidator.js', () => {
   // 実際のモジュールを取得
   const originalModule = jest.requireActual('../../utils/todoValidator');
 
@@ -35,7 +35,7 @@ jest.mock('fs', () => ({
 }));
 
 // ロガーのモック
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),

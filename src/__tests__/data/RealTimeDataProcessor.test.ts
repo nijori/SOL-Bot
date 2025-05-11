@@ -12,7 +12,7 @@ import {
 import { EventEmitter } from 'events';
 
 // ロガーをモック
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),

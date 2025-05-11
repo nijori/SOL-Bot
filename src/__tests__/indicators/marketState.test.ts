@@ -135,7 +135,7 @@ function createSimpleRapidTrend(count: number, basePrice: number, trend: 'up' | 
 }
 
 // marketState.tsのデータ不足条件をモック
-jest.mock('../../config/parameters', () => ({
+jest.mock('../../config/parameters.js', () => ({
   MARKET_PARAMETERS: {
     SHORT_TERM_EMA: 10,
     LONG_TERM_EMA: 50,

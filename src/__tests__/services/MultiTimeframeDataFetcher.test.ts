@@ -3,7 +3,7 @@ import { ParquetDataStore } from '../../data/parquetDataStore.js';
 import ccxt from 'ccxt';
 
 // ParquetDataStoreをモック
-jest.mock('../../data/parquetDataStore');
+jest.mock('../../data/parquetDataStore.js');
 
 // ccxtモジュールをモック
 jest.mock('ccxt', () => {

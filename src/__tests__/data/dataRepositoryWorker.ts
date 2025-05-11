@@ -3,8 +3,8 @@
  */
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../data/dataRepository.js.js';
-import { OrderType, OrderSide, OrderStatus } from '../../core/types.js.js';
+import { DataRepository } from '../../data/dataRepository.js';
+import { OrderType, OrderSide, OrderStatus } from '../../core/types.js';
 
 // コマンドライン引数の取得
 const workerId = parseInt(process.argv[2], 10);

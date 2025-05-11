@@ -2,7 +2,7 @@ import { executeTrendStrategy } from '../../strategies/trendStrategy.js';
 import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 // パラメータサービスをモック
-jest.mock('../../config/parameterService', () => ({
+jest.mock('../../config/parameterService.js', () => ({
   parameterService: {
     get: jest.fn().mockImplementation((key, defaultValue) => {
       // テスト用のデフォルト値を返す

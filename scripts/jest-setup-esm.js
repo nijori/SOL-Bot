@@ -29,6 +29,24 @@ process.env.JEST_ROOT_DIR = path.resolve(__dirname, '..');
 // グローバルスコープにjestを公開
 globalThis.jest = jest;
 
+// モック用ヘルパー関数 - 拡張子を自動で補完
+const addJsExtension = (path) => {
+  if (!path.endsWith('.js') && !path.endsWith('.mjs')) {
+    return `${path}.js`;
+  }
+  return path;
+};
+
+// ESM用モック関数（拡張子を自動補完）
+global.jestMockESM = (path) => {
+  jest.mock(addJsExtension(path));
+}
+
+// ダイナミックモック関数（拡張子を自動補完）
+global.jestMockESMFn = (path, factory) => {
+  jest.mock(addJsExtension(path), factory);
+}
+
 // ESMテスト用のモック置換をサポートするヘルパー（テストファイルで使用可能）
 global.mockESM = (modulePath, mockContent) => {
   const mod = { ...mockContent };

@@ -12,24 +12,24 @@
  */
 
 // すべての依存モジュールをテストコードの前にモック化
-jest.mock('../../core/backtestRunner');
-jest.mock('../../data/parquetDataStore');
-jest.mock('../../core/tradingEngine');
-jest.mock('../../core/orderManagementSystem');
-jest.mock('../../services/exchangeService');
-jest.mock('../../utils/atrUtils');
-jest.mock('../../strategies/trendFollowStrategy');
+jest.mock('../../core/backtestRunner.js');
+jest.mock('../../data/parquetDataStore.js');
+jest.mock('../../core/tradingEngine.js');
+jest.mock('../../core/orderManagementSystem.js');
+jest.mock('../../services/exchangeService.js');
+jest.mock('../../utils/atrUtils.js');
+jest.mock('../../strategies/trendFollowStrategy.js');
 // モックファイルを使ってモック化するので、ここでは定義しない
-// jest.mock('../../strategies/meanReversionStrategy');
-// jest.mock('../../strategies/DonchianBreakoutStrategy');
+// jest.mock('../../strategies/meanReversionStrategy.js');
+// jest.mock('../../strategies/DonchianBreakoutStrategy.js');
 
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn()
 }));
-jest.mock('../../utils/memoryMonitor', () => ({
+jest.mock('../../utils/memoryMonitor.js', () => ({
   MemoryMonitor: jest.fn().mockImplementation(() => ({
     startMonitoring: jest.fn(),
     stopMonitoring: jest.fn(),
@@ -100,7 +100,7 @@ function generateMockCandles(
 }
 
 // ParquetDataStoreのモック
-jest.mock('../../data/parquetDataStore', () => ({
+jest.mock('../../data/parquetDataStore.js', () => ({
   ParquetDataStore: jest.fn().mockImplementation(() => ({
     loadCandles: jest.fn().mockImplementation(async (symbol: string) => {
       return generateMockCandles(symbol);

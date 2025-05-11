@@ -2,7 +2,7 @@ import { ExchangeService } from '../../services/exchangeService.js';
 import { OrderSide, OrderType } from '../../core/types.js';
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../utils/logger', () => ({
+jest.mock('../../utils/logger.js', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),

@@ -281,7 +281,7 @@ class MockExchangeService implements Partial<ExchangeService> {
 }
 
 // UnifiedOrderManagerをモック
-jest.mock('../../services/UnifiedOrderManager', () => {
+jest.mock('../../services/UnifiedOrderManager.js', () => {
   const original = jest.requireActual('../../services/UnifiedOrderManager');
 
   class MockUnifiedOrderManager {
