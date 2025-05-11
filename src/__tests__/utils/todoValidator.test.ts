@@ -18,18 +18,8 @@ import {
   ValidationErrorType
 } from '../../utils/todoValidator';
 
-// 自分自身をモックする（テスト内で関数をモック可能に）
-jest.mock('../../utils/todoValidator', () => {
-  // 実際のモジュールを取得
-  const originalModule = jest.requireActual('../../utils/todoValidator');
-
-  // 必要な関数だけをモック化し、他は元のまま返す
-  return {
-    __esModule: true,
-    ...originalModule
-    // ここではモックせず、テスト内で必要に応じてモックする
-  };
-});
+// 最初に自動モックをリセットして、実際のモジュールの動作を維持
+jest.unmock('../../utils/todoValidator');
 
 // fsモジュールのモック
 jest.mock('fs', () => ({
@@ -52,6 +42,7 @@ declare global {
     interface Global {
       parseTodoFile: any;
       getAllTasks: any;
+      __RESOURCE_TRACKER: any;
     }
   }
 }
@@ -61,6 +52,35 @@ describe('TodoValidator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (fs.existsSync as jest.Mock).mockReturnValue(true);
+  });
+
+  // 各テスト後にリソース解放
+  afterEach(async () => {
+    jest.clearAllMocks();
+    jest.resetAllMocks();
+    
+    // イベントリスナーを明示的に削除
+    process.removeAllListeners('unhandledRejection');
+    process.removeAllListeners('uncaughtException');
+    
+    // グローバルリソーストラッカーがある場合はクリーンアップを実行
+    if (global.__RESOURCE_TRACKER) {
+      await global.__RESOURCE_TRACKER.cleanup();
+    }
+    
+    // 未解決のプロミスがあれば完了させるために少し待機
+    await new Promise(resolve => setTimeout(resolve, 100));
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    // グローバルリソーストラッカーがある場合は最終クリーンアップを実行
+    if (global.__RESOURCE_TRACKER) {
+      await global.__RESOURCE_TRACKER.cleanup(true);
+    }
+    
+    // 非同期処理の完全なクリーンアップを待機
+    await new Promise(resolve => setTimeout(resolve, 500));
   });
 
   describe('parseTodoFile', () => {
