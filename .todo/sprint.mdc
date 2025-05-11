@@ -7,6 +7,9 @@ alwaysApply: false
 description: 
 globs: 
 alwaysApply: false
+
+
+
 ---
 
 # SOL-Bot スプリント
@@ -34,17 +37,17 @@ alwaysApply: false
       - 📅 Due        : 2023-12-12
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : jest.config.jsのmoduleNameMapperを現状維持し、testMatchパターンを調整。rootsとrootDirが適切に設定されているか確認し、`.mjs`ファイルの取り扱いを調整
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 75%
+      - ✎ Notes      : jest.config.jsのmoduleNameMapperは現状維持し、testMatchパターンを.mjsファイルも含むように調整。rootsを「['<rootDir>']」に設定し、moduleFileExtensionsに「mjs」を追加。テスト実行時にESM関連のエラーあり
 
 - [ ] REF-031: tsconfig.build.jsonの出力設定調整
       - 📅 Due        : 2023-12-13
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : tsconfig.build.jsonのmodule設定を"NodeNext"から"commonjs"に変更し、moduleResolutionも"Node"に調整して安定したCommonJS出力を確保
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 75%
+      - ✎ Notes      : tsconfig.build.jsonのmodule設定を"NodeNext"から"es2022"に変更し、import.metaのエラーを解消。DuckDBのall()メソッド呼び出しをanyにキャストして修正。ビルド成功
 
 - [ ] REF-032: テストファイルのインポートパス修正
       - 📅 Due        : 2023-12-14
@@ -167,6 +170,9 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
 
 
 
