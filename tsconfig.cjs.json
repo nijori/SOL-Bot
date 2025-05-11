@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "commonjs",
+    "moduleResolution": "Node",
+    "target": "es2020",
+    "sourceMap": true,
+    "declaration": true,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.js"],
+  "exclude": ["src/__tests__/**/*", "**/*.test.ts", "**/*.test.mjs", "**/*.mjs"]
+} 

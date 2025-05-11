@@ -3,8 +3,39 @@
   "version": "1.0.0",
   "description": "Algorithmic trading bot for SOL/USDT and other crypto pairs",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core/index.mjs",
+      "require": "./dist/core/index.js",
+      "types": "./dist/core/index.d.ts"
+    },
+    "./strategies": {
+      "import": "./dist/strategies/index.mjs",
+      "require": "./dist/strategies/index.js",
+      "types": "./dist/strategies/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.mjs",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.mjs",
+      "require": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
     "start": "node dist/index.js",
     "dev": "node --loader ts-node/esm src/index.ts",
     "test": "jest",
@@ -74,7 +105,9 @@
     "test:runner:detect": "node scripts/run-esm-tests.js --detect-handles",
     "test:runner:coverage": "node scripts/run-esm-tests.js --coverage",
     "fix:test-imports": "node src/scripts/fix-test-imports.js",
-    "fix:test-imports:dry": "node src/scripts/fix-test-imports-dry-run.js"
+    "fix:test-imports:dry": "node src/scripts/fix-test-imports-dry-run.js",
+    "test:dual-format:cjs": "node src/examples/dual-format-usage.js",
+    "test:dual-format:esm": "node --experimental-modules src/examples/dual-format-usage.mjs"
   },
   "keywords": [
     "crypto",
