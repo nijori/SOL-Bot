@@ -30,29 +30,50 @@
       "import": "./dist/services/index.mjs",
       "require": "./dist/services/index.js",
       "types": "./dist/services/index.d.ts"
+    },
+    "./data": {
+      "import": "./dist/data/index.mjs",
+      "require": "./dist/data/index.js",
+      "types": "./dist/data/index.d.ts"
+    },
+    "./indicators": {
+      "import": "./dist/indicators/index.mjs",
+      "require": "./dist/indicators/index.js",
+      "types": "./dist/indicators/index.d.ts"
+    },
+    "./config": {
+      "import": "./dist/config/index.mjs",
+      "require": "./dist/config/index.js",
+      "types": "./dist/config/index.d.ts"
+    },
+    "./optimizer": {
+      "import": "./dist/optimizer/index.mjs",
+      "require": "./dist/optimizer/index.js",
+      "types": "./dist/optimizer/index.d.ts"
     }
   },
   "scripts": {
-    "build": "npm run build:cjs && npm run build:esm",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:copy-mjs",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
+    "build:copy-mjs": "node scripts/copy-mjs-files.js",
     "start": "node dist/index.js",
     "dev": "node --loader ts-node/esm src/index.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:smoke": "node --loader ts-node/esm src/core/smokeTest.ts",
-    "test:file": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern",
+    "test:smoke": "ts-node --transpile-only src/core/smokeTest.ts",
+    "test:file": "jest --testPathPattern",
     "test:fix": "npm run fix:jest-mocks && npm test",
     "test:debug": "node --experimental-vm-modules --inspect-brk node_modules/jest/bin/jest.js --runInBand",
     "convert:tests": "node scripts/convert-tests-to-esm.js",
     "cleanup:mjs": "node scripts/enhance-mjs-cleanup.js",
     "fix:esm-imports": "node scripts/fix-esm-import-paths.js",
-    "fix:jest-mocks": "node scripts/fix-jest-mocks.js",
+    "fix:jest-mocks": "node scripts/fix-jest-mocks-for-esm.js",
     "fix:esm:all": "npm run cleanup:mjs && npm run fix:esm-imports && npm run fix:jest-mocks",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "backtest": "node --loader ts-node/esm src/scripts/backtest.ts",
+    "backtest": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node --transpile-only src/core/backtestRunner.ts",
     "backtest:multi": "node --loader ts-node/esm src/scripts/multiSymbolBacktest.ts",
     "backtest:optimize": "node --loader ts-node/esm src/scripts/optimizeParameters.ts",
     "backtest:report": "node --loader ts-node/esm src/scripts/generateReport.ts",
@@ -78,7 +99,7 @@
     "start-data-service": "node --loader ts-node/esm src/data/fetchMultiTimeframeData.ts start-all",
     "optimize": "node --loader ts-node/esm src/optimizer/runOptimization.ts",
     "generate-sample-data": "node --loader ts-node/esm src/data/generateSampleData.ts",
-    "backtest:smoke": "node --loader ts-node/esm src/core/backtestRunner.ts --smoke-test --days 3",
+    "backtest:smoke": "ts-node --transpile-only --compiler-options={\\\"module\\\":\\\"commonjs\\\",\\\"moduleResolution\\\":\\\"node\\\"} src/core/backtestRunner.ts --smoke-test --days 3",
     "backtest:optimized": "node scripts/optimizedBacktest.js",
     "validate-sample-data": "node --loader ts-node/esm src/data/runSampleTest.ts",
     "cli": "node --loader ts-node/esm src/scripts/cli.ts",
@@ -94,9 +115,9 @@
     "data-lifecycle:now": "node --loader ts-node/esm src/scripts/data-lifecycle-manager.ts --run-now",
     "data-lifecycle:schedule": "node --loader ts-node/esm src/scripts/data-lifecycle-manager.ts --schedule",
     "data-lifecycle:help": "node --loader ts-node/esm src/scripts/data-lifecycle-manager.ts --help",
-    "test:detect-handles": "node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles",
-    "test:verbose": "node --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
-    "test:one": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testNamePattern",
+    "test:detect-handles": "jest --detectOpenHandles",
+    "test:verbose": "jest --verbose",
+    "test:one": "jest --testNamePattern",
     "test:esm": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js",
     "test:esm:single": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js",
     "test:esm:watch": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js --watch",
@@ -104,10 +125,21 @@
     "test:runner": "node scripts/run-esm-tests.js",
     "test:runner:detect": "node scripts/run-esm-tests.js --detect-handles",
     "test:runner:coverage": "node scripts/run-esm-tests.js --coverage",
-    "fix:test-imports": "node src/scripts/fix-test-imports.js",
-    "fix:test-imports:dry": "node src/scripts/fix-test-imports-dry-run.js",
+    "test:all": "npm run test && npm run test:esm",
+    "test:stable": "npm run test:detect-handles",
+    "test:cjs": "jest",
+    "test:mjs": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js",
+    "test:stable:esm": "node scripts/run-esm-tests-stable.js",
+    "test:stable:all": "npm run test:cjs && npm run test:stable:esm",
+    "test:noncrash": "jest --detectOpenHandles --forceExit",
+    "test:timebomb": "node scripts/run-esm-tests-stable.js --timeout=120000",
+    "fix:test-imports": "node scripts/fix-test-imports.js",
+    "fix:test-imports:dry": "node scripts/fix-test-imports-dry-run.js",
     "test:dual-format:cjs": "node src/examples/dual-format-usage.js",
-    "test:dual-format:esm": "node --experimental-modules src/examples/dual-format-usage.mjs"
+    "test:dual-format:esm": "node --experimental-modules src/examples/dual-format-usage.mjs",
+    "smoketest": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node --transpile-only src/core/smokeTest.ts",
+    "backtest:smoke:stable": "node scripts/run-backtest-smoke.js",
+    "verify:ref-031": "node scripts/verify-ref-031.js"
   },
   "keywords": [
     "crypto",
@@ -157,6 +189,7 @@
     "@types/node-cron": "^3.0.11",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.46.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -165,10 +198,14 @@
     "jest": "^29.6.2",
     "js-yaml": "^4.1.0",
     "jscodeshift": "^17.3.0",
+    "module-alias": "^2.2.3",
     "nodemon": "^3.0.1",
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
+  },
+  "_moduleAliases": {
+    "@app": "dist"
   }
 }
