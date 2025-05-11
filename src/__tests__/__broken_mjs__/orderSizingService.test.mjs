@@ -11,9 +11,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { OrderSizingService } from '../../.js''services/orderSizingService''.js';
-import { ExchangeService } from '../../.js''services/exchangeService''.js';
-import { SymbolInfoService, SymbolInfo } from '../../.js''services/symbolInfoService''.js';
+import { OrderSizingService } from '../../services/orderSizingService';
+import { ExchangeService } from '../../services/exchangeService';
+import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService';
 
 /**
  * OrderSizingServiceのテスト
@@ -25,7 +25,7 @@ import { SymbolInfoService, SymbolInfo } from '../../.js''services/symbolInfoSer
 
 
 // ExchangeServiceのモック
-jest.mock('../../''services/exchangeService''.js')
+jest.mock('../../services/exchangeService')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -34,7 +34,7 @@ beforeAll(() => {
 const MockedExchangeService = ExchangeService;
 
 // SymbolInfoServiceのモック
-jest.mock('../../''services/symbolInfoService''.js')
+jest.mock('../../services/symbolInfoService')
 const MockedSymbolInfoService = SymbolInfoService;
 
 // ロガーをモック

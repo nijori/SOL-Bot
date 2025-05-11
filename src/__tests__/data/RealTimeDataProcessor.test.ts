@@ -10,7 +10,7 @@ import {
   RealTimeDataProcessor,
   RealTimeDataType,
   RealTimeData
-} from '../../data/RealTimeDataProcessor.js';
+} from '../../data/RealTimeDataProcessor';
 import { EventEmitter } from 'events';
 
 // ロガーをモック

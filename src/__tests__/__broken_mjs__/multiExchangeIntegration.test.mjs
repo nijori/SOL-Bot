@@ -14,13 +14,13 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolBacktestRunner } from '../../'core/multiSymbolBacktestRunner'.js';
-import { UnifiedOrderManager, AllocationStrategy } from '../../'services/UnifiedOrderManager'.js';
-import { BacktestConfig } from '../../'core/backtestRunner'.js';
-import { MultiSymbolBacktestConfig } from '../../'types/multiSymbolTypes'.js';
-import { ExchangeService } from '../../'services/exchangeService'.js';
-import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../'core/types'.js';
-import { SymbolInfo } from '../../'services/symbolInfoService'.js';
+import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner';
+import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
+import { BacktestConfig } from '../../core/backtestRunner';
+import { MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes';
+import { ExchangeService } from '../../services/exchangeService';
+import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../core/types';
+import { SymbolInfo } from '../../services/symbolInfoService';
 import * /helpers.js';
 
 /**
@@ -219,13 +219,13 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
 }
 
 // UnifiedOrderManagerをモック
-jest.mock('../../'services/UnifiedOrderManager'.js', () => {
+jest.mock('../../services/UnifiedOrderManager', () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
-  const original = jest.requireActual('../../'services/UnifiedOrderManager'.js');
+  const original = jest.requireActual('../../services/UnifiedOrderManager');
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
@@ -322,7 +322,7 @@ describe('マルチエクスチェンジ統合テスト', () => {
     kucoinService = new MockExchangeService('KuCoin', 0.0020, 100, -0.0002); // より高い手数料、価格-0.02%
     
     // UnifiedOrderManagerを初期化
-    const { UnifiedOrderManager, AllocationStrategy } = require('../../'services/UnifiedOrderManager'.js');
+    const { UnifiedOrderManager, AllocationStrategy } = require('../../services/UnifiedOrderManager');
     unifiedOrderManager = new UnifiedOrderManager({ 
       strategy);
     

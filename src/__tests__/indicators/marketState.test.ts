@@ -1,9 +1,9 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
 import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState.js';
-import { Candle, MarketEnvironment } from '../../core/types.js';
-import { MARKET_PARAMETERS } from '../../config/parameters.js';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState';
+import { Candle, MarketEnvironment } from '../../core/types';
+import { MARKET_PARAMETERS } from '../../config/parameters';
 
 // モックデータを作成するヘルパー関数
 function createMockCandles(

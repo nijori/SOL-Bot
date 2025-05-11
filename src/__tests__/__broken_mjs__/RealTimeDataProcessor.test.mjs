@@ -12,7 +12,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { RealTimeDataProcessor, RealTimeDataType", RealTimeData } from '../../.js''data/RealTimeDataProcessor''.js';
+import { RealTimeDataProcessor, RealTimeDataType", RealTimeData } from '../../data/RealTimeDataProcessor';
 import { EventEmitter } from 'events';
 
 /**

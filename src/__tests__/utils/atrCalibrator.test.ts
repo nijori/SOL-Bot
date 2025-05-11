@@ -1,8 +1,8 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { ATRCalibrator, CalibrationResult, atrCalibrator } from '../../utils/atrCalibrator.js';
-import { Candle } from '../../core/types.js';
-import { parameterService } from '../../config/parameterService.js';
+import { ATRCalibrator, CalibrationResult, atrCalibrator } from '../../utils/atrCalibrator';
+import { Candle } from '../../core/types';
+import { parameterService } from '../../config/parameterService';
 
 // パラメータサービスをモック
 jest.mock('../../config/parameterService.js', () => ({

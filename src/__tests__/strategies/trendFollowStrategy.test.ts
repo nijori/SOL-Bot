@@ -1,9 +1,9 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { Candle, OrderSide, Position } from '../../core/types.js';
-import * as trendFollowStrategyModule from '../../strategies/trendFollowStrategy.js';
-import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/parabolicSAR.js';
-import { calculateATR, getValidStopDistance } from '../../utils/atrUtils.js';
+import { Candle, OrderSide, Position } from '../../core/types';
+import * as trendFollowStrategyModule from '../../strategies/trendFollowStrategy';
+import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/parabolicSAR';
+import { calculateATR, getValidStopDistance } from '../../utils/atrUtils';
 
 // モック設定
 jest.mock('../../indicators/parabolicSAR.js', () => {

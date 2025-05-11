@@ -55,8 +55,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * DataRepository テスト用ワーカープロセス
  */
 var path_1 = require("path");
-var dataRepository_js_1 = require("../../data/dataRepository.js");
-var types_js_1 = require("../../core/types.js");
+var dataRepository_1 = require("../../data/dataRepository");
+var types_1 = require("../../core/types");
 // コマンドライン引数の取得
 var workerId = parseInt(process.argv[2], 10);
 var totalWorkers = parseInt(process.argv[3], 10);
@@ -99,12 +99,12 @@ function createMockOrders(count) {
         orders.push({
             id: "order-".concat(workerId, "-").concat(i, "-").concat(Date.now()),
             symbol: testSymbol,
-            type: types_js_1.OrderType.LIMIT,
-            side: Math.random() > 0.5 ? types_js_1.OrderSide.BUY : types_js_1.OrderSide.SELL,
+            type: types_1.OrderType.LIMIT,
+            side: Math.random() > 0.5 ? types_1.OrderSide.BUY : types_1.OrderSide.SELL,
             price: price,
             amount: Math.random() * 1,
             timestamp: timestamp,
-            status: types_js_1.OrderStatus.OPEN
+            status: types_1.OrderStatus.OPEN
         });
     }
     return orders;
@@ -150,7 +150,7 @@ var TestDataRepository = /** @class */ (function (_super) {
         };
     };
     return TestDataRepository;
-}(dataRepository_js_1.DataRepository));
+}(dataRepository_1.DataRepository));
 // メインの実行関数
 function run() {
     return __awaiter(this, void 0, void 0, function () {

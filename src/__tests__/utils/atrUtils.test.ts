@@ -5,9 +5,9 @@ import {
   getFallbackATR,
   isATRTooSmall,
   getValidStopDistance
-} from '../../utils/atrUtils.js';
-import { Candle } from '../../core/types.js';
-import { parameterService } from '../../config/parameterService.js';
+} from '../../utils/atrUtils';
+import { Candle } from '../../core/types';
+import { parameterService } from '../../config/parameterService';
 
 // モックの設定
 jest.mock('../../config/parameterService.js', () => ({

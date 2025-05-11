@@ -6,8 +6,8 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * テスト用の市場データを生成するファクトリークラスのテスト
  */
 
-import { MarketDataFactory, MarketStatus } from '../../utils/test-helpers/marketDataFactory.js';
-import { OrderSide, OrderType } from '../../core/types.js';
+import { MarketDataFactory, MarketStatus } from '../../utils/test-helpers/marketDataFactory';
+import { OrderSide, OrderType } from '../../core/types';
 
 describe('MarketDataFactory Tests', () => {
   beforeEach(() => {

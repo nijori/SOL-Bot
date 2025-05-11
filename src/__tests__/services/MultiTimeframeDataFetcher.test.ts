@@ -1,7 +1,7 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { MultiTimeframeDataFetcher, Timeframe } from '../../data/MultiTimeframeDataFetcher.js';
-import { ParquetDataStore } from '../../data/parquetDataStore.js';
+import { MultiTimeframeDataFetcher, Timeframe } from '../../data/MultiTimeframeDataFetcher';
+import { ParquetDataStore } from '../../data/parquetDataStore';
 import ccxt from 'ccxt';
 
 // ParquetDataStoreをモック

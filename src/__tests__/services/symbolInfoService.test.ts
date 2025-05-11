@@ -6,8 +6,8 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * 通貨ペア情報取得ユーティリティのテスト
  */
 
-import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService.js';
-import { ExchangeService } from '../../services/exchangeService.js';
+import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService';
+import { ExchangeService } from '../../services/exchangeService';
 
 // ExchangeServiceのモック
 jest.mock('../../services/exchangeService.js');

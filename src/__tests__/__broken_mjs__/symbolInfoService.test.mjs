@@ -12,8 +12,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { SymbolInfoService, SymbolInfo } from '../../.js''services/symbolInfoService''.js';
-import { ExchangeService } from '../../.js''services/exchangeService''.js';
+import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService';
+import { ExchangeService } from '../../services/exchangeService';
 
 /**
  * SymbolInfoService テスト
@@ -25,7 +25,7 @@ import { ExchangeService } from '../../.js''services/exchangeService''.js';
 
 
 // ExchangeServiceのモック
-jest.mock('../../''services/exchangeService''.js')
+jest.mock('../../services/exchangeService')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();

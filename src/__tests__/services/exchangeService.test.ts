@@ -1,7 +1,7 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { ExchangeService } from '../../services/exchangeService.js';
-import { OrderSide, OrderType } from '../../core/types.js';
+import { ExchangeService } from '../../services/exchangeService';
+import { OrderSide, OrderType } from '../../core/types';
 
 // モックロガーを作成して警告を抑制
 jest.mock('../../utils/logger.js', () => ({

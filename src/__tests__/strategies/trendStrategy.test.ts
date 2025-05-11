@@ -1,7 +1,7 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { executeTrendStrategy } from '../../strategies/trendStrategy.js';
-import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
+import { executeTrendStrategy } from '../../strategies/trendStrategy';
+import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
 
 // モックロガーを作成して警告を抑制
 jest.mock('../../utils/logger.js', () => ({

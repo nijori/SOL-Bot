@@ -6,9 +6,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from '../../.js''utils/atrUtils''.js';
-import { Candle } from '../../.js''core/types''.js';
-import { parameterService } from '../../.js''config/parameterService''.js';
+import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from '../../utils/atrUtils';
+import { Candle } from '../../core/types';
+import { parameterService } from '../../config/parameterService';
 
 
 

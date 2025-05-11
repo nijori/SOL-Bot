@@ -12,11 +12,11 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolTradingEngine } from '../../.js''core/multiSymbolTradingEngine''.js';
-import { TradingEngine } from '../../.js''core/tradingEngine''.js';
-import { UnifiedOrderManager } from '../../.js''services/UnifiedOrderManager''.js';
-import { AllocationStrategy } from '../../.js''types/multiSymbolTypes''.js';
-import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../.js''core/types''.js';
+import { MultiSymbolTradingEngine } from '../../core/multiSymbolTradingEngine';
+import { TradingEngine } from '../../core/tradingEngine';
+import { UnifiedOrderManager } from '../../services/UnifiedOrderManager';
+import { AllocationStrategy } from '../../types/multiSymbolTypes';
+import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../core/types';
 
 /**
  * MultiSymbolTradingEngineのテスト
@@ -31,14 +31,14 @@ import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../.js''cor
 
 
 // TradingEngineをモック
-jest.mock('../../''core/tradingEngine''.js')
+jest.mock('../../core/tradingEngine')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
 // UnifiedOrderManagerをモック
-jest.mock('../../''services/UnifiedOrderManager''.js')
+jest.mock('../../services/UnifiedOrderManager')
 
 // モックデータを提供するユーティリティ関数
 function $1() {

@@ -16,13 +16,13 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 import { execSync, spawn, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { DataRepository } from '../../.js''data/dataRepository''.js';
-import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from '../../.js''core/types''.js';
-import logger from '../../.js''utils/logger''.js';
+import { DataRepository } from '../../data/dataRepository';
+import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from '../../core/types';
+import logger from '../../utils/logger';
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../.js''data/dataRepository''.js';
-import { OrderType, OrderSide", OrderStatus } from '../../.js''core/types''.js';
+import { DataRepository } from '../../data/dataRepository';
+import { OrderType, OrderSide", OrderStatus } from '../../core/types';
 
 /**
  * DataRepository 並列E2Eテスト

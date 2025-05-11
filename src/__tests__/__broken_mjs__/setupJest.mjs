@@ -31,7 +31,7 @@ function mockModuleHelper(moduleName) {
 
 // モジュールのモック化
 jest.mock(
-  '../../'strategies/meanReversionStrategy'.js',
+  '../../strategies/meanReversionStrategy',
   () => {
     return {
       __esModule,
@@ -41,7 +41,7 @@ jest.mock(
   { virtual: true };
 
 jest.mock(
-  '../../'strategies/DonchianBreakoutStrategy'.js',
+  '../../strategies/DonchianBreakoutStrategy',
   () => {
     return {
       __esModule,

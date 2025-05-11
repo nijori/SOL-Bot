@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { executeRangeStrategy } from '../../.js''strategies/rangeStrategy''.js';
-import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../.js''core/types''.js';
+import { executeRangeStrategy } from '../../strategies/rangeStrategy';
+import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../core/types';
 
 
 

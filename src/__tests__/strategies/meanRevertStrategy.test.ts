@@ -1,7 +1,7 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy.js';
-import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
+import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy';
+import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
 
 // テスト用のより堅牢なモックデータファクトリ
 class CandleFactory {

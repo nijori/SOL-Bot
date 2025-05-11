@@ -4,8 +4,8 @@ import {
   syncOrderForSimulateFill,
   syncFillWithOrder,
   updateOrderStatus
-} from '../../utils/orderUtils.js';
-import { Order, OrderStatus, OrderSide, OrderType, Fill } from '../../core/types.js';
+} from '../../utils/orderUtils';
+import { Order, OrderStatus, OrderSide, OrderType, Fill } from '../../core/types';
 
 // ロガーをモック化
 jest.mock('../../utils/logger.js', () => ({

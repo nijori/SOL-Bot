@@ -7,9 +7,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 }
 
 import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../.js''indicators/marketState''.js';
-import { Candle, MarketEnvironment } from '../../.js''core/types''.js';
-import { MARKET_PARAMETERS } from '../../.js''config/parameters''.js';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState';
+import { Candle, MarketEnvironment } from '../../core/types';
+import { MARKET_PARAMETERS } from '../../config/parameters';
 
 
 
@@ -158,7 +158,7 @@ describe('MarketState Indicators', () => {
       const candles = createMockCandles(200, 1000, 'range');
 
       // 元のパラメータを保存
-      const originalModule = require('../../'config/parameters'.js');
+      const originalModule = require('../../config/parameters');
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {

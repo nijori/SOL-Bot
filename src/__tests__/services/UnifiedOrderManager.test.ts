@@ -7,10 +7,10 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * OMS-009: 複数取引所対応
  */
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager.js';
-import { ExchangeService } from '../../services/exchangeService.js';
-import { OrderManagementSystem } from '../../core/orderManagementSystem.js';
-import { Order, OrderSide, OrderType, OrderStatus, Position } from '../../core/types.js';
+import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
+import { ExchangeService } from '../../services/exchangeService';
+import { OrderManagementSystem } from '../../core/orderManagementSystem';
+import { Order, OrderSide, OrderType, OrderStatus, Position } from '../../core/types';
 
 // モックの作成
 jest.mock('../../services/exchangeService.js');

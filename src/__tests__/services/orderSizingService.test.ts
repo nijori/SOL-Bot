@@ -5,9 +5,9 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * マルチアセット対応機能で重要な、symbol/riskAmount/stopDistanceからロットサイズを計算するサービスのテスト
  */
 
-import { OrderSizingService } from '../../services/orderSizingService.js';
-import { ExchangeService } from '../../services/exchangeService.js';
-import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService.js';
+import { OrderSizingService } from '../../services/orderSizingService';
+import { ExchangeService } from '../../services/exchangeService';
+import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService';
 
 // ExchangeServiceのモック
 jest.mock('../../services/exchangeService.js');

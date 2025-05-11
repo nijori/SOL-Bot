@@ -15,8 +15,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { executeMeanRevertStrategy } from '../../'strategies/meanRevertStrategy'.js';
-import { OrderSide, OrderType, StrategyType } from '../../'core/types'.js';
+import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy';
+import { OrderSide, OrderType, StrategyType } from '../../core/types';
 
 /**
  * テストデータファクトリークラス

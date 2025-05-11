@@ -8,13 +8,13 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * 異なるAPI応答パターンに対する互換性も確認
  */
 
-import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner.js';
-import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager.js';
-import { BacktestConfig } from '../../core/backtestRunner.js';
-import { MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes.js';
-import { ExchangeService } from '../../services/exchangeService.js';
-import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../core/types.js';
-import { SymbolInfo } from '../../services/symbolInfoService.js';
+import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner';
+import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
+import { BacktestConfig } from '../../core/backtestRunner';
+import { MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes';
+import { ExchangeService } from '../../services/exchangeService';
+import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../core/types';
+import { SymbolInfo } from '../../services/symbolInfoService';
 import * as ccxt from 'ccxt';
 
 // モック用の取引所サービスを作成

@@ -6,9 +6,9 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * テスト用シナリオを生成するファクトリークラスのテスト
  */
 
-import { TestScenarioFactory } from '../../utils/test-helpers/testsScenarioFactory.js';
-import { MarketStatus } from '../../utils/test-helpers/marketDataFactory.js';
-import { OrderSide, OrderType, StrategyType } from '../../core/types.js';
+import { TestScenarioFactory } from '../../utils/test-helpers/testsScenarioFactory';
+import { MarketStatus } from '../../utils/test-helpers/marketDataFactory';
+import { OrderSide, OrderType, StrategyType } from '../../core/types';
 
 describe('TestScenarioFactory Tests', () => {
   describe('createTrendFollowingScenario', () => {

@@ -17,7 +17,7 @@ import {
   calculateSharpeRatio,
   calculateSortinoRatio,
   calculateDrawdowns
-} from '../../utils/mathUtils.js';
+} from '../../utils/mathUtils';
 
 describe('mathUtils', () => {
   test('ピアソン相関係数が正しく計算される', () => {

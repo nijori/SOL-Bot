@@ -12,10 +12,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolBacktestRunner } from '../../.js''core/multiSymbolBacktestRunner''.js';
-import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../.js''types/multiSymbolTypes''.js';
-import { BacktestRunner } from '../../.js''core/backtestRunner''.js';
-import { Candle } from '../../.js''core/types''.js';
+import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner';
+import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes';
+import { BacktestRunner } from '../../core/backtestRunner';
+import { Candle } from '../../core/types';
 
 /**
  * MultiSymbolBacktestRunnerのテスト
@@ -29,7 +29,7 @@ import { Candle } from '../../.js''core/types''.js';
 
 
 // BacktestRunnerをモック
-jest.mock('../../''core/backtestRunner''.js')
+jest.mock('../../core/backtestRunner')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();

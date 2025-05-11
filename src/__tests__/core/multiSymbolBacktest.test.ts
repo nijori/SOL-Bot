@@ -40,12 +40,12 @@ jest.mock('../../utils/memoryMonitor.js', () => ({
 }));
 
 // 必要なインポート
-import { BacktestConfig, BacktestRunner, BacktestResult } from '../../core/backtestRunner.js';
-import { Candle } from '../../core/types.js';
-import { ExchangeService } from '../../services/exchangeService.js';
-import { OrderSizingService } from '../../services/orderSizingService.js';
-import { TradingEngine } from '../../core/tradingEngine.js';
-import { OrderManagementSystem } from '../../core/orderManagementSystem.js';
+import { BacktestConfig, BacktestRunner, BacktestResult } from '../../core/backtestRunner';
+import { Candle } from '../../core/types';
+import { ExchangeService } from '../../services/exchangeService';
+import { OrderSizingService } from '../../services/orderSizingService';
+import { TradingEngine } from '../../core/tradingEngine';
+import { OrderManagementSystem } from '../../core/orderManagementSystem';
 
 // ロガーのモックを取得
 const mockLogger = jest.requireMock('../../utils/logger');

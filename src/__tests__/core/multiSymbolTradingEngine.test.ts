@@ -6,11 +6,11 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
  */
 
-import { MultiSymbolTradingEngine } from '../../core/multiSymbolTradingEngine.js';
-import { TradingEngine } from '../../core/tradingEngine.js';
-import { UnifiedOrderManager } from '../../services/UnifiedOrderManager.js';
-import { AllocationStrategy } from '../../types/multiSymbolTypes.js';
-import { Candle, Order, OrderSide, OrderType, SystemMode } from '../../core/types.js';
+import { MultiSymbolTradingEngine } from '../../core/multiSymbolTradingEngine';
+import { TradingEngine } from '../../core/tradingEngine';
+import { UnifiedOrderManager } from '../../services/UnifiedOrderManager';
+import { AllocationStrategy } from '../../types/multiSymbolTypes';
+import { Candle, Order, OrderSide, OrderType, SystemMode } from '../../core/types';
 
 // TradingEngineをモック
 jest.mock('../../core/tradingEngine.js');

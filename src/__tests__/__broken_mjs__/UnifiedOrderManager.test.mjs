@@ -13,10 +13,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../.js''services/UnifiedOrderManager''.js';
-import { ExchangeService } from '../../.js''services/exchangeService''.js';
-import { OrderManagementSystem } from '../../.js''core/orderManagementSystem''.js';
-import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js''core/types''.js';
+import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
+import { ExchangeService } from '../../services/exchangeService';
+import { OrderManagementSystem } from '../../core/orderManagementSystem';
+import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../core/types';
 
 /**
  * UnifiedOrderManager テスト
@@ -31,7 +31,7 @@ import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js''
 
 
 // モックの作成
-jest.mock('../../''services/exchangeService''.js')
+jest.mock('../../services/exchangeService')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFake
@@ -46,7 +46,7 @@ afterEach(() => {
 Timers();
 });
 
-jest.mock('../../''core/orderManagementSystem''.js')
+jest.mock('../../core/orderManagementSystem')
 
 describe('UnifiedOrderManager', () => {
   let unifiedManager;

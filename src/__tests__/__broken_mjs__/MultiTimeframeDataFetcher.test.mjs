@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiTimeframeDataFetcher", Timeframe } from '../../.js''data/MultiTimeframeDataFetcher''.js';
-import { ParquetDataStore } from '../../.js''data/parquetDataStore''.js';
+import { MultiTimeframeDataFetcher", Timeframe } from '../../data/MultiTimeframeDataFetcher';
+import { ParquetDataStore } from '../../data/parquetDataStore';
 import ccxt from 'ccxt';
 
 
@@ -15,7 +15,7 @@ import ccxt from 'ccxt';
 
 
 // ParquetDataStoreをモック
-jest.mock('../../''data/parquetDataStore''.js')
+jest.mock('../../data/parquetDataStore')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();

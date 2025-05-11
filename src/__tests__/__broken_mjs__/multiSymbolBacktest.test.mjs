@@ -19,12 +19,12 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { BacktestConfig, BacktestRunner, BacktestResult } from '../../.js''core/backtestRunner''.js';
-import { Candle } from '../../.js''core/types''.js';
-import { ExchangeService } from '../../.js''services/exchangeService''.js';
-import { OrderSizingService } from '../../.js''services/orderSizingService''.js';
-import { TradingEngine } from '../../.js''core/tradingEngine''.js';
-import { OrderManagementSystem } from '../../.js''core/orderManagementSystem''.js';
+import { BacktestConfig, BacktestRunner, BacktestResult } from '../../core/backtestRunner';
+import { Candle } from '../../core/types';
+import { ExchangeService } from '../../services/exchangeService';
+import { OrderSizingService } from '../../services/orderSizingService';
+import { TradingEngine } from '../../core/tradingEngine';
+import { OrderManagementSystem } from '../../core/orderManagementSystem';
 
 /**
  * マルチシンボルバックテスト検証テスト (TST-012) - 完全実装版
@@ -40,21 +40,21 @@ import { OrderManagementSystem } from '../../.js''core/orderManagementSystem''.j
  */
 
 // すべての依存モジュールをテストコードの前にモック化
-jest.mock('../../''core/backtestRunner''.js')
+jest.mock('../../core/backtestRunner')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
-jest.mock('../../''data/parquetDataStore''.js')
-jest.mock('../../''core/tradingEngine''.js')
-jest.mock('../../''core/orderManagementSystem''.js')
-jest.mock('../../''services/exchangeService''.js')
-jest.mock('../../''utils/atrUtils''.js')
-jest.mock('../../''strategies/trendFollowStrategy''.js')
+jest.mock('../../data/parquetDataStore')
+jest.mock('../../core/tradingEngine')
+jest.mock('../../core/orderManagementSystem')
+jest.mock('../../services/exchangeService')
+jest.mock('../../utils/atrUtils')
+jest.mock('../../strategies/trendFollowStrategy')
 // モックファイルを使ってモック化するので、ここでは定義しない
-// jest.mock('../../''strategies/meanReversionStrategy''.js')
-// jest.mock('../../''strategies/DonchianBreakoutStrategy''.js')
+// jest.mock('../../strategies/meanReversionStrategy')
+// jest.mock('../../strategies/DonchianBreakoutStrategy')
 
 jest.mock('../../''utils/logger''', () => ({
   debug,

@@ -10,7 +10,7 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
 import { execSync, spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DataRepository } from '../../data/dataRepository.js';
+import { DataRepository } from '../../data/dataRepository';
 import {
   Candle,
   Order,
@@ -18,8 +18,8 @@ import {
   OrderType,
   OrderSide,
   OrderStatus
-} from '../../core/types.js';
-import logger from '../../utils/logger.js';
+} from '../../core/types';
+import logger from '../../utils/logger';
 
 // テスト用データディレクトリ
 const TEST_DATA_DIR = path.join(process.cwd(), 'data', 'test-e2e');
@@ -194,8 +194,8 @@ function generateWorkerScript() {
  */
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../data/dataRepository.js';
-import { OrderType, OrderSide, OrderStatus } from '../../core/types.js';
+import { DataRepository } from '../../data/dataRepository';
+import { OrderType, OrderSide, OrderStatus } from '../../core/types';
 
 // コマンドライン引数の取得
 const workerId = parseInt(process.argv[2], 10);

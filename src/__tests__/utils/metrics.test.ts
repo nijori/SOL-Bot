@@ -1,6 +1,6 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
-import * as metrics from '../../utils/metrics.js';
+import * as metrics from '../../utils/metrics';
 import * as client from 'prom-client';
 
 // expressサーバー関連のモック
