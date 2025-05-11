@@ -7,9 +7,9 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as yaml from 'js-yaml';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
 import 'dotenv/config';
-import { MultiSymbolConfig, SymbolConfig } from '../types/cli-options.js';
+import { MultiSymbolConfig, SymbolConfig } from '../types/cli-options';
 
 /**
  * IParameterServiceインターフェース
@@ -394,3 +394,11 @@ export function applyParameters(
     );
   }
 }
+
+// CommonJS環境とESM環境の両方でのimport互換性向上のためのデフォルトエクスポート
+export default {
+  parameterService,
+  ParameterService,
+  createMockParameterService,
+  applyParameters
+};
