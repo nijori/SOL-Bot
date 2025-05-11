@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 import fs from 'fs';
 import path from 'path';
 import {
@@ -14,15 +16,16 @@ import {
   validateTodoFiles,
   TodoTask,
   ValidationErrorType
-} from '../../utils/todoValidator.js';
+} from '../../utils/todoValidator';
 
 // 自分自身をモックする（テスト内で関数をモック可能に）
-jest.mock('../../utils/todoValidator.js', () => {
+jest.mock('../../utils/todoValidator', () => {
   // 実際のモジュールを取得
   const originalModule = jest.requireActual('../../utils/todoValidator');
 
   // 必要な関数だけをモック化し、他は元のまま返す
   return {
+    __esModule: true,
     ...originalModule
     // ここではモックせず、テスト内で必要に応じてモックする
   };
@@ -35,7 +38,7 @@ jest.mock('fs', () => ({
 }));
 
 // ロガーのモック
-jest.mock('../../utils/logger.js', () => ({
+jest.mock('../../utils/logger', () => ({
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),

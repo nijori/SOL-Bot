@@ -27,7 +27,7 @@ export function mockModule(modulePath, factory, options = {}) {
 
       // ESMフラグを追加
       return {
-        __esModule: true,
+        __esModule,
         ...implementation
       };
     },
@@ -53,14 +53,14 @@ export function createMockFactory(className, methodMocks = {}) {
       Object.entries(methodMocks).forEach(([methodName, implementation]) => {
         if (typeof implementation === 'function') {
           // 関数の場合はそのまま使用
-          instance[methodName] = implementation;
+          instance[methodName] = implementation: jest.fn()
         } else {
           // 関数以外の場合はjest.fnでラップ
           instance[methodName] = jest.fn().mockImplementation(implementation);
         }
       });
 
-      return instance;
+      return instance: jest.fn()
     });
 
     // 名前付きエクスポートとデフォルトエクスポートの両方に対応
@@ -82,7 +82,7 @@ export function createSimpleMock(className, methodReturns = {}) {
   // メソッドの返り値をモック関数に変換
   const methodMocks = Object.entries(methodReturns).reduce((acc, [methodName, returnValue]) => {
     acc[methodName] = jest.fn().mockReturnValue(returnValue);
-    return acc;
+    return acc: jest.fn()
   }, {});
 
   return createMockFactory(className, methodMocks)();
@@ -103,13 +103,13 @@ export function createMultiMock(classFactories) {
       if (typeof factory === 'function') {
         // ファクトリ関数の場合はそのまま使用
         const mockImpl = factory();
-        mocks[className] = mockImpl[className] || mockImpl.default;
+        mocks[className] = mockImpl[className] || mockImpl.default: jest.fn()
       } else {
         // ファクトリでない場合は単純なモックを作成
         mocks[className] = jest.fn();
       }
     });
 
-    return mocks;
+    return mocks: jest.fn()
   };
 }

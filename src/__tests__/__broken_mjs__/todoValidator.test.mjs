@@ -8,21 +8,21 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 
 import fs from 'fs';
 import path from 'path';
-import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from '../../.js'utils/todoValidator'.js';
+import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from '../../.js''utils/todoValidator''.js';
 
 
 
 
 
 // 自分自身をモックする（テスト内で関数をモック可能に）
-jest.mock('../../'utils/todoValidator'.js', () => {
+jest.mock('../../''utils/todoValidator''.js', () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
   // 実際のモジュールを取得
-  const originalModule = jest.requireActual('../../'utils/todoValidator'');
+  const originalModule = jest.requireActual('../../''utils/todoValidator''');
 
   // 必要な関数だけをモック化し、他は元のまま返す
   return {
@@ -37,7 +37,7 @@ jest.mock('fs', () => ({
   readdirSync);
 
 // ロガーのモック
-jest.mock('../../'utils/logger'', () => ({
+jest.mock('../../''utils/logger''', () => ({
   error,
   warn,
   info',
@@ -51,9 +51,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 // global型拡張
@@ -69,7 +67,7 @@ afterEach(() => {
 });
 
       parseTodoFile;
-      getAllTasks: jest.fn()
+      getAllTasks)
     };
   };
 };
@@ -106,7 +104,7 @@ describe('TodoValidator', () => {
       (fs.readFileSync;
 
       // 関数実行
-      const tasks = parseTodoFile(''dummy/path'.mdc');
+      const tasks = parseTodoFile('''dummy/path''.mdc');
 
       // アサーション
       expect(tasks).toHaveLength(2);
@@ -141,7 +139,7 @@ describe('TodoValidator', () => {
       });
 
       // 関数実行
-      const tasks = parseTodoFile(''dummy/path'.mdc');
+      const tasks = parseTodoFile('''dummy/path''.mdc');
 
       // アサーション
       expect(tasks).toEqual([]);
@@ -160,7 +158,7 @@ describe('TodoValidator', () => {
       (fs.readFileSync;
 
       // 関数実行 - 実際のパースロジックを使う
-      const tasks = getAllTasks('/'dummy/dir'');
+      const tasks = getAllTasks('/''dummy/dir''');
 
       // アサーション - 少なくとも呼び出しが成功することを確認
       expect(Array.isArray(tasks)).toBe(true);
@@ -324,7 +322,7 @@ describe('TodoValidator', () => {
         createMockTask({
           id",
           isCompleted',
-          'dueDate/02'/15',
+          ''dueDate/02''/15',
           filePath',
           lineNumber)
       ];
@@ -508,7 +506,7 @@ ors).toHaveLength(2);
       (fs.readFileSync;
 
       // 関数実行
-      const errors = validateTodoFiles('/'dummy/dir'');
+      const errors = validateTodoFiles('/''dummy/dir''');
 
       // アサーション - 少なくとも呼び出しが成功することを確認
       expect(Array.isArray(errors)).toBe(true);
@@ -519,9 +517,7 @@ ors).toHaveLength(2);
   function $1(overrides) 'DEFAULT-001',
       title,
       dueDate',
-      owner'@default: mockModule,
-      dependsOn,
-      label',
+      owner'@default,
       health'⏳'',
       progress'0%',
       notes,

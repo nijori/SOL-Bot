@@ -6,7 +6,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import */../'utils/metrics'.js';
+import */../''utils/metrics''.js';
 import * /helpers.js';
 
 
@@ -36,7 +36,7 @@ beforeAll(() => {
 })
 
 // loggerのモック
-jest.mock('../../'utils/logger'', () => ({
+jest.mock('../../''utils/logger''', () => ({
   info,
   error,
   warn',
@@ -59,9 +59,7 @@ afterEach(() => {
 });
 nitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 describe('Metrics Utility', () => {
@@ -121,9 +119,9 @@ describe('Metrics Utility', () => {
     });
 
     it('recordExchangeError が取引所エラーを正しくカウントする', () => {
-      metrics.updateMetrics.recordExchangeError('binance', '429', '/'api/v3'/order');
-      metrics.updateMetrics.recordExchangeError('binance', '429', '/'api/v3'/order');
-      metrics.updateMetrics.recordExchangeError('bybit', '10001', '/'private/linear'/'order/create'');
+      metrics.updateMetrics.recordExchangeError('binance', '429', '/''api/v3''/order');
+      metrics.updateMetrics.recordExchangeError('binance', '429', '/''api/v3''/order');
+      metrics.updateMetrics.recordExchangeError('bybit', '10001', '/''private/linear''/''order/create''');
 
       const metricData = collectMetrics();
       expect(metricData).toMatch(

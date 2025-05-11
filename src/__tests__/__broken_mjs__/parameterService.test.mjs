@@ -10,7 +10,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { ParameterService, parameterService, IParameterService, createMockParameterService, applyParameters } from '../../.js'config/parameterService'.js';
+import { ParameterService, parameterService, IParameterService, createMockParameterService, applyParameters } from '../../.js''config/parameterService''.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,7 +32,7 @@ beforeAll(() => {
   jest.useFakeTimers();
 });
 
-jest.mock('../../'utils/logger'', () => ({
+jest.mock('../../''utils/logger''', () => ({
   debug,
   info,
   warn',
@@ -46,9 +46,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 describe('ParameterService', () => {
@@ -84,8 +82,7 @@ operation: simulation
 
   afterEach(() => {
     // 環境変数を元に戻す
-    process.env = originalEnv: jest.fn()
-  });
+    process.env = originalEnv);
 
   /**
    * 環境変数プレースホルダー置換の型変換をテスト
@@ -98,7 +95,7 @@ operation: simulation
 
       // テスト対象のオブジェクト
       const testObj = {
-        explicitNumber'${TEST_NUMBER",
+        explicitNumber: '${TEST_NUMBER",
         implicitNumber'${TEST_NUMBER}'',
         defaultNumber'${TEST_NAN",
         mixedCase'${test_number;
@@ -135,10 +132,10 @@ operation: simulation
 
       // テスト対象のオブジェクト
       const testObj = {
-        explicitTrue'${TEST_TRUE",
+        explicitTrue: '${TEST_TRUE",
         implicitTrue'${TEST_TRUE}'',
         yesValue'${TEST_YES",
-        onValue'${TEST_ON",
+        onValue: '${TEST_ON",
         explicitFalse'${TEST_FALSE",
         implicitFalse'${TEST_FALSE}'',
         noValue'${TEST_NO",
@@ -205,10 +202,10 @@ operation: simulation
 
       // テスト対象の複雑なオブジェクト
       const testObj = {
-        simpleValues'${TEST_NUMBER}'',
+        simpleValues: '${TEST_NUMBER}'',
           bool'${TEST_BOOLEAN}'',
           str'${TEST_STRING",
-        arrayValues'${TEST_NUMBER",
+        arrayValues: '${TEST_NUMBER",
           '${TEST_BOOLEAN",
           {
             nestedValue'${TEST_STRING}'
@@ -294,7 +291,7 @@ operation: simulation
     it('初期パラメータを使用して初期化できる', () => {
       const initialParams = {
         custom,
-          param2: jest.fn()
+          param2)
       };
 
       const instance = new ParameterService(undefined, initialParams);
@@ -309,7 +306,7 @@ operation: simulation
 
     it('createMockParameterService関数でモックインスタンスを作成できる', () => {
       const mockParams = {
-        test: jest.fn()
+        test)
       };
 
       const mockService = createMockParameterService(mockParams);
@@ -320,12 +317,10 @@ operation: simulation
 
     it('updateParameters関数で設定を更新できる', () => {
       const instance = new ParameterService(undefined, {
-        market: jest.fn()
-      });
+        market);
 
       instance.updateParameters({
-        market: jest.fn()
-      });
+        market);
 
       expect(instance.get('market.atr_period')).toBe(21);
       expect(instance.get('market.new_param')).toBe('test');
@@ -333,8 +328,7 @@ operation: simulation
 
     it('applyParameters関数でインスタンスを指定して更新できる', () => {
       const instance = new ParameterService(undefined, {
-        market: jest.fn()
-      });
+        market);
 
       applyParameters(
         {
@@ -353,17 +347,14 @@ operation: simulation
     it('複数のバックテストプロセスでそれぞれの設定が分離される', () => {
       // 2つの異なるバックテストプロセスをシミュレート
       const bt1Service = new ParameterService(undefined, {
-        backtest: jest.fn()
-      });
+        backtest);
 
       const bt2Service = new ParameterService(undefined, {
-        backtest: jest.fn()
-      });
+        backtest);
 
       // bt1の設定を変更
       bt1Service.updateParameters({
-        market: jest.fn()
-      });
+        market);
 
       // 設定が分離されていることを確認
       expect(bt1Service.get('market.atr_period')).toBe(15);
@@ -405,8 +396,7 @@ ket.atr_period)).toBe(14); // グローバルインスタンスは変更され�
     it('戦略へのDI注入が機能する', () => {
       // モックのパラメータサービス
       const mockService = createMockParameterService({
-        trend: jest.fn()
-      });
+        trend);
 
       // 戦略クラスをシミュレート
       class MockStrategy {

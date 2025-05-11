@@ -6,19 +6,19 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import {  syncOrderForSimulateFill, syncFillWithOrder, updateOrderStatus } from '../../.js'utils/orderUtils'.js';
-import { Order, OrderStatus, OrderSide, OrderType", Fill } from '../../.js'core/types'.js';
+import {  syncOrderForSimulateFill, syncFillWithOrder, updateOrderStatus } from '../../.js''utils/orderUtils''.js';
+import { Order, OrderStatus, OrderSide, OrderType", Fill } from '../../.js''core/types''.js';
 
 
 
 
 // ロガーをモック化
-jest.mock('../../'utils/logger'', () () { return { // テスト開始前にタイマーをモック化
+jest.mock('../../''utils/logger''', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
 
-  __esModule: true,
+  __esModule,
   default;
 
 // OrderManagementSystemに停止メソッドを追加
@@ -38,9 +38,7 @@ afterEach(() => {
 });
 torTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 describe('OrderUtils', () => {
@@ -53,7 +51,7 @@ describe('OrderUtils', () => {
     test('両方の注文から適切にフィールドをマージする', () => {
       const originalOrder = {
         id',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         price,
@@ -65,7 +63,7 @@ describe('OrderUtils', () => {
       const updatedOrder = {
         id,
         exchangeOrderId',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         price,
@@ -87,7 +85,7 @@ describe('OrderUtils', () => {
       const originalOrder = {
         id,
         exchangeOrderId',
-        symbol''ETH/USDT'',
+        symbol'''ETH/USDT''',
         side,
         type,
         amount,
@@ -111,7 +109,7 @@ describe('OrderUtils', () => {
       // 期待される結果の検証
       expect(result.id).toBe('exchange-456'); // 新しいIDを採用
       expect(result.exchangeOrderId).toBe('ex-789'); // 新しい取引所IDを採用
-      expect(result.symbol).toBe(''ETH/USDT''); // 元のシンボルを維持
+      expect(result.symbol).toBe('''ETH/USDT'''); // 元のシンボルを維持
       expect(result.side).toBe(OrderSide.SELL); // 同じSideを維持
       expect(result.type).toBe(OrderType.MARKET); // 元のタイプを維持
       expect(result.amount).toBe(2.0); // 元の数量を維持
@@ -124,7 +122,7 @@ describe('OrderUtils', () => {
       const order = {
         id,
         exchangeOrderId',
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price,
@@ -144,7 +142,7 @@ describe('OrderUtils', () => {
       // 期待される結果の検証
       expect(result.orderId).toBe('order-123');
       expect(result.exchangeOrderId).toBe('ex-456');
-      expect(result.symbol).toBe(''SOL/USDT'');
+      expect(result.symbol).toBe('''SOL/USDT''');
       expect(result.side).toBe(OrderSide.BUY);
       expect(result.amount).toBe(10);
       expect(result.price).toBe(99.5); // fillから価格を採用
@@ -155,7 +153,7 @@ describe('OrderUtils', () => {
       const order = {
         id,
         exchangeOrderId',
-        symbol''XRP/USDT'',
+        symbol'''XRP/USDT''',
         side,
         type,
         price,
@@ -175,7 +173,7 @@ describe('OrderUtils', () => {
       // 期待される結果の検証
       expect(result.orderId).toBe('order-123');
       expect(result.exchangeOrderId).toBe('ex-456');
-      expect(result.symbol).toBe(''XRP/USDT'');
+      expect(result.symbol).toBe('''XRP/USDT''');
       expect(result.side).toBe(OrderSide.SELL);
       expect(result.amount).toBe(1000); // orderから数量を採用
       expect(result.price).toBe(0.5); // orderから価格を採用
@@ -186,7 +184,7 @@ describe('OrderUtils', () => {
       const order = {
         id,
         exchangeOrderId',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         // priceはundefined
@@ -242,7 +240,7 @@ afterAll(() => {
     test('filled状態を正しく処理する', () => {
       const order = {
         id',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         price,
@@ -256,7 +254,7 @@ afterAll(() => {
     test('canceled状態を正しく処理する', () => {
       const order = {
         id',
-        symbol''ETH/USDT'',
+        symbol'''ETH/USDT''',
         side,
         type,
         price,
@@ -270,7 +268,7 @@ afterAll(() => {
     test('cancelled（英国式スペル）状態も正しく処理する', () => {
       const order = {
         id',
-        symbol''ETH/USDT'',
+        symbol'''ETH/USDT''',
         side,
         type,
         price,
@@ -281,13 +279,13 @@ afterAll(() => {
       expect(updatedOrder.status).toBe(OrderStatus.CANCELED);
     });
 
-    test(''active/open'/new状態を正しく処理する', () => {
+    test('''active/open''/new状態を正しく処理する', () => {
       const testCases = ['active', 'open', 'new', 'partially_filled'];
       
       testCases.forEach(status() {
         const order = {
           id',
-          'symbol/USDT'',
+          ''symbol/USDT''',
           side,
           type,
           price,
@@ -303,7 +301,7 @@ afterAll(() => {
     test('rejected状態を正しく処理する', () => {
       const order = {
         id',
-        symbol''XRP/USDT'',
+        symbol'''XRP/USDT''',
         side, 
         type,
         price,
@@ -317,7 +315,7 @@ afterAll(() => {
     test('不明な状態には警告を出力し、ステータスを変更しない', () => {
       const order = {
         id',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         price, 
@@ -331,7 +329,7 @@ afterAll(() => {
     test('exchangeStatusがundefinedまたはnullの場合は現在の状態を維持する', () => {
       const order = {
         id',
-        symbol''BTC/USDT'',
+        symbol'''BTC/USDT''',
         side,
         type,
         price,

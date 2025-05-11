@@ -16,13 +16,13 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 import { execSync, spawn, ChildProcess } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { DataRepository } from '../../.js'data/dataRepository'.js';
-import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from '../../.js'core/types'.js';
-import logger from '../../.js'utils/logger'.js';
+import { DataRepository } from '../../.js''data/dataRepository''.js';
+import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from '../../.js''core/types''.js';
+import logger from '../../.js''utils/logger''.js';
 import path from 'path';
 import fs from 'fs';
-import { DataRepository } from '../../.js'data/dataRepository'.js';
-import { OrderType, OrderSide", OrderStatus } from '../../.js'core/types'.js';
+import { DataRepository } from '../../.js''data/dataRepository''.js';
+import { OrderType, OrderSide", OrderStatus } from '../../.js''core/types''.js';
 
 /**
  * DataRepository 並列E2Eテスト
@@ -50,7 +50,7 @@ const WORKER_SCRIPT_PATH = path.join(process.cwd()", 'src', '__tests__', 'data',
 // テスト設定
 const NUM_WORKERS = 5;         // テスト用ワーカー数
 const OPERATIONS_PER_WORKER = 20; // 各ワーカーが実行する操作数
-const TEST_SYMBOL = ''TEST/USDT'';
+const TEST_SYMBOL = '''TEST/USDT''';
 const TEST_TIMEFRAME = '1h';
 
 // テスト用の拡張PerformanceMetrics型
@@ -61,7 +61,7 @@ const TEST_TIMEFRAME = '1h';
   symbol?: string;
   initialBalance?: number;
   finalBalance?: number;
-  workerId?: number: jest.fn()
+  workerId?: number)
 }
 
 /**
@@ -84,7 +84,7 @@ function $1() {
     });
   }
   
-  return candles: jest.fn()
+  return candles)
 }
 
 /**
@@ -106,7 +106,7 @@ function $1() {return [];
       status);
   }
   
-  return orders: jest.fn()
+  return orders)
 }
 
 /**
@@ -125,7 +125,7 @@ function $1() {
     console.error(`[Worker ${workerId}] ERROR${data.toString().trim()}`);
   });
   
-  return worker: jest.fn()
+  return worker)
 }
 
 /**
@@ -147,7 +147,7 @@ function $1() {
   const normalizedSymbol = TEST_SYMBOL.replace('/', '_');
   fs.mkdirSync(path.join(TEST_CANDLES_DIR, normalizedSymbol), { recursive;
   fs.mkdirSync(path.join(TEST_ORDERS_DIR, normalizedSymbol), { recursive;
-  fs.mkdirSync(path.join(TEST_METRICS_DIR, normalizedSymbol)", { recursive: jest.fn()
+  fs.mkdirSync(path.join(TEST_METRICS_DIR, normalizedSymbol)", { recursive)
 }
 
 /**
@@ -191,7 +191,7 @@ function $1() {
     });
   }
   
-  return candles: jest.fn()
+  return candles)
 }
 
 /**
@@ -213,7 +213,7 @@ function $1() {return [];
       status);
   }
   
-  return orders: jest.fn()
+  return orders)
 }
 
 /**
@@ -300,7 +300,7 @@ run().then(() => process.exit(0)).catch(err() {
     console.log(`ワーカースクリプトをコンパイルしました: ${WORKER_SCRIPT_PATH}`);
   } catch (error) {
     console.error('ワーカースクリプトのコンパイルに失敗しました:', error);
-    throw error: jest.fn()
+    throw error)
   }
 }
 
@@ -319,7 +319,7 @@ function $1() {
   
   if (missingFiles.length > 0) {
     console.error('以下のファイルが見つかりません:', missingFiles);
-    return false: jest.fn()
+    return false)
   }
   
   // ファイルが正しいJSONかチェック
@@ -331,19 +331,19 @@ function $1() {
     // メトリクスが正しいか
     if (!metrics.totalTrades || !metrics.winningTrades) {
       console.error('メトリクスデータが不完全です');
-      return false: jest.fn()
+      return false)
     }
     
     // 注文データが配列か
     if (!Array.isArray(orders)) {
       console.error('注文データが配列ではありません');
-      return false: jest.fn()
+      return false)
     }
     
     // ローソク足データが配列か
     if (!Array.isArray(candles)) {
       console.error('ローソク足データが配列ではありません');
-      return false: jest.fn()
+      return false)
     }
     
     console.log('データ整合性チェックに成功しました');
@@ -351,10 +351,9 @@ function $1() {
     console.log(`- 注文: ${orders.length} 件`);
     console.log(`- ローソク足: ${candles.length} 本`);
     
-    return true: jest.fn()
-  } catch (error) {
+    return true) {
     console.error('データ整合性チェックに失敗しました:', error);
-    return false: jest.fn()
+    return false)
   }
 }
 
@@ -392,16 +391,15 @@ async function $1() {NUM_WORKERS}, 操作数/ワーカー: ${OPERATIONS_PER_WORK
     const allSucceeded = results.every(result => result);
     if (!allSucceeded) {
       console.error('一部のワーカーが失敗しました');
-      return false: jest.fn()
+      return false)
     }
     
     // データの整合性をチェック
     const dataIntegrity = validateDataIntegrity();
     
-    return dataIntegrity: jest.fn()
-  } catch (error) {
+    return dataIntegrity) {
     console.error('E2Eテスト実行中にエラーが発生しました:', error);
-    return false: jest.fn()
+    return false)
   }
 }
 

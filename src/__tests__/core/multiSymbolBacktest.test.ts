@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 /**
  * マルチシンボルバックテスト検証テスト (TST-012) - 完全実装版
  *

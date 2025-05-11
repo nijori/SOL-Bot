@@ -2,7 +2,7 @@
 /**
  * マルチシンボルバックテスト検証テスト (TST-012) - 完全実装版
  * 
- * 複数の異なる通貨ペア（'BTC/USDT'、'ETH/USDT'、'SOL/USDT'など）で
+ * 複数の異なる通貨ペア（''BTC/USDT''、''ETH/USDT''、''SOL/USDT''など）で
  * バックテストが正しく動作するかを検証するテスト。
  * 
  * テスト内容:
@@ -19,17 +19,17 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { BacktestConfig, BacktestRunner, BacktestResult } from '../../.js'core/backtestRunner'.js';
-import { Candle } from '../../.js'core/types'.js';
-import { ExchangeService } from '../../.js'services/exchangeService'.js';
-import { OrderSizingService } from '../../.js'services/orderSizingService'.js';
-import { TradingEngine } from '../../.js'core/tradingEngine'.js';
-import { OrderManagementSystem } from '../../.js'core/orderManagementSystem'.js';
+import { BacktestConfig, BacktestRunner, BacktestResult } from '../../.js''core/backtestRunner''.js';
+import { Candle } from '../../.js''core/types''.js';
+import { ExchangeService } from '../../.js''services/exchangeService''.js';
+import { OrderSizingService } from '../../.js''services/orderSizingService''.js';
+import { TradingEngine } from '../../.js''core/tradingEngine''.js';
+import { OrderManagementSystem } from '../../.js''core/orderManagementSystem''.js';
 
 /**
  * マルチシンボルバックテスト検証テスト (TST-012) - 完全実装版
  * 
- * 複数の異なる通貨ペア（'BTC/USDT'、'ETH/USDT'、'SOL/USDT'など）で
+ * 複数の異なる通貨ペア（''BTC/USDT''、''ETH/USDT''、''SOL/USDT''など）で
  * バックテストが正しく動作するかを検証するテスト。
  * 
  * テスト内容:
@@ -40,28 +40,28 @@ import { OrderManagementSystem } from '../../.js'core/orderManagementSystem'.js'
  */
 
 // すべての依存モジュールをテストコードの前にモック化
-jest.mock('../../'core/backtestRunner'.js')
+jest.mock('../../''core/backtestRunner''.js')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
-jest.mock('../../'data/parquetDataStore'.js')
-jest.mock('../../'core/tradingEngine'.js')
-jest.mock('../../'core/orderManagementSystem'.js')
-jest.mock('../../'services/exchangeService'.js')
-jest.mock('../../'utils/atrUtils'.js')
-jest.mock('../../'strategies/trendFollowStrategy'.js')
+jest.mock('../../''data/parquetDataStore''.js')
+jest.mock('../../''core/tradingEngine''.js')
+jest.mock('../../''core/orderManagementSystem''.js')
+jest.mock('../../''services/exchangeService''.js')
+jest.mock('../../''utils/atrUtils''.js')
+jest.mock('../../''strategies/trendFollowStrategy''.js')
 // モックファイルを使ってモック化するので、ここでは定義しない
-// jest.mock('../../'strategies/meanReversionStrategy'.js')
-// jest.mock('../../'strategies/DonchianBreakoutStrategy'.js')
+// jest.mock('../../''strategies/meanReversionStrategy''.js')
+// jest.mock('../../''strategies/DonchianBreakoutStrategy''.js')
 
-jest.mock('../../'utils/logger'', () => ({
+jest.mock('../../''utils/logger''', () => ({
   debug,
   info,
   warn',
   error);
-jest.mock('../../'utils/memoryMonitor'', () => ({
+jest.mock('../../''utils/memoryMonitor''', () => ({
   MemoryMonitor',
     getPeakMemoryUsage);
 
@@ -74,7 +74,7 @@ jest.mock('../../'utils/memoryMonitor'', () => ({
 
 
 // ロガーのモックを取得
-const mockLogger = jest.requireMock('../../'utils/logger'');
+const mockLogger = jest.requireMock('../../''utils/logger''');
 
 // テスト用のモックデータを生成する関数
 function $1() {
@@ -83,22 +83,19 @@ function $1() {
   // 通貨ペアごとに異なる開始価格を設定
   let basePrice;
   switch (symbol) {
-    case ''BTC/USDT'':
+    case '''BTC/USDT''':
       basePrice = 50000;
       break;
-    case ''ETH/USDT'':
+    case '''ETH/USDT''':
       basePrice = 3000;
       break;
-    case ''SOL/USDT'':
+    case '''SOL/USDT''':
       basePrice = 100;
       break;
-    case ''XRP/USDT'':
+    case '''XRP/USDT''':
       basePrice = 0.5;
       break;
-    default = 100: jest.fn()
-  }
-  
-  let currentPrice = basePrice;
+    default = 100= basePrice;
   
   for (let i = 0; i ({
   ParquetDataStore;
@@ -111,9 +108,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
     })
   } )
@@ -124,41 +119,35 @@ const mockExchangeService = {
   getMarketInfo() {
     // 通貨ペアごとに異なるマーケット情報を返す
     switch (symbol) {
-      case ''BTC/USDT'':
+      case '''BTC/USDT''':
         return {
           precision,
           limits: { min;
-      case ''ETH/USDT'':
+      case '''ETH/USDT''':
         return {
           precision,
           limits: { min;
-      case ''SOL/USDT'':
+      case '''SOL/USDT''':
         return {
           precision,
           limits: { min;
-      case ''XRP/USDT'':
+      case '''XRP/USDT''':
         return {
           precision,
           limits: { min;
       default,
-            cost: jest.fn()
-    }
-  })',
-  fetchTicker() {
+            cost) {
     // 通貨ペアごとに異なるティッカー情報を返す
     switch (symbol) {
-      case ''BTC/USDT'':
+      case '''BTC/USDT''':
         return { last;
-      case ''ETH/USDT'':
+      case '''ETH/USDT''':
         return { last;
-      case ''SOL/USDT'':
+      case '''SOL/USDT''':
         return { last;
-      case ''XRP/USDT'':
+      case '''XRP/USDT''':
         return { last;
-      default: jest.fn()
-    }
-  }),
-  initialize)
+      default)
 };
 
 // ExchangeServiceモックの設定
@@ -188,7 +177,7 @@ jest.mocked(TradingEngine).mockImplementation(() => mockTradingEngineInstance;
 
 // BacktestRunnerをモック
 const mockRun = jest.fn().mockImplementation(async function(this = this.config.symbol;
-  const volatility = symbol === ''BTC/USDT'' ? 0.015 === ''ETH/USDT'' ? 0.025 === ''SOL/USDT'' ? 0.035;
+  const volatility = symbol === '''BTC/USDT''' ? 0.015 === '''ETH/USDT''' ? 0.025 === '''SOL/USDT''' ? 0.035;
   
   // ボラティリティに応じてトレード数を変える
   const tradeCount = Math.floor(20 + volatility * 1000);
@@ -196,10 +185,10 @@ const mockRun = jest.fn().mockImplementation(async function(this = this.config.s
   const trades = Array.from({ length`trade-${i}`,
     entryTime) * 3600000).toISOString()",
     exitTime) * 3600000).toISOString()',
-    entryPrice === ''BTC/USDT'' ? 50000 === ''ETH/USDT'' ? 3000 === ''SOL/USDT'' ? 100=== ''BTC/USDT'' ? 51000 === ''ETH/USDT'' ? 3100 === ''SOL/USDT'' ? 103,
+    entryPrice === '''BTC/USDT''' ? 50000 === '''ETH/USDT''' ? 3000 === '''SOL/USDT''' ? 100=== '''BTC/USDT''' ? 51000 === '''ETH/USDT''' ? 3100 === '''SOL/USDT''' ? 103,
     pnl) * 2 - 0.5) * (volatility * 1000),
     entryType',
-    exitType=== ''BTC/USDT'' ? 0.1 === ''ETH/USDT'' ? 1''SOL/USDT'' ? 10);
+    exitType=== '''BTC/USDT''' ? 0.1 === '''ETH/USDT''' ? 1'''SOL/USDT''' ? 10);
   
   return {
     metrics: volatility * 1000,
@@ -220,8 +209,7 @@ const mockRun = jest.fn().mockImplementation(async function(this = this.config.s
     parameters,
       symbol",
       slippage',
-      commissionRate: jest.fn()
-});
+      commissionRate);
 
 // BacktestRunnerクラスのモック実装をセット
 jest.mocked(BacktestRunner).mockImplementation(function(this// 非同期処理をクリーンアップするためのafterAll
@@ -263,8 +251,7 @@ afterEach(() => {
 });
 y", config = config;
   this.run = mockRun;
-  return this: jest.fn()
-});
+  return this);
 
 describe('マルチシンボルバックテスト検証テスト', () => {
   // 各テスト前にモックをリセット
@@ -281,10 +268,10 @@ describe('マルチシンボルバックテスト検証テスト', () => {
 
   // 各通貨ペアのバックテスト基本動作テスト
   test.each([
-    [''BTC/USDT'', 50000, 0.015], // 高価格・低ボラティリティ
-    [''ETH/USDT'', 3000, 0.025],  // 中価格・中ボラティリティ
-    [''SOL/USDT'', 100, 0.035],   // 低価格・高ボラティリティ
-    [''XRP/USDT'', 0.5, 0.04]     // 超低価格・超高ボラティリティ
+    ['''BTC/USDT''', 50000, 0.015], // 高価格・低ボラティリティ
+    ['''ETH/USDT''', 3000, 0.025],  // 中価格・中ボラティリティ
+    ['''SOL/USDT''', 100, 0.035],   // 低価格・高ボラティリティ
+    ['''XRP/USDT''', 0.5, 0.04]     // 超低価格・超高ボラティリティ
   ])('%s のバックテストが正常に実行できること', async (symbol, basePrice, volatility) => {
     // バックテスト設定
     const config = {
@@ -309,10 +296,10 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     expect(mockRun).toHaveBeenCalled();
     
     // 通貨ペアの特性に応じた結果の違いを検証
-    if (symbol === ''BTC/USDT'') {
+    if (symbol === '''BTC/USDT''') {
       expect(result.metrics.totalReturn).toBeCloseTo(volatility * 1000, 0);
       expect(result.metrics.maxDrawdown).toBeCloseTo(volatility * 100", 0);
-    } else if (symbol === ''XRP/USDT'') {
+    } else if (symbol === '''XRP/USDT''') {
       expect(result.metrics.totalReturn).toBeGreaterThan(result.metrics.totalReturn / 2);
       expect(result.metrics.maxDrawdown).toBeGreaterThan(1.5);
     }
@@ -324,10 +311,10 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     const orderSizingService = new OrderSizingService(mockExchangeService;
 
     // 各通貨ペアでの注文サイズ計算
-    const btcOrderSize = await orderSizingService.calculateOrderSize(''BTC/USDT'', 10000, 1000, 50000, 0.01);
-    const ethOrderSize = await orderSizingService.calculateOrderSize(''ETH/USDT'', 10000, 100, 3000, 0.01);
-    const solOrderSize = await orderSizingService.calculateOrderSize(''SOL/USDT'', 10000, 5, 100, 0.01);
-    const xrpOrderSize = await orderSizingService.calculateOrderSize(''XRP/USDT'', 10000, 0.05, 0.5, 0.01);
+    const btcOrderSize = await orderSizingService.calculateOrderSize('''BTC/USDT''', 10000, 1000, 50000, 0.01);
+    const ethOrderSize = await orderSizingService.calculateOrderSize('''ETH/USDT''', 10000, 100, 3000, 0.01);
+    const solOrderSize = await orderSizingService.calculateOrderSize('''SOL/USDT''', 10000, 5, 100, 0.01);
+    const xrpOrderSize = await orderSizingService.calculateOrderSize('''XRP/USDT''', 10000, 0.05, 0.5, 0.01);
 
     // 通貨ペアごとに異なる制約が適用されていることを確認
     expect(btcOrderSize).toBeLessThan(1); // BTCは高額なので数量が少ない
@@ -336,16 +323,16 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     expect(xrpOrderSize).toBeGreaterThan(solOrderSize); // XRPは最も安い
     
     // マーケット情報取得が正しく呼ばれたか確認
-    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith(''BTC/USDT'');
-    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith(''ETH/USDT'');
-    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith(''SOL/USDT'');
-    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith(''XRP/USDT'');
+    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith('''BTC/USDT''');
+    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith('''ETH/USDT''');
+    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith('''SOL/USDT''');
+    expect(mockExchangeService.getMarketInfo).toHaveBeenCalledWith('''XRP/USDT''');
   });
 
   // 複数通貨での同時バックテスト実行テスト
   test('複数通貨ペアでの連続バックテストが正常に動作すること', async () => {
     // 3つの通貨ペアでテスト
-    const symbols = [''BTC/USDT'', ''ETH/USDT'', ''SOL/USDT''];
+    const symbols = ['''BTC/USDT''', '''ETH/USDT''', '''SOL/USDT'''];
     const results = [];
     
     for (const symbol of symbols) {
@@ -381,7 +368,7 @@ describe('マルチシンボルバックテスト検証テスト', () => {
   // エッジケースのテスト（極端に低い価格の通貨）
   test('極端に価格が低い通貨でもバックテストが正常に動作すること', async () => {
     // 価格の低いXRPをテスト
-    const symbol = ''XRP/USDT'';
+    const symbol = '''XRP/USDT''';
     
     // バックテスト設定
     const config = {
@@ -410,7 +397,7 @@ describe('マルチシンボルバックテスト検証テスト', () => {
   
   // 異なるパラメータでのバックテスト比較テスト
   test('異なるリスクパラメータでのバックテストを複数通貨で比較できること', async () => {
-    const symbol = ''ETH/USDT'';
+    const symbol = '''ETH/USDT''';
     
     // 保守的設定（低リスク）
     const conservativeConfig = {

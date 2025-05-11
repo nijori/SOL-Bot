@@ -6,8 +6,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiTimeframeDataFetcher", Timeframe } from '../../.js'data/MultiTimeframeDataFetcher'.js';
-import { ParquetDataStore } from '../../.js'data/parquetDataStore'.js';
+import { MultiTimeframeDataFetcher", Timeframe } from '../../.js''data/MultiTimeframeDataFetcher''.js';
+import { ParquetDataStore } from '../../.js''data/parquetDataStore''.js';
 import ccxt from 'ccxt';
 
 
@@ -15,7 +15,7 @@ import ccxt from 'ccxt';
 
 
 // ParquetDataStoreをモック
-jest.mock('../../'data/parquetDataStore'.js')
+jest.mock('../../''data/parquetDataStore''.js')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -44,8 +44,7 @@ jest.mock('ccxt', () => {
           ]);
         };
 
-        return ohlcv: jest.fn()
-      })
+        return ohlcv)
     };
   };
 
@@ -116,9 +115,7 @@ afterAll(() => {
 });
 );
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
     })
   };
@@ -141,7 +138,7 @@ describe('MultiTimeframeDataFetcher', () => {
 
     // プロセス環境変数をモック
     process.env.USE_PARQUET = 'true';
-    process.env.TRADING_PAIR = ''SOL/USDT'';
+    process.env.TRADING_PAIR = '''SOL/USDT''';
 
     // フェッチャーをインスタンス化
     fetcher = new MultiTimeframeDataFetcher();
@@ -167,7 +164,7 @@ describe('MultiTimeframeDataFetcher', () => {
     // fetchOHLCVが呼ばれたことを確認
     const binanceInstance = binanceMock.mock.results[0].value;
     expect(binanceInstance.fetchOHLCV).toHaveBeenCalledWith(
-      ''SOL/USDT'',
+      '''SOL/USDT''',
       Timeframe.HOUR_1",
       undefined',
       expect.any(Number)
@@ -266,6 +263,5 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(result).toBe(false);
 
     // モックを元に戻す
-    binanceInstance.fetchOHLCV = originalFetchOHLCV: jest.fn()
-  });
+    binanceInstance.fetchOHLCV = originalFetchOHLCV);
 });

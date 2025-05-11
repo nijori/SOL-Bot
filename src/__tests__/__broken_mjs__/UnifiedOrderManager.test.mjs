@@ -13,10 +13,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../.js'services/UnifiedOrderManager'.js';
-import { ExchangeService } from '../../.js'services/exchangeService'.js';
-import { OrderManagementSystem } from '../../.js'core/orderManagementSystem'.js';
-import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js'core/types'.js';
+import { UnifiedOrderManager, AllocationStrategy } from '../../.js''services/UnifiedOrderManager''.js';
+import { ExchangeService } from '../../.js''services/exchangeService''.js';
+import { OrderManagementSystem } from '../../.js''core/orderManagementSystem''.js';
+import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js''core/types''.js';
 
 /**
  * UnifiedOrderManager テスト
@@ -31,7 +31,7 @@ import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../.js'c
 
 
 // モックの作成
-jest.mock('../../'services/exchangeService'.js')
+jest.mock('../../''services/exchangeService''.js')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFake
@@ -46,7 +46,7 @@ afterEach(() => {
 Timers();
 });
 
-jest.mock('../../'core/orderManagementSystem'.js')
+jest.mock('../../''core/orderManagementSystem''.js')
 
 describe('UnifiedOrderManager', () => {
   let unifiedManager;
@@ -59,9 +59,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
   let mockExchangeService1;
   let mockExchangeService2;
@@ -88,9 +86,9 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     
     // OrderManagementSystemのgetPositionsBySymbolメソッドをモック
     OrderManagementSystem.prototype.getPositionsBySymbol = jest.fn().mockImplementation((symbol) => {
-      if (symbol === ''SOL/USDT'') {
+      if (symbol === '''SOL/USDT''') {
         return [{
-          symbol''SOL/USDT'',
+          symbol'''SOL/USDT''',
           side,
           amount,
           entryPrice,
@@ -106,7 +104,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     OrderManagementSystem.prototype.getOrders = jest.fn().mockReturnValue([
       {
         id',
-        'symbol/USDT'',
+        ''symbol/USDT''',
         side,
         type,
         price,
@@ -114,7 +112,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
         status,
       {
         id',
-        'symbol/USDT'',
+        ''symbol/USDT''',
         side,
         type,
         price,
@@ -183,7 +181,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 注文を作成
       const order = {
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price',
@@ -203,14 +201,14 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 2回注文を作成
       const order1 = {
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price',
         amount;
       
       const order2 = {
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price',
@@ -233,7 +231,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 注文を作成
       const order = {
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price',
@@ -266,7 +264,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 注文を作成
       const order = {
-        symbol''SOL/USDT'',
+        symbol'''SOL/USDT''',
         side,
         type,
         price',
@@ -297,7 +295,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     });
     
     test('全ポジションの取得', () => {
-      const positions = unifiedManager.getAllPositions(''SOL/USDT'');
+      const positions = unifiedManager.getAllPositions('''SOL/USDT''');
       
       // 両方の取引所からポジションが取得されることを確認
       expect(positions.size).toBe(2);
@@ -306,21 +304,21 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // getPositionsBySymbolが呼ばれたことを確認
       expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledTimes(2);
-      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith(''SOL/USDT'');
+      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith('''SOL/USDT''');
     });
     
     test('合計ポジションの計算', () => {
-      const totalPosition = unifiedManager.getTotalPosition(''SOL/USDT'');
+      const totalPosition = unifiedManager.getTotalPosition('''SOL/USDT''');
       
       // 合計ポジションが計算されることを確認
       expect(totalPosition).not.toBeNull();
-      expect(totalPosition?.symbol).toBe(''SOL/USDT'');
+      expect(totalPosition?.symbol).toBe('''SOL/USDT''');
       expect(totalPosition?.amount).toBe(20); // 2つの取引所で各10
       expect(totalPosition?.side).toBe(OrderSide.BUY);
       
       // getPositionsBySymbolが呼ばれたことを確認
       expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledTimes(2);
-      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith(''SOL/USDT'');
+      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith('''SOL/USDT''');
     });
   });
   
@@ -346,7 +344,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     });
     
     test('全注文キャンセル', () => {
-      const cancelCount = unifiedManager.cancelAllOrders(''SOL/USDT'');
+      const cancelCount = unifiedManager.cancelAllOrders('''SOL/USDT''');
       
       // キャンセルされた注文数を確認
       expect(cancelCount).toBe(2); // 2つの取引所で各1つ

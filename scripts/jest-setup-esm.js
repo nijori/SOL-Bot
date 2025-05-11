@@ -29,6 +29,32 @@ process.env.JEST_ROOT_DIR = path.resolve(__dirname, '..');
 // グローバルスコープにjestを公開
 globalThis.jest = jest;
 
+// duckdbのモック設定
+// 並列テスト実行用に、テスト環境でduckdbをダミー実装に置き換える
+jest.unstable_mockModule('duckdb', () => ({
+  Database: class {
+    constructor() {
+      // モック実装
+    }
+    connect() {
+      return {
+        exec: () => {
+          // モック実装の戻り値
+          return {
+            all: () => []
+          };
+        },
+        prepare: () => ({
+          run: () => {},
+          all: () => []
+        }),
+        all: () => []
+      };
+    }
+    close() {}
+  }
+}));
+
 // モック用ヘルパー関数 - 拡張子を自動で補完
 const addJsExtension = (path) => {
   if (!path.endsWith('.js') && !path.endsWith('.mjs')) {

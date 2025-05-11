@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 import { ATRCalibrator, CalibrationResult, atrCalibrator } from '../../utils/atrCalibrator.js';
 import { Candle } from '../../core/types.js';
 import { parameterService } from '../../config/parameterService.js';

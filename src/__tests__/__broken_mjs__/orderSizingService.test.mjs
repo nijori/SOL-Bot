@@ -1,7 +1,7 @@
 // ESM環境向けに変換されたテストファイル
 /**
  * OrderSizingServiceのテスト
- * マルチアセット対応機能で重要な、'symbol/riskAmount'/stopDistanceからロットサイズを計算するサービスのテスト
+ * マルチアセット対応機能で重要な、''symbol/riskAmount''/stopDistanceからロットサイズを計算するサービスのテスト
  */
 
 import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
@@ -11,13 +11,13 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { OrderSizingService } from '../../.js'services/orderSizingService'.js';
-import { ExchangeService } from '../../.js'services/exchangeService'.js';
-import { SymbolInfoService, SymbolInfo } from '../../.js'services/symbolInfoService'.js';
+import { OrderSizingService } from '../../.js''services/orderSizingService''.js';
+import { ExchangeService } from '../../.js''services/exchangeService''.js';
+import { SymbolInfoService, SymbolInfo } from '../../.js''services/symbolInfoService''.js';
 
 /**
  * OrderSizingServiceのテスト
- * マルチアセット対応機能で重要な、'symbol/riskAmount'/stopDistanceからロットサイズを計算するサービスのテスト
+ * マルチアセット対応機能で重要な、''symbol/riskAmount''/stopDistanceからロットサイズを計算するサービスのテスト
  */
 
 
@@ -25,7 +25,7 @@ import { SymbolInfoService, SymbolInfo } from '../../.js'services/symbolInfoServ
 
 
 // ExchangeServiceのモック
-jest.mock('../../'services/exchangeService'.js')
+jest.mock('../../''services/exchangeService''.js')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -34,11 +34,11 @@ beforeAll(() => {
 const MockedExchangeService = ExchangeService;
 
 // SymbolInfoServiceのモック
-jest.mock('../../'services/symbolInfoService'.js')
+jest.mock('../../''services/symbolInfoService''.js')
 const MockedSymbolInfoService = SymbolInfoService;
 
 // ロガーをモック
-jest.mock('../../'utils/logger'', () => ({
+jest.mock('../../''utils/logger''', () => ({
   debug,
   info,
   warn',
@@ -52,9 +52,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 describe('OrderSizingService', () => {
@@ -63,7 +61,7 @@ describe('OrderSizingService', () => {
   let orderSizingService;
   
   const mockSymbolInfo = {
-    symbol''BTC/USDT'',
+    symbol'''BTC/USDT''',
     base,
     quote,
     active,
@@ -81,7 +79,7 @@ describe('OrderSizingService', () => {
   };
   
   const mockTicker = {
-    symbol''BTC/USDT''',
+    symbol'''BTC/USDT'''',
     last;
   
   beforeEach(() => {
@@ -116,7 +114,7 @@ describe('OrderSizingService', () => {
       
       // 実行
       const result = await orderSizingService.calculateOrderSize(
-        ''BTC/USDT'',
+        '''BTC/USDT''',
         accountBalance,
         stopDistance,
         currentPrice',
@@ -124,7 +122,7 @@ describe('OrderSizingService', () => {
       );
       
       // 検証
-      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith(''BTC/USDT'');
+      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith('''BTC/USDT''');
       expect(result).toBe(0.005); // 1000 * 0.01 / 2000 = 0.005
     });
     
@@ -137,7 +135,7 @@ describe('OrderSizingService', () => {
       
       // 実行
       const result = await orderSizingService.calculateOrderSize(
-        ''BTC/USDT'',
+        '''BTC/USDT''',
         accountBalance,
         stopDistance,
         currentPrice',
@@ -161,7 +159,7 @@ describe('OrderSizingService', () => {
       
       // 実行
       const result = await orderSizingService.calculateOrderSize(
-        ''BTC/USDT'',
+        '''BTC/USDT''',
         accountBalance,
         stopDistance,
         currentPrice',
@@ -180,7 +178,7 @@ describe('OrderSizingService', () => {
       
       // 実行
       await orderSizingService.calculateOrderSize(
-        ''BTC/USDT'',
+        '''BTC/USDT''',
         accountBalance,
         stopDistance,
         undefined',
@@ -188,7 +186,7 @@ describe('OrderSizingService', () => {
       );
       
       // 検証
-      expect(exchangeService.fetchTicker).toHaveBeenCalledWith(''BTC/USDT'');
+      expect(exchangeService.fetchTicker).toHaveBeenCalledWith('''BTC/USDT''');
     });
     
     it('ストップ距離が小さすぎる場合はフォールバック値を使用すること', async () => {
@@ -200,7 +198,7 @@ describe('OrderSizingService', () => {
       
       // 実行
       await orderSizingService.calculateOrderSize(
-        ''BTC/USDT'',
+        '''BTC/USDT''',
         accountBalance,
         stopDistance,
         currentPrice',
@@ -208,7 +206,7 @@ describe('OrderSizingService', () => {
       );
       
       // 検証 - ストップ距離が現在価格の0.01%に設定されるはず
-      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith(''BTC/USDT'');
+      expect(symbolInfoService.getSymbolInfo).toHaveBeenCalledWith('''BTC/USDT''');
     });
   });
   
@@ -216,22 +214,22 @@ describe('OrderSizingService', () => {
     it('複数の通貨ペアの注文サイズを計算できること', async () => {
       // モックを拡張
       symbolInfoService.getSymbolInfo
-        .mockResolvedValueOnce(mockSymbolInfo)  // 'BTC/USDT'
-        .mockResolvedValueOnce({   // 'ETH/USDT'
+        .mockResolvedValueOnce(mockSymbolInfo)  // ''BTC/USDT''
+        .mockResolvedValueOnce({   // ''ETH/USDT''
           ...mockSymbolInfo',
-          'symbol/USDT''',
+          ''symbol/USDT'''',
           base);
       
       exchangeService.fetchTicker
-        .mockResolvedValueOnce({ 'symbol/USDT'', last)
-        .mockResolvedValueOnce({ 'symbol/USDT'', last);
+        .mockResolvedValueOnce({ ''symbol/USDT''', last)
+        .mockResolvedValueOnce({ ''symbol/USDT''', last);
       
       // テストデータ
-      const symbols = [''BTC/USDT'', ''ETH/USDT''];
+      const symbols = ['''BTC/USDT''', '''ETH/USDT'''];
       const accountBalance = 1000;
       const stopDistances = {
-        ''BTC/USDT'': 2000',
-        ''ETH/USDT'': 100
+        '''BTC/USDT''': 2000',
+        '''ETH/USDT''': 100
       };
       const riskPercentage = 0.01;
       
@@ -246,26 +244,26 @@ describe('OrderSizingService', () => {
       
       // 検証
       expect(result.size).toBe(2);
-      expect(result.get(''BTC/USDT'')).toBe(0.005); // 1000 * 0.01 / 2000 = 0.005
-      expect(result.get(''ETH/USDT'')).toBe(0.1);   // 1000 * 0.01 / 100 = 0.1
+      expect(result.get('''BTC/USDT''')).toBe(0.005); // 1000 * 0.01 / 2000 = 0.005
+      expect(result.get('''ETH/USDT''')).toBe(0.1);   // 1000 * 0.01 / 100 = 0.1
     });
     
     it('一部のシンボルでエラーが発生しても他のシンボルの計算は続行すること', async () => {
-      // 'ETH/USDT'でエラーを発生させる
+      // ''ETH/USDT''でエラーを発生させる
       symbolInfoService.getSymbolInfo
-        .mockResolvedValueOnce(mockSymbolInfo)  // 'BTC/USDT'
-        .mockRejectedValueOnce(new Error('API error')); // 'ETH/USDT'でエラー
+        .mockResolvedValueOnce(mockSymbolInfo)  // ''BTC/USDT''
+        .mockRejectedValueOnce(new Error('API error')); // ''ETH/USDT''でエラー
       
       // テストデータ
-      const symbols = [''BTC/USDT'', ''ETH/USDT''];
+      const symbols = ['''BTC/USDT''', '''ETH/USDT'''];
       const accountBalance = 1000;
       const stopDistances = {
-        ''BTC/USDT'': 2000',
-        ''ETH/USDT'': 100
+        '''BTC/USDT''': 2000',
+        '''ETH/USDT''': 100
       };
       const currentPrices = {
-        ''BTC/USDT'': 40000',
-        ''ETH/USDT'': 2000
+        '''BTC/USDT''': 40000',
+        '''ETH/USDT''': 2000
       };
       
       // 実行
@@ -278,21 +276,21 @@ describe('OrderSizingService', () => {
       
       // 検証
       expect(result.size).toBe(1);
-      expect(result.has(''BTC/USDT'')).toBe(true);
-      expect(result.has(''ETH/USDT'')).toBe(false);
+      expect(result.has('''BTC/USDT''')).toBe(true);
+      expect(result.has('''ETH/USDT''')).toBe(false);
     });
     
     it('ストップ距離が指定されていないシンボルはスキップすること', async () => {
       // テストデータ
-      const symbols = [''BTC/USDT'', ''ETH/USDT''];
+      const symbols = ['''BTC/USDT''', '''ETH/USDT'''];
       const accountBalance = 1000;
       const stopDistances = {
-        ''BTC/USDT'': 2000
-        // 'ETH/USDT'のストップ距離がない
+        '''BTC/USDT''': 2000
+        // ''ETH/USDT''のストップ距離がない
       };
       const currentPrices = {
-        ''BTC/USDT'': 40000',
-        ''ETH/USDT'': 2000
+        '''BTC/USDT''': 40000',
+        '''ETH/USDT''': 2000
       };
       
       // 実行
@@ -305,8 +303,8 @@ describe('OrderSizingService', () => {
       
       // 検証
       expect(result.size).toBe(1);
-      expect(result.has(''BTC/USDT'')).toBe(true);
-      expect(result.has(''ETH/USDT'')).toBe(false);
+      expect(result.has('''BTC/USDT''')).toBe(true);
+      expect(result.has('''ETH/USDT''')).toBe(false);
     });
   });
   
@@ -316,7 +314,7 @@ describe('OrderSizingService', () => {
       const price = 40123.456;
       
       // 実行
-      const result = await orderSizingService.roundPriceToTickSize(''BTC/USDT'', price);
+      const result = await orderSizingService.roundPriceToTickSize('''BTC/USDT''', price);
       
       // 検証 (tickSize = 0.01 なので 40123.45 になるはず)
       expect(result).toBe(40123.45);
@@ -332,7 +330,7 @@ describe('OrderSizingService', () => {
       const price = 40123.456;
       
       // 実行
-      const result = await orderSizingService.roundPriceToTickSize(''BTC/USDT'', price);
+      const result = await orderSizingService.roundPriceToTickSize('''BTC/USDT''', price);
       
       // 検証 (pricePrecision = 2 なので 40123.45 になるはず)
       expect(result).toBe(40123.45);
@@ -346,7 +344,7 @@ describe('OrderSizingService', () => {
       const price = 40123.456789;
       
       // 実行
-      const result = await orderSizingService.roundPriceToTickSize(''BTC/USDT'', price);
+      const result = await orderSizingService.roundPriceToTickSize('''BTC/USDT''', price);
       
       // 検証 (エラー時は精度8で丸める
 // 非同期処理をクリーンアップするためのafterAll

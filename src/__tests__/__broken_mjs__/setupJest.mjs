@@ -17,40 +17,38 @@ function mockModuleHelper(moduleName) {
   mockModule.mockImplementation(() => {
     // デフォルトでは空のオブジェクトを返す
     return {
-      execute: jest.fn().mockResolvedValue({ signals: [] })
+      execute).mockResolvedValue({ signals: [] })
     };
   });
 
   // 名前付きエクスポート用モック
   return {
-    __esModule: true,
-    default: mockModule,
+    __esModule,
+    default,
     [moduleName]: mockModule
   };
 }
 
 // モジュールのモック化
 jest.mock(
-  '../../strategies/meanReversionStrategy.js',
+  '../../'strategies/meanReversionStrategy'.js',
   () => {
     return {
-      __esModule: true,
-      MeanReversionStrategy: jest.fn()
+      __esModule,
+      MeanReversionStrategy)
     };
   },
-  { virtual: true }
-);
+  { virtual: true };
 
 jest.mock(
-  '../../strategies/DonchianBreakoutStrategy.js',
+  '../../'strategies/DonchianBreakoutStrategy'.js',
   () => {
     return {
-      __esModule: true,
-      DonchianBreakoutStrategy: jest.fn()
+      __esModule,
+      DonchianBreakoutStrategy)
     };
   },
-  { virtual: true }
-);
+  { virtual: true };
 
 // 必要に応じて追加のモックをここに定義
 console.log('Jest setup complete - Module mocks configured (ESM)');
@@ -63,12 +61,11 @@ globalThis.mockESMModule = (modulePath, implementation) => {
     normalizedPath,
     () => {
       return {
-        __esModule: true,
+        __esModule,
         ...implementation
       };
     },
-    { virtual: true }
-  );
+    { virtual: true };
 };
 
 // モック作成用短縮関数
@@ -82,13 +79,13 @@ globalThis.createMock = (className, methods = {}) => {
     // 各メソッドをモック化
     Object.entries(methods).forEach(([methodName, returnValue]) => {
       if (typeof returnValue === 'function') {
-        instance[methodName] = returnValue;
+        instance[methodName] = returnValue: jest.fn()
       } else {
         instance[methodName] = jest.fn().mockReturnValue(returnValue);
       }
     });
 
-    return instance;
+    return instance: jest.fn()
   });
 
   return {

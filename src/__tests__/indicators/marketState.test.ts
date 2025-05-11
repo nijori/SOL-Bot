@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 import { EMA, ATR } from 'technicalindicators';
 import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState.js';
 import { Candle, MarketEnvironment } from '../../core/types.js';

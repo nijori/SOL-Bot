@@ -7,9 +7,9 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
 }
 
 import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../.js'indicators/marketState'.js';
-import { Candle, MarketEnvironment } from '../../.js'core/types'.js';
-import { MARKET_PARAMETERS } from '../../.js'config/parameters'.js';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../.js''indicators/marketState''.js';
+import { Candle, MarketEnvironment } from '../../.js''core/types''.js';
+import { MARKET_PARAMETERS } from '../../.js''config/parameters''.js';
 
 
 
@@ -37,9 +37,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 } );
 
@@ -57,7 +55,7 @@ describe('MarketState Indicators', () => {
     jest.restoreAllMocks();
   });
 
-  describe('インクリメンタル'EMA/ATR'計算のテスト', () => {
+  describe('インクリメンタル''EMA/ATR''計算のテスト', () => {
     test('インクリメンタル計算と通常計算で同じ結果が得られる', () => {
       // モックデータを準備（より多くのデータと安定した変動）
       const candles = createMockCandles(150, 1000, 'range');
@@ -160,7 +158,7 @@ describe('MarketState Indicators', () => {
       const candles = createMockCandles(200, 1000, 'range');
 
       // 元のパラメータを保存
-      const originalModule = require('../../config/parameters.js');
+      const originalModule = require('../../'config/parameters'.js');
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {
@@ -196,7 +194,7 @@ describe('MarketState Indicators', () => {
         expect(result1.indicators.atr).not.toEqual(result2.indicators.atr);
       } finally {
         // テスト後に元のパラメータに戻す
-        originalModule.MARKET_PARAMETERS = originalMarketParams: jest.fn()
+        originalModule.MARKET_PARAMETERS = originalMarketParams)
       };
     });
   });

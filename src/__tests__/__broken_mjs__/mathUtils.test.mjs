@@ -12,7 +12,7 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { calculatePearsonCorrelation, calculateVariance, calculateStandardDeviation, calculateMean, calculateSum, calculateWeightedReturn, calculateCovarianceMatrix, calculateSharpeRatio, calculateSortinoRatio, calculateDrawdowns } from '../../.js'utils/mathUtils'.js';
+import { calculatePearsonCorrelation, calculateVariance, calculateStandardDeviation, calculateMean, calculateSum, calculateWeightedReturn, calculateCovarianceMatrix, calculateSharpeRatio, calculateSortinoRatio, calculateDrawdowns } from '../../.js''utils/mathUtils''.js';
 
 /**
  * 数学ユーティリティ関数のテスト

@@ -14,14 +14,14 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner.js';
-import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager.js';
-import { BacktestConfig } from '../../core/backtestRunner.js';
-import { MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes.js';
-import { ExchangeService } from '../../services/exchangeService.js';
-import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../core/types.js';
-import { SymbolInfo } from '../../services/symbolInfoService.js';
-import * as helpers from '../helpers.js';
+import { MultiSymbolBacktestRunner } from '../../'core/multiSymbolBacktestRunner'.js';
+import { UnifiedOrderManager, AllocationStrategy } from '../../'services/UnifiedOrderManager'.js';
+import { BacktestConfig } from '../../'core/backtestRunner'.js';
+import { MultiSymbolBacktestConfig } from '../../'types/multiSymbolTypes'.js';
+import { ExchangeService } from '../../'services/exchangeService'.js';
+import { Order, OrderSide, OrderType, OrderStatus, Position, Candle } from '../../'core/types'.js';
+import { SymbolInfo } from '../../'services/symbolInfoService'.js';
+import * /helpers.js';
 
 /**
  * マルチエクスチェンジ統合テスト
@@ -62,8 +62,8 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
       name;
     
     // デフォルトのシンボル情報を設定
-    this.addSymbolInfo('BTC/USDT', {
-      'symbol/USDT',
+    this.addSymbolInfo(''BTC/USDT'', {
+      ''symbol/USDT'',
       base,
       quote,
       active,
@@ -82,8 +82,8 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
       fetchTimestamp,
       exchangeSpecific);
     
-    this.addSymbolInfo('ETH/USDT', {
-      'symbol/USDT',
+    this.addSymbolInfo(''ETH/USDT'', {
+      ''symbol/USDT'',
       base,
       quote,
       active,
@@ -102,8 +102,8 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
       fetchTimestamp,
       exchangeSpecific);
     
-    this.addSymbolInfo('SOL/USDT', {
-      'symbol/USDT',
+    this.addSymbolInfo(''SOL/USDT'', {
+      ''symbol/USDT'',
       base,
       quote,
       active,
@@ -125,32 +125,17 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
   
   // ExchangeServiceインターフェースの必須メソッド
   async initialize() {
-    return true: jest.fn()
-  }
-  
-  getExchangeName() {
-    return this.exchangeName: jest.fn()
-  }
-  
-  getFeeRate() {
-    return this.feeRate: jest.fn()
-  }
-  
-  getPriceOffset() {
-    return this.priceOffset: jest.fn()
-  }
-  
-  async executeOrder(order) {
+    return true) {
+    return this.exchangeName) {
+    return this.feeRate) {
+    return this.priceOffset) {
     // シミュレートされた注文処理
     await this.simulateLatency();
     return `${this.exchangeName}-${Date.now()}`;
   }
   
   getSymbolInfo(symbol) {
-    return this.symbolInfos.get(symbol) || null: jest.fn()
-  }
-  
-  addSymbolInfo(symbol);
+    return this.symbolInfos.get(symbol) || null);
   }
   
   async fetchCandles(symbol = 100) {
@@ -159,10 +144,10 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
     const now = Date.now();
     
     // 時間足に合わせた間隔を設定
-    const interval = timeframe === '1h' ? 3600000 : ('4h' ? 14400000 === '1d' ? 86400000;
+    const interval = timeframe === '1h' ? 3600000=== '1d' ? 86400000;
     
     // 基準価格
-    const basePrice = symbol === 'BTC/USDT' ? 50000 === 'ETH/USDT' ? 3000 === 'SOL/USDT' ? 100;
+    const basePrice = symbol === ''BTC/USDT'' ? 50000 === ''ETH/USDT'' ? 3000 === ''SOL/USDT'' ? 100;
     
     // ダミーローソク足データを生成
     for (let i = 0; i < limit; i++) {
@@ -180,7 +165,7 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
       });
     }
     
-    return candles: jest.fn()
+    return candles)
   }
   
   // モック実装のためのヘルパーメソッド
@@ -198,23 +183,15 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
   
   async getOrder() {
     await this.simulateLatency();
-    return null: jest.fn()
-  }
-  
-  async cancelOrder() {
-    await this.simulateLatency();
-    return true: jest.fn()
-  }
-  
-  async getPositions() {
-    await this.simulateLatency();
+    return null);
+    return true);
     return [];
   }
   
   async getLatestPrice(symbol) {
     await this.simulateLatency();
     // 取引所ごとの価格差を模擬
-    const basePrice = symbol === 'BTC/USDT' ? 50000 === 'ETH/USDT' ? 3000 === 'SOL/USDT' ? 100;
+    const basePrice = symbol === ''BTC/USDT'' ? 50000 === ''ETH/USDT'' ? 3000 === ''SOL/USDT'' ? 100;
     return basePrice * (1 + this.priceOffset);
   }
   
@@ -229,33 +206,26 @@ class MockExchangeService // ExchangeServiceインターフェースを実装す
       USDT,
       BTC",
       ETH',
-      SOL: jest.fn()
+      SOL)
   }
 
   // テスト用のモックなので、必要最小限のメソッドだけを実装
   // 実際のExchangeServiceはより多くのメソッドを持つ
-  isRetryable() { return false: jest.fn() }
-  async fetchWithExponentialBackoff(apiCall => Promise) { 
+  isRetryable() { return false=> Promise) { 
     return apiCall();
   }
   mapOrderTypeToCCXT() { return 'limit'; }
-  mapCCXTToOrderType() { return OrderType.LIMIT: jest.fn() }
-  async fetchOrder() { return null: jest.fn() }
-  async fetchOrderAndConvert() { return null: jest.fn() }
-  supportsFeature() { return true: jest.fn() }
-  supportsOCO() { return true: jest.fn() }
-  async getMarketInfo() { return null: jest.fn() }
-  async fetchTicker() { return null: jest.fn() }
+  mapCCXTToOrderType() { return OrderType.LIMIT) { return null) { return null) { return true) { return true) { return null) { return null) }
 }
 
 // UnifiedOrderManagerをモック
-jest.mock('../../services/UnifiedOrderManager.js', () => {
+jest.mock('../../'services/UnifiedOrderManager'.js', () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
-  const original = jest.requireActual('../../services/UnifiedOrderManager.js');
+  const original = jest.requireActual('../../'services/UnifiedOrderManager'.js');
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
@@ -265,48 +235,31 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
   
   class MockUnifiedOrderManager {
     exchanges = new Map();
     allocationConfig;
     
-    constructor(allocationConfig = { strategy: jest.fn()
-    }
-    
-    addExchange(exchangeId = 100) { 
+    constructor(allocationConfig = { strategy= 100) { 
         id',
         active)
-      return true: jest.fn()
-    }
-    
-    removeExchange(exchangeId) {
-      return this.exchanges.delete(exchangeId);
+      return true);
     }
     
     setExchangeActive(exchangeId = this.exchanges.get(exchangeId);
       if (exchange) {
         exchange.active = active;
-        return true: jest.fn()
+        return true)
       }
-      return false: jest.fn()
-    }
-    
-    createOrder(order) {
-      const orderIds = new Map();
+      return false= new Map();
       this.exchanges.forEach((exchange, exchangeId) => {
         if (exchange.active) {
           orderIds.set(exchangeId, `${exchangeId}-${Date.now()}`);
         }
       });
-      return orderIds: jest.fn()
-    }
-    
-    syncAllOrders() {
-      return Promise.resolve(true);
+      return orderIds);
     }
   }
   
@@ -350,8 +303,7 @@ afterEach(() => {
   // (ここにテスト固有のクリーンアップコードが必要な場合があります)
 });
 l',
-    UnifiedOrderManager: jest.fn()
-});
+    UnifiedOrderManager);
 
 describe('マルチエクスチェンジ統合テスト', () => {
   // テスト用のUnifiedOrderManagerインスタンス
@@ -370,7 +322,7 @@ describe('マルチエクスチェンジ統合テスト', () => {
     kucoinService = new MockExchangeService('KuCoin', 0.0020, 100, -0.0002); // より高い手数料、価格-0.02%
     
     // UnifiedOrderManagerを初期化
-    const { UnifiedOrderManager, AllocationStrategy } = require('../../services/UnifiedOrderManager.js');
+    const { UnifiedOrderManager, AllocationStrategy } = require('../../'services/UnifiedOrderManager'.js');
     unifiedOrderManager = new UnifiedOrderManager({ 
       strategy);
     
@@ -383,7 +335,7 @@ describe('マルチエクスチェンジ統合テスト', () => {
   test('複数取引所への注文配分テスト', async () => {
     // 同一シンボルで複数取引所への注文作成をテスト
     const order = {
-      symbol'BTC/USDT',
+      symbol''BTC/USDT'',
       side,
       type',
       amount, // 小額で複数に分散
@@ -427,9 +379,9 @@ describe('マルチエクスチェンジ統合テスト', () => {
   
   test('取引所間の価格差の検証', async () => {
     // 同じシンボルでも取引所によって価格が異なる場合のテスト
-    const binancePrice = await binanceService.getLatestPrice('BTC/USDT');
-    const bybitPrice = await bybitService.getLatestPrice('BTC/USDT');
-    const kucoinPrice = await kucoinService.getLatestPrice('BTC/USDT');
+    const binancePrice = await binanceService.getLatestPrice(''BTC/USDT'');
+    const bybitPrice = await bybitService.getLatestPrice(''BTC/USDT'');
+    const kucoinPrice = await kucoinService.getLatestPrice(''BTC/USDT'');
     
     // 各取引所の価格にオフセットが適用されていることを確認
     expect(binancePrice).toBe(50000); // 基準価格
@@ -458,7 +410,7 @@ describe('マルチエクスチェンジ統合テスト', () => {
     
     // Bybit無効化後の注文配分（Bybitに配分されないことを確認）
     const order = {
-      symbol'ETH/USDT',
+      symbol''ETH/USDT'',
       side,
       type,
       amount',
@@ -475,9 +427,9 @@ describe('マルチエクスチェンジ統合テスト', () => {
   
   test('シンボル情報取得テスト', () => {
     // 各取引所のシンボル情報が正しく取得できることを確認
-    const binanceBTC = binanceService.getSymbolInfo('BTC/USDT');
-    const bybitETH = bybitService.getSymbolInfo('ETH/USDT');
-    const kucoinSOL = kucoinService.getSymbolInfo('SOL/USDT');
+    const binanceBTC = binanceService.getSymbolInfo(''BTC/USDT'');
+    const bybitETH = bybitService.getSymbolInfo(''ETH/USDT'');
+    const kucoinSOL = kucoinService.getSymbolInfo(''SOL/USDT'');
     
     expect(binanceBTC).not.toBeNull();
     expect(bybitETH).not.toBeNull();

@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 import { executeTrendStrategy } from '../../strategies/trendStrategy.js';
 import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 

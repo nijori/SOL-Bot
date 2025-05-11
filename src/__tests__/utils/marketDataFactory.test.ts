@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 /**
  * REF-029: ESMテスト用MarketDataFactoryのテスト
  *

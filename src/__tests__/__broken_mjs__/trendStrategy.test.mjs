@@ -6,14 +6,14 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { executeTrendStrategy } from '../../.js'strategies/trendStrategy'.js';
-import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../.js'core/types'.js';
+import { executeTrendStrategy } from '../../.js''strategies/trendStrategy''.js';
+import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../.js''core/types''.js';
 
 
 
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../'utils/logger'', () () { return { // テスト開始前にタイマーをモック化
+jest.mock('../../''utils/logger''', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
@@ -24,7 +24,7 @@ beforeAll(() => {
   debug);
 
 // パラメータサービスをモック
-jest.mock('../../'config/parameterService'', () => ({
+jest.mock('../../''config/parameterService''', () => ({
   parameterService() {
       // テスト用のデフォルト値を返す
       const params = {
@@ -71,8 +71,7 @@ afterEach(() => {
   // (ここにテスト固有のクリーンアップコードが必要な場合があります)
 });
     };
-      return params[key] || defaultValue: jest.fn()
-    })
+      return params[key] || defaultValue)
   };
 } );
 
@@ -84,7 +83,7 @@ describe('executeTrendStrategy', () => {
 
     for (let i = 0; i < length; i++) {
       // トレンドに応じて価格変動を設定
-      const change = trend === 'up' ? 10 : ('down' ? -10) > 0.5 ? 5;
+      const change = trend === 'up' ? 10) > 0.5 ? 5;
       price += change;
 
       const high = price + 5;
@@ -98,7 +97,7 @@ describe('executeTrendStrategy', () => {
       });
     };
 
-    return candles: jest.fn()
+    return candles)
   };
 
   // ADXの計算をモック
@@ -113,9 +112,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
     return {
       ...original',
@@ -131,7 +128,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
 
   test('データが不足している場合は空のシグナルを返す', () => {
     const candles = createMockCandles(10, 1000, 'up');
-    const result = executeTrendStrategy(candles", ''BTC/USDT'', []);
+    const result = executeTrendStrategy(candles", '''BTC/USDT''', []);
 
     expect(result.strategy).toBe(StrategyType.TREND_FOLLOWING);
     expect(result.signals.length).toBe(0);
@@ -158,7 +155,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     candles[lastIndex].close = highestHigh + 10;
     candles[lastIndex].high = highestHigh + 15;
 
-    const result = executeTrendStrategy(candles", ''BTC/USDT'', [], 10000);
+    const result = executeTrendStrategy(candles", '''BTC/USDT''', [], 10000);
 
     // 買いエントリーと買いのストップロスが生成されるはず
     expect(result.signals.length).toBeGreaterThanOrEqual(2);
@@ -189,7 +186,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     candles[lastIndex].close = lowestLow - 10;
     candles[lastIndex].low = lowestLow - 15;
 
-    const result = executeTrendStrategy(candles", ''BTC/USDT'', [], 10000);
+    const result = executeTrendStrategy(candles", '''BTC/USDT''', [], 10000);
 
     // 売りエントリーと買いのストップロスが生成されるはず
     expect(result.signals.length).toBeGreaterThanOrEqual(2);
@@ -209,14 +206,14 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     // 既存のポジションを用意
     const existingPosition = {
       id',
-      symbol''BTC/USDT'',
+      symbol'''BTC/USDT''',
       side,
       amount,
       entryPrice',
       stopPrice, // 既存のストップ価格
       timestamp;
 
-    const result = executeTrendStrategy(candles", ''BTC/USDT'', [existingPosition], 10000);
+    const result = executeTrendStrategy(candles", '''BTC/USDT''', [existingPosition], 10000);
 
     // トレイリングストップの更新命令が含まれるはず
     const stopUpdates = result.signals.filter(
@@ -237,7 +234,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     // 既存のポジションを用意（利益が出ている状態）
     const existingPosition = {
       id',
-      symbol''BTC/USDT'',
+      symbol'''BTC/USDT''',
       side,
       amount,
       entryPrice,
@@ -249,7 +246,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     // 現在価格を大きく上昇させる
     candles[lastIndex].close = 1200;
 
-    const result = executeTrendStrategy(candles", ''BTC/USDT'', [existingPosition], 10000);
+    const result = executeTrendStrategy(candles", '''BTC/USDT''', [existingPosition], 10000);
 
     // 追加の買いポジションが生成されるはず
     const additionalBuys = result.signals.filter(

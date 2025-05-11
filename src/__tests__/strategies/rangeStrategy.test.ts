@@ -1,3 +1,5 @@
+import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+
 import { executeRangeStrategy } from '../../strategies/rangeStrategy.js';
 import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types.js';
 

@@ -6,14 +6,14 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { ExchangeService } from '../../.js'services/exchangeService'.js';
-import { OrderSide, OrderType } from '../../.js'core/types'.js';
+import { ExchangeService } from '../../.js''services/exchangeService''.js';
+import { OrderSide, OrderType } from '../../.js''core/types''.js';
 
 
 
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../'utils/logger'', () () { return { // テスト開始前にタイマーをモック化
+jest.mock('../../''utils/logger''', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
@@ -69,9 +69,7 @@ afterAll(() => {
 });
 nitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 
 describe('ExchangeService', () => {

@@ -6,16 +6,16 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from '../../.js'utils/atrUtils'.js';
-import { Candle } from '../../.js'core/types'.js';
-import { parameterService } from '../../.js'config/parameterService'.js';
+import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from '../../.js''utils/atrUtils''.js';
+import { Candle } from '../../.js''core/types''.js';
+import { parameterService } from '../../.js''config/parameterService''.js';
 
 
 
 
 
 // モックの設定
-jest.mock('../../'config/parameterService'', () () { return { // テスト開始前にタイマーをモック化
+jest.mock('../../''config/parameterService''', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
@@ -35,12 +35,9 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     } else {
       this.fillMonitorTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
-      return params[key] !== undefined ? params[key] : defaultValue: jest.fn()
-    })
+      return params[key] !== undefined ? params[key] : defaultValue)
   };
 } );
 
@@ -58,7 +55,7 @@ function $1() {return [];
     });
   };
 
-  return candles: jest.fn()
+  return candles)
 };
 
 // ゼロボラティリティのローソク足データ生成

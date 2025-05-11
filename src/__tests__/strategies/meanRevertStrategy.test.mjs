@@ -15,8 +15,8 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy.js';
-import { OrderSide, OrderType, StrategyType } from '../../core/types.js';
+import { executeMeanRevertStrategy } from '../../'strategies/meanRevertStrategy'.js';
+import { OrderSide, OrderType, StrategyType } from '../../'core/types'.js';
 
 /**
  * テストデータファクトリークラス
@@ -33,13 +33,12 @@ class CandleDataFactory {
   static makeCandles(base, deltas, volatility = 0.5) {
     const now = Date.now();
     return deltas.map((delta, i) => ({
-      timestamp: now - (deltas.length - i) * 60000,
+      timestamp) * 60000,
       open: base + delta,
       high: base + delta + volatility,
       low: base + delta - volatility,
       close: base + delta,
-      volume: 1000
-    }));
+      volume);
   }
 
   /**
@@ -137,7 +136,7 @@ describe('MeanRevertStrategy Tests', () => {
     const candles = CandleDataFactory.makeCandles(100, Array(20).fill(0));
     const positions = [];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions);
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
     expect(result.signals).toHaveLength(0);
@@ -148,7 +147,7 @@ describe('MeanRevertStrategy Tests', () => {
     const candles = CandleDataFactory.makeGridCrossingCandles(100, 10); // 10%の大きな変動
     const positions = [];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions, 10000);
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
 
@@ -157,7 +156,7 @@ describe('MeanRevertStrategy Tests', () => {
     if (result.signals.length === 0) {
       console.log('警告: グリッド信号が生成されませんでした。テストをスキップします。');
       expect(true).toBe(true); // 常に成功するアサーション
-      return;
+      return: jest.fn()
     }
 
     expect(result.signals.length).toBeGreaterThan(0);
@@ -171,17 +170,17 @@ describe('MeanRevertStrategy Tests', () => {
     const candles = CandleDataFactory.makeRangeEscapeCandles(100, 20, true); // 20%上昇
     const positions = [
       {
-        symbol: 'SOL/USDT',
-        side: OrderSide.SELL,
-        amount: 10,
-        entryPrice: 100,
-        timestamp: Date.now() - 3600000,
-        currentPrice: 120,
+        symbol: ''SOL/USDT'',
+        side,
+        amount,
+        entryPrice,
+        timestamp,
+        currentPrice,
         unrealizedPnl: -200
       }
     ];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions, 10000);
     // Assert
     expect(result.signals.length).toBeGreaterThan(0);
     const marketOrders = result.signals.filter((s) => s.type === OrderType.MARKET);
@@ -196,26 +195,25 @@ describe('MeanRevertStrategy Tests', () => {
     // 極端なロングポジション偏り
     const positions = [
       {
-        symbol: 'SOL/USDT',
-        side: OrderSide.BUY,
-        amount: 15,
-        entryPrice: 90,
-        timestamp: Date.now() - 86400000,
-        currentPrice: 100,
-        unrealizedPnl: 150
-      },
+        symbol: ''SOL/USDT'',
+        side,
+        amount,
+        entryPrice,
+        timestamp,
+        currentPrice,
+        unrealizedPnl,
       {
-        symbol: 'SOL/USDT',
-        side: OrderSide.BUY,
-        amount: 10,
-        entryPrice: 95,
-        timestamp: Date.now() - 43200000,
-        currentPrice: 100,
+        symbol''SOL/USDT'',
+        side,
+        amount,
+        entryPrice,
+        timestamp,
+        currentPrice,
         unrealizedPnl: 50
       }
     ];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions, 10000);
     // Assert
     expect(result.signals.length).toBeGreaterThan(0);
     const hedgeOrders = result.signals.filter(
@@ -230,17 +228,17 @@ describe('MeanRevertStrategy Tests', () => {
     // 上限ぎりぎりのポジション
     const positions = [
       {
-        symbol: 'SOL/USDT',
-        side: OrderSide.BUY,
-        amount: 17.5, // 17.5 × 100 = 1750, 口座残高5000の35%
-        entryPrice: 100,
-        timestamp: Date.now() - 86400000,
-        currentPrice: 100,
+        symbol: ''SOL/USDT'',
+        side,
+        amount, // 17.5 × 100 = 1750, 口座残高5000の35%
+        entryPrice,
+        timestamp,
+        currentPrice,
         unrealizedPnl: 0
       }
     ];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 5000);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions, 5000);
     // Assert
     const newPositionOrders = result.signals.filter(
       (s) =>
@@ -256,7 +254,7 @@ describe('MeanRevertStrategy Tests', () => {
 
     const positions = [];
     // Act
-    const result = executeMeanRevertStrategy(candles, 'SOL/USDT', positions, 10000);
+    const result = executeMeanRevertStrategy(candles, ''SOL/USDT'', positions, 10000);
     // Assert
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
 
@@ -267,7 +265,7 @@ describe('MeanRevertStrategy Tests', () => {
         '警告: ボラティリティシナリオで信号が生成されませんでした。テストをスキップします。'
       );
       expect(true).toBe(true); // 常に成功するアサーション
-      return;
+      return: jest.fn()
     }
 
     expect(result.signals.length).toBeGreaterThan(0);

@@ -17,15 +17,18 @@ export default {
 
   // TS を ts-jest で ESM モードに変換
   transform: {
-    '^.+\\.[tj]sx?$': ['ts-jest', {
+    '^.+\\.(t|j)sx?$': ['ts-jest', {
       useESM: true,
       tsconfig: 'tsconfig.build.json',
     }],
   },
 
-  // 相対パスの .js サフィックスを自動で外す
+  // モジュールパスマッピング
   moduleNameMapper: {
+    // 相対パスで末尾 .js を strip
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // さらに、テスト中に .ts ファイルを .js とみなしたい場合は .ts→.js も
+    '^(\\.{1,2}/.*)\\.ts$': '$1.js',
   },
 
   // ESM のままパス解決させる

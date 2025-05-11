@@ -6,7 +6,8 @@
 // 外部モジュールのインポート
 import fs from 'fs';
 import path from 'path';
-import * as duckdbModule from 'duckdb';
+// duckdbのインポート方法を修正
+import * as duckdb from 'duckdb';
 import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types.js';
 import logger from '../utils/logger.js';
 
@@ -25,30 +26,11 @@ interface Path {
   join(...paths: string[]): string;
 }
 
-// duckdbの型定義
-interface DuckDBConnection {
-  exec(sql: string): any;
-  prepare(sql: string): DuckDBStatement;
-  all(): any[];
-}
-
-interface DuckDBStatement {
-  run(...params: any[]): void;
-  all(): any[];
-}
-
-interface DuckDBDatabase {
-  connect(): DuckDBConnection;
-  close(): void;
-}
-
-// duckdbモジュールのinterface
-interface DuckDB {
-  Database: new (path: string) => DuckDBDatabase;
-}
-
-// ESM対応方法でduckdbの参照を取得
-const duckdb = duckdbModule as unknown as DuckDB;
+// duckDBの独自型定義は削除し、duckdbモジュールの型をそのまま使用
+// インターフェースの代わりにduckdbモジュールの型を使用
+type DuckDBDatabase = duckdb.Database;
+type DuckDBConnection = duckdb.Connection;
+type DuckDBStatement = duckdb.Statement;
 
 // データフォルダのパス設定
 const DATA_DIR = path.join(process.cwd(), 'data');

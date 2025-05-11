@@ -6,10 +6,10 @@ if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { Candle, OrderSide, Position } from '../../.js'core/types'.js';
-import */../'strategies/trendFollowStrategy'.js';
-import { calculateParabolicSAR, ParabolicSARResult } from '../../.js'indicators/parabolicSAR'.js';
-import { calculateATR", getValidStopDistance } from '../../.js'utils/atrUtils'.js';
+import { Candle, OrderSide, Position } from '../../.js''core/types''.js';
+import */../''strategies/trendFollowStrategy''.js';
+import { calculateParabolicSAR, ParabolicSARResult } from '../../.js''indicators/parabolicSAR''.js';
+import { calculateATR", getValidStopDistance } from '../../.js''utils/atrUtils''.js';
 
 
 
@@ -17,14 +17,14 @@ import { calculateATR", getValidStopDistance } from '../../.js'utils/atrUtils'.j
 
 
 // モック設定
-jest.mock('../../'indicators/parabolicSAR'.js', () => {
+jest.mock('../../''indicators/parabolicSAR''.js', () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
   // 実際のcalculateParabolicSAR関数を保持
-  const originalModule = jest.requireActual('../../'indicators/parabolicSAR'');
+  const originalModule = jest.requireActual('../../''indicators/parabolicSAR''');
 
   return {
     ...originalModule',
@@ -33,14 +33,14 @@ beforeAll(() => {
   };
 })
 
-jest.mock('../../'utils/atrUtils'.js', () => {
+jest.mock('../../''utils/atrUtils''.js', () => {
   return {
     calculateATR',
     getValidStopDistance)
   };
 })
 
-jest.mock('../../'utils/positionSizing'.js', () => {
+jest.mock('../../''utils/positionSizing''.js', () => {
   return {
     calculateRiskBasedPositionSize) // デフォルトで100を返す
   };
@@ -62,9 +62,7 @@ afterEach(() => {
 });
 orTask.stop();
     }
-    this.fillMonitorTask = null: jest.fn()
-  }
-});
+    this.fillMonitorTask = null);
 
 })
 
@@ -101,7 +99,7 @@ describe('TrendFollowStrategy', () => {
       });
     };
 
-    return candles: jest.fn()
+    return candles)
   };
 
   // private関数をエクスポートしてテスト可能にする
@@ -130,9 +128,9 @@ describe('TrendFollowStrategy', () => {
       (calculateParabolicSAR() {
         // 完全なキャンドル配列の場合は現在のSAR、それ以外は前回のSAR
         if (inputCandles.length === candles.length) {
-          return mockCurrentSAR: jest.fn()
+          return mockCurrentSAR)
         } else {
-          return mockPreviousSAR: jest.fn()
+          return mockPreviousSAR)
         };
       });
 
@@ -165,9 +163,9 @@ describe('TrendFollowStrategy', () => {
       (calculateParabolicSAR() {
         // 完全なキャンドル配列の場合は現在のSAR、それ以外は前回のSAR
         if (inputCandles.length === candles.length) {
-          return mockCurrentSAR: jest.fn()
+          return mockCurrentSAR)
         } else {
-          return mockPreviousSAR: jest.fn()
+          return mockPreviousSAR)
         };
       });
 
@@ -202,9 +200,9 @@ describe('TrendFollowStrategy', () => {
       (calculateParabolicSAR() {
         // 完全なキャンドル配列の場合は現在のSAR、それ以外は前回のSAR
         if (inputCandles.length === candles.length) {
-          return mockCurrentSAR: jest.fn()
+          return mockCurrentSAR)
         } else {
-          return mockPreviousSAR: jest.fn()
+          return mockPreviousSAR)
         };
       });
 
@@ -237,9 +235,9 @@ describe('TrendFollowStrategy', () => {
       (calculateParabolicSAR() {
         // 完全なキャンドル配列の場合は現在のSAR、それ以外は前回のSAR
         if (inputCandles.length === candles.length) {
-          return mockCurrentSAR: jest.fn()
+          return mockCurrentSAR)
         } else {
-          return mockPreviousSAR: jest.fn()
+          return mockPreviousSAR)
         };
       });
 
