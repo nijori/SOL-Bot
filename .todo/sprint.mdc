@@ -165,6 +165,60 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : multiSymbolBacktest.test.tsとmultiSymbolBacktestRunner.test.tsの修正。モック設定の不整合修正と結果オブジェクトの検証を強化。BacktestRunnerモックを正しく設定し、テストの型定義問題も解決。テスト実行時のエラーは大幅に減少し、以前よりも安定して実行できることを確認。mock関数の型定義に関連するリンターエラーが一部残っているが、実行には影響なく機能的には問題ない。テストシャーディング（分割実行）も効果的に機能している。
 
+- [ ] TST-065: テスト実行の全体的な問題診断と修正
+      - 📅 Due        : 2026-06-17
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-064
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 包括的なテスト実行の問題診断を行いました。実テスト実行結果に基づき、現在失敗している49のテストがあります。これらの問題を以下のサブタスク(TST-066～070)に分割して体系的に修正していきます。主要な問題カテゴリ: 1) ESMテスト実行環境の問題（import文構文エラー）、2) タイムアウト問題（RealTimeDataProcessorテスト）、3) モック設定の不整合（特にMultiTimeframeDataFetcherとparameterService）、4) 型変換問題（TypeScriptのテスト型定義エラー）、5) シングルトンインスタンス問題、6) データフォーマット変換問題、7) テスト値の検証問題（期待値と実際の値が一致しない）、8) モジュール解決問題（jest.mockとモジュールパス）。優先度順に各カテゴリのタスクを作成しました。
+
+- [ ] TST-066: ESMテスト実行環境の修正
+      - 📅 Due        : 2026-06-14
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-065
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : MJS形式のテストファイル（meanReversionStrategy.test.mjs、esm-verify.test.mjs、esm-basic.test.mjs）でのimport文エラーを修正。Jest設定（jest.config.esm.js）のESM対応を強化。transformオプションの見直しとtransformIgnorePatternsの調整。node:モジュール解決の対応。テスト実行スクリプト（scripts/run-esm-tests-safely.js）の改善。Jest内部の変換処理（Babel）との互換性向上。ESM/CJSデュアルフォーマット対応の強化。
+
+- [ ] TST-067: MultiTimeframeDataFetcherとParameterServiceテスト修正
+      - 📅 Due        : 2026-06-15
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-065
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : MultiTimeframeDataFetcherテストのccxtモック問題（型定義とリンターエラー）を完全に解決。モックの型アサーションを適切に行い、jest.fnの型定義を修正。ParquetDataStoreモックの挙動を正しく設定。ParameterServiceテストの型変換問題（string→number、string→boolean）とシングルトンインスタンス問題を修正。テスト間の干渉を防ぐ隔離メカニズム強化。モック関数の戻り値の型定義問題解決。
+
+- [ ] TST-068: 戦略テスト（TrendFollow、MeanReversion）の修正
+      - 📅 Due        : 2026-06-16
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-067
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : trendFollowStrategy.testとmeanReversionStrategy.testの修正。calculateDonchian、calculateParabolicSARなどのモック関数問題の解決。戦略モジュールのモック方法の改善と依存関係の適切な注入。テスト検証値の見直し（シグナル生成テストでの期待値と実際値の不一致修正）。パラメータサービスの参照問題解決。trendStrategyのgetMarketParametersエラー修正。テスト環境でのシグナル生成論理の一貫性確保。
+
+- [ ] TST-069: RealTimeDataProcessorとデータリポジトリテストの修正
+      - 📅 Due        : 2026-06-17
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-068
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : RealTimeDataProcessorテストのタイムアウト問題解決。イベント処理の待機時間を最適化し、テストタイムアウト設定を調整。データ検証テストの問題（期待値3に対して実際値1）を修正。DataRepository.e2e.testの失敗問題解決。runE2Eテスト関数の修正と並列データアクセス問題の解決。モックデータの一貫性確保とテスト検証ロジックの見直し。ファイルシステム操作とプロセス間通信のテスト方法改善。
+
+- [ ] TST-070: マルチシンボルテストスイート修正
+      - 📅 Due        : 2026-06-18
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-069
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : multiSymbolBacktest.test.ts、multiSymbolBacktestRunner.test.ts、multiSymbolTradingEngine.test.ts、UnifiedOrderManager.test.tsの修正。BacktestRunnerモックの問題解決とモックインスタンスの挙動調整。テスト結果オブジェクト（undefined）の問題修正。OrderManagerとOMS依存の問題解決。getPositionsメソッドの修正とフィルター処理のnullチェック強化。マルチシンボル戦略テストの整合性確保。バックテスト結果の型定義問題の解決。ポートフォリオメトリクス計算のテスト改善。
+
 
 ### 🗓 今週2026-W11スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
 P0→P1フェーズのスプリント（本番稼働に向けた安全ネットとインフラHardening）。優先順位は以下の通り：
