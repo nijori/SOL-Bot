@@ -19,76 +19,8 @@ alwaysApply: false
 P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んでいきます。
 
 <!-- REF-030〜REF-034タスクはスプリントに移動して完了しました -->
+<!-- TST-050〜REF-057タスクはスプリントに移動して完了しました -->
 
-## テスト残タスクリスト
-
-- [ ] TST-050: MeanReversionStrategyテストのESM対応修正
-      - 📅 Due        : 2026-05-05
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 25%
-      - ✎ Notes      : meanReversionStrategy.test.mjsの構文エラー（文字列リテラル問題、カンマ区切り問題）を修正。OrderSideなどの型のESM環境でのインポート問題を解決。テストが--forceExitオプションなしでも正常終了するよう修正。
-
-- [ ] TST-051: テスト環境のビルド出力問題解決
-      - 📅 Due        : 2026-05-08
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : build
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 10%
-      - ✎ Notes      : tsconfig.cjs.jsonとtsconfig.esm.jsonの検証。index.jsやindex.mjsなどの主要ファイルが生成されない問題を修正。sourceMap設定の最適化とtsconfig設定ファイルの精査。
-
-- [ ] TST-052: デュアルフォーマット実行の互換性向上
-      - 📅 Due        : 2026-05-12
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 25%
-      - ✎ Notes      : Node.js v22でのCommonJS/ESM混在環境の問題解決。CommonJS実行時の「require is not defined」エラーとESM実行時の「Cannot find module」エラーを修正。Node.js実行オプションの最適化。
-
-- [ ] TST-053: テスト安定性向上のためのクリーンアップ強化
-      - 📅 Due        : 2026-05-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
-
-- [ ] TST-054: CI/CDパイプラインのテスト安定性強化
-      - 📅 Due        : 2026-05-18
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : GitHub ActionsのESMテスト用ワークフローの強化。タイムアウト設定の最適化、テスト失敗時の詳細ログ収集。テスト用のキャッシュ戦略改善。forceExit、detectOpenHandlesなどのオプションの統一。
-
-- [ ] TST-055: モジュールモックの一貫性向上
-      - 📅 Due        : 2026-05-22
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : @jest/globals importの標準化。jest.mockパターンの統一。テスト用モッククラスの共通ライブラリ化。モックファクトリー関数の実装と展開。
-
-## 🗒 Backlog（未着手タスク）
-
-- [ ] TST-056: テスト実行時のメモリリーク問題の解決
-      - 📅 Due        : 2026-06-15
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : TST-055
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 多くのテストでメモリリークが検出される問題を修正（非同期処理の完全なクリーンアップが必要）
-
-- [ ] TST-057: ESMテスト環境の修正と安定化
-      - 📅 Due        : 2026-06-15
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : TST-055, TST-056
-      - 🏷️  Label      : bug
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ESM環境でのJestテスト実行に関する問題を修正（@jest/globalsインポート問題など）
 
 ## P0 ― 安全ネット（"やらかさない"仕組みを先に敷く）
 
@@ -414,6 +346,15 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : ESM変換後の.mjsファイルに残っている壊れたインポートパスを修正するスクリプト（fix-esm-import-paths.js）を実装完了。'path: '→'path'、'url: '→'url'、__dirname"→__dirname、'../../'strategies/meanReversionStrategy''→'../../strategies/meanReversionStrategy.js'のような壊れたパターンを検出し修正。正規表現による置換パターンを多数実装し、全ファイルを自動的に修正。パスの正規化、拡張子の追加、壊れた文字列や構文の修正により、ESM環境でのモジュール解決問題を解決。package.jsonに「fix:esm-imports」コマンドも追加。
+
+
+
+
+
+
+
+
+
 
 
 

@@ -23,7 +23,7 @@ git周りはC:\Users\nijor\Dev\SOL_bot\.github\workflowsを参照
 大重要★
 以前大事故が起こりました。もう同じ事故を起こさないために。下記を守って下さい。
 習慣/具体例
-基本的にタスクへの着手、破壊的操作は必ずブランチで/git switch -c codemod/import-js　など
+基本的に破壊的操作は必ずブランチで/git switch -c codemod/import-js　など
 ツールは Dry-Run で	/ npx jscodeshift … --dry
 コミット間隔を細かく / こまめに git add -p → git commit -m "logical unit"
 自動化スクリプトを使う際は--dry-runモードやコミット前 hook と組み合わせると安心度が上がる

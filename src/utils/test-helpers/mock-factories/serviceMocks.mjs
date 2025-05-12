@@ -1,12 +1,14 @@
 /**
  * サービスモジュール用モックファクトリー関数（ESM版）
  * TST-055: モジュールモックの一貫性向上
+ * TST-057: ESMテスト環境の修正と安定化
  * 
  * @jest/globalsからのimportと標準化されたjest.mockパターンを使用した
  * 一貫性のあるサービスモックファクトリー関数を提供します。
  */
 
-import { jest } from '@jest/globals';
+// グローバルjestオブジェクトを使用
+const jest = global.jest;
 
 /**
  * ロガーモックの作成

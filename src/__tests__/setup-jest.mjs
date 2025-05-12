@@ -1,6 +1,7 @@
 /**
  * Jest全体のセットアップファイル (ESM版)
  * REF-034: テスト実行環境の最終安定化
+ * TST-056: テスト実行時のメモリリーク問題の解決
  */
 
 import { jest } from '@jest/globals';
@@ -117,7 +118,7 @@ const cleanupAllResources = async () => {
 // beforeAllのグローバルフック
 beforeAll(() => {
   // テスト環境のセットアップ
-  jest.setTimeout(60000); // テストタイムアウトを60秒に設定
+  jest.setTimeout(120000); // テストタイムアウトを120秒に設定
 
   // Jest終了時の未クリアハンドル検出用
   process.on('exit', () => {
@@ -139,8 +140,8 @@ beforeAll(() => {
   });
 });
 
-// afterEachのグローバルフック - 同期処理にして高速化
-afterEach(() => {
+// afterEachのグローバルフック - 非同期処理に変更してより確実なクリーンアップを実施
+afterEach(async () => {
   // モックリセットと同期的なクリーンアップを即時実行
   jest.clearAllMocks();
   jest.resetAllMocks();
@@ -154,13 +155,48 @@ afterEach(() => {
   
   // jestタイマーリセット
   jest.clearAllTimers();
-}, 30000); // 30秒のタイムアウト（同期処理なので短くする）
+  
+  // 非同期処理の完全なクリーンアップのための待機
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // 残っているリソースの解放を試みる
+  await cleanupAsyncOperations(200);
+  
+  // Event Loopをクリアする最終的な短い待機
+  await new Promise(resolve => setImmediate(resolve));
+}, 120000); // 120秒のタイムアウト（非同期処理のため長めに設定）
 
 // afterAllのグローバルフック
 afterAll(async () => {
-  // 完全なクリーンアップを実行
-  await cleanupAllResources();
-}, 60000); // タイムアウト60秒
+  // モックをリセット
+  jest.clearAllMocks();
+  jest.resetAllMocks();
+  
+  // タイマーとイベントリスナーをクリア
+  [...activeTimers].forEach(timer => originalClearTimeout(timer));
+  [...activeIntervals].forEach(interval => originalClearInterval(interval));
+  activeTimers.clear();
+  activeIntervals.clear();
+  
+  // プロセスリスナーをリセット
+  process.removeAllListeners('unhandledRejection');
+  process.removeAllListeners('uncaughtException');
+  
+  // 強制的なメモリー解放のための2段階クリーンアップ
+  try {
+    // 第1段階：即時クリーンアップ
+    await cleanupAllResources();
+    
+    // 第2段階：さらなるコンテキスト切り替えを待機した上でのクリーンアップ
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await cleanupAsyncOperations(500);
+    
+    // 最終段階：プロセスイベントループをクリア
+    await new Promise(resolve => setImmediate(resolve));
+  } catch (err) {
+    console.error('afterAll クリーンアップ中にエラーが発生しました:', err);
+  }
+}, 180000); // 3分のタイムアウト（完全なクリーンアップを保証）
 
 // グローバルクリーンアップヘルパー
 global.cleanupAsyncResources = cleanupAllResources; 

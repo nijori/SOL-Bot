@@ -1,11 +1,12 @@
 /**
  * データ関連モックファクトリー（ESM版）
  * TST-055: モジュールモックの一貫性向上
+ * TST-057: ESMテスト環境の修正と安定化
  * 
- * データ関連モジュールのモックを作成するファクトリー関数を提供します。
- * 一貫したモックパターンをプロジェクト全体で使用できるようにします。
+ * ESM環境で動作するデータ関連モジュールのモックを作成するファクトリー関数を提供します
  */
 
+// ESM環境ではグローバルjestの代わりに@jest/globalsから直接インポート
 import { jest } from '@jest/globals';
 
 /**
@@ -14,39 +15,82 @@ import { jest } from '@jest/globals';
  * @returns {Object} モック化されたDataRepositoryオブジェクト
  */
 export function createDataRepositoryMock(customImplementation = {}) {
-  // デフォルト実装
-  const defaultImplementation = {
-    // 基本的なメソッド
+  // デフォルトのダミーデータ
+  const defaultData = {
+    candles: [
+      { timestamp: Date.now() - 3600000, open: 100, high: 105, low: 98, close: 102, volume: 1000 },
+      { timestamp: Date.now() - 1800000, open: 102, high: 108, low: 101, close: 107, volume: 1200 },
+      { timestamp: Date.now(), open: 107, high: 110, low: 105, close: 109, volume: 1500 }
+    ],
+    orders: [
+      { id: 'order1', symbol: 'TEST/USDT', type: 'market', side: 'buy', amount: 1, timestamp: Date.now() - 7200000 },
+      { id: 'order2', symbol: 'TEST/USDT', type: 'limit', side: 'sell', amount: 0.8, price: 110, timestamp: Date.now() - 3600000 }
+    ],
+    metrics: [
+      { timestamp: Date.now() - 86400000, performance: 0.05, maxDrawdown: 0.02, sharpeRatio: 1.2 },
+      { timestamp: Date.now(), performance: 0.07, maxDrawdown: 0.03, sharpeRatio: 1.5 }
+    ]
+  };
+  
+  // デフォルトのモックメソッド
+  const defaultMethods = {
     saveCandles: jest.fn().mockResolvedValue(true),
-    loadCandles: jest.fn().mockResolvedValue([]),
-    saveOrder: jest.fn().mockResolvedValue(true),
-    loadOrders: jest.fn().mockResolvedValue([]),
-    savePerformanceMetrics: jest.fn().mockResolvedValue(true),
-    loadPerformanceMetrics: jest.fn().mockResolvedValue(null),
-    deleteOldData: jest.fn().mockResolvedValue(true),
-
-    // 補助メソッド
-    getDataDirectories: jest.fn().mockReturnValue({
-      dataDir: 'data',
-      candlesDir: 'data/candles',
-      ordersDir: 'data/orders',
-      metricsDir: 'data/metrics'
-    }),
-
-    // クリーンアップ
-    close: jest.fn()
+    getCandles: jest.fn().mockResolvedValue(defaultData.candles),
+    saveOrders: jest.fn().mockResolvedValue(true),
+    getOrders: jest.fn().mockResolvedValue(defaultData.orders),
+    saveMetrics: jest.fn().mockResolvedValue(true),
+    getMetrics: jest.fn().mockResolvedValue(defaultData.metrics),
+    clearOldData: jest.fn().mockResolvedValue(true)
   };
-
-  // カスタム実装とデフォルト実装をマージ
-  const mockImplementation = { ...defaultImplementation, ...customImplementation };
-
-  // シングルトンインスタンスのモック
-  const mockInstance = {
-    ...mockImplementation,
-    getInstance: jest.fn().mockReturnValue(mockInstance)
+  
+  // カスタム実装をマージ
+  return {
+    ...defaultMethods,
+    ...customImplementation
   };
+}
 
-  return mockInstance;
+/**
+ * TimeScaleDBクライアントのモックを作成する
+ * @param {Object} customImplementation カスタム実装を提供するオブジェクト
+ * @returns {Object} モック化されたTimeScaleDBクライアントオブジェクト
+ */
+export function createTimeScaleDBClientMock(customImplementation = {}) {
+  // デフォルトのモックメソッド
+  const defaultMethods = {
+    connect: jest.fn().mockResolvedValue(true),
+    disconnect: jest.fn().mockResolvedValue(true),
+    query: jest.fn().mockResolvedValue({ rows: [] }),
+    batchInsert: jest.fn().mockResolvedValue(true),
+    createHypertable: jest.fn().mockResolvedValue(true)
+  };
+  
+  // カスタム実装をマージ
+  return {
+    ...defaultMethods,
+    ...customImplementation
+  };
+}
+
+/**
+ * S3ストレージのモックを作成する
+ * @param {Object} customImplementation カスタム実装を提供するオブジェクト
+ * @returns {Object} モック化されたS3ストレージオブジェクト
+ */
+export function createS3StorageMock(customImplementation = {}) {
+  // デフォルトのモックメソッド
+  const defaultMethods = {
+    uploadFile: jest.fn().mockResolvedValue({ Location: 'https://test-bucket.s3.amazonaws.com/test-key' }),
+    downloadFile: jest.fn().mockResolvedValue(Buffer.from('test data')),
+    listFiles: jest.fn().mockResolvedValue(['file1.json', 'file2.json']),
+    deleteFile: jest.fn().mockResolvedValue(true)
+  };
+  
+  // カスタム実装をマージ
+  return {
+    ...defaultMethods,
+    ...customImplementation
+  };
 }
 
 /**

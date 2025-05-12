@@ -1,0 +1,88 @@
+{
+  "runs": [
+    {
+      "timestamp": 1747046360436,
+      "totalTime": 0.016,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 1,
+          "duration": 0.016
+        }
+      ]
+    },
+    {
+      "timestamp": 1747046476355,
+      "totalTime": 20.966,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 1,
+          "duration": 20.965
+        }
+      ]
+    },
+    {
+      "timestamp": 1747050714103,
+      "totalTime": 21.27,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 1,
+          "duration": 21.269
+        }
+      ]
+    },
+    {
+      "timestamp": 1747050723397,
+      "totalTime": 0.026,
+      "groupResults": [
+        {
+          "groupName": "medium",
+          "exitCode": 255,
+          "duration": 0.024
+        }
+      ]
+    },
+    {
+      "timestamp": 1747050788409,
+      "totalTime": 60.943,
+      "groupResults": [
+        {
+          "groupName": "slow",
+          "exitCode": 1,
+          "duration": 60.943
+        }
+      ]
+    },
+    {
+      "timestamp": 1747050804112,
+      "totalTime": 8.344,
+      "groupResults": [
+        {
+          "groupName": "core",
+          "exitCode": 1,
+          "duration": 8.344
+        }
+      ]
+    },
+    {
+      "timestamp": 1747053325748,
+      "totalTime": 24.8,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 1,
+          "duration": 24.799
+        }
+      ]
+    }
+  ],
+  "averages": {
+    "fast": 23.034,
+    "medium": 0.024,
+    "slow": 60.943,
+    "core": 8.344,
+    "total": 23.0766
+  }
+}

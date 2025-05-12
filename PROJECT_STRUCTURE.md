@@ -342,6 +342,16 @@ SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシ�
     - `MarketDataFactory`: 市場データ生成
     - `TestScenarioFactory`: 戦略テスト用シナリオ生成
     - 固定シード値によるランダムデータの再現性確保
+  - **モックファクトリー** (TST-055):
+    - `strategyMocks.js/mjs`: 戦略モジュールのモックファクトリー
+    - `serviceMocks.js/mjs`: サービスモジュールのモックファクトリー
+    - `dataMocks.js/mjs`: データ関連モジュールのモックファクトリー
+      - `createDataRepositoryMock`: データリポジトリモック
+      - `createParquetDataStoreMock`: Parquetデータストアモック
+      - `createMultiTimeframeDataFetcherMock`: マルチタイムフレームデータフェッチャーモック
+      - `createRealTimeDataProcessorMock`: リアルタイムデータプロセッサーモック
+    - `setupAllMocks`: すべてのモジュールを一括モック化する関数
+    - **デュアルフォーマット対応**: ESM/CJS両環境での一貫したモックパターン実装
 
 - **ESM対応ドキュメント**:
   - `ESM-Migration-Guide.md`: ESM環境での開発とテストのガイド
