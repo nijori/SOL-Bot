@@ -147,14 +147,14 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : atrCalibrator.test.tsとmetrics.test.tsの修正。ATR%計算のテスト問題とメトリクス更新の問題を解決。モックの修正と正しいテスト値の設定。完了。marketState.test.tsでの1件のテスト失敗問題は現在のタスク(TST-062)の対象ではなく、今後取り組むTST-063のタスクに関連するため、現時点では修正せずに報告。
 
-- [ ] TST-063: データフェッチャーテスト修正
+- [x] TST-063: データフェッチャーテスト修正
       - 📅 Due        : 2026-06-07
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : TST-061
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : MultiTimeframeDataFetcher.test.tsのccxtモック問題修正。exchange.fetchOHLCVが存在しないエラーの解決。モックの一貫性と正しいメソッド実装の確保。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : MultiTimeframeDataFetcher.test.tsのccxtモック問題修正。exchange.fetchOHLCVが存在しないエラーの解決。モック取引所インスタンスへの参照をより明示的に保持するように修正。fetchOHLCVメソッドの型定義を明確にし、mock実装を強化。Jest実行時のcrash問題を解決。
 
 - [ ] TST-064: マルチシンボルバックテスト修正
       - 📅 Due        : 2026-06-10
