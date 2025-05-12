@@ -29,12 +29,22 @@ export interface IParameterService {
   setSymbolOverrides(overrides: MultiSymbolConfig): void;
 }
 
+// シングルトンインスタンスをグローバルに格納するための型拡張
+declare global {
+  var _parameterServiceSingleton: ParameterService | null;
+}
+
+// グローバル変数の初期化（未定義の場合）
+if (global._parameterServiceSingleton === undefined) {
+  global._parameterServiceSingleton = null;
+}
+
 /**
  * パラメータサービスクラス
  * YAMLファイルからパラメータを読み込み、環境変数で上書き可能
  */
 export class ParameterService implements IParameterService {
-  private static instance: ParameterService;
+  private static instance: ParameterService | null = null;
   private parameters: Record<string, any> = {};
   private yamlPath: string;
   private symbolOverrides: MultiSymbolConfig | null = null;
@@ -61,8 +71,16 @@ export class ParameterService implements IParameterService {
    * @returns ParameterServiceのインスタンス
    */
   public static getInstance(): ParameterService {
-    if (!ParameterService.instance) {
-      ParameterService.instance = new ParameterService();
+    if (ParameterService.instance === null) {
+      // グローバル変数にインスタンスがある場合はそれを使用
+      if (global._parameterServiceSingleton !== null) {
+        ParameterService.instance = global._parameterServiceSingleton;
+      } else {
+        // なければ新規作成
+        ParameterService.instance = new ParameterService();
+        // グローバル変数にも保存
+        global._parameterServiceSingleton = ParameterService.instance;
+      }
     }
     return ParameterService.instance;
   }
@@ -77,6 +95,9 @@ export class ParameterService implements IParameterService {
     } else {
       ParameterService.instance = new ParameterService();
     }
+    
+    // グローバルのparameterServiceも同じインスタンスを参照するように更新
+    global._parameterServiceSingleton = ParameterService.instance;
   }
 
   /**
@@ -122,6 +143,17 @@ export class ParameterService implements IParameterService {
 
           // 環境変数が存在しない場合はデフォルト値を使用
           if (envValue === undefined) {
+            // デフォルト値を適切な型に変換して返す
+            if (typeHint && defaultValue) {
+              switch (typeHint.toLowerCase()) {
+                case 'number':
+                  return Number(defaultValue);
+                case 'boolean':
+                  return ['true', 'yes', '1', 'on', 'y'].includes(defaultValue.toLowerCase());
+                default:
+                  return defaultValue || '';
+              }
+            }
             return defaultValue || '';
           }
 
@@ -227,69 +259,68 @@ export class ParameterService implements IParameterService {
       current = current[part];
     }
 
-    return current !== undefined && current !== null ? current : (defaultValue as T);
+    return current !== undefined && current !== null ? current as T : (defaultValue as T);
   }
 
   /**
    * 相場環境判定用パラメータを取得
    */
   public getMarketParameters(): any {
-    return this.parameters.market || {};
+    return this.get('market', {});
   }
 
   /**
-   * トレンド戦略用パラメータを取得
+   * トレンドフォロー戦略用パラメータを取得
    */
   public getTrendParameters(): any {
-    return this.parameters.trend || {};
+    return this.get('trend', {});
   }
 
   /**
    * レンジ戦略用パラメータを取得
    */
   public getRangeParameters(): any {
-    return this.parameters.range || {};
+    return this.get('range', {});
   }
 
   /**
-   * リスク管理パラメータを取得
+   * リスク管理用パラメータを取得
    */
   public getRiskParameters(): any {
-    return this.parameters.risk || {};
+    return this.get('risk', {});
   }
 
   /**
-   * ログと監視パラメータを取得
+   * モニタリング用パラメータを取得
    */
   public getMonitoringParameters(): any {
-    return this.parameters.monitoring || {};
+    return this.get('monitoring', {});
   }
 
   /**
-   * バックテストパラメータを取得
+   * バックテスト用パラメータを取得
    */
   public getBacktestParameters(): any {
-    return this.parameters.backtest || {};
+    return this.get('backtest', {});
   }
 
   /**
-   * 動作モードを取得
+   * 運用モード（live, simulation, backtest）を取得
    */
   public getOperationMode(): string {
-    return this.parameters.operation?.mode || 'simulation';
+    return this.get('operation.mode', 'simulation');
   }
 
   /**
-   * パラメータを更新する（部分的に）
-   * 主に最適化やテスト用
+   * パラメータをマージして更新する
    * @param params 更新するパラメータ
    */
   public updateParameters(params: Record<string, any>): void {
     // ディープマージ関数
     const deepMerge = (target: any, source: any) => {
       for (const key in source) {
-        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-          if (!target[key]) target[key] = {};
+        if (source[key] === Object(source[key]) && !Array.isArray(source[key])) {
+          target[key] = target[key] || {};
           deepMerge(target[key], source[key]);
         } else {
           target[key] = source[key];
@@ -298,78 +329,75 @@ export class ParameterService implements IParameterService {
       return target;
     };
 
-    // パラメータをマージ
-    this.parameters = deepMerge(this.parameters, params);
+    // 既存のパラメータに新しいパラメータをマージ
+    this.parameters = deepMerge({ ...this.parameters }, params);
     logger.debug('パラメータを更新しました');
   }
 
   /**
-   * 特定のシンボルに対応するパラメータを取得する
-   * シンボル固有の設定がある場合は、デフォルト設定と深くマージして返す
-   * @param symbol 取引ペアシンボル
-   * @returns シンボル用のパラメータ設定
+   * 指定された通貨ペアのパラメータを取得
+   * オーバーライドがあれば適用
+   * @param symbol 通貨ペア（例: "SOL/USDT"）
+   * @returns 通貨ペア固有のパラメータ
    */
   public getParametersForSymbol(symbol: string): Record<string, any> {
-    // シンボルオーバーライドがない場合は標準パラメータを返す
-    if (!this.symbolOverrides) {
-      return this.getAllParameters();
+    // 基本パラメータをコピー
+    const baseParams = { ...this.parameters };
+    
+    // シンボルオーバーライドがなければ基本パラメータを返す
+    if (!this.symbolOverrides || !this.symbolOverrides[symbol]) {
+      return baseParams;
     }
 
-    // シンボル固有の設定がない場合はデフォルト設定を返す
-    if (!this.symbolOverrides[symbol]) {
-      return {
-        ...this.getAllParameters(),
-        ...this.symbolOverrides.default
-      };
-    }
-
-    // デフォルトパラメータをベースに、デフォルトオーバーライドとシンボル固有オーバーライドを適用
-    const baseParams = this.getAllParameters();
-    const defaultOverrides = this.symbolOverrides.default || {};
-    const symbolOverrides = this.symbolOverrides[symbol] || {};
-
-    // 深いマージを行う関数
+    // ディープマージ関数（オーバーライド用）
     const deepMerge = (target: any, source: any): any => {
-      if (source === null || typeof source !== 'object') return source;
-      if (target === null || typeof target !== 'object') return { ...source };
-
       const result = { ...target };
-
-      Object.keys(source).forEach((key) => {
-        if (source[key] instanceof Object && key in target) {
-          result[key] = deepMerge(target[key], source[key]);
+      
+      for (const key in source) {
+        if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          // 両方がオブジェクトの場合は再帰的にマージ
+          if (target[key] !== null && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+            result[key] = deepMerge(target[key], source[key]);
+          } else {
+            // ターゲットがオブジェクトでない場合はソースのオブジェクトを使用
+            result[key] = { ...source[key] };
+          }
         } else {
+          // オブジェクトでない場合は直接上書き
           result[key] = source[key];
         }
-      });
-
+      }
+      
       return result;
     };
 
-    // パラメータを順番に適用（ベース → デフォルトオーバーライド → シンボル固有オーバーライド）
-    let mergedParams = deepMerge(baseParams, defaultOverrides);
-    mergedParams = deepMerge(mergedParams, symbolOverrides);
-
-    return mergedParams;
+    // 通貨ペア固有のオーバーライドを適用
+    const symbolSpecificParams = deepMerge(baseParams, this.symbolOverrides[symbol]);
+    logger.debug(`${symbol}固有のパラメータを適用しました`);
+    
+    return symbolSpecificParams;
   }
 
   /**
-   * シンボル別設定オーバーライドを設定する
-   * @param overrides シンボル別設定オーバーライド
+   * 複数通貨ペアのパラメータオーバーライドを設定
+   * @param overrides 通貨ペアごとのオーバーライド設定
    */
   public setSymbolOverrides(overrides: MultiSymbolConfig): void {
     this.symbolOverrides = overrides;
-    logger.info('シンボル別設定オーバーライドを適用しました');
+    logger.info(`${Object.keys(overrides).length}通貨ペアのオーバーライド設定を適用しました`);
   }
 }
 
-// 後方互換性のためのシングルトンインスタンス
+/**
+ * シングルトンインスタンス（後方互換性のため）
+ * 注: 新しいコードでは直接インスタンス化するか、DIコンテナを使用することを推奨
+ */
 export const parameterService = ParameterService.getInstance();
 
 /**
- * テスト用のモックパラメータサービスを作成する関数
+ * モックパラメータサービスを作成（テスト用）
  * @param mockParams モックパラメータ
- * @returns モックパラメータサービス
+ * @returns IParameterServiceインターフェースを実装したモックオブジェクト
  */
 export function createMockParameterService(
   mockParams: Record<string, any> = {}
@@ -378,9 +406,9 @@ export function createMockParameterService(
 }
 
 /**
- * 最適化のためにパラメータを一時的に適用する
- * @param params 適用するパラメータのオブジェクト
- * @param service 対象のパラメータサービス（省略時はシングルトンインスタンス）
+ * パラメータを適用するユーティリティ関数
+ * @param params 適用するパラメータ
+ * @param service 対象のパラメータサービス（デフォルトはシングルトン）
  */
 export function applyParameters(
   params: Record<string, any>,
@@ -389,16 +417,7 @@ export function applyParameters(
   if (service instanceof ParameterService) {
     service.updateParameters(params);
   } else {
-    logger.warn(
-      '提供されたサービスはParameterServiceのインスタンスではなく、updateParametersメソッドがありません'
-    );
+    logger.warn('パラメータ適用先がParameterServiceのインスタンスではありません');
   }
 }
 
-// CommonJS環境とESM環境の両方でのimport互換性向上のためのデフォルトエクスポート
-export default {
-  parameterService,
-  ParameterService,
-  createMockParameterService,
-  applyParameters
-};

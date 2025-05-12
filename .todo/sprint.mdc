@@ -183,14 +183,14 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : ESMテスト実行環境の問題を解決。構文エラーのある `setup-jest.mjs` と `esm-basic.test.mjs` を修正し、インポートパス問題を解決するための `fix-esm-imports.js` スクリプトを作成・実装。修正スクリプトでは、壊れたインポートパスを検出して正しい形式に修正。また、`import.meta` のモック実装と Jest 設定の強化も実施。package.json に新たなテスト実行スクリプトを追加し、ESM テスト環境の実行を安定化。基本的な ESM テストの実行で成功を確認。
 
-- [ ] TST-067: MultiTimeframeDataFetcherとParameterServiceテスト修正
-      - 📅 Due        : 2026-06-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : TST-065
+- [x] TST-067: テスト関連コードのタイプ定義とモック実装改善
+      - 📅 Due        : 2025-05-14
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : TST-066
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : MultiTimeframeDataFetcherテストのccxtモック問題（型定義とリンターエラー）を完全に解決。モックの型アサーションを適切に行い、jest.fnの型定義を修正。ParquetDataStoreモックの挙動を正しく設定。ParameterServiceテストの型変換問題（string→number、string→boolean）とシングルトンインスタンス問題を修正。テスト間の干渉を防ぐ隔離メカニズム強化。モック関数の戻り値の型定義問題解決。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : MultiTimeframeDataFetcherとparameterServiceのテストコードを修正、モック実装と型安全性を強化
 
 - [ ] TST-068: 戦略テスト（TrendFollow、MeanReversion）の修正
       - 📅 Due        : 2026-06-16
