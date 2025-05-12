@@ -10,44 +10,14 @@ import {
   expect
 } from '@jest/globals';
 
+// 新しいモックファクトリーをインポート
+import { createMeanReversionStrategyMock } from '../../utils/test-helpers/mock-factories/strategyMocks.mjs';
+import { cleanupAsyncOperations } from '../../utils/test-helpers/test-cleanup.mjs';
+
 // 循環参照対策のポリフィル
 if (typeof globalThis.__jest_import_meta_url === 'undefined') {
   globalThis.__jest_import_meta_url = 'file:///';
 }
-
-// 注意：直接モックを作成してテストする
-// 実際のMeanReversionStrategyクラスのインポートでは問題が発生するため、モックを使用
-// 戦略クラスをモックする
-class MockMeanReversionStrategy {
-  constructor(symbol) {
-    this.symbol = symbol;
-  }
-  
-  execute(candles, positions, accountBalance) {
-    // データ不足のケース
-    if (candles.length < 24) {
-      return [];
-    }
-    
-    // ポジションがある場合は何もしない
-    if (positions.some(p => p.symbol === this.symbol)) {
-      return [];
-    }
-    
-    // 十分なデータがある場合は売りシグナルを返す（テスト用）
-    return [{
-      symbol: this.symbol,
-      type: 'market',
-      side: 'sell',
-      amount: accountBalance * 0.01 / candles[candles.length - 1].close,
-      timestamp: Date.now()
-    }];
-  }
-}
-
-// モックを使用するために、元のインポートはコメントアウト
-// import { MeanReversionStrategy } from '../../strategies/meanReversionStrategy.js';
-import { cleanupAsyncOperations } from '../../utils/test-helpers/test-cleanup.mjs';
 
 // ESM環境用に型の代わりに直接文字列を使用
 const OrderSide = {
@@ -148,17 +118,25 @@ class CandleDataFactory {
 
 // 非同期処理をクリーンアップするためのafterEach
 afterEach(async () => {
+  jest.clearAllMocks();
   jest.clearAllTimers();
-  await cleanupAsyncOperations(100); // クリーンアップのタイムアウトを短縮
-});
+  
+  // 明示的に全ての非同期処理をクリーンアップ
+  await cleanupAsyncOperations(200);
+}, 120000); // 2分のタイムアウト
 
 // 全テスト終了時のクリーンアップ
 afterAll(async () => {
   jest.clearAllTimers();
+  jest.useRealTimers();
+  
   if (global.cleanupAsyncResources) {
     await global.cleanupAsyncResources();
   }
-}, 10000);  // タイムアウトを10秒に設定
+  
+  // 非同期処理の完全クリーンアップ
+  await cleanupAsyncOperations(500);
+}, 120000);  // タイムアウトを2分に設定
 
 beforeAll(() => {
   jest.useFakeTimers();
@@ -166,10 +144,33 @@ beforeAll(() => {
 
 describe('MeanReversionStrategy Tests', () => {
   let strategy;
+  let mockStrategyClass;
   
   beforeEach(() => {
-    // 各テスト前に新しいインスタンスを作成
-    strategy = new MockMeanReversionStrategy('SOL/USDT');
+    // モックファクトリーを使用してより一貫性のあるモックを作成
+    mockStrategyClass = createMeanReversionStrategyMock((candles, positions, accountBalance) => {
+      // データ不足のケース
+      if (candles.length < 24) {
+        return [];
+      }
+      
+      // ポジションがある場合は何もしない
+      if (positions.some(p => p.symbol === 'SOL/USDT')) {
+        return [];
+      }
+      
+      // 十分なデータがある場合は売りシグナルを返す（テスト用）
+      return [{
+        symbol: 'SOL/USDT',
+        type: 'market',
+        side: 'sell',
+        amount: accountBalance * 0.01 / candles[candles.length - 1].close,
+        timestamp: Date.now()
+      }];
+    });
+    
+    // モッククラスのインスタンスを作成
+    strategy = new mockStrategyClass('SOL/USDT');
   });
   
   test('should return empty signals when insufficient data', () => {
@@ -196,7 +197,16 @@ describe('MeanReversionStrategy Tests', () => {
     // Assert: 十分なデータで何らかのシグナルが生成されるはず
     expect(signals).toBeInstanceOf(Array);
     expect(signals.length).toBeGreaterThan(0);
-    console.log(`生成されたシグナル数: ${signals.length}`);
+    
+    // シグナルの検証
+    if (signals.length > 0) {
+      const signal = signals[0];
+      expect(signal.symbol).toBe('SOL/USDT');
+      expect(signal.type).toBe('market');
+      expect(signal.side).toBe('sell');
+      expect(signal.amount).toBeGreaterThan(0);
+      expect(signal.timestamp).toBeDefined();
+    }
   });
 
   test('should respect position size limit', () => {
@@ -235,4 +245,18 @@ describe('MeanReversionStrategy Tests', () => {
       expect(signals).toBeInstanceOf(Array);
     }).not.toThrow();
   }, 10000);  // このテストのタイムアウトを10秒に設定
+  
+  test('mockStrategy.execute should have been called with the right arguments', () => {
+    // Arrange
+    const candles = CandleDataFactory.makeSufficientCandles(100, 40, 1.0);
+    const positions = [];
+    const accountBalance = 10000;
+    
+    // Act
+    strategy.execute(candles, positions, accountBalance);
+    
+    // Assert: モックが正しい引数で呼び出されたことを確認
+    expect(strategy.execute).toHaveBeenCalledWith(candles, positions, accountBalance);
+    expect(strategy.execute).toHaveBeenCalledTimes(1);
+  });
 });

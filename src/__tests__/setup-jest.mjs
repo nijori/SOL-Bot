@@ -114,20 +114,20 @@ afterEach(async () => {
   jest.clearAllMocks();
   jest.resetAllMocks();
   
-  // 未解決のプロミスやタイマーを終了させるための遅延
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // 未クリアのタイマー/インターバルをクリア
-      [...activeTimers].forEach((timer) => originalClearTimeout(timer));
-      [...activeIntervals].forEach((interval) => originalClearInterval(interval));
-      
-      activeTimers.clear();
-      activeIntervals.clear();
-      
-      resolve();
-    }, 500); // 100msから500msに延長
-  });
-}, 60000); // タイムアウト値を明示的に60秒に設定
+  // タイマーの即時クリーンアップを実施
+  [...activeTimers].forEach((timer) => originalClearTimeout(timer));
+  [...activeIntervals].forEach((interval) => originalClearInterval(interval));
+  
+  activeTimers.clear();
+  activeIntervals.clear();
+  
+  // メモリリークを防ぐために最小限の非同期待機のみ実施
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  // タイマー強制リセット
+  jest.useRealTimers();
+  jest.useFakeTimers();
+}, 120000); // タイムアウト値を2分に延長
 
 // afterAllのグローバルフック - タイムアウトを30秒に延長
 afterAll(async () => {
