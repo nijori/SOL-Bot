@@ -84,7 +84,7 @@ jobs:
       # 脆弱性が検出された場合、PRにコメントを追加
       - name: Comment PR with vulnerability summary
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
