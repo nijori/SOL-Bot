@@ -174,14 +174,14 @@ alwaysApply: false
       - 📊 Progress   : 0%
       - ✎ Notes      : 包括的なテスト実行の問題診断を行いました。実テスト実行結果に基づき、現在失敗している49のテストがあります。これらの問題を以下のサブタスク(TST-066～070)に分割して体系的に修正していきます。主要な問題カテゴリ: 1) ESMテスト実行環境の問題（import文構文エラー）、2) タイムアウト問題（RealTimeDataProcessorテスト）、3) モック設定の不整合（特にMultiTimeframeDataFetcherとparameterService）、4) 型変換問題（TypeScriptのテスト型定義エラー）、5) シングルトンインスタンス問題、6) データフォーマット変換問題、7) テスト値の検証問題（期待値と実際の値が一致しない）、8) モジュール解決問題（jest.mockとモジュールパス）。優先度順に各カテゴリのタスクを作成しました。
 
-- [ ] TST-066: ESMテスト実行環境の修正
+- [x] TST-066: ESMテスト実行環境の修正
       - 📅 Due        : 2026-06-14
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : TST-065
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : MJS形式のテストファイル（meanReversionStrategy.test.mjs、esm-verify.test.mjs、esm-basic.test.mjs）でのimport文エラーを修正。Jest設定（jest.config.esm.js）のESM対応を強化。transformオプションの見直しとtransformIgnorePatternsの調整。node:モジュール解決の対応。テスト実行スクリプト（scripts/run-esm-tests-safely.js）の改善。Jest内部の変換処理（Babel）との互換性向上。ESM/CJSデュアルフォーマット対応の強化。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ESMテスト実行環境の問題を解決。構文エラーのある `setup-jest.mjs` と `esm-basic.test.mjs` を修正し、インポートパス問題を解決するための `fix-esm-imports.js` スクリプトを作成・実装。修正スクリプトでは、壊れたインポートパスを検出して正しい形式に修正。また、`import.meta` のモック実装と Jest 設定の強化も実施。package.json に新たなテスト実行スクリプトを追加し、ESM テスト環境の実行を安定化。基本的な ESM テストの実行で成功を確認。
 
 - [ ] TST-067: MultiTimeframeDataFetcherとParameterServiceテスト修正
       - 📅 Due        : 2026-06-15
