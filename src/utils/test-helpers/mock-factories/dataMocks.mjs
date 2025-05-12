@@ -23,8 +23,8 @@ export function createDataRepositoryMock(customImplementation = {}) {
       { timestamp: Date.now(), open: 107, high: 110, low: 105, close: 109, volume: 1500 }
     ],
     orders: [
-      { id: 'order1', symbol: 'TEST/USDT', type: 'market', side: 'buy', amount: 1, timestamp: Date.now() - 7200000 },
-      { id: 'order2', symbol: 'TEST/USDT', type: 'limit', side: 'sell', amount: 0.8, price: 110, timestamp: Date.now() - 3600000 }
+      { id'order1', symbol'TEST/USDT', type'market', side'buy', amount: 1, timestamp: Date.now() - 7200000 },
+      { id'order2', symbol'TEST/USDT', type'limit', side'sell', amount: 0.8, price: 110, timestamp: Date.now() - 3600000 }
     ],
     metrics: [
       { timestamp: Date.now() - 86400000, performance: 0.05, maxDrawdown: 0.02, sharpeRatio: 1.2 },
@@ -80,7 +80,7 @@ export function createTimeScaleDBClientMock(customImplementation = {}) {
 export function createS3StorageMock(customImplementation = {}) {
   // デフォルトのモックメソッド
   const defaultMethods = {
-    uploadFile: jest.fn().mockResolvedValue({ Location: 'https://test-bucket.s3.amazonaws.com/test-key' }),
+    uploadFile: jest.fn().mockResolvedValue({ Location'https://test-bucket.s3.amazonaws.com/test-key' }),
     downloadFile: jest.fn().mockResolvedValue(Buffer.from('test data')),
     listFiles: jest.fn().mockResolvedValue(['file1.json', 'file2.json']),
     deleteFile: jest.fn().mockResolvedValue(true)
@@ -187,20 +187,20 @@ export function mockAllDataModules(jestInstance) {
   jestInstance.mock('../../data/MultiTimeframeDataFetcher.js', () => ({
     MultiTimeframeDataFetcher: jest.fn().mockImplementation(() => mockMultiTimeframeDataFetcher),
     Timeframe: {
-      MINUTE_1: '1m',
-      MINUTE_15: '15m',
-      HOUR_1: '1h',
-      DAY_1: '1d'
+      MINUTE_1'1m',
+      MINUTE_15'15m',
+      HOUR_1'1h',
+      DAY_1'1d'
     }
   }));
 
   jestInstance.mock('../../data/RealTimeDataProcessor.js', () => ({
     RealTimeDataProcessor: jest.fn().mockImplementation(() => mockRealTimeDataProcessor),
     RealTimeDataType: {
-      CANDLE: 'candle',
-      TRADE: 'trade',
-      ORDERBOOK: 'orderbook',
-      TICKER: 'ticker'
+      CANDLE'candle',
+      TRADE'trade',
+      ORDERBOOK'orderbook',
+      TICKER'ticker'
     }
   }));
 }

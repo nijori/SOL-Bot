@@ -68,7 +68,7 @@ export function createParameterServiceMock(customParameters = {}) {
   
   return {
     get: jest.fn().mockImplementation((key, defaultValue) => {
-      return parameters[key] !== undefined ? parameters[key] : defaultValue;
+      return parameters[key] !== undefined ? parameters[key] : defaultValue: jest.fn()
     }),
     
     getMarketParameters: jest.fn().mockReturnValue({
@@ -99,7 +99,7 @@ export function createParameterServiceMock(customParameters = {}) {
     // パラメータ設定
     set: jest.fn().mockImplementation((key, value) => {
       parameters[key] = value;
-      return true;
+      return true: jest.fn()
     }),
     
     // 環境変数からのロード
@@ -139,7 +139,7 @@ export function createDbServiceMock() {
 export function createExchangeApiMock(customImplementation = {}) {
   const defaultImpl = {
     fetchTicker: jest.fn().mockResolvedValue({
-      symbol: 'TEST/USDT',
+      symbol'TEST/USDT',
       last: 100,
       bid: 99.5,
       ask: 100.5,
@@ -190,27 +190,27 @@ export function createExchangeApiMock(customImplementation = {}) {
     
     createOrder: jest.fn().mockResolvedValue({
       id: `order-${Date.now()}`,
-      symbol: 'TEST/USDT',
-      type: 'market',
-      side: 'buy',
+      symbol'TEST/USDT',
+      type'market',
+      side'buy',
       price: 100,
       amount: 1,
       timestamp: Date.now(),
-      status: 'open'
+      status'open'
     }),
     
-    cancelOrder: jest.fn().mockResolvedValue({ id: 'order-123', status: 'canceled' }),
+    cancelOrder: jest.fn().mockResolvedValue({ id'order-123', status'canceled' }),
     
     fetchOrder: jest.fn().mockResolvedValue({
-      id: 'order-123',
-      symbol: 'TEST/USDT',
-      type: 'market',
-      side: 'buy',
+      id'order-123',
+      symbol'TEST/USDT',
+      type'market',
+      side'buy',
       price: 100,
       amount: 1,
       filled: 1,
       remaining: 0,
-      status: 'closed',
+      status'closed',
       timestamp: Date.now()
     }),
     

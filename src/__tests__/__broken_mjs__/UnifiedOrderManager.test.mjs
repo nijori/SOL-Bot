@@ -6,17 +6,17 @@
  * OMS-009複数取引所対応
  */
 
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
-import { ExchangeService } from '../../services/exchangeService';
-import { OrderManagementSystem } from '../../core/orderManagementSystem';
-import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../core/types';
+import { UnifiedOrderManager, AllocationStrategy } from ../../services/UnifiedOrderManager';
+import { ExchangeService } from '../../services/exchangeService;
+import { OrderManagementSystem } from ../../core/orderManagementSystem.js;
+import { Order, OrderSide, OrderType, OrderStatus", Position } from ../../core/types;
 
 /**
  * UnifiedOrderManager テスト
@@ -31,7 +31,7 @@ import { Order, OrderSide, OrderType, OrderStatus", Position } from '../../core/
 
 
 // モックの作成
-jest.mock('../../services/exchangeService')
+jest.mock(../../services/exchangeService')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFake
@@ -46,15 +46,15 @@ afterEach(() => {
 Timers();
 });
 
-jest.mock('../../core/orderManagementSystem')
+jest.mock('../../core/orderManagementSystem)
 
-describe('UnifiedOrderManager', () => {
+describe(UnifiedOrderManager.js, () => {
   let unifiedManager;
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -76,8 +76,8 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     unifiedManager = new UnifiedOrderManager();
     
     // モックメソッドの設定
-    mockExchangeService1.getExchangeName = jest.fn().mockReturnValue('Binance');
-    mockExchangeService2.getExchangeName = jest.fn().mockReturnValue('Bybit');
+    mockExchangeService1.getExchangeName = jest.fn().mockReturnValue(Binance.js');
+    mockExchangeService2.getExchangeName = jest.fn().mockReturnValue('Bybit);
     
     // OrderManagementSystemのcreateOrderメソッドをモック
     OrderManagementSystem.prototype.createOrder = jest.fn().mockImplementation((order) => {
@@ -86,9 +86,9 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     
     // OrderManagementSystemのgetPositionsBySymbolメソッドをモック
     OrderManagementSystem.prototype.getPositionsBySymbol = jest.fn().mockImplementation((symbol) => {
-      if (symbol === '''SOL/USDT''') {
+      if (symbol === SOL/USDT') {
         return [{
-          symbol'''SOL/USDT''',
+          symbol'SOL/USDT,
           side,
           amount,
           entryPrice,
@@ -103,36 +103,36 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     // OrderManagementSystemのgetOrdersメソッドをモック
     OrderManagementSystem.prototype.getOrders = jest.fn().mockReturnValue([
       {
-        id',
-        ''symbol/USDT''',
+        id,
+        ''symbol/USDT,
         side,
         type,
         price,
         amount,
         status,
       {
-        id',
-        ''symbol/USDT''',
+        id,
+        symbol/USDT'',
         side,
         type,
         price,
-        amount',
+        amount,
         status);
     
     // OrderManagementSystemのcancelOrderメソッドをモック
     OrderManagementSystem.prototype.cancelOrder = jest.fn().mockImplementation((orderId) => {
-      return orderId === 'order1';
+      return orderId === order1;
     });
   });
   
-  describe('基本機能テスト', () => {
+  describe(基本機能テスト, () => {
     test('取引所の追加', () => {
       // 取引所を追加
-      const result1 = unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      const result2 = unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      const result1 = unifiedManager.addExchange(binance, mockExchangeService1, 1);
+      const result2 = unifiedManager.addExchange(bybit, mockExchangeService2, 2);
       
       // 同じIDで再度追加（失敗するはず）
-      const result3 = unifiedManager.addExchange('binance', mockExchangeService1, 3);
+      const result3 = unifiedManager.addExchange(binance, mockExchangeService1, 3);
       
       expect(result1).toBe(true);
       expect(result2).toBe(true);
@@ -144,23 +144,23 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     
     test('取引所の削除', () => {
       // 取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      unifiedManager.addExchange(binance, mockExchangeService1, 1);
+      unifiedManager.addExchange(bybit, mockExchangeService2, 2);
       
       // 取引所を削除
-      const result1 = unifiedManager.removeExchange('binance');
+      const result1 = unifiedManager.removeExchange(binance);
       const result2 = unifiedManager.removeExchange('unknown');
       
       expect(result1).toBe(true);
       expect(result2).toBe(false);
     });
     
-    test('取引所の有効/無効切り替え', () => {
+    test(取引所の有効/無効切り替え, () => {
       // 取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
+      unifiedManager.addExchange(binance, mockExchangeService1, 1);
       
       // 有効/無効を切り替え
-      const result1 = unifiedManager.setExchangeActive('binance', false);
+      const result1 = unifiedManager.setExchangeActive(binance, false);
       const result2 = unifiedManager.setExchangeActive('unknown', false);
       
       expect(result1).toBe(true);
@@ -168,11 +168,11 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     });
   });
   
-  describe('注文配分テスト', () => {
+  describe(注文配分テスト, () => {
     beforeEach(() => {
       // テスト用に取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      unifiedManager.addExchange(binance, mockExchangeService1, 1);
+      unifiedManager.addExchange(bybit, mockExchangeService2, 2);
     });
     
     test('優先度配分方式', () => {
@@ -181,7 +181,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 注文を作成
       const order = {
-        symbol'''SOL/USDT''',
+        symbolSOL/USDT,
         side,
         type,
         price',
@@ -191,27 +191,27 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // 最高優先度の取引所のみに注文が作成されることを確認
       expect(orderIds.size).toBe(1);
-      expect(orderIds.has('binance')).toBe(true);
+      expect(orderIds.has('binance)).toBe(true);
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(1);
     });
     
-    test('ラウンドロビン配分方式', () => {
+    test(ラウンドロビン配分方式, () => {
       // ラウンドロビン配分に設定
       unifiedManager.setAllocationStrategy({ strategy);
       
       // 2回注文を作成
       const order1 = {
-        symbol'''SOL/USDT''',
+        symbolSOL/USDT'',
         side,
         type,
-        price',
+        price,
         amount;
       
       const order2 = {
-        symbol'''SOL/USDT''',
+        symbolSOL/USDT'',
         side,
         type,
-        price',
+        price,
         amount;
       
       const orderIds1 = unifiedManager.createOrder(order1);
@@ -225,24 +225,24 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(2);
     });
     
-    test('均等分割配分方式', () => {
+    test(均等分割配分方式, () => {
       // 均等分割配分に設定
       unifiedManager.setAllocationStrategy({ strategy);
       
       // 注文を作成
       const order = {
-        symbol'''SOL/USDT''',
+        symbolSOL/USDT'',
         side,
         type,
-        price',
+        price,
         amount;
       
       const orderIds = unifiedManager.createOrder(order);
       
       // 両方の取引所に注文が作成されることを確認
       expect(orderIds.size).toBe(2);
-      expect(orderIds.has('binance')).toBe(true);
-      expect(orderIds.has('bybit')).toBe(true);
+      expect(orderIds.has(binance)).toBe(true);
+      expect(orderIds.has(bybit)).toBe(true);
       
       // 注文量が均等に分割されていることを確認
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(2);
@@ -256,26 +256,26 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     test('カスタム配分方式', () => {
       // カスタム配分率を設定（binance%, bybit%）
       const customRatios = new Map();
-      customRatios.set('binance', 0.7);
-      customRatios.set('bybit', 0.3);
+      customRatios.set(binance, 0.7);
+      customRatios.set(bybit, 0.3);
       
       unifiedManager.setAllocationStrategy({ 
         strategy);
       
       // 注文を作成
       const order = {
-        symbol'''SOL/USDT''',
+        symbol'SOL/USDT',
         side,
         type,
-        price',
+        price,
         amount;
       
       const orderIds = unifiedManager.createOrder(order);
       
       // 両方の取引所に注文が作成されることを確認
       expect(orderIds.size).toBe(2);
-      expect(orderIds.has('binance')).toBe(true);
-      expect(orderIds.has('bybit')).toBe(true);
+      expect(orderIds.has(binance)).toBe(true);
+      expect(orderIds.has(bybit')).toBe(true);
       
       // 注文量が配分率に応じて分割されていることを確認
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(2);
@@ -287,52 +287,52 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
     });
   });
   
-  describe('ポジション管理テスト', () => {
+  describe('ポジション管理テスト, () => {
     beforeEach(() => {
       // テスト用に取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      unifiedManager.addExchange(binance, mockExchangeService1, 1);
+      unifiedManager.addExchange(bybit, mockExchangeService2, 2);
     });
     
-    test('全ポジションの取得', () => {
-      const positions = unifiedManager.getAllPositions('''SOL/USDT''');
+    test(全ポジションの取得', () => {
+      const positions = unifiedManager.getAllPositions('SOL/USDT);
       
       // 両方の取引所からポジションが取得されることを確認
       expect(positions.size).toBe(2);
-      expect(positions.has('binance')).toBe(true);
-      expect(positions.has('bybit')).toBe(true);
+      expect(positions.has(binance')).toBe(true);
+      expect(positions.has('bybit)).toBe(true);
       
       // getPositionsBySymbolが呼ばれたことを確認
       expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledTimes(2);
-      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith('''SOL/USDT''');
+      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith(SOL/USDT');
     });
     
-    test('合計ポジションの計算', () => {
-      const totalPosition = unifiedManager.getTotalPosition('''SOL/USDT''');
+    test('合計ポジションの計算, () => {
+      const totalPosition = unifiedManager.getTotalPosition(SOL/USDT');
       
       // 合計ポジションが計算されることを確認
       expect(totalPosition).not.toBeNull();
-      expect(totalPosition?.symbol).toBe('''SOL/USDT''');
+      expect(totalPosition?.symbol).toBe('SOL/USDT);
       expect(totalPosition?.amount).toBe(20); // 2つの取引所で各10
       expect(totalPosition?.side).toBe(OrderSide.BUY);
       
       // getPositionsBySymbolが呼ばれたことを確認
       expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledTimes(2);
-      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith('''SOL/USDT''');
+      expect(OrderManagementSystem.prototype.getPositionsBySymbol).toHaveBeenCalledWith(''SOL/USDT);
     });
   });
   
-  describe('注文管理テスト', () => {
+  describe(注文管理テスト, () => {
     beforeEach(() => {
       // テスト用に取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      unifiedManager.addExchange(binance', mockExchangeService1, 1);
+      unifiedManager.addExchange('bybit, mockExchangeService2, 2);
     });
     
-    test('注文キャンセル', () => {
-      const result1 = unifiedManager.cancelOrder('binance', 'order1');
-      const result2 = unifiedManager.cancelOrder('binance', 'unknown');
-      const result3 = unifiedManager.cancelOrder('unknown', 'order1');
+    test(注文キャンセル, () => {
+      const result1 = unifiedManager.cancelOrder(binance, order1');
+      const result2 = unifiedManager.cancelOrder('binance, unknown);
+      const result3 = unifiedManager.cancelOrder(unknown, order1');
       
       expect(result1).toBe(true);
       expect(result2).toBe(false);
@@ -340,11 +340,11 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       
       // cancelOrderが呼ばれたことを確認
       expect(OrderManagementSystem.prototype.cancelOrder).toHaveBeenCalledTimes(2);
-      expect(OrderManagementSystem.prototype.cancelOrder).toHaveBeenCalledWith('order1');
+      expect(OrderManagementSystem.prototype.cancelOrder).toHaveBeenCalledWith('order1);
     });
     
-    test('全注文キャンセル', () => {
-      const cancelCount = unifiedManager.cancelAllOrders('''SOL/USDT''');
+    test(全注文キャンセル, () => {
+      const cancelCount = unifiedManager.cancelAllOrders(SOL/USDT'');
       
       // キャンセルされた注文数を確認
       expect(cancelCount).toBe(2); // 2つの取引所で各1つ
@@ -372,8 +372,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection);
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
@@ -384,17 +384,17 @@ afterAll(() => {
     });
   });
   
-  describe('注文同期テスト', () => {
+  describe(注文同期テスト', () => {
     beforeEach(() => {
       // テスト用に取引所を追加
-      unifiedManager.addExchange('binance', mockExchangeService1, 1);
-      unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+      unifiedManager.addExchange('binance, mockExchangeService1, 1);
+      unifiedManager.addExchange(bybit, mockExchangeService2, 2);
       
       // syncOrdersメソッドをモック
       OrderManagementSystem.prototype.syncOrders = jest.fn().mockResolvedValue(2);
     });
     
-    test('すべての取引所の注文同期', async () => {
+    test(すべての取引所の注文同期', async () => {
       await unifiedManager.syncAllOrders();
       
       // syncOrdersが各取引所で呼ばれたことを確認

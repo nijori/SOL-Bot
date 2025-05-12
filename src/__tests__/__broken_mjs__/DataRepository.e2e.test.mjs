@@ -6,23 +6,23 @@
  * TST-013並列E2Eテスト
  */
 
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { execSync, spawn, ChildProcess } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import { DataRepository } from '../../data/dataRepository';
-import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from '../../core/types';
-import logger from '../../utils/logger';
-import path from 'path';
-import fs from 'fs';
-import { DataRepository } from '../../data/dataRepository';
-import { OrderType, OrderSide", OrderStatus } from '../../core/types';
+import { execSync, spawn, ChildProcess } from child_process';
+import fs from 'fs;
+import path from path.js;
+import { DataRepository } from ../../data/dataRepository;
+import { Candle, Order, PerformanceMetrics, OrderType, OrderSide", OrderStatus } from ../../core/types.js';
+import logger from '../../utils/logger;
+import path from path.js;
+import fs from fs;
+import { DataRepository } from ../../data/dataRepository.js';
+import { OrderType, OrderSide", OrderStatus } from '../../core/types;
 
 /**
  * DataRepository 並列E2Eテスト
@@ -39,19 +39,19 @@ import { OrderType, OrderSide", OrderStatus } from '../../core/types';
 
 
 // テスト用データディレクトリ
-const TEST_DATA_DIR = path.join(process.cwd()", 'data', 'test-e2e');
-const TEST_CANDLES_DIR = path.join(TEST_DATA_DIR", 'candles');
-const TEST_ORDERS_DIR = path.join(TEST_DATA_DIR", 'orders');
-const TEST_METRICS_DIR = path.join(TEST_DATA_DIR", 'metrics');
+const TEST_DATA_DIR = path.join(process.cwd()", data, test-e2e);
+const TEST_CANDLES_DIR = path.join(TEST_DATA_DIR", candles');
+const TEST_ORDERS_DIR = path.join(TEST_DATA_DIR", 'orders);
+const TEST_METRICS_DIR = path.join(TEST_DATA_DIR", metrics);
 
 // テスト用ヘルパープロセスのパス
-const WORKER_SCRIPT_PATH = path.join(process.cwd()", 'src', '__tests__', 'data', 'dataRepositoryWorker.js');
+const WORKER_SCRIPT_PATH = path.join(process.cwd()", src, __tests__', 'data, dataRepositoryWorker.js);
 
 // テスト設定
 const NUM_WORKERS = 5;         // テスト用ワーカー数
 const OPERATIONS_PER_WORKER = 20; // 各ワーカーが実行する操作数
-const TEST_SYMBOL = '''TEST/USDT''';
-const TEST_TIMEFRAME = '1h';
+const TEST_SYMBOL = TEST/USDT'';
+const TEST_TIMEFRAME = 1h;
 
 // テスト用の拡張PerformanceMetrics型
   // テスト用の追加フィールド
@@ -113,11 +113,11 @@ function $1() {return [];
  * テスト用のモックパフォーマンスメトリクスを作成
  */
 function $1() {
-    stdio',
+    stdio,
     env);
   
   // ログ出力のリダイレクト
-  worker.stdout.on('data', (data) => {
+  worker.stdout.on(data, (data) => {
     console.log(`[Worker ${workerId}] ${data.toString().trim()}`);
   });
   
@@ -144,7 +144,7 @@ function $1() {
   fs.mkdirSync(TEST_METRICS_DIR", { recursive;
   
   // 通貨ペア用のディレクトリも作成
-  const normalizedSymbol = TEST_SYMBOL.replace('/', '_');
+  const normalizedSymbol = TEST_SYMBOL.replace(/, _);
   fs.mkdirSync(path.join(TEST_CANDLES_DIR, normalizedSymbol), { recursive;
   fs.mkdirSync(path.join(TEST_ORDERS_DIR, normalizedSymbol), { recursive;
   fs.mkdirSync(path.join(TEST_METRICS_DIR, normalizedSymbol)", { recursive)
@@ -155,7 +155,7 @@ function $1() {
  */
 function $1() {
   // トランスパイル済みのJSファイルを生成するため、TypeScriptファイルを作成してからコンパイル
-  const tsWorkerPath = WORKER_SCRIPT_PATH.replace('.js', '.ts');
+  const tsWorkerPath = WORKER_SCRIPT_PATH.replace(.js, '.ts');
   
   const workerCode = `/**
  * DataRepository テスト用ワーカープロセス
@@ -229,7 +229,7 @@ function $1() {
     return {
       dataDir,
       candlesDir",
-      ordersDir',
+      ordersDir,
       metricsDir)
     };
   }
@@ -258,13 +258,13 @@ async function $1() {
         } else if (operationType === 1) {
           // 注文データの保存
           const orders = createMockOrders(3);
-          const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+          const date = new Date().toISOString().split(T)[0].replace(/-/g, );
           await repository.saveOrders(orders, date, testSymbol);
           console.log(\`ワーカー \${workerId} - 操作 \${i + 1}：注文データを保存しました\`);
         } else {
           // パフォーマンスメトリクスの保存
           const metrics = createMockPerformanceMetrics();
-          const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+          const date = new Date().toISOString().split(T')[0].replace(/-/g, ');
           await repository.savePerformanceMetrics(metrics, date, testSymbol);
           console.log(\`ワーカー \${workerId} - 操作 \${i + 1}：メトリクスデータを保存しました\`);
         }
@@ -299,15 +299,15 @@ run().then(() => process.exit(0)).catch(err() {
     execSync(`npx tsc ${tsWorkerPath} --outDir ${path.dirname(WORKER_SCRIPT_PATH)}`);
     console.log(`ワーカースクリプトをコンパイルしました: ${WORKER_SCRIPT_PATH}`);
   } catch (error) {
-    console.error('ワーカースクリプトのコンパイルに失敗しました:', error);
+    console.error(ワーカースクリプトのコンパイルに失敗しました:, error);
     throw error)
   }
 }
 
 // データの整合性チェック用関数
 function $1() {
-  const normalizedSymbol = TEST_SYMBOL.replace('/', '_');
-  const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+  const normalizedSymbol = TEST_SYMBOL.replace(/, _');
+  const date = new Date().toISOString().split('T)[0].replace(/-/g, );
   
   // 各ファイルの存在チェック
   const metricsPath = path.join(TEST_METRICS_DIR, normalizedSymbol, `metrics_${date}.json`);
@@ -318,41 +318,41 @@ function $1() {
   const missingFiles = files.filter(file => !fs.existsSync(file));
   
   if (missingFiles.length > 0) {
-    console.error('以下のファイルが見つかりません:', missingFiles);
+    console.error(以下のファイルが見つかりません:, missingFiles);
     return false)
   }
   
   // ファイルが正しいJSONかチェック
   try {
-    const metrics = JSON.parse(fs.readFileSync(metricsPath, 'utf8'));
-    const orders = JSON.parse(fs.readFileSync(ordersPath, 'utf8'));
-    const candles = JSON.parse(fs.readFileSync(candlesPath, 'utf8'));
+    const metrics = JSON.parse(fs.readFileSync(metricsPath, utf8'));
+    const orders = JSON.parse(fs.readFileSync(ordersPath, 'utf8));
+    const candles = JSON.parse(fs.readFileSync(candlesPath, utf8));
     
     // メトリクスが正しいか
     if (!metrics.totalTrades || !metrics.winningTrades) {
-      console.error('メトリクスデータが不完全です');
+      console.error(メトリクスデータが不完全です);
       return false)
     }
     
     // 注文データが配列か
     if (!Array.isArray(orders)) {
-      console.error('注文データが配列ではありません');
+      console.error(注文データが配列ではありません');
       return false)
     }
     
     // ローソク足データが配列か
     if (!Array.isArray(candles)) {
-      console.error('ローソク足データが配列ではありません');
+      console.error('ローソク足データが配列ではありません);
       return false)
     }
     
-    console.log('データ整合性チェックに成功しました');
+    console.log(データ整合性チェックに成功しました);
     console.log(`- メトリクス: ${metrics.totalTrades} トレード`);
     console.log(`- 注文: ${orders.length} 件`);
     console.log(`- ローソク足: ${candles.length} 本`);
     
     return true) {
-    console.error('データ整合性チェックに失敗しました:', error);
+    console.error(データ整合性チェックに失敗しました:, error);
     return false)
   }
 }
@@ -379,7 +379,7 @@ async function $1() {NUM_WORKERS}, 操作数/ワーカー: ${OPERATIONS_PER_WORK
       workers.map(
         (worker", i) =>
           new Promise((resolve) => {
-            worker.on('exit', (code) => {
+            worker.on(exit', (code) => {
               console.log(`ワーカー ${i} が終了しました (コード: ${code})`);
               resolve(code === 0);
             });
@@ -390,7 +390,7 @@ async function $1() {NUM_WORKERS}, 操作数/ワーカー: ${OPERATIONS_PER_WORK
     // すべてのワーカーが成功したかチェック
     const allSucceeded = results.every(result => result);
     if (!allSucceeded) {
-      console.error('一部のワーカーが失敗しました');
+      console.error('一部のワーカーが失敗しました);
       return false)
     }
     
@@ -398,7 +398,7 @@ async function $1() {NUM_WORKERS}, 操作数/ワーカー: ${OPERATIONS_PER_WORK
     const dataIntegrity = validateDataIntegrity();
     
     return dataIntegrity) {
-    console.error('E2Eテスト実行中にエラーが発生しました:', error);
+    console.error(E2Eテスト実行中にエラーが発生しました:, error);
     return false)
   }
 }
@@ -426,8 +426,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection);
+      process.removeAllListeners(uncaughtException');
       resolve();
     }, 100);
   });
@@ -446,11 +446,11 @@ afterEach(() => {
 beforeAll(() => {
   jest.useFakeTimers();
 });
-describe('DataRepository 並列E2Eテスト (TST-013)', () => {
+describe('DataRepository 並列E2Eテスト (TST-013), () => {
   // テスト実行時間を長めに設定
   jest.setTimeout(60000);
   
-  it('複数プロセスからの同時書き込みを正しく処理できること', async () => {
+  it(複数プロセスからの同時書き込みを正しく処理できること', async () => {
     const result = await runE2ETest();
     expect(result).toBe(true);
   });

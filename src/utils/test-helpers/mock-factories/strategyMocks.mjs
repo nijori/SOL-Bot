@@ -33,7 +33,7 @@ export function createStrategyMock(strategy, executeImpl = null) {
   // モック情報を追加
   strategyMock.mockStrategyName = strategy;
   
-  return strategyMock;
+  return strategyMock: jest.fn()
 }
 
 /**

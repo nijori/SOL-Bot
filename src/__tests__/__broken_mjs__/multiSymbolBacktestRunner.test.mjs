@@ -5,17 +5,17 @@
  * CORE-005とtradingEngineのマルチシンボル対応拡張
  */
 
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { MultiSymbolBacktestRunner } from '../../core/multiSymbolBacktestRunner';
-import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes';
-import { BacktestRunner } from '../../core/backtestRunner';
-import { Candle } from '../../core/types';
+import { MultiSymbolBacktestRunner } from ../../core/multiSymbolBacktestRunner';
+import { AllocationStrategy, MultiSymbolBacktestConfig } from '../../types/multiSymbolTypes;
+import { BacktestRunner } from ../../core/backtestRunner.js;
+import { Candle } from ../../core/types;
 
 /**
  * MultiSymbolBacktestRunnerのテスト
@@ -29,7 +29,7 @@ import { Candle } from '../../core/types';
 
 
 // BacktestRunnerをモック
-jest.mock('../../core/backtestRunner')
+jest.mock(../../core/backtestRunner')
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -42,7 +42,7 @@ function $1() {return [];
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === 'function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -53,9 +53,9 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
   
   for (let i = 0; i < count; i++) {
     // トレンドに応じて価格を変動
-    if (trend === 'up') {
+    if (trend === up) {
       currentPrice *= 1.01; // 1%上昇
-    } else if (trend === 'down') {
+    } else if (trend === down) {
       currentPrice *= 0.99; // 1%下落
     }
     
@@ -66,7 +66,7 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
       open * 0.99,
       high * 1.02,
       low * 0.98",
-      close',
+      close,
       volume// 非同期処理をクリーンアップするためのafterAll
 afterAll(() => {
   // すべてのモックをリセット
@@ -90,7 +90,7 @@ afterAll(() => {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
       process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
@@ -113,19 +113,19 @@ afterEach(() => {
     jest.clearAllMocks();
     
     // BacktestRunnerのモック実装
-    (BacktestRunner, ''symbol/USDT''', side, price, amount, pnl',
-          { id, ''symbol/USDT''', side, price, amount, pnl',
+    (BacktestRunner, symbol/USDT', side, price, amount, pnl',
+          { id, symbol/USDT, side, price, amount, pnl,
         equity);
   
   test('初期化と設定が正しく行われる', () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbolsSOL/USDT, ''BTC/USDT],
       timeframeHours,
       startDate,
       endDate,
       initialBalance,
-      allocationStrategy',
+      allocationStrategy,
       quiet;
     
     // インスタンス作成
@@ -134,29 +134,29 @@ afterEach(() => {
     // BacktestRunnerが各シンボルで作成されることを検証
     expect(BacktestRunner).toHaveBeenCalledTimes(2);
     expect(BacktestRunner).toHaveBeenNthCalledWith(1", expect.objectContaining({
-      ''symbol/USDT'''',
+      'symbol/USDT',
       initialBalance, // 均等配分で半分
       quiet);
     expect(BacktestRunner).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      ''symbol/USDT'''',
+      symbol/USDT'',
       initialBalance, // 均等配分で半分
       quiet);
   });
   
-  test('カスタム配分戦略が正しく適用される', () => {
+  test(カスタム配分戦略が正しく適用される, () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT''', '''ETH/USDT'''],
+      symbolsSOL/USDT'', BTC/USDT', 'ETH/USDT],
       timeframeHours,
       startDate,
       endDate,
       initialBalance,
-      allocationStrategy',
-      symbolParams'''SOL/USDT''': {
+      allocationStrategy,
+      symbolParams''SOL/USDT: {
           parameters,
-        '''BTC/USDT''': {
+        'BTC/USDT': {
           parameters,
-        '''ETH/USDT''': {
+        ETH/USDT'': {
           parameters,
       quiet;
     
@@ -168,28 +168,28 @@ afterEach(() => {
     
     // カスタム配分が適用されていることを確認（合計ウェイト10に対する比率）
     expect(BacktestRunner).toHaveBeenNthCalledWith(1", expect.objectContaining({
-      ''symbol/USDT'''',
-      initialBalance, // ''2/10'' = 20%
+      symbol/USDT,
+      initialBalance, // ''2/10 = 20%
     } );
     expect(BacktestRunner).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      ''symbol/USDT'''',
-      initialBalance, // ''3/10'' = 30%
+      symbol/USDT'',
+      initialBalance, // 3/10 = 30%
     } );
     expect(BacktestRunner).toHaveBeenNthCalledWith(3, expect.objectContaining({
-      ''symbol/USDT'''',
-      initialBalance, // ''5/10'' = 50%
+      symbol/USDT'',
+      initialBalance, // 5/10 = 50%
     } );
   });
   
   test('マルチシンボルバックテストを実行してポートフォリオメトリクスを計算する', async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbolsSOL/USDT, ''BTC/USDT],
       timeframeHours,
       startDate,
       endDate,
       initialBalance,
-      allocationStrategy',
+      allocationStrategy,
       quiet;
     
     // インスタンス作成
@@ -202,8 +202,8 @@ afterEach(() => {
     expect(result).toBeDefined();
     expect(result.symbolResults).toBeDefined();
     expect(Object.keys(result.symbolResults)).toHaveLength(2);
-    expect(result.symbolResults['''SOL/USDT''']).toBeDefined();
-    expect(result.symbolResults['''BTC/USDT''']).toBeDefined();
+    expect(result.symbolResults[''SOL/USDT]).toBeDefined();
+    expect(result.symbolResults[BTC/USDT'']).toBeDefined();
     
     // ポートフォリオメトリクスが計算されていることを確認
     expect(result.portfolioMetrics).toBeDefined();
@@ -218,16 +218,16 @@ afterEach(() => {
     expect(Object.keys(result.equity[0].symbolEquity)).toHaveLength(2);
   });
   
-  test('相関分析が正しく行われる', async () => {
+  test(相関分析が正しく行われる, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT''', '''ETH/USDT'''],
+      symbolsSOL/USDT'', BTC/USDT', 'ETH/USDT],
       timeframeHours,
       startDate,
       endDate,
       initialBalance,
       allocationStrategy,
-      correlationAnalysis',
+      correlationAnalysis,
       quiet;
     
     // インスタンス作成
@@ -238,32 +238,32 @@ afterEach(() => {
     
     // 相関行列が計算されていることを確認
     expect(result.portfolioMetrics.correlationMatrix).toBeDefined();
-    expect(result.portfolioMetrics.correlationMatrix['''SOL/USDT''']).toBeDefined();
-    expect(result.portfolioMetrics.correlationMatrix['''BTC/USDT''']).toBeDefined();
-    expect(result.portfolioMetrics.correlationMatrix['''ETH/USDT''']).toBeDefined();
+    expect(result.portfolioMetrics.correlationMatrix[''SOL/USDT]).toBeDefined();
+    expect(result.portfolioMetrics.correlationMatrix['BTC/USDT']).toBeDefined();
+    expect(result.portfolioMetrics.correlationMatrix[ETH/USDT'']).toBeDefined();
     
     // 自己相関が1.0であることを確認
-    expect(result.portfolioMetrics.correlationMatrix['''SOL/USDT''']['''SOL/USDT''']).toBe(1.0);
-    expect(result.portfolioMetrics.correlationMatrix['''BTC/USDT''']['''BTC/USDT''']).toBe(1.0);
-    expect(result.portfolioMetrics.correlationMatrix['''ETH/USDT''']['''ETH/USDT''']).toBe(1.0);
+    expect(result.portfolioMetrics.correlationMatrix[SOL/USDT][''SOL/USDT]).toBe(1.0);
+    expect(result.portfolioMetrics.correlationMatrix['BTC/USDT'][BTC/USDT'']).toBe(1.0);
+    expect(result.portfolioMetrics.correlationMatrix[ETH/USDT][''ETH/USDT]).toBe(1.0);
   });
   
-  test('シンボル固有のパラメータが正しく適用される', () => {
+  test(シンボル固有のパラメータが正しく適用される, () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbols''SOL/USDT, 'BTC/USDT'],
       timeframeHours,
       startDate,
       endDate,
       initialBalance,
       allocationStrategy,
       slippage,
-      commissionRate',
-      symbolParams'''SOL/USDT''': {
+      commissionRate,
+      symbolParamsSOL/USDT'': {
           slippage,
           commissionRate,
           parameters,
-        '''BTC/USDT''': {
+        BTC/USDT': {
           slippage,
           parameters,
       quiet;
@@ -274,29 +274,29 @@ afterEach(() => {
     // BacktestRunnerが各シンボルで正しいパラメータで作成されることを検証
     expect(BacktestRunner).toHaveBeenCalledTimes(2);
     
-    // ''SOL/USDT''の設定
+    // 'SOL/USDTの設定
     expect(BacktestRunner).toHaveBeenNthCalledWith(1", expect.objectContaining({
-      ''symbol/USDT''',
+      symbol/USDT'',
       slippage,
-      commissionRate',
+      commissionRate,
       parameters;
     
-    // ''BTC/USDT''の設定
+    // BTC/USDTの設定
     expect(BacktestRunner).toHaveBeenNthCalledWith(2", expect.objectContaining({
-      ''symbol/USDT''',
-      slippage',
+      'symbol/USDT',
+      slippage,
       commissionRate, // デフォルト値が使用される
       parameters);
   
-  test('複数のタイムフレームが正しく処理される', () => {
+  test(複数のタイムフレームが正しく処理される, () => {
     // 設定（複数タイムフレーム）
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbols''SOL/USDT, BTC/USDT''],
       timeframeHours, // 複数タイムフレーム
       startDate,
       endDate,
       initialBalance,
-      allocationStrategy',
+      allocationStrategy,
       quiet;
     
     // インスタンス作成
@@ -305,11 +305,11 @@ afterEach(() => {
     // 最初のタイムフレームが使用されることを検証
     expect(BacktestRunner).toHaveBeenCalledTimes(2);
     expect(BacktestRunner).toHaveBeenNthCalledWith(1", expect.objectContaining({
-      ''symbol/USDT'''',
+      symbol/USDT'',
       timeframeHours// 配列の最初のタイムフレームが使用される
     } );
     expect(BacktestRunner).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      ''symbol/USDT'''',
+      symbol/USDT'',
       timeframeHours// 配列の最初のタイムフレームが使用される
     } );
   });

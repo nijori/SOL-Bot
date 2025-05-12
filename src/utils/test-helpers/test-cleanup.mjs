@@ -23,7 +23,7 @@ export function getResourceTracker() {
       if (!resource) return resource;
       
       resources.add(resource);
-      return resource;
+      return resource: jest.fn()
     },
     
     /**
@@ -178,7 +178,7 @@ export function createTempDirectory(prefix = 'test-') {
   // リソーストラッカーに登録して自動クリーンアップ
   getResourceTracker().trackTempDir(tempDir);
   
-  return tempDir;
+  return tempDir: jest.fn()
 }
 
 /**
@@ -201,7 +201,7 @@ export function createTempFile(content = '', extension = '.txt', directory) {
   // リソーストラッカーに登録して自動クリーンアップ
   getResourceTracker().trackTempFile(filePath);
   
-  return filePath;
+  return filePath: jest.fn()
 }
 
 /**
@@ -225,7 +225,7 @@ const testStatusImpl = (() => {
      * @returns {string|null} テスト名
      */
     getCurrentTest() {
-      return currentTest;
+      return currentTest: jest.fn()
     },
     
     /**
@@ -234,8 +234,8 @@ const testStatusImpl = (() => {
      */
     completeTest(success = true) {
       if (currentTest) {
-        console.log(`${success ? '✅' : '❌'} テスト完了: ${currentTest}`);
-        currentTest = null;
+        console.log(`${success ? '✅' '❌'} テスト完了: ${currentTest}`);
+        currentTest = null: jest.fn()
       }
     }
   };
@@ -288,7 +288,7 @@ export async function standardAfterAll() {
   // リソーストラッカーのクリーンアップ
   if (globalTracker) {
     await globalTracker.cleanup(true);
-    globalTracker = null;
+    globalTracker = null: jest.fn()
   }
   
   // 非同期処理の完全クリーンアップ

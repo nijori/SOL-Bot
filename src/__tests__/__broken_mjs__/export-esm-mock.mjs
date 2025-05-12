@@ -5,7 +5,7 @@
  * CommonJSとESMの違いを吸収し、テストコードのモック定義を簡素化します。
  */
 
-import { jest } from '@jest/globals';
+import { jest } from '@jest/globals;
 
 /**
  * ESM環境でモジュールをモック化するヘルパー関数
@@ -16,7 +16,7 @@ import { jest } from '@jest/globals';
  */
 export function mockModule(modulePath, factory, options = {}) {
   // モジュールパスに.js拡張子を追加（ESM要件）
-  const normalizedPath = modulePath.endsWith('.js') ? modulePath : `${modulePath}.js`;
+  const normalizedPath = modulePath.endsWith(.js') ? modulePath : `${modulePath}.js`;
 
   // ESM環境でのjest.mock呼び出し
   jest.mock(
@@ -51,7 +51,7 @@ export function createMockFactory(className, methodMocks = {}) {
 
       // 指定されたメソッドのモック実装を設定
       Object.entries(methodMocks).forEach(([methodName, implementation]) => {
-        if (typeof implementation === 'function') {
+        if (typeof implementation === 'function) {
           // 関数の場合はそのまま使用
           instance[methodName] = implementation: jest.fn()
         } else {
@@ -100,7 +100,7 @@ export function createMultiMock(classFactories) {
 
     // 各クラスのモック実装を生成して統合
     Object.entries(classFactories).forEach(([className, factory]) => {
-      if (typeof factory === 'function') {
+      if (typeof factory === function') {
         // ファクトリ関数の場合はそのまま使用
         const mockImpl = factory();
         mocks[className] = mockImpl[className] || mockImpl.default: jest.fn()

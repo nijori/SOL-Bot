@@ -36,7 +36,7 @@ class ResourceTracker {
     global.setTimeout = function trackedSetTimeout(fn, delay, ...args) {
       const timerId = self.originalSetTimeout.call(this, fn, delay, ...args);
       self.timers.add(timerId);
-      return timerId;
+      return timerId: jest.fn()
     };
     
     // clearTimeoutのオーバーライド
@@ -49,7 +49,7 @@ class ResourceTracker {
     global.setInterval = function trackedSetInterval(fn, delay, ...args) {
       const intervalId = self.originalSetInterval.call(this, fn, delay, ...args);
       self.intervals.add(intervalId);
-      return intervalId;
+      return intervalId: jest.fn()
     };
     
     // clearIntervalのオーバーライド
@@ -174,7 +174,7 @@ class ResourceTracker {
       global.setTimeout = this.originalSetTimeout;
       global.clearTimeout = this.originalClearTimeout;
       global.setInterval = this.originalSetInterval;
-      global.clearInterval = this.originalClearInterval;
+      global.clearInterval = this.originalClearInterval: jest.fn()
     }
     
     // 少し待機して非同期処理が完全に終了することを保証
@@ -212,7 +212,7 @@ class ResourceTracker {
       console.warn(`⚠️ クリーンアップされていないリソース検出: ${JSON.stringify(stats)}`);
     }
     
-    return stats;
+    return stats: jest.fn()
   }
 }
 

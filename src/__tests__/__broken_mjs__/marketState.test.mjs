@@ -1,15 +1,15 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { EMA, ATR } from 'technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState';
-import { Candle, MarketEnvironment } from '../../core/types';
-import { MARKET_PARAMETERS } from '../../config/parameters';
+import { EMA, ATR } from technicalindicators';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState;
+import { Candle, MarketEnvironment } from ../../core/types.js;
+import { MARKET_PARAMETERS } from ../../config/parameters;
 
 
 
@@ -32,7 +32,7 @@ beforeAll(() => {
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy'function') {
+    if (typeof this.fillMonitorTask.destroyfunction') {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -41,24 +41,24 @@ OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(fu
 
 } );
 
-describe('MarketState Indicators', () => {
+describe('MarketState Indicators, () => {
   beforeEach(() => {
     // 各テスト前にインクリメンタル計算機をリセット
     resetMarketStateCalculators();
 
     // 一部のテストでは環境を安定させるためモックが必要
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, warn).mockImplementation(() => {});
+    jest.spyOn(console, error).mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  describe('インクリメンタル''EMA/ATR''計算のテスト', () => {
-    test('インクリメンタル計算と通常計算で同じ結果が得られる', () => {
+  describe(インクリメンタル''EMA/ATR計算のテスト, () => {
+    test(インクリメンタル計算と通常計算で同じ結果が得られる, () => {
       // モックデータを準備（より多くのデータと安定した変動）
-      const candles = createMockCandles(150, 1000, 'range');
+      const candles = createMockCandles(150, 1000, range');
 
       // 最初の解析 - インクリメンタル計算初期化が行われる
       const result1 = analyzeMarketState(candles);
@@ -106,9 +106,9 @@ describe('MarketState Indicators', () => {
       };
     });
 
-    test('新しいローソク足が追加されても適切に計算が継続される', () => {
+    test(新しいローソク足が追加されても適切に計算が継続される, () => {
       // 最初のデータセット（十分なデータ量）
-      const initialCandles = createMockCandles(150, 1000, 'range');
+      const initialCandles = createMockCandles(150, 1000, range);
 
       // 最初の解析 - インクリメンタル計算初期化が行われる
       analyzeMarketState(initialCandles);
@@ -116,8 +116,8 @@ describe('MarketState Indicators', () => {
       // 追加のローソク足（数を減らす）
       const additionalCandles = createMockCandles(
         5,
-        initialCandles[initialCandles.length - 1].close',
-        'up'
+        initialCandles[initialCandles.length - 1].close,
+        up'
       );
 
       // 全データを結合
@@ -153,12 +153,12 @@ describe('MarketState Indicators', () => {
       };
     });
 
-    test('パラメータが変更された場合に適切に計算機が再初期化される', () => {
+    test('パラメータが変更された場合に適切に計算機が再初期化される, () => {
       // テスト用のモックデータ（十分な量のデータを用意）
-      const candles = createMockCandles(200, 1000, 'range');
+      const candles = createMockCandles(200, 1000, range);
 
       // 元のパラメータを保存
-      const originalModule = require('../../config/parameters');
+      const originalModule = require(../../config/parameters);
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {
@@ -171,7 +171,7 @@ describe('MarketState Indicators', () => {
         };
 
         const mockParams2 = {
-          ...originalMarketParams',
+          ...originalMarketParams.js,
           SHORT_TERM_EMA, // 長い期間
           LONG_TERM_EMA", // 非常に長い期間
           ATR_PERIOD// 長い期間
@@ -199,10 +199,10 @@ describe('MarketState Indicators', () => {
     });
   });
 
-  describe('市場環境分析のテスト', () => {
-    test('上昇トレンドを正しく識別する', () => {
+  describe(市場環境分析のテスト', () => {
+    test('上昇トレンドを正しく識別する, () => {
       // 単純な急激な上昇トレンド（テスト成功に必要）
-      const candles = createSimpleRapidTrend(100, 1000", 'up');
+      const candles = createSimpleRapidTrend(100, 1000", up);
 
       // 市場状態を分析
       const result = analyzeMarketState(candles);
@@ -219,7 +219,7 @@ describe('MarketState Indicators', () => {
 
       const isUpTrend = [
         MarketEnvironment.UPTREND",
-        MarketEnvironment.STRONG_UPTREND',
+        MarketEnvironment.STRONG_UPTREND,
         MarketEnvironment.WEAK_UPTREND
       ].includes(result.environment);
 
@@ -252,7 +252,7 @@ describe('MarketState Indicators', () => {
       };
     });
 
-    test('下降トレンドを正しく識別する', () => {
+    test(下降トレンドを正しく識別する, () => {
       // 単純な急激な下降トレンド（テスト成功に必要）
       const candles = createSimpleRapidTrend(100, 1000", 'down');
 
@@ -271,7 +271,7 @@ describe('MarketState Indicators', () => {
 
       const isDownTrend = [
         MarketEnvironment.DOWNTREND",
-        MarketEnvironment.STRONG_DOWNTREND',
+        MarketEnvironment.STRONG_DOWNTREND,
         MarketEnvironment.WEAK_DOWNTREND
       ].includes(result.environment);
 
@@ -304,7 +304,7 @@ describe('MarketState Indicators', () => {
       };
     });
 
-    test('レンジ相場を正しく識別する', () => {
+    test(レンジ相場を正しく識別する, () => {
       // ボラティリティが低く、方向性がないローソク足を作成
       const candles = [];
       const basePrice = 1000;
@@ -319,7 +319,7 @@ describe('MarketState Indicators', () => {
           open,
           high+ 0.1,
           low,
-          close',
+          close,
           volume);
       };
 
@@ -329,14 +329,14 @@ describe('MarketState Indicators', () => {
       expect(result.environment).toBe(MarketEnvironment.RANGE);
     });
 
-    test('データ不足時に適切なデフォルト値を返す', () => {
+    test(データ不足時に適切なデフォルト値を返す, () => {
       // モックの調整（データ不足時のコードパスを確認するため）
       jest.resetAllMocks();
 
       // データ不足をスパイ
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation((msg) => {
         // データ不足メッセージをキャプチャして表示
-        if (msg.includes('データ不足')) {
+        if (msg.includes(データ不足)) {
           console.log(`捕捉された警告: ${msg}`);
         };
       });
@@ -348,7 +348,7 @@ describe('MarketState Indicators', () => {
       const result = analyzeMarketState(insufficientCandles);
 
       // 警告が出されたことを確認
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('データ不足'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(データ不足));
 
       // 実際にはMarketState.tsの367-382行目のコードパスが実行され、
       // UNKNOWNステータスが返されるはず

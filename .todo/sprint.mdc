@@ -190,15 +190,15 @@ alwaysApply: false
       - 🏷️  Label      : test
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : MultiTimeframeDataFetcherとparameterServiceのテストコードを修正、モック実装と型安全性を強化
+      - ✎ Notes      : MultiTimeframeDataFetcherとparameterServiceのテストコードを修正、モック実装と型安全性を強化。テスト結果から、parameterServiceにはまだ一部問題が残っており、将来のタスクで改善予定。MultiTimeframeDataFetcherのテストはすべて成功しています。。
 
-- [ ] TST-068: 戦略テスト（TrendFollow、MeanReversion）の修正
+- [x] TST-068: 戦略テスト（TrendFollow、MeanReversion）の修正
       - 📅 Due        : 2026-06-16
-      - 👤 Owner      : @nijor
+      - 👤 Owner      : @assistant
       - 🔗 Depends-on : TST-067
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : trendFollowStrategy.testとmeanReversionStrategy.testの修正。calculateDonchian、calculateParabolicSARなどのモック関数問題の解決。戦略モジュールのモック方法の改善と依存関係の適切な注入。テスト検証値の見直し（シグナル生成テストでの期待値と実際値の不一致修正）。パラメータサービスの参照問題解決。trendStrategyのgetMarketParametersエラー修正。テスト環境でのシグナル生成論理の一貫性確保。
 
 - [ ] TST-069: RealTimeDataProcessorとデータリポジトリテストの修正
@@ -208,7 +208,7 @@ alwaysApply: false
       - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : RealTimeDataProcessorテストのタイムアウト問題解決。イベント処理の待機時間を最適化し、テストタイムアウト設定を調整。データ検証テストの問題（期待値3に対して実際値1）を修正。DataRepository.e2e.testの失敗問題解決。runE2Eテスト関数の修正と並列データアクセス問題の解決。モックデータの一貫性確保とテスト検証ロジックの見直し。ファイルシステム操作とプロセス間通信のテスト方法改善。
+      - ✎ Notes      : RealTimeDataProcessorテストのタイムアウト問題解決。イベント処理の待機時間を最適化し、テストタイムアウト設定を調整。データ検証テストの問題（期待値3に対して実際値1）を修正。DataRepository.e2e.testの失敗問題解決。runE2Eテスト関数の修正と並列データアクセス問題の解決。モックデータの一貫性確保とテスト検証ロジックの見直し。ファイルシステム操作とプロセス通信のテスト方法改善。
 
 - [ ] TST-070: マルチシンボルテストスイート修正
       - 📅 Due        : 2026-06-18

@@ -1,19 +1,19 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import */../''utils/metrics''.js';
-import * /helpers.js';
+import */../'utils/metrics'.js;
+import * /helpers.js;
 
 
 
 
 // expressサーバー関連のモック
-jest.mock('express', () => {
+jest.mock(express, () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -36,16 +36,16 @@ beforeAll(() => {
 })
 
 // loggerのモック
-jest.mock('../../''utils/logger''', () => ({
+jest.mock(../../.js''utils/logger, () => ({
   info,
   error,
-  warn',
+  warn,
   debug);
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMo
@@ -69,8 +69,8 @@ describe('Metrics Utility', () => {
     jest.clearAllMocks();
   });
 
-  describe('基本的なメトリクス更新', () => {
-    it('updateBalance がトレーディング残高を正しく更新する', () => {
+  describe(基本的なメトリクス更新, () => {
+    it(updateBalance がトレーディング残高を正しく更新する, () => {
       const balance = 5000;
       metrics.updateMetrics.updateBalance(balance);
 
@@ -80,7 +80,7 @@ describe('Metrics Utility', () => {
       expect(metricData).toMatch(/solbot_trading_balance \d+/);
     });
 
-    it('updateDailyPnl が日次損益を正しく更新する', () => {
+    it(updateDailyPnl が日次損益を正しく更新する, () => {
       metrics.updateMetrics.updateDailyPnl(100, 0.05);
 
       const metricData = collectMetrics();
@@ -98,10 +98,10 @@ describe('Metrics Utility', () => {
     });
   });
 
-  describe('新規追加メトリクス', () => {
-    it('recordOrderLatency が注文レイテンシを正しくヒストグラムに記録する', () => {
-      metrics.updateMetrics.recordOrderLatency(1.5, 'binance', 'market', 'SOLUSDT');
-      metrics.updateMetrics.recordOrderLatency(0.3, 'bybit', 'limit', 'BTCUSDT');
+  describe(新規追加メトリクス, () => {
+    it(recordOrderLatency が注文レイテンシを正しくヒストグラムに記録する, () => {
+      metrics.updateMetrics.recordOrderLatency(1.5, binance, 'market', SOLUSDT);
+      metrics.updateMetrics.recordOrderLatency(0.3, bybit, limit, 'BTCUSDT');
 
       const metricData = collectMetrics();
       expect(metricData).toMatch(
@@ -118,10 +118,10 @@ describe('Metrics Utility', () => {
       );
     });
 
-    it('recordExchangeError が取引所エラーを正しくカウントする', () => {
-      metrics.updateMetrics.recordExchangeError('binance', '429', '/''api/v3''/order');
-      metrics.updateMetrics.recordExchangeError('binance', '429', '/''api/v3''/order');
-      metrics.updateMetrics.recordExchangeError('bybit', '10001', '/''private/linear''/''order/create''');
+    it(recordExchangeError が取引所エラーを正しくカウントする, () => {
+      metrics.updateMetrics.recordExchangeError(binance, 429, '/'api/v3/order);
+      metrics.updateMetrics.recordExchangeError(binance, '429', /api/v3/order);
+      metrics.updateMetrics.recordExchangeError('bybit', 10001, /private/linear'/'order/create);
 
       const metricData = collectMetrics();
       expect(metricData).toMatch(
@@ -132,9 +132,9 @@ describe('Metrics Utility', () => {
       );
     });
 
-    it('recordEngineLoopDuration がエンジンループ処理時間を正しく記録する', () => {
+    it(recordEngineLoopDuration がエンジンループ処理時間を正しく記録する, () => {
       metrics.updateMetrics.recordEngineLoopDuration(0.12, 'trend');
-      metrics.updateMetrics.recordEngineLoopDuration(0.25, 'range');
+      metrics.updateMetrics.recordEngineLoopDuration(0.25, range);
 
       const metricData = collectMetrics();
       expect(metricData).toMatch(
@@ -144,9 +144,9 @@ describe('Metrics Utility', () => {
       expect(metricData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="range"} 1/);
     });
 
-    it('startEngineLoopTimer がタイマー関数を正しく返して処理時間を記録する', () => {
+    it(startEngineLoopTimer がタイマー関数を正しく返して処理時間を記録する, () => {
       // タイマー開始
-      const endTimer = metrics.updateMetrics.startEngineLoopTimer('trend');
+      const endTimer = metrics.updateMetrics.startEngineLoopTimer(trend);
 
       // 処理時間を模擬
       jest.advance
@@ -173,7 +173,7 @@ afterAll(() => {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
       process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
@@ -188,16 +188,16 @@ TimersByTime(150);
     });
   });
 
-  describe('メトリクスサーバー', () => {
-    it('initMetricsServer がサーバーを正しく初期化する', () => {
+  describe(メトリクスサーバー, () => {
+    it(initMetricsServer がサーバーを正しく初期化する, () => {
       const express = require('express');
       const mockApp = express();
 
       metrics.initMetricsServer(9100);
 
       // エンドポイント設定の確認
-      expect(mockApp.get).toHaveBeenCalledWith('/metrics', expect.any(Function));
-      expect(mockApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
+      expect(mockApp.get).toHaveBeenCalledWith(/metrics, expect.any(Function));
+      expect(mockApp.get).toHaveBeenCalledWith(/health, expect.any(Function));
 
       // サーバー起動の確認
       expect(mockApp.listen).toHaveBeenCalledWith(9100, expect.any(Function));
@@ -210,7 +210,7 @@ TimersByTime(150);
  * @returns メトリクス文字列
  */
 function $1() = (client;
-  const metrics = register.getMetricsAsString ? register.getMetricsAsString() '';
+  const metrics = register.getMetricsAsString ? register.getMetricsAsString() ;
 
   // メトリクスが取得できない場合は空文字列を返す
   return metrics || '';

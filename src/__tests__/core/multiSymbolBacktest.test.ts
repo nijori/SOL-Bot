@@ -180,7 +180,7 @@ const mockExchangeService = {
         return { last: 100 };
     }
   }),
-  initialize: jest.fn().mockResolvedValue(true)
+  initialize: jest.fn().mockResolvedValue(true as any)
 };
 
 // ExchangeServiceモックの設定
@@ -190,8 +190,8 @@ const mockExchangeService = {
 
 // OMSのモック実装を作成
 const mockOmsInstance = {
-  placeOrder: jest.fn().mockResolvedValue({ id: 'test-order-id' }),
-  cancelOrder: jest.fn().mockResolvedValue(true),
+  placeOrder: jest.fn().mockResolvedValue({ id: 'test-order-id' } as any),
+  cancelOrder: jest.fn().mockResolvedValue(true as any),
   getOrders: jest.fn().mockReturnValue([]),
   getPositions: jest.fn().mockReturnValue([]),
   updateOrderStatus: jest.fn(),

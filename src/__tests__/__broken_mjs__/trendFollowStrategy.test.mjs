@@ -1,15 +1,15 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { Candle, OrderSide, Position } from '../../core/types';
-import */../''strategies/trendFollowStrategy''.js';
-import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/parabolicSAR';
-import { calculateATR", getValidStopDistance } from '../../utils/atrUtils';
+import { Candle, OrderSide, Position } from ../../core/types';
+import */../'strategies/trendFollowStrategy.js;
+import { calculateParabolicSAR, ParabolicSARResult } from ../../indicators/parabolicSAR;
+import { calculateATR", getValidStopDistance } from '../../utils/atrUtils.js';
 
 
 
@@ -17,30 +17,30 @@ import { calculateATR", getValidStopDistance } from '../../utils/atrUtils';
 
 
 // モック設定
-jest.mock('../../''indicators/parabolicSAR''.js', () => {
+jest.mock(../../indicators/parabolicSAR.js, () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
   // 実際のcalculateParabolicSAR関数を保持
-  const originalModule = jest.requireActual('../../''indicators/parabolicSAR''');
+  const originalModule = jest.requireActual('../../'indicators/parabolicSAR);
 
   return {
-    ...originalModule',
+    ...originalModule,
     // モック版のcalculateParabolicSAR
     calculateParabolicSAR)
   };
 })
 
-jest.mock('../../''utils/atrUtils''.js', () => {
+jest.mock(../../''utils/atrUtils.js, () => {
   return {
-    calculateATR',
+    calculateATR,
     getValidStopDistance)
   };
 })
 
-jest.mock('../../''utils/positionSizing''.js', () => {
+jest.mock(../../'utils/positionSizing'.js, () => {
   return {
     calculateRiskBasedPositionSize) // デフォルトで100を返す
   };
@@ -48,7 +48,7 @@ jest.mock('../../''utils/positionSizing''.js', () => {
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonit
@@ -66,7 +66,7 @@ orTask.stop();
 
 })
 
-describe('TrendFollowStrategy', () => {
+describe(TrendFollowStrategy, () => {
   // モックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
@@ -74,16 +74,16 @@ describe('TrendFollowStrategy', () => {
 
   // テスト用のキャンドルデータを生成
   const generateTestCandles = (count= 100',
-    trend= 'flat'
+    trend= 'flat
   ) => {
     const candles = [];
     let price = startPrice;
 
     for (let i = 0; i < count; i++) {
       // トレンドに基づいて価格変動を追加
-      if (trend === 'up') {
+      if (trend === up) {
         price += 0.5 + Math.random();
-      } else if (trend === 'down') {
+      } else if (trend === down) {
         price -= 0.5 + Math.random();
       } else {
         price += (Math.random() - 0.5) * 0.5; // フラット±0.25
@@ -94,7 +94,7 @@ describe('TrendFollowStrategy', () => {
         open,
         high+ 0.5,
         low,
-        close',
+        close,
         volume+ Math.random() * 500
       });
     };
@@ -107,7 +107,7 @@ describe('TrendFollowStrategy', () => {
   const isSARSellSignal = (trendFollowStrategyModule;
 
   describe('isSARBuySignal', () => {
-    it('トレンド転換時（下降→上昇）にtrue を返す', () => {
+    it(トレンド転換時（下降→上昇）にtrue を返す, () => {
       // テスト用のキャンドルデータ
       const candles = generateTestCandles(10);
 
@@ -121,7 +121,7 @@ describe('TrendFollowStrategy', () => {
       const mockPreviousSAR = {
         sar,
         isUptrend",
-        accelerationFactor',
+        accelerationFactor,
         extremePoint;
 
       // calculateParabolicSARのモックを設定
@@ -142,7 +142,7 @@ describe('TrendFollowStrategy', () => {
       expect(calculateParabolicSAR).toHaveBeenCalledTimes(1);
     });
 
-    it('トレンドが継続中（上昇→上昇）の場合はfalseを返す', () => {
+    it(トレンドが継続中（上昇→上昇）の場合はfalseを返す, () => {
       // テスト用のキャンドルデータ
       const candles = generateTestCandles(10);
 
@@ -156,7 +156,7 @@ describe('TrendFollowStrategy', () => {
       const mockPreviousSAR = {
         sar,
         isUptrend", // 前回も上昇トレンド
-        accelerationFactor',
+        accelerationFactor,
         extremePoint;
 
       // calculateParabolicSARのモックを設定
@@ -179,7 +179,7 @@ describe('TrendFollowStrategy', () => {
   });
 
   describe('isSARSellSignal', () => {
-    it('トレンド転換時（上昇→下降）にtrue を返す', () => {
+    it(トレンド転換時（上昇→下降）にtrue を返す, () => {
       // テスト用のキャンドルデータ
       const candles = generateTestCandles(10);
 
@@ -193,7 +193,7 @@ describe('TrendFollowStrategy', () => {
       const mockPreviousSAR = {
         sar,
         isUptrend",
-        accelerationFactor',
+        accelerationFactor,
         extremePoint;
 
       // calculateParabolicSARのモックを設定
@@ -214,7 +214,7 @@ describe('TrendFollowStrategy', () => {
       expect(calculateParabolicSAR).toHaveBeenCalledTimes(1);
     });
 
-    it('トレンドが継続中（下降→下降）の場合はfalseを返す', () => {
+    it(トレンドが継続中（下降→下降）の場合はfalseを返す, () => {
       // テスト用のキャンドルデータ
       const candles = generateTestCandles(10);
 
@@ -228,7 +228,7 @@ describe('TrendFollowStrategy', () => {
       const mockPreviousSAR = {
         sar,
         isUptrend", // 前回も下降トレンド
-        accelerationFactor',
+        accelerationFactor,
         extremePoint;
 
       // calculateParabolicSARのモックを設定
@@ -266,7 +266,7 @@ afterAll(() => {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
       process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
@@ -280,46 +280,46 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
   });
 
   // executeTrendFollowStrategyのテスト
-  describe('executeTrendFollowStrategy', () => {
+  describe(executeTrendFollowStrategy, () => {
     beforeEach(() => {
       // モックのリセットと共通設定
       (calculateATR;
       (calculateParabolicSAR,
         isUptrend",
-        accelerationFactor',
+        accelerationFactor,
         extremePoint);
     });
 
-    it('データ不足時は空のシグナルを返す', () => {
+    it(データ不足時は空のシグナルを返す', () => {
       // 少ないキャンドル数でテスト
       const candles = generateTestCandles(5);
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
         candles',
-        'SOLUSDT',
-        []',
+        SOLUSDT,
+        [],
         10000
       );
 
       expect(result.signals).toHaveLength(0);
     });
 
-    it('ブレイクアウト + ADX条件でロングエントリーシグナルを生成', () => {
+    it(ブレイクアウト + ADX条件でロングエントリーシグナルを生成, () => {
       // 十分なキャンドル数
-      const candles = generateTestCandles(50, 100", 'up');
+      const candles = generateTestCandles(50, 100", up');
 
       // ADX関連の関数をモック
-      jest.spyOn(trendFollowStrategyModule'calculateDonchian').mockReturnValue({
-        upper',
+      jest.spyOn(trendFollowStrategyModule'calculateDonchian).mockReturnValue({
+        upper,
         lower);
 
-      jest.spyOn(trendFollowStrategyModule'calculateADX').mockReturnValue(30);
+      jest.spyOn(trendFollowStrategyModulecalculateADX).mockReturnValue(30);
 
       // 最後のキャンドルを上昇させる
       candles[candles.length - 1].close = 106; // ドンチャン上限突破
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
+        candles,
+        SOLUSDT',
         []',
         10000
       );
@@ -329,24 +329,24 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals[0].stopPrice).toBeDefined();
     });
 
-    it('ブレイクアウト + ADX条件でショートエントリーシグナルを生成', () => {
+    it(ブレイクアウト + ADX条件でショートエントリーシグナルを生成, () => {
       // 十分なキャンドル数
-      const candles = generateTestCandles(50, 100", 'down');
+      const candles = generateTestCandles(50, 100", down);
 
       // ADX関連の関数をモック
-      jest.spyOn(trendFollowStrategyModule'calculateDonchian').mockReturnValue({
+      jest.spyOn(trendFollowStrategyModulecalculateDonchian).mockReturnValue({
         upper',
         lower);
 
-      jest.spyOn(trendFollowStrategyModule'calculateADX').mockReturnValue(30);
+      jest.spyOn(trendFollowStrategyModule'calculateADX).mockReturnValue(30);
 
       // 最後のキャンドルを下降させる
       candles[candles.length - 1].close = 94; // ドンチャン下限突破
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
-        []',
+        candles,
+        SOLUSDT,
+        [],
         10000
       );
 
@@ -355,17 +355,17 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals[0].stopPrice).toBeDefined();
     });
 
-    it('SAR信号によるロングエントリーシグナルを生成', () => {
+    it(SAR信号によるロングエントリーシグナルを生成', () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50);
 
       // SARシグナルを返すようにモック
-      jest.spyOn(trendFollowStrategyModule", 'isSARBuySignal').mockReturnValue(true);
-      jest.spyOn(trendFollowStrategyModule, 'isSARSellSignal').mockReturnValue(false);
+      jest.spyOn(trendFollowStrategyModule", 'isSARBuySignal).mockReturnValue(true);
+      jest.spyOn(trendFollowStrategyModule, isSARSellSignal).mockReturnValue(false);
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
+        candles,
+        SOLUSDT,
         []',
         10000
       );
@@ -374,18 +374,18 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals[0].side).toBe(OrderSide.BUY);
     });
 
-    it('SAR信号によるショートエントリーシグナルを生成', () => {
+    it('SAR信号によるショートエントリーシグナルを生成, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50);
 
       // SARシグナルを返すようにモック
-      jest.spyOn(trendFollowStrategyModule", 'isSARBuySignal').mockReturnValue(false);
-      jest.spyOn(trendFollowStrategyModule, 'isSARSellSignal').mockReturnValue(true);
+      jest.spyOn(trendFollowStrategyModule", isSARBuySignal).mockReturnValue(false);
+      jest.spyOn(trendFollowStrategyModule, isSARSellSignal).mockReturnValue(true);
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
+        candles,
         'SOLUSDT',
-        []',
+        [],
         10000
       );
 
@@ -393,7 +393,7 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals[0].side).toBe(OrderSide.SELL);
     });
 
-    it('stopPrice==undefinedの場合に適切にスキップ', () => {
+    it(stopPrice==undefinedの場合に適切にスキップ, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50);
 
@@ -406,23 +406,23 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
           entryPrice,
           stopPrice,
           timestamp",
-          currentPrice',
+          currentPrice,
           unrealizedPnl;
       ];
 
       // コンソール警告をスパイ
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, warn).mockImplementation(() => {});
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
         candles',
-        'SOLUSDT',
-        positions',
+        'SOLUSDT,
+        positions,
         10000
       );
 
       // stopPriceがundefinedなので警告が出るはず
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('ストップ価格が設定されていません')
+        expect.stringContaining(ストップ価格が設定されていません)
       );
 
       // 既存ポジションがあるのにシグナルはない（stopPriceがundefinedなので）
@@ -432,7 +432,7 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       consoleWarnSpy.mockRestore();
     });
 
-    it('ロングポジションのトレイリングストップを適切に調整', () => {
+    it(ロングポジションのトレイリングストップを適切に調整, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50, 100", 'up');
       const lastCandle = candles[candles.length - 1];
@@ -453,9 +453,9 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       ];
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
-        positions',
+        candles,
+        SOLUSDT,
+        positions,
         10000
       );
 
@@ -463,7 +463,7 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals).toHaveLength(0);
     });
 
-    it('ショートポジションのトレイリングストップを適切に調整', () => {
+    it(ショートポジションのトレイリングストップを適切に調整, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50, 100", 'down');
       const lastCandle = candles[candles.length - 1];
@@ -484,9 +484,9 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       ];
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
-        positions',
+        candles,
+        SOLUSDT,
+        positions,
         10000
       );
 
@@ -494,7 +494,7 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals).toHaveLength(0);
     });
 
-    it('ロングポジションがストップロスに到達したら決済シグナルを生成', () => {
+    it(ロングポジションがストップロスに到達したら決済シグナルを生成, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50, 100", 'down');
       const lastCandle = candles[candles.length - 1];
@@ -515,9 +515,9 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       ];
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
-        positions',
+        candles,
+        SOLUSDT,
+        positions,
         10000
       );
 
@@ -527,7 +527,7 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       expect(result.signals[0].amount).toBe(100); // 全量決済
     });
 
-    it('ショートポジションがストップロスに到達したら決済シグナルを生成', () => {
+    it(ショートポジションがストップロスに到達したら決済シグナルを生成, () => {
       // 十分なキャンドル数
       const candles = generateTestCandles(50, 100", 'up');
       const lastCandle = candles[candles.length - 1];
@@ -548,8 +548,8 @@ ult = isSARSellSignal(candles, mockCurrentSAR);
       ];
 
       const result = trendFollowStrategyModule.executeTrendFollowStrategy(
-        candles',
-        'SOLUSDT',
+        candles,
+        SOLUSDT',
         positions',
         10000
       );

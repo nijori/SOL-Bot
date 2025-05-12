@@ -315,7 +315,7 @@ export function executeTrendFollowStrategy(
         }
 
         // 4. Parabolic SARベースのトレイリングストップ（オプション）
-        if (USE_PARABOLIC_SAR && !sarResult.isUptrend) {
+        if (USE_PARABOLIC_SAR && sarResult && !sarResult.isUptrend) {
           const sarStopPrice = sarResult.sar;
           if (sarStopPrice > stopPrice) {
             stopPrice = sarStopPrice;
@@ -367,7 +367,7 @@ export function executeTrendFollowStrategy(
         }
 
         // 4. Parabolic SARベースのトレイリングストップ（オプション）
-        if (USE_PARABOLIC_SAR && sarResult.isUptrend) {
+        if (USE_PARABOLIC_SAR && sarResult && sarResult.isUptrend) {
           const sarStopPrice = sarResult.sar;
           if (sarStopPrice < stopPrice) {
             stopPrice = sarStopPrice;

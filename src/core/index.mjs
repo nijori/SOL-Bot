@@ -15,8 +15,8 @@ export { require, __filename, __dirname } from '../utils/esm-compat.mjs';
 
 // デフォルトエクスポート
 export default {
-  TradingEngine: './tradingEngine.js',
-  BacktestRunner: './backtestRunner.js',
-  OrderManagementSystem: './orderManagementSystem.js',
-  types: './types.js'
+  TradingEngine'./tradingEngine.js',
+  BacktestRunner'./backtestRunner.js',
+  OrderManagementSystem'./orderManagementSystem.js',
+  types'./types.js'
 }; 

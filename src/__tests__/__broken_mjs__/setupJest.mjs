@@ -1,14 +1,14 @@
 // Jestセットアップファイル (ESM対応バージョン)
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { jest } from '@jest/globals';
+import path from 'path;
+import { fileURLToPath } from url.js';
+import { jest } from '@jest/globals;
 
 // ESMでの__dirnameの代替
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // カスタムモックモジュールのベースディレクトリ
-const mockDir = path.resolve(__dirname, 'mocks');
+const mockDir = path.resolve(__dirname, mocks');
 
 // モジュールのモック化ヘルパー関数
 function mockModuleHelper(moduleName) {
@@ -31,7 +31,7 @@ function mockModuleHelper(moduleName) {
 
 // モジュールのモック化
 jest.mock(
-  '../../strategies/meanReversionStrategy',
+  '../../strategies/meanReversionStrategy,
   () => {
     return {
       __esModule,
@@ -41,7 +41,7 @@ jest.mock(
   { virtual: true };
 
 jest.mock(
-  '../../strategies/DonchianBreakoutStrategy',
+  ../../strategies/DonchianBreakoutStrategy',
   () => {
     return {
       __esModule,
@@ -51,11 +51,11 @@ jest.mock(
   { virtual: true };
 
 // 必要に応じて追加のモックをここに定義
-console.log('Jest setup complete - Module mocks configured (ESM)');
+console.log('Jest setup complete - Module mocks configured (ESM));
 
 // 便利なモックヘルパー
 globalThis.mockESMModule = (modulePath, implementation) => {
-  const normalizedPath = modulePath.endsWith('.js') ? modulePath : `${modulePath}.js`;
+  const normalizedPath = modulePath.endsWith(.js') ? modulePath : `${modulePath}.js`;
 
   jest.mock(
     normalizedPath,

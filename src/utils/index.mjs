@@ -25,12 +25,12 @@ export {
 
 // デフォルトエクスポート
 export default {
-  logger: './logger.js',
-  metrics: './metrics.js',
-  atrUtils: './atrUtils.js',
-  positionSizing: './positionSizing.js',
-  cliParser: './cliParser.js',
-  importMetaHelper: './importMetaHelper.js',
-  esmCompat: './esm-compat.mjs',
-  cjsWrapper: './cjs-wrapper.js'
+  logger'./logger.js',
+  metrics'./metrics.js',
+  atrUtils'./atrUtils.js',
+  positionSizing'./positionSizing.js',
+  cliParser'./cliParser.js',
+  importMetaHelper'./importMetaHelper.js',
+  esmCompat'./esm-compat.mjs',
+  cjsWrapper'./cjs-wrapper.js'
 }; 

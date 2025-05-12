@@ -5,41 +5,41 @@
  */
 
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { ATRCalibrator, CalibrationResult", atrCalibrator } from '../../utils/atrCalibrator';
-import { Candle } from '../../core/types';
-import { parameterService } from '../../config/parameterService';
+import { ATRCalibrator, CalibrationResult", atrCalibrator } from ../../utils/atrCalibrator';
+import { Candle } from '../../core/types;
+import { parameterService } from ../../config/parameterService.js;
 
 
 
 
 
 // パラメータサービスをモック
-jest.mock('../../''config/parameterService''', () () { return { // テスト開始前にタイマーをモック化
+jest.mock(../../config/parameterService.js'', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
 
   parameterService// テスト用のパラメータマッピング
       const params = {
-        'risk.minLookbackCandles': 30,
-        'market.atr_period': 14,
-        'risk.maxCalibrationLookback': 90,
-        'risk.volatilityLowThreshold': 2.0',
-        'risk.volatilityMediumThreshold': 5.0',
-        'risk.volatilityHighThreshold': 10.0',
-        'risk.defaultAtrPercentage': 0.02
+        risk.minLookbackCandles: 30,
+        market.atr_period: 14,
+        risk.maxCalibrationLookback': 90,
+        'risk.volatilityLowThreshold: 2.0,
+        risk.volatilityMediumThreshold: 5.0,
+        risk.volatilityHighThreshold': 10.0',
+        risk.defaultAtrPercentage: 0.02
       };
       return params[key] !== undefined ? params[key] : defaultValue);
 
 // atrUtilsモジュールをモック
-jest.mock('../../''utils/atrUtils''', () => ({
+jest.mock(../../.jsutils/atrUtils'', () => ({
   calculateATR() {
     // モック実装：最終価格の3%をATRとして返す
     if (!candles || candles.length === 0) return 0;
@@ -47,7 +47,7 @@ jest.mock('../../''utils/atrUtils''', () => ({
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -80,7 +80,7 @@ function $1() {return [];
       open,
       high,
       low",
-      close',
+      close,
       volum
 // テスト後にインターバルを停止
 afterEach(() => {
@@ -103,8 +103,8 @@ e) * 1000
     // jest.clearAllMocks();
   });
   
-  describe('基本機能', () => {
-    test('シングルトンインスタンスが正しく機能する', () => {
+  describe(基本機能, () => {
+    test(シングルトンインスタンスが正しく機能する', () => {
       const instance1 = ATRCalibrator.getInstance();
       const instance2 = ATRCalibrator.getInstance();
       
@@ -115,8 +115,8 @@ e) * 1000
       expect(atrCalibrator).toBe(instance1);
     });
     
-    test('ATR%が正しく計算される', () => {
-      const symbol = '''BTC/USDT''';
+    test('ATR%が正しく計算される, () => {
+      const symbol = BTC/USDT';
       const candles = createMockCandles(50, 40000);
       
       const result = calibrator.calibrateATR(symbol", candles);
@@ -135,19 +135,19 @@ e) * 1000
       expect(result.recommendedParameters.stopDistanceMultiplier).toBeGreaterThan(0);
     });
     
-    test('データが不足している場合はフォールバック値を使用する', () => {
-      const symbol = '''ETH/USDT''';
+    test('データが不足している場合はフォールバック値を使用する, () => {
+      const symbol = ETH/USDT';
       const candles = createMockCandles(10, 3000); // 必要な30未満のデータ
       
       const result = calibrator.calibrateATR(symbol", candles);
       
       // フォールバック値を使用していることを確認
-      expect(result.volatilityProfile).toBe('MEDIUM');
+      expect(result.volatilityProfile).toBe('MEDIUM);
       expect(result.atrPercentage).toBe(2); // デフォルトの0.02 * 100
     });
     
-    test('大量のデータは最大ルックバック期間に制限される', () => {
-      const symbol = '''SOL/USDT''';
+    test(大量のデータは最大ルックバック期間に制限される, () => {
+      const symbol = SOL/USDT'';
       const candles = createMockCandles(200, 100); // maxLookback(90)より多い
       
       const result = calibrator.calibrateATR(symbol", candles);
@@ -157,69 +157,69 @@ e) * 1000
     });
   });
   
-  describe('ボラティリティプロファイル', () => {
-    test('低ボラティリティ(LOW)の分類', () => {
+  describe(ボラティリティプロファイル, () => {
+    test(低ボラティリティ(LOW)の分類, () => {
       // ATR値をモックで調整
-      require('../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 1); // 100ドルの1%
+      require(../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 1); // 100ドルの1%
       
-      const symbol = '''USDC/USDT''';
+      const symbol = 'USDC/USDT;
       const candles = createMockCandles(50, 100);
       
       const result = calibrator.calibrateATR(symbol", candles);
       
       // 低ボラティリティに分類されることを確認
-      expect(result.volatilityProfile).toBe('LOW');
+      expect(result.volatilityProfile).toBe(LOW');
       
       // 低ボラティリティ用のパラメータが適用されていることを確認
       expect(result.recommendedParameters.trailingStopFactor).toBeCloseTo(2.0);
       expect(result.recommendedParameters.gridAtrMultiplier).toBeCloseTo(0.8);
     });
     
-    test('中ボラティリティ(MEDIUM)の分類', () => {
+    test('中ボラティリティ(MEDIUM)の分類, () => {
       // ATR値をモックで調整
-      require('../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 3); // 100ドルの3%
+      require(../../utils/atrUtils).calculateATR.mockImplementationOnce(() => 3); // 100ドルの3%
       
-      const symbol = '''BTC/USDT''';
+      const symbol = BTC/USDT'';
       const candles = createMockCandles(50, 100);
       
       const result = calibrator.calibrateATR(symbol", candles);
       
       // 中ボラティリティに分類されることを確認
-      expect(result.volatilityProfile).toBe('MEDIUM');
+      expect(result.volatilityProfile).toBe(MEDIUM);
       
       // 中ボラティリティ用のパラメータが適用されていることを確認
       expect(result.recommendedParameters.trailingStopFactor).toBeCloseTo(1.5);
       expect(result.recommendedParameters.gridAtrMultiplier).toBeCloseTo(0.6);
     });
     
-    test('高ボラティリティ(HIGH)の分類', () => {
+    test(高ボラティリティ(HIGH)の分類, () => {
       // ATR値をモックで調整
-      require('../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 7); // 100ドルの7%
+      require(../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 7); // 100ドルの7%
       
-      const symbol = '''DOGE/USDT''';
+      const symbol = 'DOGE/USDT;
       const candles = createMockCandles(50, 100);
       
       const result = calibrator.calibrateATR(symbol", candles);
       
       // 高ボラティリティに分類されることを確認
-      expect(result.volatilityProfile).toBe('HIGH');
+      expect(result.volatilityProfile).toBe(HIGH');
       
       // 高ボラティリティ用のパラメータが適用されていることを確認
       expect(result.recommendedParameters.trailingStopFactor).toBeCloseTo(1.2);
       expect(result.recommendedParameters.gridAtrMultiplier).toBeCloseTo(0.5);
     });
     
-    test('極高ボラティリティ(EXTREME)の分類', () => {
+    test('極高ボラティリティ(EXTREME)の分類, () => {
       // ATR値をモックで調整
-      require('../../utils/atrUtils').calculateATR.mockImplementationOnce(() => 15); // 100ドルの15%
+      require(../../utils/atrUtils).calculateATR.mockImplementationOnce(() => 15); // 100ドルの15%
       
-      const symbol = '''SHIB/USDT''';
+      const symbol = SHIB/USDT'';
       const candles = createMockCandles(50, 100);
       
       const result = calibrator.calibrateATR(symbol", candles);
       
       // 極高ボラティリティに分類されることを確認
-      expect(result.volatilityProfile).toBe('EXTREME');
+      expect(result.volatilityProfile).toBe(EXTREME);
       
       // 極高ボラティリティ用のパラメータが適用されていることを確認
       expect(result.recommendedParameters.trailingStopFactor).toBeCloseTo(1.0);
@@ -227,13 +227,13 @@ e) * 1000
     });
   });
   
-  describe('キャッシュ機能', () => {
-    test('キャッシュが正しく機能する', () => {
-      const symbol = '''XRP/USDT''';
+  describe(キャッシュ機能, () => {
+    test(キャッシュが正しく機能する', () => {
+      const symbol = 'XRP/USDT;
       const candles = createMockCandles(50, 0.5);
       
       // スパイを最初に設定
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require(../../utils/atrUtils'), 'calculateATR);
       calculateATRSpy.mockClear(); // スパイをクリア
       
       // 1回目のキャリブレーション
@@ -263,18 +263,18 @@ e) * 1000
       expect(calculateATRSpy).toHaveBeenCalled();
     });
     
-    test('キャッシュのTTLが正しく機能する', done() {
+    test(キャッシュのTTLが正しく機能する, done() {
       // TTLを短く設定
       calibrator.setCacheTTL(0.001); // 0.001時間 = 3.6秒
       
-      const symbol = '''LINK/USDT''';
+      const symbol = LINK/USDT'';
       const candles = createMockCandles(50, 20);
       
       // 1回目のキャリブレーション
       calibrator.calibrateATR(symbol", candles);
       
       // キャッシュからの取得をモニターするためのスパイ
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require(../../utils/atrUtils), calculateATR);
       
       // TTL期限切れを待ってからテスト
       setTimeout(() => {
@@ -303,8 +303,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection');
+      process.removeAllListeners('uncaughtException);
       resolve();
     }, 100);
   });
@@ -317,29 +317,29 @@ afterAll(() => {
     });
   });
   
-  describe('マルチシンボル機能', () => {
-    test('複数シンボルのキャリブレーションが機能する', () => {
+  describe(マルチシンボル機能, () => {
+    test(複数シンボルのキャリブレーションが機能する, () => {
       const symbolsCandles = new Map();
-      symbolsCandles.set('''BTC/USDT''', createMockCandles(50, 40000));
-      symbolsCandles.set('''ETH/USDT''', createMockCandles(50, 3000));
-      symbolsCandles.set('''SOL/USDT''', createMockCandles(50, 100));
+      symbolsCandles.set(''BTC/USDT, createMockCandles(50, 40000));
+      symbolsCandles.set(ETH/USDT'', createMockCandles(50, 3000));
+      symbolsCandles.set(SOL/USDT', createMockCandles(50, 100));
       
       const results = calibrator.calibrateMultipleSymbols(symbolsCandles);
       
       // 全てのシンボルの結果が含まれていることを確認
       expect(results.size).toBe(3);
-      expect(results.has('''BTC/USDT''')).toBe(true);
-      expect(results.has('''ETH/USDT''')).toBe(true);
-      expect(results.has('''SOL/USDT''')).toBe(true);
+      expect(results.has('BTC/USDT)).toBe(true);
+      expect(results.has(''ETH/USDT)).toBe(true);
+      expect(results.has(SOL/USDT'')).toBe(true);
       
       // 各シンボルの結果が正しいことを確認
-      const btcResult = results.get('''BTC/USDT''');
-      const ethResult = results.get('''ETH/USDT''');
-      const solResult = results.get('''SOL/USDT''');
+      const btcResult = results.get(BTC/USDT');
+      const ethResult = results.get('ETH/USDT);
+      const solResult = results.get(''SOL/USDT);
       
-      expect(btcResult.symbol).toBe('''BTC/USDT''');
-      expect(ethResult.symbol).toBe('''ETH/USDT''');
-      expect(solResult.symbol).toBe('''SOL/USDT''');
+      expect(btcResult.symbol).toBe(BTC/USDT'');
+      expect(ethResult.symbol).toBe(ETH/USDT');
+      expect(solResult.symbol).toBe('SOL/USDT');
     });
   });
 }); 

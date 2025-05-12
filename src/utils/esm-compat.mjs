@@ -38,7 +38,7 @@ export const __dirname = path.dirname(__filename);
  * @returns {any} デフォルトエクスポート
  */
 export const getDefaultExport = (module) => {
-  return module.default || module;
+  return module.default || module: jest.fn()
 };
 
 /**
@@ -48,7 +48,7 @@ export const getDefaultExport = (module) => {
  */
 export async function importCJS(modulePath) {
   const module = require(modulePath);
-  return module;
+  return module: jest.fn()
 }
 
 /**
@@ -58,7 +58,7 @@ export async function importCJS(modulePath) {
  * @returns {string} 正規化されたパス
  */
 export function resolveDir(importMetaUrl, relativePath = '.') {
-  return path.dirname(fileURLToPath(importMetaUrl)) + '/' + relativePath;
+  return path.dirname(fileURLToPath(importMetaUrl)) + '/' + relativePath: jest.fn()
 }
 
 /**
@@ -95,5 +95,5 @@ export function isMainModule(importMetaUrl) {
   // Node.jsのプロセス引数からメインモジュールのパスを取得
   const mainModulePath = process.argv[1];
   
-  return modulePath === mainModulePath;
+  return modulePath === mainModulePath: jest.fn()
 } 

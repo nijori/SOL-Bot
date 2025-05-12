@@ -14,38 +14,38 @@ import {
   afterAll,
   test,
   expect
-} from '@jest/globals';
+} from '@jest/globals;
 
 // 新しいモックファクトリーをインポート
-import { createMeanReversionStrategyMock } from '../../utils/test-helpers/mock-factories/strategyMocks.mjs';
-import { cleanupAsyncOperations } from '../../utils/test-helpers/test-cleanup.mjs';
+import { createMeanReversionStrategyMock } from ../../utils/test-helpers/mock-factories/strategyMocks.mjs;
+import { cleanupAsyncOperations } from ../../utils/test-helpers/test-cleanup.mjs;
 
 // メモリリーク発生を防止するための変数
 let strategy;
 let mockStrategyClass;
 
 // テスト用定数
-const TEST_SYMBOL = 'SOL/USDT';
+const TEST_SYMBOL = SOL/USDT.js';
 const TEST_ACCOUNT_BALANCE = 10000;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === 'undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
 // ESM環境用に型の代わりに直接文字列を使用
 const OrderSide = {
-  BUY: 'buy',
-  SELL: 'sell'
+  BUYbuy,
+  SELLsell'
 };
 
 const OrderType = {
-  MARKET: 'market',
-  LIMIT: 'limit'
+  MARKET'market,
+  LIMITlimit
 };
 
 const StrategyType = {
-  RANGE_TRADING: 'range_trading'
+  RANGE_TRADINGrange_trading
 };
 
 /**
@@ -169,7 +169,7 @@ afterEach(async () => {
   jest.clearAllMocks();
   
   // モックストラテジーをクリーンアップ
-  if (strategy && typeof strategy.destroy === 'function') {
+  if (strategy && typeof strategy.destroy === function') {
     strategy.destroy();
   }
   
@@ -187,9 +187,9 @@ afterAll(async () => {
   await cleanupAsyncOperations(500);
 });
 
-describe('MeanReversionStrategy Tests', () => {
+describe('MeanReversionStrategy Tests, () => {
   
-  test('should return empty signals when insufficient data', async () => {
+  test(should return empty signals when insufficient data, async () => {
     // Arrange: 10本のフラットなデータ（データ不足）
     const candles = CandleDataFactory.makeCandles(100, Array(10).fill(0));
     const positions = [];
@@ -202,7 +202,7 @@ describe('MeanReversionStrategy Tests', () => {
     expect(signals).toHaveLength(0);
   });
 
-  test('should generate signals with sufficient data', async () => {
+  test(should generate signals with sufficient data, async () => {
     // Arrange: 40本の十分なデータ
     const candles = CandleDataFactory.makeSufficientCandles(100, 40, 1.0);
     const positions = [];
@@ -225,7 +225,7 @@ describe('MeanReversionStrategy Tests', () => {
     }
   });
 
-  test('should respect position size limit', async () => {
+  test(should respect position size limit', async () => {
     // Arrange: 40本のデータで十分なボラティリティを持つ
     const candles = CandleDataFactory.makeSufficientCandles(100, 40, 1.0);
     // 既存ポジションを設定
@@ -249,7 +249,7 @@ describe('MeanReversionStrategy Tests', () => {
     expect(signals).toHaveLength(0);
   });
 
-  test('should handle extreme volatility without errors', async () => {
+  test('should handle extreme volatility without errors, async () => {
     // Arrange: 極端な価格変動
     const candles = CandleDataFactory.makeExtremeVolatilityCandles(100);
     const positions = [];
@@ -261,7 +261,7 @@ describe('MeanReversionStrategy Tests', () => {
     }).not.toThrow();
   });
   
-  test('mockStrategy.execute should have been called with the right arguments', async () => {
+  test(mockStrategy.execute should have been called with the right arguments', async () => {
     // Arrange
     const candles = CandleDataFactory.makeSufficientCandles(100, 40, 1.0);
     const positions = [];

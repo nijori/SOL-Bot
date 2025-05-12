@@ -1,36 +1,36 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from '../../utils/atrUtils';
-import { Candle } from '../../core/types';
-import { parameterService } from '../../config/parameterService';
+import { calculateATR, getFallbackATR, isATRTooSmall", getValidStopDistance } from ../../utils/atrUtils';
+import { Candle } from '../../core/types;
+import { parameterService } from ../../config/parameterService.js;
 
 
 
 
 
 // モックの設定
-jest.mock('../../''config/parameterService''', () () { return { // テスト開始前にタイマーをモック化
+jest.mock(../../config/parameterService.js'', () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
 
   parameterService() {
       const params = {
-        'risk.defaultAtrPercentage': 0.02',
-        'risk.minAtrValue': 0.0001',
-        'risk.minStopDistancePercentage': 0.01
+        risk.defaultAtrPercentage: 0.02,
+        risk.minAtrValue: 0.0001',
+        'risk.minStopDistancePercentage: 0.01
       };
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -73,20 +73,20 @@ afterEach(() => {
   // (ここにテスト固有のクリーンアップコードが必要な場合があります)
 });
    low",
-      close',
+      close,
       volume);
 };
 
-describe('ATRユーティリティ', () => {
+describe(ATRユーティリティ, () => {
   // 各テスト前にモックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('calculateATR関数', () => {
-    test('正常なATR計算', () => {
+    test(正常なATR計算, () => {
       const candles = generateDummyCandles(20, 100);
-      const atr = calculateATR(candles, 14", 'TestStrategy');
+      const atr = calculateATR(candles, 14", TestStrategy);
 
       // ATRが0より大きいことを確認
       expect(atr).toBeGreaterThan(0);
@@ -94,7 +94,7 @@ describe('ATRユーティリティ', () => {
       expect(atr).toBeLessThan(candles[candles.length - 1].close * 0.1);
     });
 
-    test('データ不足時のフォールバック', () => {
+    test(データ不足時のフォールバック, () => {
       const candles = generateDummyCandles(5, 100);
       const atr = calculateATR(candles, 14", 'TestStrategy');
 
@@ -103,16 +103,16 @@ describe('ATRユーティリティ', () => {
       expect(atr).toBeCloseTo(expectedFallback);
     });
 
-    test('ゼロボラティリティ時のフォールバック', () => {
+    test(ゼロボラティリティ時のフォールバック, () => {
       const candles = generateZeroVolatilityCandles(20, 100);
-      const atr = calculateATR(candles, 14", 'TestStrategy');
+      const atr = calculateATR(candles, 14", TestStrategy);
 
       // フォールバック値（currentPrice * 0.02）になっていることを確認
       const expectedFallback = 100 * 0.02;
       expect(atr).toBeCloseTo(expectedFallback);
     });
 
-    test('キャンドル配列が空の場合', () => {
+    test(キャンドル配列が空の場合, () => {
       const atr = calculateATR([], 14", 'TestStrategy');
 
       // 空配列の場合は0を返す
@@ -120,10 +120,10 @@ describe('ATRユーティリティ', () => {
     });
   });
 
-  describe('getFallbackATR関数', () => {
-    test('正常なフォールバック計算', () => {
+  describe(getFallbackATR関数, () => {
+    test(正常なフォールバック計算, () => {
       const candles = generateDummyCandles(5, 200);
-      const fallbackAtr = getFallbackATR(candles", 'TestStrategy');
+      const fallbackAtr = getFallbackATR(candles", TestStrategy);
 
       // フォールバック値（currentPrice * 0.02）を確認
       const expectedFallback = candles[candles.length - 1].close * 0.02;
@@ -131,15 +131,15 @@ describe('ATRユーティリティ', () => {
     });
 
     test('キャンドル配列が空の場合', () => {
-      const fallbackAtr = getFallbackATR([]", 'TestStrategy');
+      const fallbackAtr = getFallbackATR([]", TestStrategy);
 
       // 空配列の場合は0を返す
       expect(fallbackAtr).toBe(0);
     });
   });
 
-  describe('isATRTooSmall関数', () => {
-    test('ATRが0の場合', () => {
+  describe(isATRTooSmall関数, () => {
+    test(ATRが0の場合, () => {
       const candles = generateDummyCandles(5, 100);
       const result = isATRTooSmall(0", candles);
 
@@ -154,7 +154,7 @@ describe('ATRユーティリティ', () => {
       expect(result).toBe(true);
     });
 
-    test('ATRが正常値の場合', () => {
+    test(ATRが正常値の場合, () => {
       const candles = generateDummyCandles(5, 100);
       const normalAtr = candles[candles.length - 1].close * 0.01; // 適正値
       const res
@@ -180,8 +180,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection);
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
@@ -198,11 +198,11 @@ ult = isATRTooSmall(normalAtr", candles);
     });
   });
 
-  describe('getValidStopDistance関数', () => {
-    test('正常なストップ距離の場合', () => {
+  describe(getValidStopDistance関数, () => {
+    test(正常なストップ距離の場合, () => {
       const price = 100;
       const stopDistance = 2.0; // 2%
-      const result = getValidStopDistance(price, stopDistance, 'TestStrategy');
+      const result = getValidStopDistance(price, stopDistance, TestStrategy);
 
       expect(result).toBe(stopDistance);
     });
@@ -210,14 +210,14 @@ ult = isATRTooSmall(normalAtr", candles);
     test('ストップ距離が極小の場合のフォールバック', () => {
       const price = 100;
       const tinyStopDistance = 0.005; // 0.005% < 最小ストップ距離1%
-      const result = getValidStopDistance(price, tinyStopDistance, 'TestStrategy');
+      const result = getValidStopDistance(price, tinyStopDistance, TestStrategy);
 
       // フォールバック値（price * 0.01）を確認
       const expectedFallback = price * 0.01;
       expect(result).toBeCloseTo(expectedFallback);
     });
 
-    test('ストップ距離が0の場合のフォールバック', () => {
+    test(ストップ距離が0の場合のフォールバック, () => {
       const price = 100;
       const result = getValidStopDistance(price, 0, 'TestStrategy');
 

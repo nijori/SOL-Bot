@@ -1,19 +1,19 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { executeRangeStrategy } from '../../strategies/rangeStrategy';
-import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../core/types';
+import { executeRangeStrategy } from ../../strategies/rangeStrategy';
+import { Candle, OrderSide, OrderType, Position", StrategyType } from '../../core/types;
 
 
 
 
 // モックの設定はファイルの先頭で行う必要があります
-jest.mock('technicalindicators', () () { return { // テスト開始前にタイマーをモック化
+jest.mock(technicalindicators, () () { return { // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
  }; };
@@ -23,39 +23,39 @@ beforeAll(() => {
   Lowest);
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../''utils/logger''', () => ({
+jest.mock(../../utils/logger.js'', () => ({
   info,
   warn,
-  error',
+  error,
   debug);
 
 // パラメータサービスをモック
-jest.mock('../../''config/parameterService''', () => ({
+jest.mock(../../.jsconfig/parameterService'', () => ({
   parameterService() {
       // テスト用のデフォルト値を返す
       const params = {
-        'rangeStrategy.gridAtrMultiplier': 0.6',
-        'rangeStrategy.rangeMultiplier': 0.9',
-        'rangeStrategy.minSpreadPercentage': 0.3',
-        'rangeStrategy.escapeThreshold': 0.02
+        rangeStrategy.gridAtrMultiplier: 0.6,
+        rangeStrategy.rangeMultiplier: 0.9,
+        'rangeStrategy.minSpreadPercentage': 0.3,
+        rangeStrategy.escapeThreshold: 0.02
       };
       return params[key] || defaultValue,
       POSITION_SIZING",
     getRiskParameters).mockReturnValue({
-      MAX_RISK_PER_TRADE',
+      MAX_RISK_PER_TRADE,
       MAX_DAILY_LOSS)
   };
 } );
 
 // RANGE_PARAMETERS と MARKET_PARAMETERS のモック
-jest.mock('../../''config/parameters''', () => ({
+jest.mock(../../'config/parameters', () => ({
   RANGE_PARAMETERS",
     LONG_TERM_EMA;
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitor
@@ -81,7 +81,7 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
+      process.removeAllListeners(unhandledRejection);
       process.removeAllListeners('uncaughtException');
       resolve();
     }, 100);
@@ -102,7 +102,7 @@ Task.stop();
 
 } );
 
-describe('executeRangeStrategy', () => {
+describe(executeRangeStrategy, () => {
   // テスト用のモックデータを作成する関数
   function $1() {return [];
     let price = startPrice;
@@ -112,10 +112,10 @@ describe('executeRangeStrategy', () => {
       // パターンに応じて価格変動を設定
       let change = 0;
 
-      if (pattern === 'range') {
+      if (pattern === range) {
         // レンジ相場: 一定範囲内でランダムに変動
         change = Math.random() * 20 - 10; // -10から+10の間でランダムに変動
-      } else if (pattern === 'breakout-up' && i >= length - 2) {
+      } else if (pattern === breakout-up && i >= length - 2) {
         // 直近2本で上抜けブレイクアウト
         change = 30; // 大きく上昇
       } else if (pattern === 'breakout-down' && i >= length - 2) {
@@ -134,7 +134,7 @@ describe('executeRangeStrategy', () => {
       candles.push({
         timestamp+ i * 60 * 60 * 1000,
         open,
-        close',
+        close,
         volume+ Math.random() * 1000
       });
     };
@@ -147,26 +147,26 @@ describe('executeRangeStrategy', () => {
     jest.clearAllMocks();
 
     // モック関数を設定
-    const atrMock = require('technicalindicators').ATR.calculate;
-    const highestMock = require('technicalindicators').Highest.calculate;
-    const lowestMock = require('technicalindicators').Lowest.calculate;
+    const atrMock = require(technicalindicators).ATR.calculate;
+    const highestMock = require(technicalindicators).Highest.calculate;
+    const lowestMock = require(technicalindicators').Lowest.calculate;
 
     atrMock.mockReturnValue([15]);
     highestMock.mockReturnValue([1050]);
     lowestMock.mockReturnValue([950]);
   });
 
-  test('データが不足している場合は空のシグナルを返す', () => {
-    const candles = createMockCandles(10, 1000, 'range');
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', []);
+  test('データが不足している場合は空のシグナルを返す, () => {
+    const candles = createMockCandles(10, 1000, range);
+    const result = executeRangeStrategy(candles, SOL/USDT'', []);
 
     expect(result.strategy).toBe(StrategyType.RANGE_TRADING);
     expect(result.signals.length).toBe(0);
   });
 
-  test('レンジ相場でグリッドレベル上昇クロスで売りシグナルを生成する', () => {
+  test(レンジ相場でグリッドレベル上昇クロスで売りシグナルを生成する, () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'range');
+    const candles = createMockCandles(100, 1000, range);
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -180,7 +180,7 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex - 1].close = middleLevel - 1; // レベルの下
     candles[lastIndex].close = middleLevel + 1; // レベルの上（上昇クロス）
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', []);
+    const result = executeRangeStrategy(candles, ''SOL/USDT, []);
 
     // レンジ上半分の上昇クロスなので、売りの注文が生成されるはず
     const sellSignals = result.signals.filter(
@@ -190,9 +190,9 @@ describe('executeRangeStrategy', () => {
     expect(sellSignals.length).toBeGreaterThan(0);
   });
 
-  test('レンジ相場でグリッドレベル下降クロスで買いシグナルを生成する', () => {
+  test(レンジ相場でグリッドレベル下降クロスで買いシグナルを生成する, () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'range');
+    const candles = createMockCandles(100, 1000, range');
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -206,7 +206,7 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex - 1].close = middleLevel + 1; // レベルの上
     candles[lastIndex].close = middleLevel - 1; // レベルの下（下降クロス）
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', []);
+    const result = executeRangeStrategy(candles, 'SOL/USDT, []);
 
     // レンジ下半分の下降クロスなので、買いの注文が生成されるはず
     const buySignals = result.signals.filter(
@@ -216,9 +216,9 @@ describe('executeRangeStrategy', () => {
     expect(buySignals.length).toBeGreaterThan(0);
   });
 
-  test('レンジ上限付近での売りシグナルを生成する', () => {
+  test(レンジ上限付近での売りシグナルを生成する', () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'range');
+    const candles = createMockCandles(100, 1000, 'range);
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -229,10 +229,10 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex].close = rangeHigh * 0.96; // テスト条件を少し調整
     candles[lastIndex - 1].close = rangeHigh * 0.94; // 前の価格も設定
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', []);
+    const result = executeRangeStrategy(candles, SOL/USDT', []);
 
-    console.log('レンジ上限テスト - シグナル数:', result.signals.length);
-    console.log('レンジ上限テスト - シグナル:', JSON.stringify(result.signals));
+    console.log('レンジ上限テスト - シグナル数:, result.signals.length);
+    console.log(レンジ上限テスト - シグナル:, JSON.stringify(result.signals));
 
     // レンジ上限付近なので、何らかの売り注文が生成されるはず
     const sellSignals = result.signals.filter(
@@ -242,9 +242,9 @@ describe('executeRangeStrategy', () => {
     expect(sellSignals.length).toBeGreaterThan(0);
   });
 
-  test('レンジ下限付近での買いシグナルを生成する', () => {
+  test(レンジ下限付近での買いシグナルを生成する, () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'range');
+    const candles = createMockCandles(100, 1000, range');
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -255,10 +255,10 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex].close = rangeLow * 1.04; // テスト条件を少し調整
     candles[lastIndex - 1].close = rangeLow * 1.06; // 前の価格も設定
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', []);
+    const result = executeRangeStrategy(candles, 'SOL/USDT, []);
 
-    console.log('レンジ下限テスト - シグナル数:', result.signals.length);
-    console.log('レンジ下限テスト - シグナル:', JSON.stringify(result.signals));
+    console.log(レンジ下限テスト - シグナル数:', result.signals.length);
+    console.log('レンジ下限テスト - シグナル:, JSON.stringify(result.signals));
 
     // レンジ下限付近なので、何らかの買い注文が生成されるはず
     const buySignals = result.signals.filter(
@@ -268,9 +268,9 @@ describe('executeRangeStrategy', () => {
     expect(buySignals.length).toBeGreaterThan(0);
   });
 
-  test('レンジ上限ブレイクアウトで売りポジションを決済する', () => {
+  test(レンジ上限ブレイクアウトで売りポジションを決済する, () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'breakout-up');
+    const candles = createMockCandles(100, 1000, breakout-up);
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -282,15 +282,15 @@ describe('executeRangeStrategy', () => {
 
     // 既存の売りポジションを用意
     const existingPosition = {
-      symbol'''SOL/USDT''',
+      symbol''SOL/USDT,
       side,
       amount,
-      entryPrice',
+      entryPrice,
       currentPrice+ 20, // 現在価格
       unrealizedPnl, // 未実現損益
       timestamp;
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', [existingPosition]);
+    const result = executeRangeStrategy(candles, 'SOL/USDT', [existingPosition]);
 
     // 買い戻し注文が生成されるはず
     const buyBackSignals = result.signals.filter((signal) => signal.side === OrderSide.BUY);
@@ -301,9 +301,9 @@ describe('executeRangeStrategy', () => {
     expect(marketOrders.length).toBeGreaterThan(0);
   });
 
-  test('レンジ下限ブレイクアウトで買いポジションを決済する', () => {
+  test(レンジ下限ブレイクアウトで買いポジションを決済する, () => {
     // 十分な長さのローソク足を用意
-    const candles = createMockCandles(100, 1000, 'breakout-down');
+    const candles = createMockCandles(100, 1000, breakout-down);
 
     // レンジ境界を設定
     const rangeHigh = 1050;
@@ -315,15 +315,15 @@ describe('executeRangeStrategy', () => {
 
     // 既存の買いポジションを用意
     const existingPosition = {
-      symbol'''SOL/USDT''',
+      symbol''SOL/USDT,
       side,
       amount,
-      entryPrice',
+      entryPrice,
       currentPrice, // 現在価格
       unrealizedPnl, // 未実現損益
       timestamp;
 
-    const result = executeRangeStrategy(candles, '''SOL/USDT''', [existingPosition]);
+    const result = executeRangeStrategy(candles, ''SOL/USDT', [existingPosition]);
 
     // 売り決済注文が生成されるはず
     const sellCloseSignals = result.signals.filter((signal) => signal.side === OrderSide.SELL);

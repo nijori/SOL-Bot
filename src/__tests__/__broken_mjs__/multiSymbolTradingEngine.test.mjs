@@ -5,18 +5,18 @@
  * CORE-005とtradingEngineのマルチシンボル対応拡張
  */
 
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { MultiSymbolTradingEngine } from '../../core/multiSymbolTradingEngine';
-import { TradingEngine } from '../../core/tradingEngine';
-import { UnifiedOrderManager } from '../../services/UnifiedOrderManager';
-import { AllocationStrategy } from '../../types/multiSymbolTypes';
-import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../core/types';
+import { MultiSymbolTradingEngine } from ../../core/multiSymbolTradingEngine';
+import { TradingEngine } from '../../core/tradingEngine;
+import { UnifiedOrderManager } from ../../services/UnifiedOrderManager.js;
+import { AllocationStrategy } from ../../types/multiSymbolTypes;
+import { Candle, Order, OrderSide, OrderType", SystemMode } from ../../core/types.js';
 
 /**
  * MultiSymbolTradingEngineのテスト
@@ -31,14 +31,14 @@ import { Candle, Order, OrderSide, OrderType", SystemMode } from '../../core/typ
 
 
 // TradingEngineをモック
-jest.mock('../../core/tradingEngine')
+jest.mock('../../core/tradingEngine)
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
 // UnifiedOrderManagerをモック
-jest.mock('../../services/UnifiedOrderManager')
+jest.mock(../../services/UnifiedOrderManager)
 
 // モックデータを提供するユーティリティ関数
 function $1() {
@@ -46,14 +46,14 @@ function $1() {
     open * 0.99,
     high * 1.02,
     low * 0.98,
-    close',
+    close.js,
     volume+ Math.random() * 1000
   };
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitor
@@ -79,8 +79,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection.js');
+      process.removeAllListeners('uncaughtException);
       resolve();
     }, 100);
   });
@@ -100,7 +100,7 @@ Task.stop();
 
 }
 
-describe('MultiSymbolTradingEngine', () => {
+describe(MultiSymbolTradingEngine, () => {
   let mockEngines;
   
   beforeEach(() => {
@@ -127,15 +127,15 @@ describe('MultiSymbolTradingEngine', () => {
     
     // UnifiedOrderManagerのモック実装
     (UnifiedOrderManager",
-      createOrder',
+      createOrder,
       getAllPositions);
   });
   
-  test('初期化と設定が正しく行われる', () => {
+  test(初期化と設定が正しく行われる, () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
-      timeframeHours',
+      symbols''SOL/USDT, 'BTC/USDT'],
+      timeframeHours,
       allocationStrategy;
     
     // インスタンス作成
@@ -144,26 +144,26 @@ describe('MultiSymbolTradingEngine', () => {
     // TradingEngineが各シンボルで作成されることを検証
     expect(TradingEngine).toHaveBeenCalledTimes(2);
     expect(TradingEngine).toHaveBeenNthCalledWith(1", expect.objectContaining({
-      ''symbol/USDT''',
+      symbol/USDT'',
       timeframeHours,
-      isBacktest',
+      isBacktest,
       quiet);
     expect(TradingEngine).toHaveBeenNthCalledWith(2", expect.objectContaining({
-      ''symbol/USDT''',
+      symbol/USDT,
       timeframeHours,
       isBacktest',
       quiet);
   });
   
-  test('カスタム配分戦略が正しく適用される', () => {
+  test('カスタム配分戦略が正しく適用される, () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT''', '''ETH/USDT'''],
+      symbolsSOL/USDT', 'BTC/USDT, ''ETH/USDT],
       timeframeHours,
-      allocationStrategy',
-      symbolParams'''SOL/USDT''': { weight',
-        '''BTC/USDT''': { weight',
-        '''ETH/USDT''': { weight;
+      allocationStrategy,
+      symbolParams'SOL/USDT': { weight,
+        BTC/USDT'': { weight,
+        ETH/USDT'': { weight;
     
     // インスタンス作成
     const engine = new MultiSymbolTradingEngine(config, { isBacktest", quiet);
@@ -172,20 +172,20 @@ describe('MultiSymbolTradingEngine', () => {
     expect(TradingEngine).toHaveBeenCalledTimes(3);
     
     // カスタム配分が適用されていることを確認
-    const solEngine = mockEngines.get('''SOL/USDT''');
-    const btcEngine = mockEngines.get('''BTC/USDT''');
-    const ethEngine = mockEngines.get('''ETH/USDT''');
+    const solEngine = mockEngines.get(SOL/USDT);
+    const btcEngine = mockEngines.get(''BTC/USDT);
+    const ethEngine = mockEngines.get('ETH/USDT');
     
     expect(solEngine).toBeDefined();
     expect(btcEngine).toBeDefined();
     expect(ethEngine).toBeDefined();
   });
   
-  test('update()が各エンジンを適切に更新する', async () => {
+  test(update()が各エンジンを適切に更新する, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
-      timeframeHours',
+      symbols'SOL/USDT', BTC/USDT''],
+      timeframeHours,
       allocationStrategy;
     
     // インスタンス作成
@@ -193,49 +193,49 @@ describe('MultiSymbolTradingEngine', () => {
     
     // キャンドルデータ
     const candles = {
-      '''SOL/USDT''': createMockCandle('''SOL/USDT''', 100)',
-      '''BTC/USDT''': createMockCandle('''BTC/USDT''', 30000)
+      SOL/USDT': createMockCandle('SOL/USDT, 100),
+      ''BTC/USDT: createMockCandle('BTC/USDT', 30000)
     };
     
     // 更新
     await engine.update(candles);
     
     // 各エンジンのupdate()が呼ばれることを検証
-    const solEngine = mockEngines.get('''SOL/USDT''');
-    const btcEngine = mockEngines.get('''BTC/USDT''');
+    const solEngine = mockEngines.get(SOL/USDT'');
+    const btcEngine = mockEngines.get(BTC/USDT);
     
     expect(solEngine?.update).toHaveBeenCalledTimes(1);
-    expect(solEngine?.update).toHaveBeenCalledWith(candles['''SOL/USDT''']);
+    expect(solEngine?.update).toHaveBeenCalledWith(candles[''SOL/USDT]);
     
     expect(btcEngine?.update).toHaveBeenCalledTimes(1);
-    expect(btcEngine?.update).toHaveBeenCalledWith(candles['''BTC/USDT''']);
+    expect(btcEngine?.update).toHaveBeenCalledWith(candles['BTC/USDT']);
   });
   
-  test('リスク分析とシグナルフィルタリングが正しく行われる', async () => {
+  test(リスク分析とシグナルフィルタリングが正しく行われる, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbols'SOL/USDT', BTC/USDT''],
       timeframeHours,
-      allocationStrategy',
+      allocationStrategy,
       portfolioRiskLimit;
     
     // インスタンス作成
     const engine = new MultiSymbolTradingEngine(config, { isBacktest", quiet);
     
     // モックシグナルの設定
-    const solEngine = mockEngines.get('''SOL/USDT''');
-    const btcEngine = mockEngines.get('''BTC/USDT''');
+    const solEngine = mockEngines.get(SOL/USDT');
+    const btcEngine = mockEngines.get('BTC/USDT);
     
     solEngine.getRecentSignals.mockReturnValue([
-      { ''symbol/USDT''', side, amount, type;
+      { 'symbol/USDT', side, amount, type;
     
     btcEngine.getRecentSignals.mockReturnValue([
-      { ''symbol/USDT''', side, amount, type;
+      { symbol/USDT', side, amount, type;
     
     // キャンドルデータ
     const candles = {
-      '''SOL/USDT''': createMockCandle('''SOL/USDT''', 100)',
-      '''BTC/USDT''': createMockCandle('''BTC/USDT''', 30000)
+      'SOL/USDT: createMockCandle(''SOL/USDT, 100),
+      'BTC/USDT': createMockCandle(BTC/USDT'', 30000)
     };
     
     // 更新
@@ -246,10 +246,10 @@ describe('MultiSymbolTradingEngine', () => {
     expect(btcEngine.processSignals).toHaveBeenCalledTimes(1);
   });
   
-  test('エクイティ履歴が正しく更新される', async () => {
+  test(エクイティ履歴が正しく更新される, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbolsSOL/USDT'', BTC/USDT],
       timeframeHours',
       allocationStrategy;
     
@@ -257,16 +257,16 @@ describe('MultiSymbolTradingEngine', () => {
     const engine = new MultiSymbolTradingEngine(config, { isBacktest", quiet);
     
     // モックエクイティの設定
-    const solEngine = mockEngines.get('''SOL/USDT''');
-    const btcEngine = mockEngines.get('''BTC/USDT''');
+    const solEngine = mockEngines.get('SOL/USDT);
+    const btcEngine = mockEngines.get(''BTC/USDT);
     
     solEngine.getEquity.mockReturnValue(10500);
     btcEngine.getEquity.mockReturnValue(11000);
     
     // キャンドルデータ
     const candles = {
-      '''SOL/USDT''': createMockCandle('''SOL/USDT''', 100)',
-      '''BTC/USDT''': createMockCandle('''BTC/USDT''', 30000)
+      SOL/USDT'': createMockCandle(SOL/USDT', 100)',
+      BTC/USDT: createMockCandle(''BTC/USDT, 30000)
     };
     
     // 更新
@@ -280,15 +280,15 @@ describe('MultiSymbolTradingEngine', () => {
     expect(history.length).toBe(1);
     expect(history[0].total).toBe(21500);
     expect(history[0].bySymbol).toEqual({
-      '''SOL/USDT''': 10500',
-      '''BTC/USDT''': 11000
+      'SOL/USDT': 10500,
+      BTC/USDT'': 11000
     });
   });
   
-  test('システムモードが全エンジンに伝播される', () => {
+  test(システムモードが全エンジンに伝播される, () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
+      symbolsSOL/USDT'', BTC/USDT'],
       timeframeHours',
       allocationStrategy;
     
@@ -296,8 +296,8 @@ describe('MultiSymbolTradingEngine', () => {
     const engine = new MultiSymbolTradingEngine(config, { isBacktest", quiet);
     
     // 各エンジンにsetSystemModeメソッドを追加
-    const solEngine = mockEngines.get('''SOL/USDT''')!;
-    const btcEngine = mockEngines.get('''BTC/USDT''')!;
+    const solEngine = mockEngines.get(SOL/USDT)!;
+    const btcEngine = mockEngines.get(''BTC/USDT)!;
     
     solEngine.setSystemMode = jest.fn();
     btcEngine.setSystemMode = jest.fn();
@@ -310,30 +310,30 @@ describe('MultiSymbolTradingEngine', () => {
     expect(btcEngine.setSystemMode).toHaveBeenCalledWith(SystemMode.EMERGENCY);
   });
   
-  test('ポートフォリオリスク分析が正しく行われる', async () => {
+  test(ポートフォリオリスク分析が正しく行われる, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
-      timeframeHours',
+      symbols''SOL/USDT, 'BTC/USDT'],
+      timeframeHours,
       allocationStrategy;
     
     // インスタンス作成
     const engine = new MultiSymbolTradingEngine(config, { isBacktest", quiet);
     
     // モックポジションの設定
-    const solEngine = mockEngines.get('''SOL/USDT''');
-    const btcEngine = mockEngines.get('''BTC/USDT''');
+    const solEngine = mockEngines.get(SOL/USDT'');
+    const btcEngine = mockEngines.get(BTC/USDT');
     
     solEngine.getPositions.mockReturnValue([
-      { ''symbol/USDT''', side, amount, currentPrice, entryPrice);
+      { 'symbol/USDT, side, amount, currentPrice, entryPrice);
     
     btcEngine.getPositions.mockReturnValue([
-      { ''symbol/USDT''', side, amount, currentPrice, entryPrice);
+      { symbol/USDT'', side, amount, currentPrice, entryPrice);
     
     // キャンドルデータ
     const candles = {
-      '''SOL/USDT''': createMockCandle('''SOL/USDT''', 100)',
-      '''BTC/USDT''': createMockCandle('''BTC/USDT''', 30000)
+      SOL/USDT': createMockCandle('SOL/USDT, 100),
+      ''BTC/USDT: createMockCandle('BTC/USDT', 30000)
     };
     
     // 更新
@@ -348,11 +348,11 @@ describe('MultiSymbolTradingEngine', () => {
     expect(riskAnalysis.stressTestResults.length).toBeGreaterThan(0);
   });
   
-  test('シンボル間の相関行列が計算される', async () => {
+  test(シンボル間の相関行列が計算される, async () => {
     // 設定
     const config = {
-      symbols'''SOL/USDT''', '''BTC/USDT'''],
-      timeframeHours',
+      symbols'SOL/USDT', BTC/USDT''],
+      timeframeHours,
       allocationStrategy;
     
     // インスタンス作成
@@ -366,8 +366,8 @@ describe('MultiSymbolTradingEngine', () => {
       const solPrice = 100 * (1 + 0.005 * Math.sin(i * 0.5 + 0.2));
       
       await engine.update({
-        '''SOL/USDT''': createMockCandle('''SOL/USDT''', solPrice, timestamp + i * 3600000)',
-        '''BTC/USDT''': createMockCandle('''BTC/USDT''', btcPrice, timestamp + i * 3600000)
+        SOL/USDT': createMockCandle('SOL/USDT, solPrice, timestamp + i * 3600000),
+        ''BTC/USDT: createMockCandle('BTC/USDT', btcPrice, timestamp + i * 3600000)
       });
     }
     
@@ -377,11 +377,11 @@ describe('MultiSymbolTradingEngine', () => {
     // 相関行列が計算されることを検証
     const correlationMatrix = engine.getCorrelationMatrix();
     expect(correlationMatrix).toBeDefined();
-    expect(correlationMatrix['''SOL/USDT''']).toBeDefined();
-    expect(correlationMatrix['''BTC/USDT''']).toBeDefined();
+    expect(correlationMatrix[SOL/USDT'']).toBeDefined();
+    expect(correlationMatrix[BTC/USDT]).toBeDefined();
     
     // 自己相関が1.0であることを確認
-    expect(correlationMatrix['''SOL/USDT''']['''SOL/USDT''']).toBe(1.0);
-    expect(correlationMatrix['''BTC/USDT''']['''BTC/USDT''']).toBe(1.0);
+    expect(correlationMatrix[''SOL/USDT]['SOL/USDT']).toBe(1.0);
+    expect(correlationMatrix[BTC/USDT''][BTC/USDT'']).toBe(1.0);
   });
 }); 

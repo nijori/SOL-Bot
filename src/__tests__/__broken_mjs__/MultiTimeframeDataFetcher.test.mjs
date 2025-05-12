@@ -1,21 +1,21 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import { MultiTimeframeDataFetcher", Timeframe } from '../../data/MultiTimeframeDataFetcher';
-import { ParquetDataStore } from '../../data/parquetDataStore';
-import ccxt from 'ccxt';
+import { MultiTimeframeDataFetcher", Timeframe } from ../../data/MultiTimeframeDataFetcher';
+import { ParquetDataStore } from '../../data/parquetDataStore;
+import ccxt from ccxt.js;
 
 
 
 
 
 // ParquetDataStoreをモック
-jest.mock('../../data/parquetDataStore')
+jest.mock(../../data/parquetDataStore)
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
@@ -23,7 +23,7 @@ beforeAll(() => {
 
 
 // ccxtモジュールをモック
-jest.mock('ccxt', () => {
+jest.mock(ccxt.js', () => {
   // モックの取引所インスタンスを作成する関数
   const createMockExchange = () => {
     return {
@@ -50,11 +50,11 @@ jest.mock('ccxt', () => {
 
   // タイムフレーム文字列をミリ秒に変換するヘルパー関数
   function $1() {
-      case 'm':
+      case 'm:
         return value * 60 * 1000;
-      case 'h':
+      case h:
         return value * 60 * 60 * 1000;
-      case 'd':
+      case d:
         return value * 24 * 60 * 60 * 1000;
       default * 1000; // デフォルトは1分
     };
@@ -64,24 +64,24 @@ jest.mock('ccxt', () => {
   return {
     // 各取引所のクラスをモックする
     binance => createMockExchange()),
-    kucoin => createMockExchange())',
+    kucoin => createMockExchange()),
     bybit => createMockExchange())
   };
 })
 
 // node-cronをモック
-jest.mock('node-cron', () => {
+jest.mock('node-cron.js', () => {
   return {
     schedule() {
       return {
-        stop',
+        stop,
         destroy)
       };
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop(
@@ -107,8 +107,8 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection);
+      process.removeAllListeners(uncaughtException');
       resolve();
     }, 100);
   });
@@ -121,7 +121,7 @@ afterAll(() => {
   };
 })
 
-describe('MultiTimeframeDataFetcher', () => {
+describe('MultiTimeframeDataFetcher, () => {
   let fetcher;
 
   beforeEach(() => {
@@ -131,14 +131,14 @@ describe('MultiTimeframeDataFetcher', () => {
     // ParquetDataStoreのモックをセットアップ
     (ParquetDataStore() {
       return {
-        saveCandles',
+        saveCandles,
         close)
       };
     });
 
     // プロセス環境変数をモック
-    process.env.USE_PARQUET = 'true';
-    process.env.TRADING_PAIR = '''SOL/USDT''';
+    process.env.USE_PARQUET = true;
+    process.env.TRADING_PAIR = 'SOL/USDT';
 
     // フェッチャーをインスタンス化
     fetcher = new MultiTimeframeDataFetcher();
@@ -149,12 +149,12 @@ describe('MultiTimeframeDataFetcher', () => {
     fetcher.close();
   });
 
-  test('正しく初期化されること', () => {
+  test(正しく初期化されること, () => {
     expect(fetcher).toBeDefined();
     expect(ParquetDataStore).toHaveBeenCalled();
   });
 
-  test('特定のタイムフレームのデータを取得して保存できること', async () => {
+  test(特定のタイムフレームのデータを取得して保存できること, async () => {
     const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
 
     // 取引所からデータを取得することを確認
@@ -164,9 +164,9 @@ describe('MultiTimeframeDataFetcher', () => {
     // fetchOHLCVが呼ばれたことを確認
     const binanceInstance = binanceMock.mock.results[0].value;
     expect(binanceInstance.fetchOHLCV).toHaveBeenCalledWith(
-      '''SOL/USDT''',
+      ''SOL/USDT,
       Timeframe.HOUR_1",
-      undefined',
+      undefined,
       expect.any(Number)
     );
 
@@ -178,7 +178,7 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(result).toBe(true);
   });
 
-  test('全タイムフレームのデータを取得できること', async () => {
+  test(全タイムフレームのデータを取得できること', async () => {
     const results = await fetcher.fetchAllTimeframes();
 
     // すべてのタイムフレームでデータ取得が成功したことを確認
@@ -192,21 +192,21 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(binanceInstance.fetchOHLCV).toHaveBeenCalledTimes(12); // 3取引所 × 4タイムフレーム
   });
 
-  test('スケジュールジョブを開始できること', () => {
-    const cronMock = require('node-cron');
+  test('スケジュールジョブを開始できること, () => {
+    const cronMock = require(node-cron);
 
     // 特定のタイムフレームのジョブを開始
     fetcher.startScheduledJob(Timeframe.MINUTE_15);
 
     // node-cron.scheduleが呼ばれたことを確認
     expect(cronMock.schedule).toHaveBeenCalledWith(
-      '*/15 * * * *', // 15分ごとのcron式
-      expect.any(Function)',
+      */15 * * * *, // 15分ごとのcron式
+      expect.any(Function),
       expect.objectContaining({ timezone);
   });
 
   test('すべてのスケジュールジョブを開始できること', () => {
-    const cronMock = require('node-cron');
+    const cronMock = require(node-cron);
 
     // すべてのタイムフレームのジョブを開始
     fetcher.startAllScheduledJobs();
@@ -215,8 +215,8 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(cronMock.schedule).toHaveBeenCalledTimes(4); // 4つのタイムフレーム
   });
 
-  test('スケジュールジョブを停止できること', () => {
-    const cronMock = require('node-cron');
+  test(スケジュールジョブを停止できること, () => {
+    const cronMock = require(node-cron);
 
     // ジョブを開始して停止
     fetcher.startScheduledJob(Timeframe.HOUR_1);
@@ -240,7 +240,7 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(parquetStore.close).toHaveBeenCalled();
 
     // すべてのジョブが停止されたことを確認
-    const cronMock = require('node-cron');
+    const cronMock = require(node-cron);
     const scheduledTasks = cronMock.schedule.mock.results;
 
     scheduledTasks.forEach((result() {
@@ -249,7 +249,7 @@ describe('MultiTimeframeDataFetcher', () => {
     });
   });
 
-  test('取得エラー時にもクラッシュせずにfalseを返すこと', async () => {
+  test(取得エラー時にもクラッシュせずにfalseを返すこと, async () => {
     // fetchOHLCVを一時的にエラーを投げるようにオーバーライド
     const binanceInstance = (ccxt;
     const originalFetchOHLCV = binanceInstance.fetchOHLCV;

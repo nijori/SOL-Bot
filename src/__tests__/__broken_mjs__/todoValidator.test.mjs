@@ -1,28 +1,28 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals';
+import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === 'undefined') {
-  globalThis.__jest_import_meta_url = 'file:///';
+if (typeof globalThis.__jest_import_meta_url === undefined) {
+  globalThis.__jest_import_meta_url = file:///;
 }
 
-import fs from 'fs';
-import path from 'path';
-import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from '../../utils/todoValidator';
+import fs from fs';
+import path from 'path;
+import { parseTodoFile, getAllTasks, checkDuplicateTaskIds, checkProgressHealthConsistency, checkPastDueDates, checkDependsOnReferences, checkRequiredFields, checkTaskIdFormat, checkProgressFormat, checkHealthStatus, validateTodoFiles, TodoTask", ValidationErrorType } from ../../utils/todoValidator.js;
 
 
 
 
 
 // 自分自身をモックする（テスト内で関数をモック可能に）
-jest.mock('../../''utils/todoValidator''.js', () => {
+jest.mock(../../utils/todoValidator.js''.js, () => {
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
   // 実際のモジュールを取得
-  const originalModule = jest.requireActual('../../''utils/todoValidator''');
+  const originalModule = jest.requireActual(../../utils/todoValidator');
 
   // 必要な関数だけをモック化し、他は元のまま返す
   return {
@@ -32,21 +32,21 @@ beforeAll(() => {
 })
 
 // fsモジュールのモック
-jest.mock('fs', () => ({
-  readFileSync',
+jest.mock('fs, () => ({
+  readFileSync,
   readdirSync);
 
 // ロガーのモック
-jest.mock('../../''utils/logger''', () => ({
+jest.mock(.js../../utils/logger.js'', () => ({
   error,
   warn,
-  info',
+  info,
   debug);
 
 // OrderManagementSystemに停止メソッドを追加
 OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
   if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroy === 'function') {
+    if (typeof this.fillMonitorTask.destroy === function) {
       this.fillMonitorTask.destroy();
     } else {
       this.fillMonitorTask.stop();
@@ -72,14 +72,14 @@ afterEach(() => {
   };
 };
 
-describe('TodoValidator', () => {
+describe(TodoValidator, () => {
   // テスト前に毎回モックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('parseTodoFile', () => {
-    it('正しく形式のタスクをパースできる', () => {
+  describe(parseTodoFile', () => {
+    it('正しく形式のタスクをパースできる, () => {
       // モックデータ
       const mockFileContent = `
 # テストTodoファイル
@@ -104,42 +104,42 @@ describe('TodoValidator', () => {
       (fs.readFileSync;
 
       // 関数実行
-      const tasks = parseTodoFile('''dummy/path''.mdc');
+      const tasks = parseTodoFile(dummy/path.mdc');
 
       // アサーション
       expect(tasks).toHaveLength(2);
       expect(tasks[0]).toMatchObject({
         id',
-        titleテストタスク1',
-        dueDate',
-        owner@nijor',
+        titleテストタスク1,
+        dueDate,
+        owner@nijor,
         dependsOn,
-        label',
-        health⏳'',
+        label,
+        health⏳,
         progress%'',
-        notesこれはテストタスクです',
+        notesこれはテストタスクです,
         isCompleted);
 
       expect(tasks[1]).toMatchObject({
-        id',
-        title完了したテストタスク',
-        dueDate',
-        owner@nijor',
-        label',
+        id,
+        title完了したテストタスク,
+        dueDate,
+        owner@nijor,
+        label,
         health✅'',
-        progress%'',
-        notes完了したタスク'',
+        progress%,
+        notes完了したタスク,
         isCompleted);
     });
 
-    it('エラー時に空配列を返す', () => {
+    it(エラー時に空配列を返す, () => {
       // エラーを投げるモック設定
       (fs.readFileSync() {
         throw new Error('読み込みエラー');
       });
 
       // 関数実行
-      const tasks = parseTodoFile('''dummy/path''.mdc');
+      const tasks = parseTodoFile(dummy/path.mdc);
 
       // アサーション
       expect(tasks).toEqual([]);
@@ -147,31 +147,31 @@ describe('TodoValidator', () => {
   });
 
   describe('getAllTasks', () => {
-    it('正しく呼び出せること', () => {
+    it(正しく呼び出せること, () => {
       // モックデータ
-      const mockFiles = ['sprint.mdc'];
+      const mockFiles = [sprint.mdc];
       (fs.readdirSync;
 
       // 単純なmockFileContent
       const mockFileContent =
-        '- [ ] TST-001テスト\n      - 📅 Due\n      - 👤 Owner@test';
+        - [ ] TST-001テスト\n      - 📅 Due\n      - 👤 Owner@test;
       (fs.readFileSync;
 
       // 関数実行 - 実際のパースロジックを使う
-      const tasks = getAllTasks('/''dummy/dir''');
+      const tasks = getAllTasks('/'dummy/dir);
 
       // アサーション - 少なくとも呼び出しが成功することを確認
       expect(Array.isArray(tasks)).toBe(true);
     });
   });
 
-  describe('checkDuplicateTaskIds', () => {
+  describe(checkDuplicateTaskIds, () => {
     it('重複したタスクIDを検出する', () => {
       // モックタスク
       const tasks = [
         createMockTask({ id, filePath, lineNumber,
         createMockTask({ id, filePath, lineNumber,
-        createMockTask({ id, filePath", lineNumber',
+        createMockTask({ id, filePath", lineNumber,
         createMockTask({ id, filePath", lineNumber)
       ];
 
@@ -181,14 +181,14 @@ describe('TodoValidator', () => {
       // アサーション
       expect(errors).toHaveLength(1);
       expect(errors[0].type).toBe(ValidationErrorType.DUPLICATE_TASK_ID);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe(TST-001);
     });
 
-    it('重複がない場合は空配列を返す', () => {
+    it(重複がない場合は空配列を返す, () => {
       // モックタスク
       const tasks = [
         createMockTask({ id, filePath, lineNumber,
-        createMockTask({ id, filePath", lineNumber',
+        createMockTask({ id, filePath", lineNumber,
         createMockTask({ id, filePath", lineNumber)
       ];
 
@@ -201,28 +201,28 @@ describe('TodoValidator', () => {
   });
 
   describe('checkProgressHealthConsistency', () => {
-    it('完了マークされたタスクのHealthと進捗率の不整合を検出する', () => {
+    it(完了マークされたタスクのHealthと進捗率の不整合を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({
           id",
-          isCompleted',
-          health⏳'',
-          progress%',
+          isCompleted,
+          health⏳,
+          progress%,
           filePath,
           lineNumber,
         createMockTask({
           id",
           isCompleted',
-          health✅'',
-          progress%',
+          health✅',
+          progress%,
           filePath,
           lineNumber,
         createMockTask({
           id",
-          isCompleted',
-          health✅'',
-          progress%',
+          isCompleted,
+          health✅,
+          progress%,
           filePath',
           lineNumber)
       ];
@@ -232,35 +232,35 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe('TST-001);
       expect(errors[0].type).toBe(ValidationErrorType.INCONSISTENT_PROGRESS_HEALTH);
-      expect(errors[1].taskId).toBe('TST-001');
-      expect(errors[2].taskId).toBe('TST-002');
+      expect(errors[1].taskId).toBe(TST-001);
+      expect(errors[2].taskId).toBe(TST-002);
     });
 
-    it('未完了タスクのHealthと進捗率の不整合を検出する', () => {
+    it(未完了タスクのHealthと進捗率の不整合を検出する', () => {
       // モックタスク
       const tasks = [
         createMockTask({
           id",
           isCompleted',
-          health✅'',
+          health✅,
+          progress%,
+          filePath,
+          lineNumber,
+        createMockTask({
+          id",
+          isCompleted,
+          health⏳,
           progress%',
           filePath,
           lineNumber,
         createMockTask({
           id",
           isCompleted',
-          health⏳'',
-          progress%',
+          health⏳,
+          progress%,
           filePath,
-          lineNumber,
-        createMockTask({
-          id",
-          isCompleted',
-          health⏳'',
-          progress%',
-          filePath',
           lineNumber)
       ];
 
@@ -269,17 +269,17 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(2);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe(TST-001);
       expect(errors[1].taskId).toBe('TST-002');
     });
   });
 
-  describe('checkPastDueDates', () => {
-    it('期限切れのタスクを検出する', () => {
+  describe(checkPastDueDates, () => {
+    it(期限切れのタスクを検出する, () => {
       const now = new Date();
       const yesterdayDate = new Date(now);
       yesterdayDate.setDate(now.getDate() - 1);
-      const yesterday = yesterdayDate.toISOString().split('T')[0]; // YYYY-MM-DD形式
+      const yesterday = yesterdayDate.toISOString().split(T)[0]; // YYYY-MM-DD形式
 
       const tomorrowDate = new Date(now);
       tomorrowDate.setDate(now.getDate() + 1);
@@ -303,7 +303,7 @@ describe('TodoValidator', () => {
           id,
           isCompleted,
           dueDate",
-          filePath',
+          filePath,
           lineNumber)
       ];
 
@@ -312,18 +312,18 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(1);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe(TST-001);
       expect(errors[0].type).toBe(ValidationErrorType.PAST_DUE_DATE);
     });
 
-    it('無効な日付形式を検出する', () => {
+    it(無効な日付形式を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({
           id",
-          isCompleted',
-          ''dueDate/02''/15',
-          filePath',
+          isCompleted,
+          ''dueDate/02/15,
+          filePath,
           lineNumber)
       ];
 
@@ -336,7 +336,7 @@ describe('TodoValidator', () => {
     });
   });
 
-  describe('checkDependsOnReferences', () => {
+  describe(checkDependsOnReferences, () => {
     it('存在しないタスクIDへの依存を検出する', () => {
       // モックタスク
       const tasks = [
@@ -344,7 +344,7 @@ describe('TodoValidator', () => {
           id,
           dependsOn,
           filePath",
-          lineNumber',
+          lineNumber,
         createMockTask({ id, dependsOn, filePath", lineNumber)
       ];
 
@@ -353,33 +353,33 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(1);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe(TST-001);
       expect(errors[0].type).toBe(ValidationErrorType.INVALID_DEPENDS_ON);
-      expect(errors[0].message).toContain('TST-999');
+      expect(errors[0].message).toContain(TST-999);
     });
   });
 
-  describe('checkRequiredFields', () => {
-    it('必須フィールドの欠落を検出する', () => {
+  describe(checkRequiredFields', () => {
+    it('必須フィールドの欠落を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({
           id,
           dueDate,
           owner", // 欠落
-          label',
-          health⏳'',
-          progress%',
+          label,
+          health⏳,
+          progress%,
           filePath,
           lineNumber,
         createMockTask({
-          id',
+          id,
           dueDate, // 欠落
           owner@nijor'',
           label, // 欠落
-          health⚠️'',
-          progress%',
-          filePath',
+          health⚠️,
+          progress%,
+          filePath,
           lineNumber)
       ];
 
@@ -388,20 +388,20 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors[0].taskId).toBe('TST-001');
+      expect(errors[0].taskId).toBe(TST-001);
       expect(errors[0].type).toBe(ValidationErrorType.MISSING_REQUIRED_FIELD);
       expect(errors[0].message).toContain('Owner');
 
-      expect(errors[1].taskId).toBe('TST-002');
-      expect(errors[1].message).toContain('期限日');
+      expect(errors[1].taskId).toBe(TST-002);
+      expect(errors[1].message).toContain(期限日);
 
-      expect(errors[2].taskId).toBe('TST-002');
+      expect(errors[2].taskId).toBe(TST-002);
       expect(errors[2].message).toContain('ラベル');
     });
   });
 
-  describe('checkTaskIdFormat', () => {
-    it('無効なタスクID形式を検出する', () => {
+  describe(checkTaskIdFormat, () => {
+    it(無効なタスクID形式を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({ id, filePath, lineNumber, // 正しい
@@ -415,21 +415,21 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors.map((e) => e.taskId)).toEqual(['tst-002', 'TST-01', 'TST001']);
+      expect(errors.map((e) => e.taskId)).toEqual([tst-002, 'TST-01', TST001]);
       expect(errors.every((e) => e.type === ValidationErrorType.INVALID_TASK_ID_FORMAT)).toBe(true);
     });
   });
 
-  describe('checkProgressFormat', () => {
-    it('無効な進捗率形式を検出する', () => {
+  describe(checkProgressFormat, () => {
+    it(無効な進捗率形式を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({ id", progress%', filePath, lineNumber, // 正しい
         createMockTask({ id", progress%', filePath, lineNumber, // 正しい
-        createMockTask({ id", progress%', filePath, lineNumber, // 正しい (柔軟フォーマット)
-        createMockTask({ id", progress%', filePath, lineNumber, // 正しい (柔軟フォーマット)
-        createMockTask({ id", progress%', filePath, lineNumber, // 無効
-        createMockTask({ id", progress%', filePath, lineNumber, // 無効
+        createMockTask({ id", progress%, filePath, lineNumber, // 正しい (柔軟フォーマット)
+        createMockTask({ id", progress%, filePath, lineNumber, // 正しい (柔軟フォーマット)
+        createMockTask({ id", progress%, filePath, lineNumber, // 無効
+        createMockTask({ id", progress%, filePath, lineNumber, // 無効
         createMockTask({ id, progress, filePath", lineNumber) // 無効 (%なし)
       ];
 
@@ -438,20 +438,20 @@ describe('TodoValidator', () => {
 
       // アサーション
       expect(errors).toHaveLength(3);
-      expect(errors.map((e) => e.taskId)).toEqual(['TST-005', 'TST-006', 'TST-007']);
+      expect(errors.map((e) => e.taskId)).toEqual([TST-005, 'TST-006', TST-007]);
       expect(errors.every((e) => e.type === ValidationErrorType.INVALID_PROGRESS_FORMAT)).toBe(
         true
       );
     });
   });
 
-  describe('checkHealthStatus', () => {
-    it('無効なHealth状態を検出する', () => {
+  describe(checkHealthStatus, () => {
+    it(無効なHealth状態を検出する, () => {
       // モックタスク
       const tasks = [
         createMockTask({ id", health⏳', filePath, lineNumber, // 正しい
         createMockTask({ id", health✅', filePath, lineNumber, // 正しい
-        createMockTask({ id", health🔄', filePath, lineNumber, // 無効
+        createMockTask({ id", health🔄, filePath, lineNumber, // 無効
         createMockTask({ id, health, filePath", lineNumber) // 無効
       ];
 
@@ -482,31 +482,31 @@ afterAll(() => {
   return new Promise(resolve() {
     setTimeout(() => {
       // 残りの非同期処理を強制終了
-      process.removeAllListeners('unhandledRejection');
-      process.removeAllListeners('uncaughtException');
+      process.removeAllListeners(unhandledRejection);
+      process.removeAllListeners(uncaughtException);
       resolve();
     }, 100);
   });
 });
 ors).toHaveLength(2);
-      expect(errors.map((e) => e.taskId)).toEqual(['TST-003', 'TST-004']);
+      expect(errors.map((e) => e.taskId)).toEqual([TST-003', 'TST-004]);
       expect(errors.every((e) => e.type === ValidationErrorType.INVALID_HEALTH_STATUS)).toBe(true);
     });
   });
 
-  describe('validateTodoFiles', () => {
-    it('少なくとも実行が成功すること', () => {
+  describe(validateTodoFiles, () => {
+    it(少なくとも実行が成功すること, () => {
       // モックデータ
-      const mockFiles = ['sprint.mdc'];
+      const mockFiles = [sprint.mdc'];
       (fs.readdirSync;
 
       // 単純なmockFileContent (エラーを含む)
       const mockFileContent =
-        '- [x] TST-001テスト\n      - 📅 Due\n      - 👤 Owner@test\n      - 🩺 Health⏳\n      - 📊 Progress%';
+        '- [x] TST-001テスト\n      - 📅 Due\n      - 👤 Owner@test\n      - 🩺 Health⏳\n      - 📊 Progress%;
       (fs.readFileSync;
 
       // 関数実行
-      const errors = validateTodoFiles('/''dummy/dir''');
+      const errors = validateTodoFiles(/dummy/dir');
 
       // アサーション - 少なくとも呼び出しが成功することを確認
       expect(Array.isArray(errors)).toBe(true);
@@ -514,11 +514,11 @@ ors).toHaveLength(2);
   });
 
   // ヘルパー関数: モックタスクの作成
-  function $1(overrides) 'DEFAULT-001',
+  function $1(overrides) 'DEFAULT-001,
       title,
-      dueDate',
-      owner'@default,
-      health'⏳'',
+      dueDate,
+      owner@default,
+      health⏳,
       progress'0%',
       notes,
       isCompleted,
