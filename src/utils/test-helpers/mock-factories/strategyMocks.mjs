@@ -6,6 +6,8 @@
  * 一貫性のあるモックファクトリー関数を提供します。
  */
 
+import { jest } from '@jest/globals';
+
 /**
  * 基本戦略モックを作成するファクトリー関数
  * @param {string} strategy - モックする戦略名

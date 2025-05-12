@@ -70,6 +70,26 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : @jest/globals importの標準化。jest.mockパターンの統一。テスト用モッククラスの共通ライブラリ化。モックファクトリー関数の実装と展開。
 
+## 🗒 Backlog（未着手タスク）
+
+- [ ] TST-056: テスト実行時のメモリリーク問題の解決
+      - 📅 Due        : 2026-06-15
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : TST-055
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 多くのテストでメモリリークが検出される問題を修正（非同期処理の完全なクリーンアップが必要）
+
+- [ ] TST-057: ESMテスト環境の修正と安定化
+      - 📅 Due        : 2026-06-15
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : TST-055, TST-056
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ESM環境でのJestテスト実行に関する問題を修正（@jest/globalsインポート問題など）
+
 ## P0 ― 安全ネット（"やらかさない"仕組みを先に敷く）
 
 // SEC-004タスクはスプリントに移動しました
@@ -394,6 +414,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
       - ✎ Notes      : ESM変換後の.mjsファイルに残っている壊れたインポートパスを修正するスクリプト（fix-esm-import-paths.js）を実装完了。'path: '→'path'、'url: '→'url'、__dirname"→__dirname、'../../'strategies/meanReversionStrategy''→'../../strategies/meanReversionStrategy.js'のような壊れたパターンを検出し修正。正規表現による置換パターンを多数実装し、全ファイルを自動的に修正。パスの正規化、拡張子の追加、壊れた文字列や構文の修正により、ESM環境でのモジュール解決問題を解決。package.jsonに「fix:esm-imports」コマンドも追加。
+
 
 
 

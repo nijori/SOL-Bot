@@ -6,6 +6,8 @@
  * 一貫性のあるサービスモックファクトリー関数を提供します。
  */
 
+import { jest } from '@jest/globals';
+
 /**
  * ロガーモックの作成
  * @returns {object} モック化されたロガーオブジェクト

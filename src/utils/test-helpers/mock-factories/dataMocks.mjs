@@ -6,6 +6,8 @@
  * 一貫したモックパターンをプロジェクト全体で使用できるようにします。
  */
 
+import { jest } from '@jest/globals';
+
 /**
  * DataRepositoryのモックを作成する
  * @param {Object} customImplementation カスタム実装を提供するオブジェクト
