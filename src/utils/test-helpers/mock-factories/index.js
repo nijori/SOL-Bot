@@ -6,6 +6,9 @@
  * 一貫したモックパターンを提供し、テストでの依存性モックを容易にします。
  */
 
+// CommonJS環境でjestを取得
+const { jest } = require('@jest/globals');
+
 const strategyMocks = require('./strategyMocks');
 const serviceMocks = require('./serviceMocks');
 const dataMocks = require('./dataMocks');
@@ -26,14 +29,18 @@ const allMocks = {
  * @param {jest} jestInstance - Jestインスタンス
  */
 function setupAllMocks(jestInstance) {
-  // サービスモック
-  serviceMocks.mockAllServices(jestInstance);
-  
-  // 戦略モック
-  strategyMocks.mockAllStrategies(jestInstance);
-  
-  // データモック
-  dataMocks.mockAllDataModules(jestInstance);
+  try {
+    // サービスモック
+    serviceMocks.mockAllServices(jestInstance);
+    
+    // 戦略モック
+    strategyMocks.mockAllStrategies(jestInstance);
+    
+    // データモック
+    dataMocks.mockAllDataModules(jestInstance);
+  } catch (error) {
+    console.error('モックのセットアップに失敗しました:', error);
+  }
 }
 
 /**
@@ -57,5 +64,22 @@ function setupAllMocks(jestInstance) {
 // マージしたオブジェクトと追加関数をエクスポート
 module.exports = {
   ...allMocks,
-  setupAllMocks
+  setupAllMocks,
+  createStrategyMock: strategyMocks.createStrategyMock,
+  createMeanReversionStrategyMock: strategyMocks.createMeanReversionStrategyMock,
+  createTrendFollowStrategyMock: strategyMocks.createTrendFollowStrategyMock,
+  createRangeStrategyMock: strategyMocks.createRangeStrategyMock,
+  mockAllStrategies: strategyMocks.mockAllStrategies,
+  
+  createLoggerMock: serviceMocks.createLoggerMock,
+  createParameterServiceMock: serviceMocks.createParameterServiceMock,
+  createDbServiceMock: serviceMocks.createDbServiceMock,
+  createExchangeApiMock: serviceMocks.createExchangeApiMock,
+  mockAllServices: serviceMocks.mockAllServices,
+  
+  createDataRepositoryMock: dataMocks.createDataRepositoryMock,
+  createParquetDataStoreMock: dataMocks.createParquetDataStoreMock,
+  createMultiTimeframeDataFetcherMock: dataMocks.createMultiTimeframeDataFetcherMock,
+  createRealTimeDataProcessorMock: dataMocks.createRealTimeDataProcessorMock,
+  mockAllDataModules: dataMocks.mockAllDataModules
 }; 

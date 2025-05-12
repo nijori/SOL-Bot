@@ -2,9 +2,12 @@
  * 戦略モジュール用モックファクトリー関数（CommonJS版）
  * TST-055: モジュールモックの一貫性向上
  * 
- * 一貫性のあるモックパターンを提供します。
- * このファイルはCommonJS環境で使用するためのものです。
+ * @jest/globalsからのrequireと標準化されたjest.mockパターンを使用した
+ * 一貫性のあるモックファクトリー関数を提供します。
  */
+
+// CommonJS環境でjestを取得
+const { jest } = require('@jest/globals');
 
 /**
  * 基本戦略モックを作成するファクトリー関数
@@ -155,19 +158,24 @@ function createRangeStrategyMock(customImpl = null) {
  * @param {jest} jestInstance - Jestインスタンス
  */
 function mockAllStrategies(jestInstance) {
-  jestInstance.mock('../../strategies/meanReversionStrategy.js', () => ({
-    MeanReversionStrategy: createMeanReversionStrategyMock()
-  }));
-  
-  jestInstance.mock('../../strategies/trendFollowStrategy.js', () => ({
-    TrendFollowStrategy: createTrendFollowStrategyMock()
-  }));
-  
-  jestInstance.mock('../../strategies/rangeStrategy.js', () => ({
-    RangeStrategy: createRangeStrategyMock()
-  }));
+  try {
+    jestInstance.mock('../../strategies/meanReversionStrategy.js', () => ({
+      MeanReversionStrategy: createMeanReversionStrategyMock()
+    }));
+    
+    jestInstance.mock('../../strategies/trendFollowStrategy.js', () => ({
+      TrendFollowStrategy: createTrendFollowStrategyMock()
+    }));
+    
+    jestInstance.mock('../../strategies/rangeStrategy.js', () => ({
+      RangeStrategy: createRangeStrategyMock()
+    }));
+  } catch (error) {
+    console.error('戦略モックのセットアップに失敗しました:', error);
+  }
 }
 
+// CommonJSエクスポート
 module.exports = {
   createStrategyMock,
   createMeanReversionStrategyMock,

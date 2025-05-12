@@ -2,9 +2,12 @@
  * サービスモジュール用モックファクトリー関数（CommonJS版）
  * TST-055: モジュールモックの一貫性向上
  * 
- * 一貫性のあるサービスモックパターンを提供します。
- * このファイルはCommonJS環境で使用するためのものです。
+ * @jest/globalsからのrequireと標準化されたjest.mockパターンを使用した
+ * 一貫性のあるサービスモックファクトリー関数を提供します。
  */
+
+// CommonJS環境でjestを取得
+const { jest } = require('@jest/globals');
 
 /**
  * ロガーモックの作成
@@ -26,218 +29,199 @@ function createLoggerMock() {
 
 /**
  * パラメータサービスモックの作成
- * @param {Object} [customParameters={}] - カスタムパラメータオブジェクト
- * @returns {Object} モック化されたパラメータサービス
+ * @param {object} customParams カスタムパラメータオブジェクト
+ * @returns {object} モック化されたパラメータサービスオブジェクト
  */
-function createParameterServiceMock(customParameters = {}) {
-  const defaultParameters = {
-    // 市場パラメータ
-    'ATR_PERIOD': 14,
-    'SHORT_TERM_EMA': 9,
-    'LONG_TERM_EMA': 21,
-    'RSI_PERIOD': 14,
-    'DONCHIAN_PERIOD': 20,
+function createParameterServiceMock(customParams = {}) {
+  const defaultParams = {
+    // トレーディングパラメータ
+    getTradingParameters: jest.fn().mockReturnValue({
+      maxPositions: 3,
+      maxPositionValue: 1000,
+      riskPerTrade: 0.01,
+      ...customParams.tradingParams
+    }),
     
     // 戦略パラメータ
-    'trendFollowStrategy.trailingStopFactor': 1.5,
-    'trendFollowStrategy.atrMultiplier': 2.0,
-    'trendFollowStrategy.breakoutPeriod': 20,
-    'trendFollowStrategy.maxPositions': 3,
-    
-    'meanRevertStrategy.oversoldThreshold': 30,
-    'meanRevertStrategy.overboughtThreshold': 70,
-    'meanRevertStrategy.meanReversionPeriod': 10,
-    'meanRevertStrategy.takeProfitAtr': 2.0,
-    
-    'rangeStrategy.gridAtrMultiplier': 0.5,
-    'rangeStrategy.rangeMultiplier': 1.0,
-    'rangeStrategy.minSpreadPercentage': 0.2,
-    'rangeStrategy.escapeThreshold': 0.05,
-    
-    // リスクパラメータ
-    'MAX_RISK_PER_TRADE': 0.01,
-    'MAX_DAILY_LOSS': 0.05
-  };
-  
-  // デフォルトとカスタムパラメータをマージ
-  const parameters = Object.assign({}, defaultParameters, customParameters);
-  
-  return {
-    get: jest.fn().mockImplementation((key, defaultValue) => {
-      return parameters[key] !== undefined ? parameters[key] : defaultValue;
+    getStrategyParameters: jest.fn().mockReturnValue({
+      defaultEma: 20,
+      atrPeriod: 14,
+      atrMultiplier: 2.0,
+      entryThreshold: 0.02,
+      ...customParams.strategyParams
     }),
-    
+
+    // 市場環境パラメータ
     getMarketParameters: jest.fn().mockReturnValue({
-      ATR_PERIOD: parameters.ATR_PERIOD,
-      SHORT_TERM_EMA: parameters.SHORT_TERM_EMA,
-      LONG_TERM_EMA: parameters.LONG_TERM_EMA,
-      RSI_PERIOD: parameters.RSI_PERIOD
+      volatilityThreshold: 0.05,
+      trendStrengthThreshold: 0.6,
+      rangeDetectionPeriod: 24,
+      ...customParams.marketParams
     }),
-    
+
+    // トレンド戦略パラメータ
     getTrendParameters: jest.fn().mockReturnValue({
-      DONCHIAN_PERIOD: parameters.DONCHIAN_PERIOD,
-      ADX_PERIOD: 14,
-      ADX_THRESHOLD: 25
+      emaPeriod: 50,
+      trendConfirmationPeriod: 10,
+      profitTarget: 0.05,
+      stopLoss: 0.02,
+      ...customParams.trendParams
     }),
-    
-    getRangeParameters: jest.fn().mockReturnValue({
-      RANGE_PERIOD: 20,
-      GRID_LEVELS_MIN: 3,
-      GRID_LEVELS_MAX: 10,
-      POSITION_SIZING: 0.1
+
+    // カスタムパラメータ取得  
+    getCustomParameter: jest.fn().mockImplementation((name, defaultValue) => {
+      return customParams[name] !== undefined ? customParams[name] : defaultValue;
     }),
-    
-    getRiskParameters: jest.fn().mockReturnValue({
-      MAX_RISK_PER_TRADE: parameters.MAX_RISK_PER_TRADE,
-      MAX_DAILY_LOSS: parameters.MAX_DAILY_LOSS
-    }),
-    
-    // パラメータ設定
-    set: jest.fn().mockImplementation((key, value) => {
-      parameters[key] = value;
-      return true;
-    }),
-    
-    // 環境変数からのロード
-    loadFromEnv: jest.fn(),
-    
-    // ファイルからのロード
-    loadFromFile: jest.fn()
+
+    // システム設定
+    getSystemConfig: jest.fn().mockReturnValue({
+      environment: 'test',
+      debug: true,
+      logLevel: 'info',
+      enabledExchanges: ['binance', 'kucoin'],
+      ...customParams.systemConfig
+    })
   };
+
+  return defaultParams;
 }
 
 /**
- * データベースサービスモックの作成
- * @returns {Object} モック化されたDBサービス
+ * DBサービスモックの作成
+ * @returns {object} モック化されたDBサービスオブジェクト
  */
 function createDbServiceMock() {
   return {
-    connect: jest.fn().mockResolvedValue(true),
-    disconnect: jest.fn().mockResolvedValue(true),
     query: jest.fn().mockResolvedValue([]),
-    insert: jest.fn().mockResolvedValue({ insertId: 1 }),
-    update: jest.fn().mockResolvedValue({ affectedRows: 1 }),
-    delete: jest.fn().mockResolvedValue({ affectedRows: 1 }),
-    getConnection: jest.fn().mockReturnValue({
-      beginTransaction: jest.fn().mockResolvedValue(true),
-      commit: jest.fn().mockResolvedValue(true),
-      rollback: jest.fn().mockResolvedValue(true),
-      release: jest.fn()
-    })
+    execute: jest.fn().mockResolvedValue({ affectedRows: 1 }),
+    insertOne: jest.fn().mockResolvedValue({ insertId: 1 }),
+    findOne: jest.fn().mockResolvedValue(null),
+    findMany: jest.fn().mockResolvedValue([]),
+    updateOne: jest.fn().mockResolvedValue({ affectedRows: 1 }),
+    deleteOne: jest.fn().mockResolvedValue({ affectedRows: 1 }),
+    transaction: jest.fn().mockImplementation(async (callback) => {
+      try {
+        return await callback();
+      } catch (error) {
+        throw error;
+      }
+    }),
+    close: jest.fn().mockResolvedValue(true)
   };
 }
 
 /**
  * 取引所APIサービスモックの作成
- * @param {Object} [customImplementation={}] - カスタムメソッド実装
- * @returns {Object} モック化された取引所APIサービス
+ * @param {object} customImplementation カスタム実装
+ * @returns {object} モック化された取引所APIオブジェクト
  */
 function createExchangeApiMock(customImplementation = {}) {
-  const defaultImpl = {
+  // 基本実装
+  const defaultImplementation = {
+    // 市場データ取得
     fetchTicker: jest.fn().mockResolvedValue({
       symbol: 'TEST/USDT',
-      last: 100,
-      bid: 99.5,
-      ask: 100.5,
+      bid: 100,
+      ask: 101,
+      last: 100.5,
+      volume: 1000,
       timestamp: Date.now()
     }),
     
-    fetchBalance: jest.fn().mockResolvedValue({
-      total: {
-        USDT: 10000,
-        TEST: 0
-      },
-      free: {
-        USDT: 10000,
-        TEST: 0
-      },
-      used: {
-        USDT: 0,
-        TEST: 0
-      }
+    fetchOrderBook: jest.fn().mockResolvedValue({
+      symbol: 'TEST/USDT',
+      bids: [[100, 10], [99, 20]],
+      asks: [[101, 15], [102, 25]],
+      timestamp: Date.now()
     }),
     
-    fetchCandles: jest.fn().mockResolvedValue([
-      {
-        timestamp: Date.now() - 60000 * 60,
-        open: 100,
-        high: 105,
-        low: 95,
-        close: 102,
-        volume: 1000
-      },
-      {
-        timestamp: Date.now() - 60000 * 30,
-        open: 102,
-        high: 107,
-        low: 101,
-        close: 105,
-        volume: 1500
-      },
-      {
-        timestamp: Date.now(),
-        open: 105,
-        high: 110,
-        low: 103,
-        close: 108,
-        volume: 2000
-      }
+    fetchOHLCV: jest.fn().mockResolvedValue([
+      [Date.now() - 60000, 100, 101, 99, 100.5, 100],
+      [Date.now(), 100.5, 102, 100, 101.5, 200]
     ]),
     
+    // 注文管理
     createOrder: jest.fn().mockResolvedValue({
-      id: `order-${Date.now()}`,
+      id: 'order123',
       symbol: 'TEST/USDT',
-      type: 'market',
+      type: 'limit',
       side: 'buy',
       price: 100,
       amount: 1,
-      timestamp: Date.now(),
-      status: 'open'
-    }),
-    
-    cancelOrder: jest.fn().mockResolvedValue({ id: 'order-123', status: 'canceled' }),
-    
-    fetchOrder: jest.fn().mockResolvedValue({
-      id: 'order-123',
-      symbol: 'TEST/USDT',
-      type: 'market',
-      side: 'buy',
-      price: 100,
-      amount: 1,
-      filled: 1,
-      remaining: 0,
-      status: 'closed',
+      status: 'open',
       timestamp: Date.now()
     }),
     
+    cancelOrder: jest.fn().mockResolvedValue({
+      id: 'order123',
+      status: 'canceled'
+    }),
+    
+    fetchOrder: jest.fn().mockResolvedValue({
+      id: 'order123',
+      symbol: 'TEST/USDT',
+      type: 'limit',
+      side: 'buy',
+      price: 100,
+      amount: 1,
+      filled: 0,
+      status: 'open',
+      timestamp: Date.now()
+    }),
+    
+    fetchOrders: jest.fn().mockResolvedValue([]),
     fetchOpenOrders: jest.fn().mockResolvedValue([]),
+    
+    // アカウント情報
+    fetchBalance: jest.fn().mockResolvedValue({
+      total: { USDT: 10000, BTC: 0.1 },
+      free: { USDT: 5000, BTC: 0.05 },
+      used: { USDT: 5000, BTC: 0.05 }
+    }),
     
     fetchPositions: jest.fn().mockResolvedValue([])
   };
   
-  // デフォルトとカスタム実装をマージ
-  return Object.assign({}, defaultImpl, customImplementation);
+  // ユーザー指定の実装とデフォルト実装をマージ
+  return {
+    ...defaultImplementation,
+    ...customImplementation
+  };
 }
 
 /**
- * すべてのサービスを標準的にモック化するヘルパー関数
+ * すべてのサービスに対して標準モックを登録するヘルパー関数
  * @param {jest} jestInstance - Jestインスタンス
  */
 function mockAllServices(jestInstance) {
-  // ロガーモック
-  jestInstance.mock('../../utils/logger.js', () => createLoggerMock());
-  
-  // パラメータサービスモック
-  jestInstance.mock('../../config/parameterService.js', () => ({
-    parameterService: createParameterServiceMock()
-  }));
-  
-  // データベースモック
-  jestInstance.mock('../../services/dbService.js', () => ({
-    dbService: createDbServiceMock()
-  }));
+  try {
+    // ロガー
+    jestInstance.mock('../../services/logger.js', () => ({
+      logger: createLoggerMock()
+    }));
+    
+    // パラメータサービス
+    jestInstance.mock('../../services/parameterService.js', () => ({
+      parameterService: createParameterServiceMock()
+    }));
+    
+    // DBサービス
+    jestInstance.mock('../../services/dbService.js', () => ({
+      dbService: createDbServiceMock()
+    }));
+    
+    // 取引所API
+    jestInstance.mock('../../services/exchangeService.js', () => ({
+      exchangeService: {
+        getExchange: jest.fn().mockReturnValue(createExchangeApiMock())
+      }
+    }));
+  } catch (error) {
+    console.error('サービスモックのセットアップに失敗しました:', error);
+  }
 }
 
+// CommonJSエクスポート
 module.exports = {
   createLoggerMock,
   createParameterServiceMock,

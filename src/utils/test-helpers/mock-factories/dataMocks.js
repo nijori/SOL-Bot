@@ -6,6 +6,9 @@
  * 一貫したモックパターンをプロジェクト全体で使用できるようにします。
  */
 
+// CommonJS環境でjestを取得
+const { jest } = require('@jest/globals');
+
 /**
  * DataRepositoryのモックを作成する
  * @param {Object} customImplementation カスタム実装を提供するオブジェクト
@@ -23,28 +26,46 @@ function createDataRepositoryMock(customImplementation = {}) {
     loadPerformanceMetrics: jest.fn().mockResolvedValue(null),
     deleteOldData: jest.fn().mockResolvedValue(true),
 
-    // 補助メソッド
-    getDataDirectories: jest.fn().mockReturnValue({
-      dataDir: 'data',
-      candlesDir: 'data/candles',
-      ordersDir: 'data/orders',
-      metricsDir: 'data/metrics'
+    // キャンドルデータ関連
+    saveCandlesBatch: jest.fn().mockResolvedValue(true),
+    loadCandlesByTimeframe: jest.fn().mockResolvedValue([]),
+    loadCandlesByTimeRange: jest.fn().mockResolvedValue([]),
+    loadLatestCandles: jest.fn().mockResolvedValue([]),
+    mergeCandleData: jest.fn().mockImplementation((existingCandles, newCandles) => {
+      return [...existingCandles, ...newCandles];
     }),
 
-    // クリーンアップ
-    close: jest.fn()
+    // 注文関連
+    saveOrderBatch: jest.fn().mockResolvedValue(true),
+    loadOrdersBySymbol: jest.fn().mockResolvedValue([]),
+    loadOrdersByTimeRange: jest.fn().mockResolvedValue([]),
+    loadLatestOrders: jest.fn().mockResolvedValue([]),
+    updateOrderStatus: jest.fn().mockResolvedValue(true),
+
+    // パフォーマンス指標
+    savePerformanceMetricsBatch: jest.fn().mockResolvedValue(true),
+    loadPerformanceMetricsByTimeRange: jest.fn().mockResolvedValue([]),
+    loadLatestPerformanceMetrics: jest.fn().mockResolvedValue(null),
+    calculateAggregateMetrics: jest.fn().mockResolvedValue({
+      totalProfit: 0,
+      winRate: 0,
+      averageProfit: 0,
+      maxDrawdown: 0,
+      sharpeRatio: 0,
+      tradesCount: 0
+    }),
+
+    // 管理・最適化
+    vacuumDatabase: jest.fn().mockResolvedValue(true),
+    optimizeStorage: jest.fn().mockResolvedValue(true),
+    validateData: jest.fn().mockResolvedValue({ valid: true, errors: [] })
   };
 
   // カスタム実装とデフォルト実装をマージ
-  const mockImplementation = { ...defaultImplementation, ...customImplementation };
-
-  // シングルトンインスタンスのモック
-  const mockInstance = {
-    ...mockImplementation,
-    getInstance: jest.fn().mockReturnValue(mockInstance)
+  return {
+    ...defaultImplementation,
+    ...customImplementation
   };
-
-  return mockInstance;
 }
 
 /**
@@ -55,18 +76,37 @@ function createDataRepositoryMock(customImplementation = {}) {
 function createParquetDataStoreMock(customImplementation = {}) {
   // デフォルト実装
   const defaultImplementation = {
-    saveCandles: jest.fn().mockResolvedValue(true),
-    loadCandles: jest.fn().mockResolvedValue([]),
-    queryCandles: jest.fn().mockResolvedValue([]),
-    saveMetrics: jest.fn().mockResolvedValue(true),
-    loadMetrics: jest.fn().mockResolvedValue(null),
-    deleteOldData: jest.fn().mockResolvedValue(true),
-    ensureDirectoriesExist: jest.fn(),
-    close: jest.fn()
+    // ファイル操作
+    writeData: jest.fn().mockResolvedValue(true),
+    readData: jest.fn().mockResolvedValue([]),
+    appendData: jest.fn().mockResolvedValue(true),
+    deleteData: jest.fn().mockResolvedValue(true),
+    
+    // クエリ操作
+    query: jest.fn().mockResolvedValue([]),
+    queryByTimeRange: jest.fn().mockResolvedValue([]),
+    queryLatest: jest.fn().mockResolvedValue([]),
+    
+    // メタデータ
+    getMetadata: jest.fn().mockResolvedValue({
+      rowCount: 0,
+      fileSize: 0,
+      lastUpdated: Date.now(),
+      schema: []
+    }),
+    
+    // ユーティリティ
+    optimizeFiles: jest.fn().mockResolvedValue(true),
+    validateSchema: jest.fn().mockResolvedValue(true),
+    backup: jest.fn().mockResolvedValue('/path/to/backup.parquet'),
+    close: jest.fn().mockResolvedValue(true)
   };
 
   // カスタム実装とデフォルト実装をマージ
-  return { ...defaultImplementation, ...customImplementation };
+  return {
+    ...defaultImplementation,
+    ...customImplementation
+  };
 }
 
 /**
@@ -77,22 +117,33 @@ function createParquetDataStoreMock(customImplementation = {}) {
 function createMultiTimeframeDataFetcherMock(customImplementation = {}) {
   // デフォルト実装
   const defaultImplementation = {
-    fetchAndSaveTimeframe: jest.fn().mockResolvedValue(true),
-    fetchAllTimeframes: jest.fn().mockResolvedValue({
-      '1m': true,
-      '15m': true,
-      '1h': true,
-      '1d': true
+    // データ取得
+    fetchDataForAllTimeframes: jest.fn().mockResolvedValue(true),
+    fetchDataForTimeframe: jest.fn().mockResolvedValue(true),
+    fetchHistoricalData: jest.fn().mockResolvedValue(true),
+    
+    // スケジュール管理
+    scheduleAllTimeframes: jest.fn().mockReturnValue(true),
+    scheduleTimeframe: jest.fn().mockReturnValue(true),
+    stopAllSchedules: jest.fn().mockReturnValue(true),
+
+    // ユーティリティ
+    getRegisteredTimeframes: jest.fn().mockReturnValue(['1m', '5m', '15m', '1h', '4h', '1d']),
+    getDataAvailability: jest.fn().mockReturnValue({
+      '1m': { from: Date.now() - 86400000, to: Date.now() },
+      '1h': { from: Date.now() - 86400000 * 30, to: Date.now() }
     }),
-    startAllScheduledJobs: jest.fn(),
-    startScheduledJob: jest.fn(), 
-    stopScheduledJob: jest.fn(),
-    stopAllScheduledJobs: jest.fn(),
-    close: jest.fn()
+    
+    // イベント
+    on: jest.fn(),
+    off: jest.fn()
   };
 
   // カスタム実装とデフォルト実装をマージ
-  return { ...defaultImplementation, ...customImplementation };
+  return {
+    ...defaultImplementation,
+    ...customImplementation
+  };
 }
 
 /**
@@ -103,63 +154,69 @@ function createMultiTimeframeDataFetcherMock(customImplementation = {}) {
 function createRealTimeDataProcessorMock(customImplementation = {}) {
   // デフォルト実装
   const defaultImplementation = {
-    processData: jest.fn(),
-    getBuffer: jest.fn().mockReturnValue([]),
-    clearBuffer: jest.fn(),
+    // データ処理
+    processData: jest.fn().mockResolvedValue(true),
+    processTickData: jest.fn().mockResolvedValue(true),
+    processTradeData: jest.fn().mockResolvedValue(true),
+    processOrderBookData: jest.fn().mockResolvedValue(true),
+    
+    // ストリーム管理
+    startStream: jest.fn().mockResolvedValue(true),
+    stopStream: jest.fn().mockResolvedValue(true),
+    restartStream: jest.fn().mockResolvedValue(true),
+    
+    // ユーティリティ
+    getActiveStreams: jest.fn().mockReturnValue(['BTC/USDT', 'ETH/USDT']),
+    getStreamStats: jest.fn().mockReturnValue({
+      messagesReceived: 100,
+      messagesProcessed: 100,
+      errorCount: 0,
+      lastMessageTime: Date.now()
+    }),
+    
+    // イベント
     on: jest.fn(),
-    off: jest.fn(),
-    emit: jest.fn(),
-    start: jest.fn(),
-    stop: jest.fn(),
-    removeAllListeners: jest.fn()
+    off: jest.fn()
   };
 
   // カスタム実装とデフォルト実装をマージ
-  return { ...defaultImplementation, ...customImplementation };
+  return {
+    ...defaultImplementation,
+    ...customImplementation
+  };
 }
 
 /**
- * すべてのデータ関連モジュールをモック化する
+ * すべてのデータモジュールに対して標準モックを登録するヘルパー関数
  * @param {jest} jestInstance - Jestインスタンス
  */
 function mockAllDataModules(jestInstance) {
-  const mockDataRepository = createDataRepositoryMock();
-  const mockParquetDataStore = createParquetDataStoreMock();
-  const mockMultiTimeframeDataFetcher = createMultiTimeframeDataFetcherMock();
-  const mockRealTimeDataProcessor = createRealTimeDataProcessorMock();
-
-  // シングルトンモック
-  jestInstance.mock('../../data/dataRepository.js', () => ({
-    DataRepository: jest.fn().mockImplementation(() => mockDataRepository),
-    dataRepository: mockDataRepository
-  }));
-
-  jestInstance.mock('../../data/parquetDataStore.js', () => ({
-    ParquetDataStore: jest.fn().mockImplementation(() => mockParquetDataStore)
-  }));
-
-  jestInstance.mock('../../data/MultiTimeframeDataFetcher.js', () => ({
-    MultiTimeframeDataFetcher: jest.fn().mockImplementation(() => mockMultiTimeframeDataFetcher),
-    Timeframe: {
-      MINUTE_1: '1m',
-      MINUTE_15: '15m',
-      HOUR_1: '1h',
-      DAY_1: '1d'
-    }
-  }));
-
-  jestInstance.mock('../../data/RealTimeDataProcessor.js', () => ({
-    RealTimeDataProcessor: jest.fn().mockImplementation(() => mockRealTimeDataProcessor),
-    RealTimeDataType: {
-      CANDLE: 'candle',
-      TRADE: 'trade',
-      ORDERBOOK: 'orderbook',
-      TICKER: 'ticker'
-    }
-  }));
+  try {
+    // データリポジトリ
+    jestInstance.mock('../../data/dataRepository.js', () => ({
+      DataRepository: jest.fn().mockImplementation(() => createDataRepositoryMock())
+    }));
+    
+    // Parquetデータストア
+    jestInstance.mock('../../data/parquetDataStore.js', () => ({
+      ParquetDataStore: jest.fn().mockImplementation(() => createParquetDataStoreMock())
+    }));
+    
+    // マルチタイムフレームデータフェッチャー
+    jestInstance.mock('../../data/multiTimeframeDataFetcher.js', () => ({
+      MultiTimeframeDataFetcher: jest.fn().mockImplementation(() => createMultiTimeframeDataFetcherMock())
+    }));
+    
+    // リアルタイムデータプロセッサー
+    jestInstance.mock('../../data/realTimeDataProcessor.js', () => ({
+      RealTimeDataProcessor: jest.fn().mockImplementation(() => createRealTimeDataProcessorMock())
+    }));
+  } catch (error) {
+    console.error('データモジュールモックのセットアップに失敗しました:', error);
+  }
 }
 
-// CommonJSモジュールエクスポート
+// CommonJSエクスポート
 module.exports = {
   createDataRepositoryMock,
   createParquetDataStoreMock,
