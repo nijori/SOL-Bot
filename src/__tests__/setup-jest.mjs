@@ -109,7 +109,7 @@ beforeAll(() => {
 });
 
 // afterEachのグローバルフック
-afterEach(() => {
+afterEach(async () => {
   // モックをリセット
   jest.clearAllMocks();
   jest.resetAllMocks();
@@ -125,9 +125,9 @@ afterEach(() => {
       activeIntervals.clear();
       
       resolve();
-    }, 100);
+    }, 500); // 100msから500msに延長
   });
-});
+}, 60000); // タイムアウト値を明示的に60秒に設定
 
 // afterAllのグローバルフック - タイムアウトを30秒に延長
 afterAll(async () => {
