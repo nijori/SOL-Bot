@@ -12,6 +12,23 @@ import { ExchangeService } from '../../services/exchangeService';
 import { OrderManagementSystem } from '../../core/orderManagementSystem';
 import { Order, OrderSide, OrderType, OrderStatus, Position } from '../../core/types';
 
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
+
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
+
 // モックの作成
 jest.mock('../../services/exchangeService.js');
 jest.mock('../../core/orderManagementSystem.js');
@@ -24,13 +41,22 @@ describe('UnifiedOrderManager', () => {
   beforeEach(() => {
     // モックのリセット
     jest.clearAllMocks();
+    standardBeforeEach();
+    
+    // グローバルリソーストラッカーの初期化（必要な場合）
+    if (!global.__RESOURCE_TRACKER) {
+      global.__RESOURCE_TRACKER = new ResourceTracker();
+    }
 
     // ExchangeServiceモックの作成
     mockExchangeService1 = new ExchangeService() as jest.Mocked<ExchangeService>;
     mockExchangeService2 = new ExchangeService() as jest.Mocked<ExchangeService>;
 
     // UnifiedOrderManagerのインスタンス作成
-    unifiedManager = new UnifiedOrderManager();
+    unifiedManager = new UnifiedOrderManager([
+      mockExchangeService1,
+      mockExchangeService2
+    ]);
 
     // モックメソッドの設定
     mockExchangeService1.getExchangeName = jest.fn().mockReturnValue('Binance');
@@ -89,6 +115,14 @@ describe('UnifiedOrderManager', () => {
       .mockImplementation((orderId: string) => {
         return orderId === 'order1';
       });
+  });
+
+  afterEach(async () => {
+    await standardAfterEach();
+  });
+
+  afterAll(async () => {
+    await standardAfterAll();
   });
 
   describe('基本機能テスト', () => {

@@ -9,6 +9,23 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
 import { SymbolInfoService, SymbolInfo } from '../../services/symbolInfoService';
 import { ExchangeService } from '../../services/exchangeService';
 
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
+
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
+
 // ExchangeServiceのモック
 jest.mock('../../services/exchangeService.js');
 const MockedExchangeService = ExchangeService as jest.MockedClass<typeof ExchangeService>;
@@ -20,6 +37,86 @@ jest.mock('../../utils/logger.js', () => ({
   warn: jest.fn(),
   error: jest.fn()
 }));
+
+// モック設定
+const mockExchange = {
+  loadMarkets: jest.fn(),
+  markets: {
+    'BTC/USDT': {
+      id: 'BTCUSDT',
+      symbol: 'BTC/USDT',
+      base: 'BTC',
+      quote: 'USDT',
+      baseId: 'BTC',
+      quoteId: 'USDT',
+      precision: {
+        amount: 8,
+        price: 2
+      },
+      limits: {
+        amount: {
+          min: 0.0001,
+          max: 1000
+        },
+        price: {
+          min: 0.01,
+          max: 1000000
+        },
+        cost: {
+          min: 10
+        }
+      },
+      info: {
+        baseAssetPrecision: 8,
+        quoteAssetPrecision: 2,
+        tickSize: '0.01',
+        stepSize: '0.00001',
+        maker: 0.001,
+        taker: 0.001
+      }
+    },
+    'ETH/USDT': {
+      id: 'ETHUSDT',
+      symbol: 'ETH/USDT',
+      base: 'ETH',
+      quote: 'USDT',
+      baseId: 'ETH',
+      quoteId: 'USDT',
+      precision: {
+        amount: 5,
+        price: 2
+      },
+      limits: {
+        amount: {
+          min: 0.001,
+          max: 5000
+        },
+        price: {
+          min: 0.01,
+          max: 100000
+        },
+        cost: {
+          min: 5
+        }
+      },
+      info: {
+        baseAssetPrecision: 5,
+        quoteAssetPrecision: 2,
+        tickSize: '0.01',
+        stepSize: '0.001',
+        maker: 0.001,
+        taker: 0.001
+      }
+    }
+  },
+  fees: {
+    trading: {
+      maker: 0.001,
+      taker: 0.001
+    }
+  },
+  name: 'Binance'
+};
 
 describe('SymbolInfoService', () => {
   let symbolInfoService: SymbolInfoService;
@@ -49,24 +146,36 @@ describe('SymbolInfoService', () => {
     }
   };
 
-  // テスト前の準備
+  // テスト前に毎回モックをリセットし、リソーストラッカーを準備
   beforeEach(() => {
     jest.clearAllMocks();
+    standardBeforeEach();
+    
+    // グローバルリソーストラッカーの初期化（必要な場合）
+    if (!global.__RESOURCE_TRACKER) {
+      global.__RESOURCE_TRACKER = new ResourceTracker();
+    }
 
     // ExchangeServiceのモックを設定
     exchangeService = new MockedExchangeService() as jest.Mocked<ExchangeService>;
     exchangeService.getMarketInfo = jest.fn().mockResolvedValue(mockMarketInfo);
 
     // SymbolInfoServiceのインスタンスを作成
-    symbolInfoService = new SymbolInfoService(exchangeService);
+    symbolInfoService = new SymbolInfoService(mockExchange);
 
     // タイマーをモック
     jest.useFakeTimers();
   });
 
-  // テスト後の後処理
-  afterEach(() => {
+  // 各テスト後にリソース解放
+  afterEach(async () => {
+    await standardAfterEach();
     jest.useRealTimers();
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    await standardAfterAll();
   });
 
   describe('getSymbolInfo', () => {

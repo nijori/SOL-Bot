@@ -3,6 +3,62 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
 import { executeMeanRevertStrategy } from '../../strategies/meanRevertStrategy';
 import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
 
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
+
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
+
+// モックの設定
+jest.mock('../../utils/atrUtils', () => ({
+  calculateATR: jest.fn(() => 2.0),
+  getValidStopDistance: jest.fn((price, atr) => atr * 1.5)
+}))
+
+jest.mock('../../utils/positionSizing', () => ({
+  calculateRiskBasedPositionSize: jest.fn(() => 100)
+}))
+
+// テクニカル指標のモック
+jest.mock('technicalindicators', () => {
+  return {
+    ATR: {
+      calculate: jest.fn(() => [2.0])
+    },
+    SMA: {
+      calculate: jest.fn((input) => {
+        // 価格データがあれば単純な平均を返す
+        if (input && input.values && input.values.length > 0) {
+          const sum = input.values.reduce((a: number, b: number) => a + b, 0)
+          return [sum / input.values.length]
+        }
+        return [100] // デフォルト値
+      })
+    },
+    BollingerBands: {
+      calculate: jest.fn(() => [{
+        upper: 105,
+        middle: 100,
+        lower: 95
+      }])
+    },
+    RSI: {
+      calculate: jest.fn(() => [50])
+    }
+  }
+})
+
 // テスト用のより堅牢なモックデータファクトリ
 class CandleFactory {
   /**
@@ -110,6 +166,27 @@ class CandleFactory {
 }
 
 describe('MeanRevertStrategy Tests', () => {
+  // テスト前に毎回モックをリセットし、リソーストラッカーを準備
+  beforeEach(() => {
+    jest.clearAllMocks();
+    standardBeforeEach();
+    
+    // グローバルリソーストラッカーの初期化（必要な場合）
+    if (!global.__RESOURCE_TRACKER) {
+      global.__RESOURCE_TRACKER = new ResourceTracker();
+    }
+  });
+
+  // 各テスト後にリソース解放
+  afterEach(async () => {
+    await standardAfterEach();
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    await standardAfterAll();
+  });
+
   // データ不足時のテスト
   test('should return empty signals when insufficient data', () => {
     // Arrange

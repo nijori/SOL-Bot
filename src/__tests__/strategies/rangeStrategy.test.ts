@@ -2,6 +2,24 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
 
 import { executeRangeStrategy } from '../../strategies/rangeStrategy';
 import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
+import * as rangeStrategyModule from '../../strategies/rangeStrategy';
+
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
+
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
 
 // モックの設定はファイルの先頭で行う必要があります
 jest.mock('technicalindicators', () => ({
@@ -76,6 +94,36 @@ jest.mock('../../config/parameters.js', () => ({
 }));
 
 describe('executeRangeStrategy', () => {
+  // テスト前に毎回モックをリセットし、リソーストラッカーを準備
+  beforeEach(() => {
+    jest.clearAllMocks();
+    standardBeforeEach();
+    
+    // グローバルリソーストラッカーの初期化（必要な場合）
+    if (!global.__RESOURCE_TRACKER) {
+      global.__RESOURCE_TRACKER = new ResourceTracker();
+    }
+
+    // モック関数を設定
+    const atrMock = require('technicalindicators').ATR.calculate;
+    const highestMock = require('technicalindicators').Highest.calculate;
+    const lowestMock = require('technicalindicators').Lowest.calculate;
+
+    atrMock.mockReturnValue([15]);
+    highestMock.mockReturnValue([1050]);
+    lowestMock.mockReturnValue([950]);
+  });
+
+  // 各テスト後にリソース解放
+  afterEach(async () => {
+    await standardAfterEach();
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    await standardAfterAll();
+  });
+
   // テスト用のモックデータを作成する関数
   function createMockCandles(
     length: number,
@@ -121,20 +169,6 @@ describe('executeRangeStrategy', () => {
 
     return candles;
   }
-
-  // 各テストの前にモックをリセット
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    // モック関数を設定
-    const atrMock = require('technicalindicators').ATR.calculate;
-    const highestMock = require('technicalindicators').Highest.calculate;
-    const lowestMock = require('technicalindicators').Lowest.calculate;
-
-    atrMock.mockReturnValue([15]);
-    highestMock.mockReturnValue([1050]);
-    lowestMock.mockReturnValue([950]);
-  });
 
   test('データが不足している場合は空のシグナルを返す', () => {
     const candles = createMockCandles(10, 1000, 'range');

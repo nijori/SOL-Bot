@@ -5,6 +5,23 @@ import * as trendFollowStrategyModule from '../../strategies/trendFollowStrategy
 import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/parabolicSAR';
 import { calculateATR, getValidStopDistance } from '../../utils/atrUtils';
 
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
+
+// global型拡張
+declare global {
+  namespace NodeJS {
+    interface Global {
+      __RESOURCE_TRACKER: any;
+    }
+  }
+}
+
 // モック設定
 jest.mock('../../indicators/parabolicSAR.js', () => {
   // 実際のcalculateParabolicSAR関数を保持
@@ -31,9 +48,25 @@ jest.mock('../../utils/positionSizing.js', () => {
 });
 
 describe('TrendFollowStrategy', () => {
-  // モックをリセット
+  // テスト前に毎回モックをリセットし、リソーストラッカーを準備
   beforeEach(() => {
     jest.clearAllMocks();
+    standardBeforeEach();
+    
+    // グローバルリソーストラッカーの初期化（必要な場合）
+    if (!global.__RESOURCE_TRACKER) {
+      global.__RESOURCE_TRACKER = new ResourceTracker();
+    }
+  });
+
+  // 各テスト後にリソース解放
+  afterEach(async () => {
+    await standardAfterEach();
+  });
+
+  // すべてのテスト完了後に最終クリーンアップを実行
+  afterAll(async () => {
+    await standardAfterAll();
   });
 
   // テスト用のキャンドルデータを生成
