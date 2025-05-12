@@ -25,12 +25,15 @@ jest.mock('../../strategies/trendFollowStrategy.js');
 // jest.mock('../../strategies/meanReversionStrategy.js');
 // jest.mock('../../strategies/DonchianBreakoutStrategy.js');
 
+// ロガーをモック化
 jest.mock('../../utils/logger.js', () => ({
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn()
 }));
+
+// メモリモニターをモック化
 jest.mock('../../utils/memoryMonitor.js', () => ({
   MemoryMonitor: jest.fn().mockImplementation(() => ({
     startMonitoring: jest.fn(),
@@ -48,7 +51,12 @@ import { TradingEngine } from '../../core/tradingEngine';
 import { OrderManagementSystem } from '../../core/orderManagementSystem';
 
 // ロガーのモックを取得
-const mockLogger = jest.requireMock('../../utils/logger');
+const mockLogger = jest.requireMock('../../utils/logger') as {
+  debug: jest.Mock;
+  info: jest.Mock;
+  warn: jest.Mock;
+  error: jest.Mock;
+};
 
 // テスト用のモックデータを生成する関数
 function generateMockCandles(
@@ -176,9 +184,9 @@ const mockExchangeService = {
 };
 
 // ExchangeServiceモックの設定
-jest
-  .mocked(ExchangeService)
-  .mockImplementation(() => mockExchangeService as unknown as ExchangeService);
+(ExchangeService as unknown as jest.Mock).mockImplementation(() => 
+  mockExchangeService as unknown as ExchangeService
+);
 
 // OMSのモック実装を作成
 const mockOmsInstance = {
@@ -191,9 +199,9 @@ const mockOmsInstance = {
   processFilledOrder: jest.fn()
 };
 
-jest
-  .mocked(OrderManagementSystem)
-  .mockImplementation(() => mockOmsInstance as unknown as OrderManagementSystem);
+(OrderManagementSystem as unknown as jest.Mock).mockImplementation(() => 
+  mockOmsInstance as unknown as OrderManagementSystem
+);
 
 // TradingEngineのモック実装
 const mockTradingEngineInstance = {
@@ -202,9 +210,9 @@ const mockTradingEngineInstance = {
   getCompletedTrades: jest.fn().mockReturnValue([])
 };
 
-jest
-  .mocked(TradingEngine)
-  .mockImplementation(() => mockTradingEngineInstance as unknown as TradingEngine);
+(TradingEngine as unknown as jest.Mock).mockImplementation(() => 
+  mockTradingEngineInstance as unknown as TradingEngine
+);
 
 // BacktestRunnerをモック
 const mockRun = jest.fn().mockImplementation(async function (this: any) {
@@ -221,8 +229,10 @@ const mockRun = jest.fn().mockImplementation(async function (this: any) {
   // ボラティリティに応じてトレード数を変える
   const tradeCount = Math.floor(20 + volatility * 1000);
 
+  // トレード配列を生成
   const trades = Array.from({ length: tradeCount }, (_, i) => ({
-    id: `trade-${i}`,
+    id: `trade-${symbol}-${i}`,
+    symbol,
     entryTime: new Date(Date.now() - (10 - i) * 3600000).toISOString(),
     exitTime: new Date(Date.now() - (9 - i) * 3600000).toISOString(),
     entryPrice:
@@ -247,6 +257,12 @@ const mockRun = jest.fn().mockImplementation(async function (this: any) {
     size: symbol === 'BTC/USDT' ? 0.1 : symbol === 'ETH/USDT' ? 1 : symbol === 'SOL/USDT' ? 10 : 100
   }));
 
+  // エクイティ履歴を生成
+  const equity = Array.from({ length: 100 }, (_, i) => ({
+    timestamp: new Date(Date.now() - (100 - i) * 3600000).toISOString(),
+    equity: this.config.initialBalance * (1 + (i / 100) * volatility * 10)
+  }));
+
   return {
     metrics: {
       totalReturn: volatility * 1000,
@@ -264,12 +280,9 @@ const mockRun = jest.fn().mockImplementation(async function (this: any) {
       processingTimeMS: 1000
     },
     trades,
-    equity: Array.from({ length: 100 }, (_, i) => ({
-      timestamp: new Date(Date.now() - (100 - i) * 3600000).toISOString(),
-      equity: 10000 * (1 + (i / 100) * volatility * 10)
-    })),
+    equity,
     parameters: {
-      ...this.config.parameters,
+      ...(this.config.parameters || {}),
       symbol: this.config.symbol,
       slippage: this.config.slippage,
       commissionRate: this.config.commissionRate
@@ -280,7 +293,7 @@ const mockRun = jest.fn().mockImplementation(async function (this: any) {
 // BacktestRunnerクラスのモック実装をセット
 jest.mocked(BacktestRunner).mockImplementation(function (this: any, config: BacktestConfig) {
   this.config = config;
-  this.run = mockRun;
+  this.run = mockRun.bind(this);
   return this;
 });
 
@@ -508,5 +521,60 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     expect(aggressiveResult.metrics.maxDrawdown).toBeGreaterThan(
       conservativeResult.metrics.maxDrawdown * 0.5
     );
+  });
+
+  test('マルチシンボルバックテストを統合して実行できること', async () => {
+    // MultiSymbolBacktestRunnerを直接インポート
+    const { MultiSymbolBacktestRunner } = require('../../core/multiSymbolBacktestRunner');
+    
+    // 設定
+    const config = {
+      symbols: ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'],
+      timeframeHours: 1,
+      startDate: '2023-01-01T00:00:00Z',
+      endDate: '2023-01-05T00:00:00Z',
+      initialBalance: 10000,
+      allocationStrategy: 'EQUAL',
+      quiet: true
+    };
+    
+    // MultiSymbolBacktestRunnerを初期化して実行
+    const runner = new MultiSymbolBacktestRunner(config);
+    const result = await runner.run();
+    
+    // 基本的な検証
+    expect(result).toBeDefined();
+    expect(result.symbolResults).toBeDefined();
+    expect(Object.keys(result.symbolResults)).toHaveLength(3);
+    
+    // 各シンボルの結果が含まれていることを確認
+    expect(result.symbolResults['BTC/USDT']).toBeDefined();
+    expect(result.symbolResults['ETH/USDT']).toBeDefined();
+    expect(result.symbolResults['SOL/USDT']).toBeDefined();
+    
+    // 各シンボルの値が期待通りであることを確認
+    const btcResult = result.symbolResults['BTC/USDT'];
+    const ethResult = result.symbolResults['ETH/USDT'];
+    const solResult = result.symbolResults['SOL/USDT'];
+    
+    // BTC/USDTのボラティリティが最も低い = リターンが最も低い
+    expect(btcResult.metrics.totalReturn).toBeLessThan(ethResult.metrics.totalReturn);
+    expect(ethResult.metrics.totalReturn).toBeLessThan(solResult.metrics.totalReturn);
+    
+    // SOL/USDTのボラティリティが最も高い = ドローダウンが最も高い
+    expect(solResult.metrics.maxDrawdown).toBeGreaterThan(ethResult.metrics.maxDrawdown);
+    expect(ethResult.metrics.maxDrawdown).toBeGreaterThan(btcResult.metrics.maxDrawdown);
+    
+    // ポートフォリオレベルの値も確認
+    expect(result.portfolioMetrics).toBeDefined();
+    expect(result.portfolioMetrics.totalReturn).toBeDefined();
+    expect(result.portfolioMetrics.maxDrawdown).toBeDefined();
+    
+    // エクイティ履歴のフォーマットを確認
+    expect(result.equity).toBeDefined();
+    expect(result.equity.length).toBeGreaterThan(0);
+    expect(result.equity[0].combinedEquity).toBeDefined();
+    expect(result.equity[0].symbolEquity).toBeDefined();
+    expect(Object.keys(result.equity[0].symbolEquity)).toHaveLength(3);
   });
 });
