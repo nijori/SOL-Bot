@@ -12,12 +12,13 @@ jest.mock('ccxt', () => {
   // モックの取引所インスタンスを作成する関数
   const createMockExchange = () => {
     return {
-      fetchOHLCV: jest.fn().mockImplementation(async (symbol, timeframe, since, limit) => {
+      fetchOHLCV: jest.fn().mockImplementation(async (symbol: string, timeframe: string, since?: number, limit?: number) => {
         // モックのOHLCVデータを返す
-        const baseTimestamp = Date.now() - limit * getTimeframeMilliseconds(timeframe);
-        const ohlcv = [];
+        const actualLimit = limit || 100;
+        const baseTimestamp = Date.now() - actualLimit * getTimeframeMilliseconds(timeframe);
+        const ohlcv: number[][] = [];
 
-        for (let i = 0; i < limit; i++) {
+        for (let i = 0; i < actualLimit; i++) {
           const timestamp = baseTimestamp + i * getTimeframeMilliseconds(timeframe);
           ohlcv.push([
             timestamp, // timestamp
@@ -74,6 +75,9 @@ jest.mock('node-cron', () => {
 
 describe('MultiTimeframeDataFetcher', () => {
   let fetcher: MultiTimeframeDataFetcher;
+  let mockBinanceExchange: { fetchOHLCV: jest.Mock };
+  let mockKucoinExchange: { fetchOHLCV: jest.Mock };
+  let mockBybitExchange: { fetchOHLCV: jest.Mock };
 
   beforeEach(() => {
     // テスト前の準備
@@ -91,6 +95,17 @@ describe('MultiTimeframeDataFetcher', () => {
     process.env.USE_PARQUET = 'true';
     process.env.TRADING_PAIR = 'SOL/USDT';
 
+    // モック交換所インスタンスへの参照を保存
+    const mockCcxt = ccxt as unknown as { 
+      binance: jest.Mock, 
+      kucoin: jest.Mock, 
+      bybit: jest.Mock 
+    };
+    
+    mockBinanceExchange = mockCcxt.binance() as { fetchOHLCV: jest.Mock };
+    mockKucoinExchange = mockCcxt.kucoin() as { fetchOHLCV: jest.Mock };
+    mockBybitExchange = mockCcxt.bybit() as { fetchOHLCV: jest.Mock };
+
     // フェッチャーをインスタンス化
     fetcher = new MultiTimeframeDataFetcher();
   });
@@ -98,6 +113,7 @@ describe('MultiTimeframeDataFetcher', () => {
   afterEach(() => {
     // テスト後のクリーンアップ
     fetcher.close();
+    jest.restoreAllMocks();
   });
 
   test('正しく初期化されること', () => {
@@ -109,12 +125,11 @@ describe('MultiTimeframeDataFetcher', () => {
     const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
 
     // 取引所からデータを取得することを確認
-    const binanceMock = (ccxt as any).binance;
-    expect(binanceMock).toHaveBeenCalled();
+    const mockCcxt = ccxt as unknown as { binance: jest.Mock };
+    expect(mockCcxt.binance).toHaveBeenCalled();
 
     // fetchOHLCVが呼ばれたことを確認
-    const binanceInstance = binanceMock.mock.results[0].value;
-    expect(binanceInstance.fetchOHLCV).toHaveBeenCalledWith(
+    expect(mockBinanceExchange.fetchOHLCV).toHaveBeenCalledWith(
       'SOL/USDT',
       Timeframe.HOUR_1,
       undefined,
@@ -138,9 +153,20 @@ describe('MultiTimeframeDataFetcher', () => {
     expect(results[Timeframe.HOUR_1]).toBe(true);
     expect(results[Timeframe.DAY_1]).toBe(true);
 
-    // すべてのタイムフレームでfetchOHLCVが呼ばれたことを確認
-    const binanceInstance = (ccxt as any).binance.mock.results[0].value;
-    expect(binanceInstance.fetchOHLCV).toHaveBeenCalledTimes(12); // 3取引所 × 4タイムフレーム
+    // 各取引所でfetchOHLCVが呼ばれたことを確認
+    const timeframes = [Timeframe.MINUTE_1, Timeframe.MINUTE_15, Timeframe.HOUR_1, Timeframe.DAY_1];
+    
+    expect(mockBinanceExchange.fetchOHLCV).toHaveBeenCalledTimes(4); // 各タイムフレームで1回ずつ
+    
+    // 少なくとも各タイムフレームで1回ずつ呼ばれていることを確認
+    timeframes.forEach(timeframe => {
+      expect(mockBinanceExchange.fetchOHLCV).toHaveBeenCalledWith(
+        'SOL/USDT',
+        timeframe,
+        undefined,
+        expect.any(Number)
+      );
+    });
   });
 
   test('スケジュールジョブを開始できること', () => {
@@ -203,18 +229,14 @@ describe('MultiTimeframeDataFetcher', () => {
 
   test('取得エラー時にもクラッシュせずにfalseを返すこと', async () => {
     // fetchOHLCVを一時的にエラーを投げるようにオーバーライド
-    const binanceInstance = (ccxt as any).binance.mock.results[0].value;
-    const originalFetchOHLCV = binanceInstance.fetchOHLCV;
-
-    binanceInstance.fetchOHLCV = jest.fn().mockRejectedValue(new Error('API Error'));
+    mockBinanceExchange.fetchOHLCV.mockRejectedValueOnce(new Error('API Error'));
+    mockKucoinExchange.fetchOHLCV.mockRejectedValueOnce(new Error('API Error'));
+    mockBybitExchange.fetchOHLCV.mockRejectedValueOnce(new Error('API Error'));
 
     // データ取得を実行
     const result = await fetcher.fetchAndSaveTimeframe(Timeframe.MINUTE_1);
 
     // 結果が失敗を示していることを確認
     expect(result).toBe(false);
-
-    // モックを元に戻す
-    binanceInstance.fetchOHLCV = originalFetchOHLCV;
   });
 });
