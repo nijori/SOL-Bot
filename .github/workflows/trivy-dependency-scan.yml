@@ -151,7 +151,7 @@ jobs:
 
       # 成果物のアップロード
       - name: Upload vulnerability report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-vulnerability-report
           path: trivy-results.json
