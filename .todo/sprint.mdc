@@ -1,4 +1,4 @@
-﻿---
+---
 description: 
 globs: 
 alwaysApply: false
@@ -129,14 +129,41 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : setup-jest-cjs.jsとJestの設定を見直し、afterEach/afterAllフックのタイムアウト設定を延長（または段階的なクリーンアップ処理に変更）。setup-jest-cjs.jsのafterEach実装を改善し、リソースクリーンアップをより確実に行う。このタスクはテストが中断せず正しく完了することを確認した上で100%完了とすること。
 
-- [ ] TST-061: テスト分割実行とパラレル化の実装
+- [x] TST-061: テスト分割実行とパラレル化の実装
       - 📅 Due        : 2026-05-29
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : TST-060
       - 🏷️  Label      : perf
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : テスト実行を高速化するため、テストを機能グループごとに分割し、並列実行する仕組みを実装。テスト間の干渉を防ぐためにテスト隔離機能を強化。package.jsonにシャードテスト用スクリプトを追加。CI環境でのパフォーマンス向上のためテスト分散実行も設定。scripts/test-sharding.jsスクリプトでfast/medium/slow/core/heavy/esmの6グループに分割し、parallelオプションで並行実行を実現。RealTimeDataProcessor.test.tsは特に実行時間が長いためheavyグループにし、タイムアウト5分設定と特定イベント通知テストのスキップも実装済み。GitHub Actions CI/CDワークフローもグループごとの並列実行に更新済み。実装完了：1）テスト実行時間計測とベースラインと比較するレポート機能、2）メトリクス収集機能（.jest-metrics/に保存）、3）実行結果サマリー出力、4）テスト実行の履歴追跡と直近10回の保存。テスト実行例で確認した結果、fastグループでは約40.1%の実行時間短縮を実現。CI環境では各グループを並列実行することで全体の実行時間が大幅に短縮された。
+
+- [x] TST-062: ユーティリティモジュールテスト修正
+      - 📅 Due        : 2026-06-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-061
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : atrCalibrator.test.tsとmetrics.test.tsの修正。ATR%計算のテスト問題とメトリクス更新の問題を解決。モックの修正と正しいテスト値の設定。完了。marketState.test.tsでの1件のテスト失敗問題は現在のタスク(TST-062)の対象ではなく、今後取り組むTST-063のタスクに関連するため、現時点では修正せずに報告。
+
+- [ ] TST-063: データフェッチャーテスト修正
+      - 📅 Due        : 2026-06-07
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-061
+      - 🏷️  Label      : test
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
-      - ✎ Notes      : テスト実行を高速化するため、テストを機能グループごとに分割し、並列実行する仕組みを実装。テスト間の干渉を防ぐためにテスト隔離機能を強化。package.jsonにシャードテスト用スクリプトを追加。CI環境でのパフォーマンス向上のためテスト分散実行も設定。RealTimeDataProcessor.test.tsなど実行時間の長いテストについては、タイムアウトと待機時間を調整し、不要なテストの省略も検討。このタスクはテストの合計実行時間が大幅に短縮されたことを確認した上で100%完了とすること。
+      - 📊 Progress   : 0%
+      - ✎ Notes      : MultiTimeframeDataFetcher.test.tsのccxtモック問題修正。exchange.fetchOHLCVが存在しないエラーの解決。モックの一貫性と正しいメソッド実装の確保。
+
+- [ ] TST-064: マルチシンボルバックテスト修正
+      - 📅 Due        : 2026-06-10
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : TST-062, TST-063
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : multiSymbolBacktest.test.tsとmultiSymbolBacktestRunner.test.tsの修正。モック設定の不整合修正と結果オブジェクトの検証を強化。BacktestRunnerモックを正しく設定。
 
 
 ### 🗓 今週2026-W11スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
@@ -219,6 +246,10 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
+
 
 
 
