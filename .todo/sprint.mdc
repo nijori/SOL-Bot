@@ -71,13 +71,13 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。todoValidator.test.ts、parameterService.test.ts、trendFollowStrategy.test.ts、rangeStrategy.test.ts、meanRevertStrategy.test.ts、UnifiedOrderManager.test.ts、symbolInfoService.test.tsに実装完了。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
 
-- [ ] TST-054: CI/CDパイプラインのテスト安定性強化
+- [x] TST-054: CI/CDパイプラインのテスト安定性強化
       - 📅 Due        : 2026-05-18
       - 👤 Owner      : @nijor
       - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : GitHub ActionsのESMテスト用ワークフローの強化。タイムアウト設定の最適化、テスト失敗時の詳細ログ収集。テスト用のキャッシュ戦略改善。forceExit、detectOpenHandlesなどのオプションの統一。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : GitHub ActionsのESMテスト用ワークフローを強化。タイムアウト設定を15分に延長し、テスト実行の安定性を向上。テスト失敗時の詳細ログを自動収集し、デバッグを容易化。キャッシュ戦略を改善しテスト速度を向上。forceExit、detectOpenHandlesなどのオプションを統一。run-esm-tests-safely.jsスクリプトを改良してログ機能とエラーハンドリングを強化。リソースクリーンアップ処理を強化してメモリリークを防止。
 
 - [ ] TST-055: モジュールモックの一貫性向上
       - 📅 Due        : 2026-05-22
@@ -168,6 +168,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
