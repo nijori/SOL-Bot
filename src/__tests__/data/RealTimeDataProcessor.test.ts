@@ -4,6 +4,7 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * RealTimeDataProcessor テスト
  *
  * リアルタイムデータ処理クラスのテスト
+ * TST-061: テスト分割実行とパラレル化の実装
  */
 
 import {
@@ -20,6 +21,9 @@ jest.mock('../../utils/logger.js', () => ({
   warn: jest.fn(),
   error: jest.fn()
 }));
+
+// TST-061: グローバルタイムアウトの延長
+jest.setTimeout(30000);
 
 describe('RealTimeDataProcessor', () => {
   let processor: RealTimeDataProcessor;
@@ -165,13 +169,16 @@ describe('RealTimeDataProcessor', () => {
   });
 
   describe('イベント通知', () => {
-    it('データ処理後にイベントが発火すること', (done) => {
-      // イベントリスナーを追加
-      processor.on('data-trade', (event) => {
-        expect(event.symbol).toBe('BTC/USDT');
-        expect(event.data.length).toBe(1);
-        expect(event.data[0].data.price).toBe(40000);
-        done();
+    // TST-061: done()ベースのテストをPromiseベースに変更
+    it('データ処理後にイベントが発火すること', async () => {
+      // Promiseを使用した処理
+      const eventPromise = new Promise<void>((resolve) => {
+        processor.on('data-trade', (event) => {
+          expect(event.symbol).toBe('BTC/USDT');
+          expect(event.data.length).toBe(1);
+          expect(event.data[0].data.price).toBe(40000);
+          resolve();
+        });
       });
 
       // データを追加
@@ -179,14 +186,20 @@ describe('RealTimeDataProcessor', () => {
 
       // タイマーを進める
       jest.advanceTimersByTime(150);
+      
+      // イベント発火を待機
+      return eventPromise;
     });
 
-    it('特定のデータタイプのイベントが発火すること', (done) => {
-      // tradeイベントリスナー
-      processor.on('trades', (event) => {
-        expect(event.symbol).toBe('BTC/USDT');
-        expect(event.data.length).toBe(1);
-        done();
+    // TST-061: done()ベースのテストをPromiseベースに変更
+    it('特定のデータタイプのイベントが発火すること', async () => {
+      // Promiseを使用した処理
+      const eventPromise = new Promise<void>((resolve) => {
+        processor.on('trades', (event) => {
+          expect(event.symbol).toBe('BTC/USDT');
+          expect(event.data.length).toBe(1);
+          resolve();
+        });
       });
 
       // データを追加
@@ -194,79 +207,75 @@ describe('RealTimeDataProcessor', () => {
 
       // タイマーを進める
       jest.advanceTimersByTime(150);
+      
+      // イベント発火を待機
+      return eventPromise;
     });
 
-    it('キャンドルイベントが発火すること', (done) => {
-      // テストのタイムアウトを延長
-      jest.setTimeout(10000);
-
-      // candle-updateイベントリスナー
-      processor.on('candle-update', (candleData) => {
-        expect(candleData.symbol).toBe('BTC/USDT');
-        expect(candleData.timeframe).toBe('1m');
-        expect(candleData.candle.open).toBe(40000);
-        done(); // イベントが発火したらすぐにテスト完了
+    // TST-061: done()ベースのテストをPromiseベースに変更
+    it('キャンドルイベントが発火すること', async () => {
+      // Promiseを使用した処理
+      const eventPromise = new Promise<void>((resolve) => {
+        processor.on('candle-update', (candleData) => {
+          expect(candleData.symbol).toBe('BTC/USDT');
+          expect(candleData.timeframe).toBe('1m');
+          expect(candleData.candle.open).toBe(40000);
+          resolve();
+        });
       });
 
       // トレードデータを追加
       const tradeData = createMockTradeData('BTC/USDT', 40000, 0.1);
       processor.processData(tradeData);
 
-      // タイマーを進める - 十分な時間を確保
+      // タイマーを進める
       jest.advanceTimersByTime(200);
+      
+      // イベント発火を待機
+      return eventPromise;
     });
 
-    it('新しいキャンドルが生成されると完了イベントが発火すること', (done) => {
-      // テストのタイムアウトを延長
-      jest.setTimeout(10000);
-
+    // TST-061: done()ベースの複雑なテストをPromiseベースに変更
+    it('新しいキャンドルが生成されると完了イベントが発火すること', async () => {
       let updateEventReceived = false;
       let completeEventReceived = false;
-      let doneExecuted = false;
 
-      // テストを一度だけ完了させる関数
-      const finishTest = () => {
-        if (!doneExecuted && updateEventReceived && completeEventReceived) {
-          doneExecuted = true;
-          done();
-        }
-      };
-
-      // 更新イベントをリスン
-      processor.on('candle-update', () => {
-        updateEventReceived = true;
-        finishTest();
+      // 2つのイベントを待機するPromiseを作成
+      const updatePromise = new Promise<void>((resolve) => {
+        processor.on('candle-update', () => {
+          updateEventReceived = true;
+          resolve();
+        });
       });
 
-      // 完了イベントをリスン
-      processor.on('candle-complete', (candleData) => {
-        completeEventReceived = true;
-        expect(candleData.symbol).toBe('BTC/USDT');
-        expect(candleData.timeframe).toBe('1m');
-        expect(candleData.isComplete).toBe(true);
-        finishTest();
+      const completePromise = new Promise<void>((resolve) => {
+        processor.on('candle-complete', (candleData) => {
+          completeEventReceived = true;
+          expect(candleData.symbol).toBe('BTC/USDT');
+          expect(candleData.timeframe).toBe('1m');
+          expect(candleData.isComplete).toBe(true);
+          resolve();
+        });
       });
 
       // 現在の時刻を保存
       const now = Date.now();
+      
+      // トレードデータを追加
+      const tradeData = createMockTradeData('BTC/USDT', 40000, 0.1);
+      tradeData.timestamp = now;
+      tradeData.data.timestamp = now;
+      processor.processData(tradeData);
+      
+      // タイマーを進める - 十分な時間を確保
+      jest.advanceTimersByTime(500);
 
-      // 最初の分のトレードデータ
-      const tradeData1 = createMockTradeData('BTC/USDT', 40000, 0.1);
-      tradeData1.timestamp = now;
-      tradeData1.data.timestamp = now;
-      processor.processData(tradeData1);
-
-      // タイマーを少し進める（updateイベントが発火するのを待つ）
-      jest.advanceTimersByTime(100);
-
-      // 次の分のトレードデータ（60秒後）
-      const tradeData2 = createMockTradeData('BTC/USDT', 40100, 0.2);
-      tradeData2.timestamp = now + 60000;
-      tradeData2.data.timestamp = now + 60000;
-      processor.processData(tradeData2);
-
-      // タイマーを十分に進める
-      jest.advanceTimersByTime(200);
+      // 両方のイベントの発火を待機
+      await Promise.all([updatePromise, completePromise]);
+      
+      // 両方のイベントが発火したことを検証
+      expect(updateEventReceived).toBe(true);
+      expect(completeEventReceived).toBe(true);
     });
   });
 
