@@ -2,18 +2,17 @@
  * Jest全体のセットアップファイル (ESM版)
  * REF-034: テスト実行環境の最終安定化
  * TST-056: テスト実行時のメモリリーク問題の解決
+ * TST-066: ESMテスト実行環境の修正
  */
 
 import { jest } from '@jest/globals';
-import { getResourceTracker, cleanupAsyncOperations } from '../utils/test-helpers/test-cleanup.mjs';
-
-// グローバルにリソーストラッカーを設定
-global.__TEST_RESOURCES = new Set();
-global.__RESOURCE_TRACKER = getResourceTracker();
 
 // アクティブなタイマーとインターバルを追跡
 const activeTimers = new Set();
 const activeIntervals = new Set();
+
+// グローバルテストリソース追跡用
+global.__TEST_RESOURCES = new Set();
 
 // Node.jsのタイマー関数をオーバーライド（リソーストラッカーと連携）
 const originalSetTimeout = global.setTimeout;
@@ -61,7 +60,31 @@ global.__CLEANUP_RESOURCES = () => {
   global.__TEST_RESOURCES.clear();
 };
 
-// モックモジュールヘルパー
+// 非同期操作のクリーンアップ
+global.cleanupAsyncOperations = async (waitTime = 100) => {
+  // 未解放のタイマーとインターバルをクリーンアップ
+  [...activeTimers].forEach((timer) => originalClearTimeout(timer));
+  [...activeIntervals].forEach((interval) => originalClearInterval(interval));
+  
+  activeTimers.clear();
+  activeIntervals.clear();
+  
+  // リソースのクリーンアップ
+  global.__CLEANUP_RESOURCES();
+  
+  // タイマー関連リセット
+  jest.clearAllTimers();
+  
+  // 非同期処理の完了を待機
+  await new Promise(resolve => setTimeout(resolve, waitTime));
+  
+  // イベントループをクリア
+  await new Promise(resolve => setImmediate(resolve));
+  
+  return true;
+};
+
+// ESM環境用のモックヘルパー
 global.mockESMModule = (modulePath, mockImplementation = {}) => {
   return jest.mock(modulePath, () => {
     return {
@@ -72,75 +95,23 @@ global.mockESMModule = (modulePath, mockImplementation = {}) => {
 };
 
 // モッククラス作成ヘルパー
-global.createMock = (className, methods = {}) => {
-  const mockClass = jest.fn().mockImplementation(() => {
+global.createMockClass = (className, methods = {}) => {
+  return jest.fn().mockImplementation(() => {
     const instance = {};
     Object.entries(methods).forEach(([method, implementation]) => {
       instance[method] = jest.fn(implementation);
     });
     return instance;
   });
-  
-  return mockClass;
-};
-
-// すべてのリソースをクリーンアップする関数
-const cleanupAllResources = async () => {
-  // モックをリセット
-  jest.clearAllMocks();
-  jest.resetAllMocks();
-  
-  // 未解放のタイマーとインターバルをクリーンアップ
-  [...activeTimers].forEach((timer) => originalClearTimeout(timer));
-  [...activeIntervals].forEach((interval) => originalClearInterval(interval));
-  
-  activeTimers.clear();
-  activeIntervals.clear();
-  
-  // グローバルリソースのクリーンアップ
-  global.__CLEANUP_RESOURCES();
-  
-  // タイマー関連リセット
-  jest.clearAllTimers();
-  jest.useRealTimers();
-  
-  // メモリリークを防ぐための短い待機
-  await new Promise(resolve => setTimeout(resolve, 10));
-  
-  // プロセスのイベントリスナーをクリア
-  process.removeAllListeners('unhandledRejection');
-  process.removeAllListeners('uncaughtException');
-  
-  // 非同期リソースを最終クリーンアップ
-  return cleanupAsyncOperations(100);
 };
 
 // beforeAllのグローバルフック
 beforeAll(() => {
   // テスト環境のセットアップ
-  jest.setTimeout(120000); // テストタイムアウトを120秒に設定
-
-  // Jest終了時の未クリアハンドル検出用
-  process.on('exit', () => {
-    const hasActiveTimers = activeTimers.size > 0;
-    const hasActiveIntervals = activeIntervals.size > 0;
-
-    if (hasActiveTimers || hasActiveIntervals) {
-      console.warn(
-        `⚠️ クリーンアップされていないタイマー検出: ${activeTimers.size} タイマー, ${activeIntervals.size} インターバル`
-      );
-
-      // タイマー・インターバルの自動クリーンアップ
-      [...activeTimers].forEach((timer) => originalClearTimeout(timer));
-      [...activeIntervals].forEach((interval) => originalClearInterval(interval));
-
-      activeTimers.clear();
-      activeIntervals.clear();
-    }
-  });
+  jest.setTimeout(60000); // テストタイムアウトを60秒に設定
 });
 
-// afterEachのグローバルフック - 非同期処理に変更してより確実なクリーンアップを実施
+// afterEachのグローバルフック
 afterEach(async () => {
   // モックリセットと同期的なクリーンアップを即時実行
   jest.clearAllMocks();
@@ -157,14 +128,11 @@ afterEach(async () => {
   jest.clearAllTimers();
   
   // 非同期処理の完全なクリーンアップのための待機
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // 残っているリソースの解放を試みる
-  await cleanupAsyncOperations(200);
+  await new Promise(resolve => setTimeout(resolve, 100));
   
   // Event Loopをクリアする最終的な短い待機
   await new Promise(resolve => setImmediate(resolve));
-}, 120000); // 120秒のタイムアウト（非同期処理のため長めに設定）
+});
 
 // afterAllのグローバルフック
 afterAll(async () => {
@@ -178,25 +146,6 @@ afterAll(async () => {
   activeTimers.clear();
   activeIntervals.clear();
   
-  // プロセスリスナーをリセット
-  process.removeAllListeners('unhandledRejection');
-  process.removeAllListeners('uncaughtException');
-  
-  // 強制的なメモリー解放のための2段階クリーンアップ
-  try {
-    // 第1段階：即時クリーンアップ
-    await cleanupAllResources();
-    
-    // 第2段階：さらなるコンテキスト切り替えを待機した上でのクリーンアップ
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await cleanupAsyncOperations(500);
-    
-    // 最終段階：プロセスイベントループをクリア
-    await new Promise(resolve => setImmediate(resolve));
-  } catch (err) {
-    console.error('afterAll クリーンアップ中にエラーが発生しました:', err);
-  }
-}, 180000); // 3分のタイムアウト（完全なクリーンアップを保証）
-
-// グローバルクリーンアップヘルパー
-global.cleanupAsyncResources = cleanupAllResources; 
+  // 非同期処理のクリーンアップ
+  await global.cleanupAsyncOperations(200);
+}); 

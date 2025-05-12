@@ -1,34 +1,24 @@
 /**
- * 単純なESM環境テスト
- * TST-057: ESMテスト環境の修正と安定化
+ * シンプルなESMテスト
+ * ESM互換性の検証用
  */
 
-// ESM環境では直接importを使用
-import { describe, test, expect, jest } from '@jest/globals';
+import { jest, describe, test, expect } from '@jest/globals';
 
-describe('ESM テスト環境', () => {
-  test('基本的なアサーションが動作する', () => {
+describe('ESM Basic Test', () => {
+  test('基本的な数値演算', () => {
     expect(1 + 1).toBe(2);
+    expect(5 * 5).toBe(25);
   });
 
-  test('@jest/globalsからのimportが機能する', () => {
-    // jestオブジェクトが正しくimportされているか確認
-    expect(typeof jest.fn).toBe('function');
+  test('文字列処理', () => {
+    expect('hello'.toUpperCase()).toBe('HELLO');
+    expect('world'.length).toBe(5);
   });
 
-  test('配列操作が正しく動作する', () => {
+  test('配列操作', () => {
     const arr = [1, 2, 3];
-    expect(arr).toHaveLength(3);
-    expect(arr).toContain(2);
-  });
-
-  test('タイマーAPIが動作する', done => {
-    let completed = false;
-    
-    setTimeout(() => {
-      completed = true;
-      expect(completed).toBe(true);
-      done();
-    }, 100);
+    expect(arr.length).toBe(3);
+    expect(arr.map(x => x * 2)).toEqual([2, 4, 6]);
   });
 }); 

@@ -128,6 +128,7 @@
     "test:verbose": "jest --verbose",
     "test:one": "jest --testNamePattern",
     "test:esm": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js",
+    "test:esm:basic": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js src/__tests__/esm-basic.test.mjs",
     "test:esm:single": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js",
     "test:esm:watch": "node --experimental-vm-modules ./scripts/run-esm-tests-safely.js --watch",
     "test:cleanup": "node scripts/cleanup-test-resources.js",
@@ -148,7 +149,8 @@
     "test:dual-format:esm": "node --experimental-modules src/examples/dual-format-usage.mjs",
     "smoketest": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node --transpile-only src/core/smokeTest.ts",
     "backtest:smoke:stable": "node scripts/run-backtest-smoke.js",
-    "verify:ref-031": "node scripts/verify-ref-031.js"
+    "verify:ref-031": "node scripts/verify-ref-031.js",
+    "fix:esm:imports": "node scripts/fix-esm-imports.js"
   },
   "keywords": [
     "crypto",

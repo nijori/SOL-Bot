@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ESMテスト用実行スクリプト (TST-052, TST-054, TST-056, TST-057対応)
+ * ESMテスト用実行スクリプト (TST-052, TST-054, TST-056, TST-057, TST-066対応)
  * 
  * 実行時のエラーやメモリリーク問題を防止するための実行ヘルパー
  * このスクリプトは、ESMテスト実行時の問題を回避するために設計されています
@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 
 // 設定（カスタマイズ可能）
-const DEFAULT_MAX_EXECUTION_TIME = 10 * 60 * 1000; // 10分（デフォルト）
+const DEFAULT_MAX_EXECUTION_TIME = 5 * 60 * 1000; // 5分（デフォルト）
 const MAX_EXECUTION_TIME = process.env.TEST_TIMEOUT 
   ? parseInt(process.env.TEST_TIMEOUT, 10) * 1000 
   : DEFAULT_MAX_EXECUTION_TIME;
@@ -58,7 +58,7 @@ console.warn = function(...args) {
 
 // コマンドライン引数を処理
 const args = process.argv.slice(2);
-let pattern = 'src/__tests__/esm-basic.test.mjs'; // より明確なデフォルトパターン
+let pattern = 'src/__tests__/esm-basic.test.mjs'; // デフォルトテストパターン
 
 // 特定のファイルパターンの指定
 const patternIndex = args.findIndex(arg => 
@@ -80,7 +80,7 @@ const jestArgs = [
   pattern
 ];
 
-// Node.jsオプション設定を拡張（CommonJS/ESM互換性のため）
+// Node.jsオプション設定
 const nodeOptions = [
   '--experimental-vm-modules',
   '--experimental-modules',
@@ -89,7 +89,7 @@ const nodeOptions = [
   // '--inspect-brk' // 必要に応じてデバッグ用に有効化
 ];
 
-console.log(`🚀 ESMテスト実行: node ${nodeOptions.join(' ')} ${JEST_BIN} ${jestArgs.join(' ')}`);
+console.log(`🚀 ESMテスト実行: ${pattern}`);
 console.log(`⏱️ タイムアウト: ${MAX_EXECUTION_TIME / 1000}秒`);
 console.log(`📝 ログファイル: ${TEST_LOG_PATH}`);
 
