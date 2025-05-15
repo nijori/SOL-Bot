@@ -106,6 +106,7 @@ class IncrementalATR {
   private atrValue: number | null = null;
   private prevClose: number | null = null;
   private alpha: number;
+  private trValues: number[] = []; // トゥルーレンジ値の履歴を保持
 
   /**
    * @param period ATR期間
@@ -124,11 +125,12 @@ class IncrementalATR {
     if (!candles || candles.length === 0) {
       this.atrValue = null;
       this.prevClose = null;
+      this.trValues = [];
       return 0;
     }
 
     // TR値の配列を計算
-    const trValues: number[] = [];
+    this.trValues = [];
 
     for (let i = 0; i < candles.length; i++) {
       const candle = candles[i];
@@ -146,23 +148,27 @@ class IncrementalATR {
         tr = Math.max(hl, Math.max(hpc, lpc));
       }
 
-      trValues.push(tr);
+      this.trValues.push(tr);
     }
 
     // 期間未満のデータしかない場合は単純平均を使用
-    if (trValues.length < this.period) {
-      const sum = trValues.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / trValues.length;
+    if (this.trValues.length < this.period) {
+      const sum = this.trValues.reduce((a, b) => a + b, 0);
+      this.atrValue = sum / this.trValues.length;
     } else {
-      // 最初のATRは単純平均
-      const initialTrValues = trValues.slice(0, this.period);
+      // Wilderの平滑化法でATRを計算（より安定した実装）
+      // 最初のATRは直近period分の単純平均
+      const initialTrValues = this.trValues.slice(-this.period);
       const sum = initialTrValues.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / this.period;
-
-      // 残りのデータでATR値を更新（Wilderの平滑化手法）
-      for (let i = this.period; i < trValues.length; i++) {
-        this.atrValue = trValues[i] * this.alpha + this.atrValue * (1 - this.alpha);
+      let tempAtr = sum / this.period;
+      
+      // 直近のperiod個のTR値に対してATRを計算（Wilderの平滑化法を使用）
+      // Wilderの平滑化法： ATRt = ((period-1) * ATRt-1 + TRt) / period
+      for (let i = this.period; i < this.trValues.length; i++) {
+        tempAtr = ((this.period - 1) * tempAtr + this.trValues[i]) / this.period;
       }
+      
+      this.atrValue = tempAtr;
     }
 
     // フォールバックチェック：ATRが0または非常に小さい場合
@@ -190,6 +196,7 @@ class IncrementalATR {
     if (this.atrValue === null) {
       this.atrValue = candle.high - candle.low;
       this.prevClose = candle.close;
+      this.trValues = [candle.high - candle.low];
       return this.atrValue;
     }
 
@@ -205,8 +212,15 @@ class IncrementalATR {
       tr = hl;
     }
 
-    // ATR = α * 現在のTR + (1 - α) * 前回のATR
-    this.atrValue = tr * this.alpha + this.atrValue * (1 - this.alpha);
+    // TR値を配列に追加（最新のperiod+1個を保持）
+    this.trValues.push(tr);
+    if (this.trValues.length > this.period + 1) {
+      this.trValues.shift();
+    }
+
+    // Wilderの平滑化手法（より安定した実装）
+    // ATR = ((前回のATR * (期間-1)) + 現在のTR) / 期間
+    this.atrValue = ((this.period - 1) * this.atrValue + tr) / this.period;
 
     // フォールバックチェック：ATRが0または非常に小さい場合
     if (this.atrValue === 0 || this.atrValue < candle.close * MIN_ATR_VALUE) {

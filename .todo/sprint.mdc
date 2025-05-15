@@ -260,7 +260,37 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : 複数のESMテストファイル（esm-verify.test.mjsやmeanReversionStrategy.test.mjs、esm-basic.test.mjsなど）での構文エラーを修正。import文の問題やstring literalの終了引用符欠落などの基本的な構文問題が多数あり、Jest実行時に「SyntaxError: Cannot use import statement outside a module」などのエラーが発生している問題を解決。元々あったsrc/__tests__/__broken_mjs__/ディレクトリのファイルは不要になったため削除。以前はESM移行時の問題が解決できずにバックアップしていたが、現在は別アプローチで問題解決済みのため不要と判断。
 
+- [x] TST-076: marketState.tsのインクリメンタルATR計算修正
+      - 📅 Due        : 2026-05-02
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : marketState.test.tsのインクリメンタルEMA/ATR計算テストが失敗している問題を修正。Wilderの平滑化手法の実装を改善し、ATR計算のインクリメンタル更新の一貫性を向上させた。主な修正点：1) initialize関数での一時変数tempAtrを使用した計算方法の改善、2) update関数での括弧の明示的使用による計算順序の明確化（((period-1) * atrValue + tr) / period）、3) trValues配列の管理と保持方法の最適化。テスト「新しいローソク足が追加されても適切に計算が継続される」の問題を解決し、ATR差異が許容範囲内（10%未満）になったことを確認。全テストが正常に通過する状態となった。
 
+- [] TST-077: parameterService.tsの型変換処理改善
+      - 📅 Due        : 2026-05-03
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : parameterService.test.tsで複数の型変換テストが失敗している問題を修正。主な失敗箇所: 1) 数値型への変換(toBeCloseTo期待値が文字列として扱われる)、2) 真偽値への変換("true"が文字列として扱われる)、3) 数字文字列の暗黙的変換、4) 複雑なオブジェクト変換、5) 環境変数不在時のデフォルト値処理、6) シングルトンパターンテスト。processEnvVariables関数を改良して型変換ロジックを強化し、特にテストで期待されている型に正確に変換する処理を追加する。
+
+- [] TST-078: ESMテストファイルの構文エラー修正
+      - 📅 Due        : 2026-05-04
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 複数のESMテストファイル(esm-basic.test.mjs、esm-verify.test.mjs、meanReversionStrategy.test.mjs)が構文エラーで実行できない問題を修正。主な問題: 1) import文の不適切な構文、2) 文字列リテラルの引用符不足、3) テンプレートリテラルの不適切な使用、4) URLクラスの不適切な使用。すべての構文エラーを修正し、ESMモジュール形式に準拠したテストコードに更新する。
+
+- [] TST-079: Jest環境設定とテスト実行スクリプトの改善
+      - 📅 Due        : 2026-05-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : simple.test.jsが「describe is not defined」エラーで実行できない問題を修正。Jest環境の初期化問題によるもの。解決策: 1) setup-jest-cjs.jsとsetup-jest.mjsの整合性確保、2) package.jsonのテスト実行スクリプトの最適化、3) テスト実行環境の環境変数設定の見直し。特にESMとCJSの両方のテスト環境で適切にJest関数が利用できるよう設定を改善する。また、ESMテスト用の専用実行スクリプトを改良し、Node.jsの--experimental-vm-modulesフラグを適切に使用するように修正する。
 
 
 ### 🗓 今週2026-W11スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
