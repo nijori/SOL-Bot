@@ -219,12 +219,12 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : multiSymbolBacktest.test.ts、multiSymbolBacktestRunner.test.ts、multiSymbolTradingEngine.test.ts、UnifiedOrderManager.test.tsの修正を実施。UnifiedOrderManager.tsのsyncAllOrdersメソッドで(exchange.oms as any)からexchange.omsへ直接アクセスするよう変更し、テストが失敗していた全ポジション取得テストとすべての取引所の注文同期テストを修正。モックの設定やOMS依存の問題を解決し、ポジション取得と注文同期のテストが期待通りに動作するようになりました。テスト実行での全12テストが正常に通過することを確認。
 
-- [x] TST-071: ParameterServiceテストの型変換問題修正
+- [ ] TST-071: ParameterServiceテストの型変換問題修正
       - 📅 Due        : 2026-06-22
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 50%
       - ✎ Notes      : processEnvVariablesメソッドの型変換テストが失敗している問題を修正。型変換（特に数値型とブール型）が適切に行われていない。シングルトンパターンのテストも失敗しており、パラメータが正しく保存されていない。テスト実行結果によるとすべてのテストが要修正：1)数値型への変換テスト、2)真偽値への変換テスト、3)複雑なオブジェクト変換テスト、4)環境変数不在時のデフォルト値テスト、5)シングルトンパターンテスト。processEnvVariables実装の見直しと型変換ロジックの修正が必要。TST-072~075に追記済み
 
 - [x] TST-072: OrderSizingServiceテストの精度問題修正

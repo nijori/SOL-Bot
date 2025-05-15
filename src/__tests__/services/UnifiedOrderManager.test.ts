@@ -87,6 +87,23 @@ describe('UnifiedOrderManager', () => {
         return [];
       });
 
+    // TST-070: OrderManagementSystemのgetPositionsメソッドをモック
+    OrderManagementSystem.prototype.getPositions = jest
+      .fn()
+      .mockImplementation(() => {
+        return [
+          {
+            symbol: 'SOL/USDT',
+            side: OrderSide.BUY,
+            amount: 10,
+            entryPrice: 100,
+            currentPrice: 110,
+            unrealizedPnl: 100,
+            timestamp: Date.now()
+          }
+        ];
+      });
+
     // OrderManagementSystemのgetOrdersメソッドをモック
     OrderManagementSystem.prototype.getOrders = jest.fn().mockReturnValue([
       {
@@ -302,6 +319,7 @@ describe('UnifiedOrderManager', () => {
     });
 
     test('全ポジションの取得', () => {
+      // TST-070: シンボルを指定して呼び出すよう修正
       const positions = unifiedManager.getAllPositions('SOL/USDT');
 
       // 両方の取引所からポジションが取得されることを確認
@@ -368,15 +386,25 @@ describe('UnifiedOrderManager', () => {
       unifiedManager.addExchange('binance', mockExchangeService1, 1);
       unifiedManager.addExchange('bybit', mockExchangeService2, 2);
 
-      // syncOrdersメソッドをモック
-      OrderManagementSystem.prototype.syncOrders = jest.fn().mockResolvedValue(2);
+      // TST-070: syncOrdersメソッドの修正
+      // OrderManagementSystemのプロトタイプではなく、各インスタンスにモックを追加する
+      const binanceOms = (unifiedManager as any).exchanges.get('binance').oms;
+      const bybitOms = (unifiedManager as any).exchanges.get('bybit').oms;
+      
+      binanceOms.syncOrders = jest.fn().mockResolvedValue(2);
+      bybitOms.syncOrders = jest.fn().mockResolvedValue(3);
     });
 
     test('すべての取引所の注文同期', async () => {
+      // TST-070: 注文同期を実行してモックが正しく呼ばれることを確認
       await unifiedManager.syncAllOrders();
 
-      // syncOrdersが各取引所で呼ばれたことを確認
-      expect(OrderManagementSystem.prototype.syncOrders).toHaveBeenCalledTimes(2);
+      // TST-070: 各OMSインスタンスのsyncOrdersメソッドが呼ばれたことを確認
+      const binanceOms = (unifiedManager as any).exchanges.get('binance').oms;
+      const bybitOms = (unifiedManager as any).exchanges.get('bybit').oms;
+      
+      expect(binanceOms.syncOrders).toHaveBeenCalledTimes(1);
+      expect(bybitOms.syncOrders).toHaveBeenCalledTimes(1);
     });
   });
 });

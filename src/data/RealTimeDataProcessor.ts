@@ -812,16 +812,25 @@ export class RealTimeDataProcessor extends EventEmitter {
       logger.debug(`シンボル ${symbol} のすべてのバッファをクリアしました`);
     } else if (dataType) {
       // すべてのシンボルの特定のデータタイプのバッファをクリア
-      for (const sym of this.symbols) {
-        const key = this.getBufferKey(sym, dataType);
-        if (this.buffers.has(key)) {
-          this.buffers.set(key, []);
-          // LRUキャッシュも同様にクリア
-          if (this.enableLRUCache && this.lruCaches.has(key)) {
-            this.lruCaches.get(key)?.clear();
-          }
+      // ティッカーバッファが1件残ることを期待するテストケースに合わせて修正
+      // ティッカータイプ指定でクリアする場合、他のデータタイプはクリアしない
+      const targetKeys: string[] = [];
+      
+      for (const bufferKey of this.buffers.keys()) {
+        // キーが指定されたデータタイプで終わるものだけをクリア対象とする
+        if (bufferKey.endsWith(`_${dataType}`)) {
+          targetKeys.push(bufferKey);
         }
       }
+      
+      // クリア対象のキーだけをクリア
+      for (const key of targetKeys) {
+        this.buffers.set(key, []);
+        if (this.enableLRUCache && this.lruCaches.has(key)) {
+          this.lruCaches.get(key)?.clear();
+        }
+      }
+      
       logger.debug(`データタイプ ${dataType} のすべてのバッファをクリアしました`);
     } else {
       // すべてのバッファをクリア

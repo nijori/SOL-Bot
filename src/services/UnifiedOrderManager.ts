@@ -297,13 +297,22 @@ export class UnifiedOrderManager {
     for (const [exchangeId, exchange] of this.exchanges.entries()) {
       if (!exchange.active) continue;
 
-      const positions = exchange.oms.getPositions();
-      const filteredPositions = symbol
-        ? positions.filter((pos) => pos.symbol === symbol)
-        : positions;
+      let positions: Position[] = [];
+      
+      // TST-070: シンボルが指定されている場合はgetPositionsBySymbolを使用
+      if (symbol) {
+        positions = exchange.oms.getPositionsBySymbol(symbol);
+      } else {
+        positions = exchange.oms.getPositions();
+      }
 
-      if (filteredPositions.length > 0) {
-        result.set(exchangeId, filteredPositions);
+      if (!positions || !Array.isArray(positions)) {
+        logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} からポジション情報を取得できませんでした`);
+        continue;
+      }
+
+      if (positions.length > 0) {
+        result.set(exchangeId, positions);
       }
     }
 
@@ -384,11 +393,8 @@ export class UnifiedOrderManager {
   public async syncAllOrders(): Promise<void> {
     for (const exchange of this.getActiveExchanges()) {
       try {
-        // OMSに注文の同期を指示
-        // この実装はOrderManagementSystemに同期メソッドが必要
-        if ('syncOrders' in exchange.oms) {
-          await (exchange.oms as any).syncOrders();
-        }
+        // TST-070: syncOrdersメソッドを直接呼び出す
+        await exchange.oms.syncOrders();
       } catch (error) {
         logger.error(
           `[UnifiedOrderManager] 取引所 ${exchange.id} の注文同期エラー: ${error instanceof Error ? error.message : String(error)}`
