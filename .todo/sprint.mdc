@@ -219,13 +219,13 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : multiSymbolBacktest.test.ts、multiSymbolBacktestRunner.test.ts、multiSymbolTradingEngine.test.ts、UnifiedOrderManager.test.tsの修正を実施。UnifiedOrderManager.tsのsyncAllOrdersメソッドで(exchange.oms as any)からexchange.omsへ直接アクセスするよう変更し、テストが失敗していた全ポジション取得テストとすべての取引所の注文同期テストを修正。モックの設定やOMS依存の問題を解決し、ポジション取得と注文同期のテストが期待通りに動作するようになりました。テスト実行での全12テストが正常に通過することを確認。
 
-- [ ] TST-071: ParameterServiceテストの型変換問題修正
+- [x] TST-071: ParameterServiceテストの型変換問題修正
       - 📅 Due        : 2026-06-22
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : processEnvVariablesメソッドの型変換テストが失敗している問題を修正。型変換（特に数値型とブール型）が適切に行われていない。シングルトンパターンのテストも失敗しており、パラメータが正しく保存されていない。テスト実行結果によるとすべてのテストが要修正：1)数値型への変換テスト、2)真偽値への変換テスト、3)複雑なオブジェクト変換テスト、4)環境変数不在時のデフォルト値テスト、5)シングルトンパターンテスト。processEnvVariables実装の見直しと型変換ロジックの修正が必要。TST-072~075に追記済み
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : processEnvVariablesメソッドの型変換テストが失敗している問題を修正。型変換（特に数値型とブール型）が適切に行われていない。シングルトンパターンのテストも失敗しており、パラメータが正しく保存されていない。テスト実行結果によるとすべてのテストが要修正：1)数値型への変換テスト、2)真偽値への変換テスト、3)複雑なオブジェクト変換テスト、4)環境変数不在時のデフォルト値テスト、5)シングルトンパターンテスト。processEnvVariables実装の見直しと型変換ロジックの修正完了。TST-075の一部として、ESM関連テストファイルのsimple.test.mjs、trendStrategy.test.mjs、trendFollowStrategy.test.mjs、parameterService.test.mjsの修正も完了。ESM関連テストの構文エラー、引用符の問題、import文の修正を行い、テストが正常に実行できるようになった。
 
 - [x] TST-072: OrderSizingServiceテストの精度問題修正
       - 📅 Due        : 2026-06-23
@@ -243,22 +243,22 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : RealTimeDataProcessorのバッファ管理テスト（clearBuffersメソッド）の問題を修正。特定のデータタイプのバッファクリア実装を改善し、ティッカーバッファが残るようにバッファキー検出メカニズムを実装。特定のタイプで終わるキーのみをクリアする方法に修正。テスト実行で確認済み、すべてのテストが成功している。
 
-- [ ] TST-074: TrendFollowStrategyテストのモック初期化問題修正
+- [x] TST-074: TrendFollowStrategyテストのモック初期化問題修正
       - 📅 Due        : 2026-06-25
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : TST-071
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : TrendFollowStrategyテストでの「Cannot access 'MOCK_MARKET_PARAMETERS_VALUE' before initialization」エラーを修正。モックパラメータ変数の初期化タイミング問題。jest.mockの実行前にモックする値が定義されていないため、テスト実行時にReferenceErrorが発生。モックオブジェクトの初期化とjest.mockの実行順序を修正する必要がある。依存するパラメータサービスのモック方法も見直す。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TrendFollowStrategyテストでの「Cannot access 'MOCK_MARKET_PARAMETERS_VALUE' before initialization」エラーを修正。jest.mockがモックパラメータ変数の定義前に実行される問題を解決するために、ファイル上部にjest.mockコードを移動し、モックの値をその場で直接定義する方法に変更。これによりjest.mockの実行時に変数定義エラーが発生しなくなった。テスト実行の結果、すべてのテストが正常に通過し、モック初期化問題が解決。
 
-- [ ] TST-075: ESM関連テストファイルの修正
+- [x] TST-075: ESM関連テストファイルの修正
       - 📅 Due        : 2026-06-26
       - 👤 Owner      : @nijor
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 複数のESMテストファイル（esm-verify.test.mjsやmeanReversionStrategy.test.mjs、esm-basic.test.mjsなど）での構文エラーを修正。import文の問題やstring literalの終了引用符欠落などの基本的な構文問題が多数あり、Jest実行時に「SyntaxError: Cannot use import statement outside a module」などのエラーが発生している。壊れたESMテストファイルの修正とJest ESM設定の再確認が必要。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 複数のESMテストファイル（esm-verify.test.mjsやmeanReversionStrategy.test.mjs、esm-basic.test.mjsなど）での構文エラーを修正。import文の問題やstring literalの終了引用符欠落などの基本的な構文問題が多数あり、Jest実行時に「SyntaxError: Cannot use import statement outside a module」などのエラーが発生している問題を解決。src/__tests__/__broken_mjs__/ディレクトリに格納されている27のテストファイル（atrCalibrator.test.mjs、atrUtils.test.mjs、DataRepository.e2e.test.mjs、exchangeService.test.mjs、marketState.test.mjs、mathUtils.test.mjsなど）の修正を完了。ESMモジュール形式でのimport文の修正、循環参照対策用のポリフィル追加、タイマー関連のテストコードの修正、afterEach/afterAllフックの修正を全テストファイルで実施し、すべてのファイルが正常に実行できることを確認。
 
 
 

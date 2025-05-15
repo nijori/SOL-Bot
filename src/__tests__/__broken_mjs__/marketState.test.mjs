@@ -1,64 +1,104 @@
 // ESM環境向けに変換されたテストファイル
-import { jest, describe, beforeEach, afterEach, test, it, expect } from '@jest/globals;
+import { jest, describe, beforeEach, afterEach, test, it, expect, beforeAll, afterAll } from '@jest/globals';
 
 // 循環参照対策のポリフィル
-if (typeof globalThis.__jest_import_meta_url === undefined) {
-  globalThis.__jest_import_meta_url = file:///;
+if (typeof globalThis.__jest_import_meta_url === 'undefined') {
+  globalThis.__jest_import_meta_url = 'file:///';
 }
 
-import { EMA, ATR } from technicalindicators';
-import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState;
-import { Candle, MarketEnvironment } from ../../core/types.js;
-import { MARKET_PARAMETERS } from ../../config/parameters;
-
-
-
-
-
+import { EMA, ATR } from 'technicalindicators';
+import { analyzeMarketState, resetMarketStateCalculators } from '../../indicators/marketState.js';
+import { Candle, MarketEnvironment } from '../../core/types.js';
+import { MARKET_PARAMETERS } from '../../config/parameters.js';
 
 // モックデータを作成するヘルパー関数
-function $1() {return [];
+function createMockCandles(count, basePrice, trend = 'range') {
+  const candles = [];
   let currentPrice = basePrice;
 
-  for (let i = 0; i ({
+  for (let i = 0; i < count; i++) {
+    // トレンドに応じた価格変動を追加
+    let priceChange = 0;
+    if (trend === 'up') {
+      priceChange = (Math.random() * 2 + 0.5) * (i / count); // 上昇トレンド
+    } else if (trend === 'down') {
+      priceChange = -(Math.random() * 2 + 0.5) * (i / count); // 下降トレンド
+    } else if (trend === 'range') {
+      priceChange = Math.random() * 4 - 2; // レンジ相場
+    }
+
+    // 価格を更新
+    currentPrice = basePrice + basePrice * priceChange * 0.01; // %変動
+    if (currentPrice <= 0) currentPrice = 0.01; // 価格が0以下にならないよう保護
+
+    // ローソク足を作成
+    candles.push({
+      timestamp: Date.now() - (count - i) * 3600000, // 1時間間隔
+      open: currentPrice * (1 - Math.random() * 0.01),
+      high: currentPrice * (1 + Math.random() * 0.02),
+      low: currentPrice * (1 - Math.random() * 0.02),
+      close: currentPrice,
+      volume: currentPrice * 1000 * (1 + Math.random())
+    });
+  }
+
+  return candles;
+}
+
+// シンプルな急激なトレンドを作成する関数
+function createSimpleRapidTrend(count, basePrice, trend = 'up') {
+  const candles = [];
+  let currentPrice = basePrice;
+  
+  // トレンドの傾き（上昇または下降）
+  const trendMultiplier = trend === 'up' ? 1 : -1;
+  
+  for (let i = 0; i < count; i++) {
+    // 単調な価格変動（最後の価格が元の価格の2倍/半分になるような変化）
+    const progressFactor = i / count;
+    const priceChange = basePrice * progressFactor * trendMultiplier;
+    
+    // 現在の価格を計算
+    currentPrice = basePrice + priceChange;
+    if (currentPrice <= 0) currentPrice = 0.01; // 価格が0以下にならないよう保護
+    
+    // ローソク足を作成
+    candles.push({
+      timestamp: Date.now() - (count - i) * 3600000, // 1時間間隔
+      open: currentPrice * 0.99,
+      high: currentPrice * 1.02,
+      low: currentPrice * 0.98,
+      close: currentPrice,
+      volume: basePrice * 1000
+    });
+  }
+  
+  return candles;
+}
+
 // テスト開始前にタイマーをモック化
 beforeAll(() => {
   jest.useFakeTimers();
 });
 
-  MARKET_PARAMETERS",
-    ATR_PERCENTAGE_THRESHOLD;
-
-// OrderManagementSystemに停止メソッドを追加
-OrderManagementSystem.prototype.stopMonitoring = jest.fn().mockImplementation(function() {
-  if (this.fillMonitorTask) {
-    if (typeof this.fillMonitorTask.destroyfunction') {
-      this.fillMonitorTask.destroy();
-    } else {
-      this.fillMonitorTask.stop();
-    }
-    this.fillMonitorTask = null);
-
-} );
-
-describe('MarketState Indicators, () => {
+describe('MarketState Indicators', () => {
   beforeEach(() => {
     // 各テスト前にインクリメンタル計算機をリセット
     resetMarketStateCalculators();
 
     // 一部のテストでは環境を安定させるためモックが必要
-    jest.spyOn(console, warn).mockImplementation(() => {});
-    jest.spyOn(console, error).mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  describe(インクリメンタル''EMA/ATR計算のテスト, () => {
-    test(インクリメンタル計算と通常計算で同じ結果が得られる, () => {
+  describe('インクリメンタルEMA/ATR計算のテスト', () => {
+    test('インクリメンタル計算と通常計算で同じ結果が得られる', () => {
       // モックデータを準備（より多くのデータと安定した変動）
-      const candles = createMockCandles(150, 1000, range');
+      const candles = createMockCandles(150, 1000, 'range');
 
       // 最初の解析 - インクリメンタル計算初期化が行われる
       const result1 = analyzeMarketState(candles);
@@ -69,18 +109,21 @@ describe('MarketState Indicators, () => {
       const atrPeriod = 14; // ATRデフォルト値
 
       const emaShortResult = EMA.calculate({
-        period => c.close)
+        period: emaShortPeriod,
+        values: candles.map(c => c.close)
       });
 
       const emaLongResult = EMA.calculate({
-        period => c.close)
+        period: emaLongPeriod,
+        values: candles.map(c => c.close)
       });
 
       const atrResult = ATR.calculate({
-        high => c.high),
-        low => c.low)",
-        close => c.close)',
-        period);
+        high: candles.map(c => c.high),
+        low: candles.map(c => c.low),
+        close: candles.map(c => c.close),
+        period: atrPeriod
+      });
 
       // インクリメンタル計算の結果と直接計算結果が近い値であることを確認
       // 許容誤差を大きくして柔軟にテスト
@@ -89,26 +132,26 @@ describe('MarketState Indicators, () => {
           Math.abs(result1.indicators.shortTermEma - emaShortResult[emaShortResult.length - 1]) /
             emaShortResult[emaShortResult.length - 1]
         ).toBeLessThan(0.05); // 5%以内の誤差を許容
-      };
+      }
 
       if (result1.indicators.longTermEma && emaLongResult.length > 0) {
         expect(
           Math.abs(result1.indicators.longTermEma - emaLongResult[emaLongResult.length - 1]) /
             emaLongResult[emaLongResult.length - 1]
         ).toBeLessThan(0.05); // 5%以内の誤差を許容
-      };
+      }
 
       if (result1.indicators.atr && atrResult.length > 0) {
         expect(
           Math.abs(result1.indicators.atr - atrResult[atrResult.length - 1]) /
             atrResult[atrResult.length - 1]
         ).toBeLessThan(0.1); // 10%以内の誤差を許容
-      };
+      }
     });
 
-    test(新しいローソク足が追加されても適切に計算が継続される, () => {
+    test('新しいローソク足が追加されても適切に計算が継続される', () => {
       // 最初のデータセット（十分なデータ量）
-      const initialCandles = createMockCandles(150, 1000, range);
+      const initialCandles = createMockCandles(150, 1000, 'range');
 
       // 最初の解析 - インクリメンタル計算初期化が行われる
       analyzeMarketState(initialCandles);
@@ -117,7 +160,7 @@ describe('MarketState Indicators, () => {
       const additionalCandles = createMockCandles(
         5,
         initialCandles[initialCandles.length - 1].close,
-        up'
+        'up'
       );
 
       // 全データを結合
@@ -142,39 +185,39 @@ describe('MarketState Indicators, () => {
       // 0除算防止
       if (stEma3 > 0) {
         expect(Math.abs(stEma2 - stEma3) / stEma3).toBeLessThan(0.05);
-      };
+      }
 
       if (ltEma3 > 0) {
         expect(Math.abs(ltEma2 - ltEma3) / ltEma3).toBeLessThan(0.05);
-      };
+      }
 
       if (atr3 > 0) {
         expect(Math.abs(atr2 - atr3) / atr3).toBeLessThan(0.1);
-      };
+      }
     });
 
-    test('パラメータが変更された場合に適切に計算機が再初期化される, () => {
+    test('パラメータが変更された場合に適切に計算機が再初期化される', () => {
       // テスト用のモックデータ（十分な量のデータを用意）
-      const candles = createMockCandles(200, 1000, range);
+      const candles = createMockCandles(200, 1000, 'range');
 
       // 元のパラメータを保存
-      const originalModule = require(../../config/parameters);
+      const originalModule = require('../../config/parameters.js');
       const originalMarketParams = { ...originalModule.MARKET_PARAMETERS };
 
       try {
         // 大幅に異なるパラメータセットを使用
         const mockParams1 = {
           ...originalMarketParams,
-          SHORT_TERM_EMA, // 非常に短い期間
-          LONG_TERM_EMA", // 短い期間
-          ATR_PERIOD// 短い期間
+          SHORT_TERM_EMA: 5, // 非常に短い期間
+          LONG_TERM_EMA: 20, // 短い期間
+          ATR_PERIOD: 7 // 短い期間
         };
 
         const mockParams2 = {
-          ...originalMarketParams.js,
-          SHORT_TERM_EMA, // 長い期間
-          LONG_TERM_EMA", // 非常に長い期間
-          ATR_PERIOD// 長い期間
+          ...originalMarketParams,
+          SHORT_TERM_EMA: 20, // 長い期間
+          LONG_TERM_EMA: 80, // 非常に長い期間
+          ATR_PERIOD: 21 // 長い期間
         };
 
         // 最初のパラメータセットで計算
@@ -194,15 +237,15 @@ describe('MarketState Indicators, () => {
         expect(result1.indicators.atr).not.toEqual(result2.indicators.atr);
       } finally {
         // テスト後に元のパラメータに戻す
-        originalModule.MARKET_PARAMETERS = originalMarketParams)
-      };
+        originalModule.MARKET_PARAMETERS = originalMarketParams;
+      }
     });
   });
 
-  describe(市場環境分析のテスト', () => {
-    test('上昇トレンドを正しく識別する, () => {
+  describe('市場環境分析のテスト', () => {
+    test('上昇トレンドを正しく識別する', () => {
       // 単純な急激な上昇トレンド（テスト成功に必要）
-      const candles = createSimpleRapidTrend(100, 1000", up);
+      const candles = createSimpleRapidTrend(100, 1000, 'up');
 
       // 市場状態を分析
       const result = analyzeMarketState(candles);
@@ -210,7 +253,7 @@ describe('MarketState Indicators, () => {
       // 分析結果をログ出力
       console.log(`市場環境: ${result.environment}`);
       console.log(
-        `短期EMA${result.indicators.shortTermEma}, 長期EMA${result.indicators.longTermEma}`
+        `短期EMA: ${result.indicators.shortTermEma}, 長期EMA: ${result.indicators.longTermEma}`
       );
 
       // テスト要件：
@@ -218,7 +261,7 @@ describe('MarketState Indicators, () => {
       // 2. 少なくとも価格が上昇し、短期EMAが長期EMAより上にあること
 
       const isUpTrend = [
-        MarketEnvironment.UPTREND",
+        MarketEnvironment.UPTREND,
         MarketEnvironment.STRONG_UPTREND,
         MarketEnvironment.WEAK_UPTREND
       ].includes(result.environment);
@@ -227,17 +270,17 @@ describe('MarketState Indicators, () => {
       if (!isUpTrend) {
         console.log(`上昇トレンドと判定されず: ${result.environment}`);
         console.log(
-          `最終価格: ${candles[candles.length - 1].close}", 初期価格: ${candles[0].close}`
+          `最終価格: ${candles[candles.length - 1].close}, 初期価格: ${candles[0].close}`
         );
         console.log(
           `価格差: ${((candles[candles.length - 1].close - candles[0].close) / candles[0].close) * 100}%`
         );
         if (result.indicators.shortTermSlope) {
           console.log(`短期EMA傾き: ${result.indicators.shortTermSlope}`);
-        };
+        }
         if (result.indicators.shortTermSlopeAngle) {
           console.log(`短期EMA傾き角度: ${result.indicators.shortTermSlopeAngle}°`);
-        };
+        }
 
         // 代替テスト: 少なくとも価格が上昇していることを確認
         expect(candles[candles.length - 1].close).toBeGreaterThan(candles[10].close);
@@ -245,16 +288,16 @@ describe('MarketState Indicators, () => {
         // EMA位置関係が正しいことを確認
         if (result.indicators.shortTermEma && result.indicators.longTermEma) {
           expect(result.indicators.shortTermEma).toBeGreaterThan(result.indicators.longTermEma);
-        };
+        }
       } else {
         // トレンド環境が正しく認識された
         expect(isUpTrend).toBe(true);
-      };
+      }
     });
 
-    test(下降トレンドを正しく識別する, () => {
+    test('下降トレンドを正しく識別する', () => {
       // 単純な急激な下降トレンド（テスト成功に必要）
-      const candles = createSimpleRapidTrend(100, 1000", 'down');
+      const candles = createSimpleRapidTrend(100, 1000, 'down');
 
       // 市場状態を分析
       const result = analyzeMarketState(candles);
@@ -262,7 +305,7 @@ describe('MarketState Indicators, () => {
       // 分析結果をログ出力
       console.log(`市場環境: ${result.environment}`);
       console.log(
-        `短期EMA${result.indicators.shortTermEma}, 長期EMA${result.indicators.longTermEma}`
+        `短期EMA: ${result.indicators.shortTermEma}, 長期EMA: ${result.indicators.longTermEma}`
       );
 
       // テスト要件：
@@ -270,7 +313,7 @@ describe('MarketState Indicators, () => {
       // 2. 少なくとも価格が下落し、短期EMAが長期EMAより下にあること
 
       const isDownTrend = [
-        MarketEnvironment.DOWNTREND",
+        MarketEnvironment.DOWNTREND,
         MarketEnvironment.STRONG_DOWNTREND,
         MarketEnvironment.WEAK_DOWNTREND
       ].includes(result.environment);
@@ -279,17 +322,17 @@ describe('MarketState Indicators, () => {
       if (!isDownTrend) {
         console.log(`下降トレンドと判定されず: ${result.environment}`);
         console.log(
-          `最終価格: ${candles[candles.length - 1].close}", 初期価格: ${candles[0].close}`
+          `最終価格: ${candles[candles.length - 1].close}, 初期価格: ${candles[0].close}`
         );
         console.log(
           `価格差: ${((candles[candles.length - 1].close - candles[0].close) / candles[0].close) * 100}%`
         );
         if (result.indicators.shortTermSlope) {
           console.log(`短期EMA傾き: ${result.indicators.shortTermSlope}`);
-        };
+        }
         if (result.indicators.shortTermSlopeAngle) {
           console.log(`短期EMA傾き角度: ${result.indicators.shortTermSlopeAngle}°`);
-        };
+        }
 
         // 代替テスト: 少なくとも価格が下落していることを確認
         expect(candles[candles.length - 1].close).toBeLessThan(candles[10].close);
@@ -297,14 +340,14 @@ describe('MarketState Indicators, () => {
         // EMA位置関係が正しいことを確認
         if (result.indicators.shortTermEma && result.indicators.longTermEma) {
           expect(result.indicators.shortTermEma).toBeLessThan(result.indicators.longTermEma);
-        };
+        }
       } else {
         // トレンド環境が正しく認識された
         expect(isDownTrend).toBe(true);
-      };
+      }
     });
 
-    test(レンジ相場を正しく識別する, () => {
+    test('レンジ相場を正しく識別する', () => {
       // ボラティリティが低く、方向性がないローソク足を作成
       const candles = [];
       const basePrice = 1000;
@@ -315,13 +358,14 @@ describe('MarketState Indicators, () => {
         const currentPrice = basePrice + priceChange;
 
         candles.push({
-          timestamp) + i * 3600000,
-          open,
-          high+ 0.1,
-          low,
-          close,
-          volume);
-      };
+          timestamp: Date.now() + i * 3600000,
+          open: currentPrice,
+          high: currentPrice + 0.1,
+          low: currentPrice - 0.1,
+          close: currentPrice,
+          volume: 1000
+        });
+      }
 
       const result = analyzeMarketState(candles);
 
@@ -329,16 +373,16 @@ describe('MarketState Indicators, () => {
       expect(result.environment).toBe(MarketEnvironment.RANGE);
     });
 
-    test(データ不足時に適切なデフォルト値を返す, () => {
+    test('データ不足時に適切なデフォルト値を返す', () => {
       // モックの調整（データ不足時のコードパスを確認するため）
       jest.resetAllMocks();
 
       // データ不足をスパイ
       const warnSpy = jest.spyOn(console, 'warn').mockImplementation((msg) => {
         // データ不足メッセージをキャプチャして表示
-        if (msg.includes(データ不足)) {
+        if (msg.includes('データ不足')) {
           console.log(`捕捉された警告: ${msg}`);
-        };
+        }
       });
 
       // 最小要件より少ないデータ（5件）
@@ -348,7 +392,7 @@ describe('MarketState Indicators, () => {
       const result = analyzeMarketState(insufficientCandles);
 
       // 警告が出されたことを確認
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(データ不足));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('データ不足'));
 
       // 実際にはMarketState.tsの367-382行目のコードパスが実行され、
       // UNKNOWNステータスが返されるはず

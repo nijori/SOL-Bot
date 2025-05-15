@@ -5,48 +5,41 @@ import * as trendFollowStrategyModule from '../../strategies/trendFollowStrategy
 import { calculateParabolicSAR, ParabolicSARResult } from '../../indicators/parabolicSAR';
 import { calculateATR, getValidStopDistance } from '../../utils/atrUtils';
 
-// モックの設定は必ずインポートの後、テストの前に行う
-// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
-const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
-const { 
-  standardBeforeEach, 
-  standardAfterEach, 
-  standardAfterAll 
-} = require('../../utils/test-helpers/test-cleanup');
+// モック設定を最上部に移動
+jest.mock('../../config/parameters.js', () => {
+  return {
+    MARKET_PARAMETERS: {
+      ATR_PERIOD: 14,
+      DONCHIAN_PERIOD: 20,
+      EMA_PERIOD: 200,
+      ATR_PERCENTAGE: 5.0,
+      EMA_SLOPE_THRESHOLD: 0.1,
+      ADJUST_SLOPE_PERIODS: 5
+    },
+    TREND_PARAMETERS: {
+      TRAILING_STOP_FACTOR: 2.0,
+      ADDON_POSITION_R_THRESHOLD: 1.0,
+      ADDON_POSITION_SIZE_FACTOR: 0.5,
+      POSITION_SIZING: 0.1,
+      ADX_PERIOD: 14,
+      ADX_THRESHOLD: 25
+    },
+    RANGE_PARAMETERS: {
+      GRID_ATR_MULTIPLIER: 0.5,
+      ATR_VOLATILITY_THRESHOLD: 3.0,
+      GRID_LEVELS: 5
+    },
+    RISK_PARAMETERS: {
+      MAX_RISK_PER_TRADE: 0.02,
+      MAX_POSITION_PERCENTAGE: 0.1,
+      BLACK_SWAN_THRESHOLD: 0.15,
+      MIN_STOP_DISTANCE_PERCENTAGE: 1.0
+    },
+    OPERATION_MODE: 'simulation'
+  };
+});
 
-// モックパラメータを定義（jest.mockで参照する前に定義）
-const MOCK_MARKET_PARAMETERS_VALUE = {
-  ATR_PERIOD: 14,
-  DONCHIAN_PERIOD: 20,
-  EMA_PERIOD: 200,
-  ATR_PERCENTAGE: 5.0,
-  EMA_SLOPE_THRESHOLD: 0.1,
-  ADJUST_SLOPE_PERIODS: 5
-};
-
-const MOCK_TREND_PARAMETERS_VALUE = {
-  TRAILING_STOP_FACTOR: 2.0,
-  ADDON_POSITION_R_THRESHOLD: 1.0,
-  ADDON_POSITION_SIZE_FACTOR: 0.5,
-  POSITION_SIZING: 0.1,
-  ADX_PERIOD: 14,
-  ADX_THRESHOLD: 25
-};
-
-const MOCK_RANGE_PARAMETERS_VALUE = {
-  GRID_ATR_MULTIPLIER: 0.5,
-  ATR_VOLATILITY_THRESHOLD: 3.0,
-  GRID_LEVELS: 5
-};
-
-const MOCK_RISK_PARAMETERS_VALUE = {
-  MAX_RISK_PER_TRADE: 0.02,
-  MAX_POSITION_PERCENTAGE: 0.1,
-  BLACK_SWAN_THRESHOLD: 0.15,
-  MIN_STOP_DISTANCE_PERCENTAGE: 1.0
-};
-
-// technicalindicators のモック
+// technicalindicators のモックも上部に移動
 jest.mock('technicalindicators', () => {
   return {
     ADX: {
@@ -78,20 +71,10 @@ jest.mock('technicalindicators', () => {
   };
 });
 
-// モック設定
-jest.mock('../../config/parameters.js', () => {
-  return {
-    MARKET_PARAMETERS: MOCK_MARKET_PARAMETERS_VALUE,
-    TREND_PARAMETERS: MOCK_TREND_PARAMETERS_VALUE,
-    RANGE_PARAMETERS: MOCK_RANGE_PARAMETERS_VALUE,
-    RISK_PARAMETERS: MOCK_RISK_PARAMETERS_VALUE,
-    OPERATION_MODE: 'simulation'
-  };
-});
-
+// その他のモックも上部に移動
 jest.mock('../../indicators/parabolicSAR.js', () => {
   return {
-    calculateParabolicSAR: jest.fn((candles: Candle[]) => {
+    calculateParabolicSAR: jest.fn((candles) => {
       if (!Array.isArray(candles) || candles.length === 0) {
         return { sar: 100, isUptrend: true, accelerationFactor: 0.02, extremePoint: 102 };
       }
@@ -123,52 +106,176 @@ jest.mock('../../utils/positionSizing.js', () => {
   };
 });
 
-// ParameterServiceのモック
 jest.mock('../../config/parameterService.js', () => {
-  // モックパラメータを定義
-  const mockParams: Record<string, any> = {
-    'trendFollowStrategy.donchianPeriod': 20,
-    'trendFollowStrategy.adxThreshold': 25,
-    'trendFollowStrategy.atrMultiplier': 3.0,
-    'trendFollowStrategy.trailingStopFactor': 2.5,
-    'trendFollowStrategy.useParabolicSAR': true,
-    'risk.maxRiskPerTrade': 0.02,
-    'trendFollowStrategy.initialStopAtrFactor': 1.5,
-    'trendFollowStrategy.breakevenMoveThreshold': 2.0,
-    'trendFollowStrategy.profitLockThreshold': 3.0,
-    'trendFollowStrategy.profitLockPercentage': 0.5
-  };
-
-  // パラメータサービスのモックを作成
-  const parameterServiceMock = {
-    get: jest.fn((key: string, defaultValue: any) => mockParams[key as string] ?? defaultValue),
-    getMarketParameters: jest.fn().mockReturnValue(MOCK_MARKET_PARAMETERS_VALUE),
-    getTrendParameters: jest.fn().mockReturnValue(MOCK_TREND_PARAMETERS_VALUE),
-    getRangeParameters: jest.fn().mockReturnValue(MOCK_RANGE_PARAMETERS_VALUE),
-    getRiskParameters: jest.fn().mockReturnValue(MOCK_RISK_PARAMETERS_VALUE),
-    getMonitoringParameters: jest.fn().mockReturnValue({
-      ENABLE_DISCORD: false,
-      LOG_LEVEL: 'info'
-    }),
-    getOperationMode: jest.fn().mockReturnValue('simulation'),
-    getAllParameters: jest.fn().mockReturnValue({
-      market: MOCK_MARKET_PARAMETERS_VALUE,
-      trend: MOCK_TREND_PARAMETERS_VALUE,
-      range: MOCK_RANGE_PARAMETERS_VALUE,
-      risk: MOCK_RISK_PARAMETERS_VALUE
+  return {
+    parameterService: {
+      get: jest.fn((key, defaultValue) => {
+        const mockParams = {
+          'trendFollowStrategy.donchianPeriod': 20,
+          'trendFollowStrategy.adxThreshold': 25,
+          'trendFollowStrategy.atrMultiplier': 3.0,
+          'trendFollowStrategy.trailingStopFactor': 2.5,
+          'trendFollowStrategy.useParabolicSAR': true,
+          'risk.maxRiskPerTrade': 0.02,
+          'trendFollowStrategy.initialStopAtrFactor': 1.5,
+          'trendFollowStrategy.breakevenMoveThreshold': 2.0,
+          'trendFollowStrategy.profitLockThreshold': 3.0,
+          'trendFollowStrategy.profitLockPercentage': 0.5
+        };
+        return mockParams[key as string] ?? defaultValue;
+      }),
+      getMarketParameters: jest.fn().mockReturnValue({
+        ATR_PERIOD: 14,
+        DONCHIAN_PERIOD: 20,
+        EMA_PERIOD: 200,
+        ATR_PERCENTAGE: 5.0,
+        EMA_SLOPE_THRESHOLD: 0.1,
+        ADJUST_SLOPE_PERIODS: 5
+      }),
+      getTrendParameters: jest.fn().mockReturnValue({
+        TRAILING_STOP_FACTOR: 2.0,
+        ADDON_POSITION_R_THRESHOLD: 1.0,
+        ADDON_POSITION_SIZE_FACTOR: 0.5,
+        POSITION_SIZING: 0.1,
+        ADX_PERIOD: 14,
+        ADX_THRESHOLD: 25
+      }),
+      getRangeParameters: jest.fn().mockReturnValue({
+        GRID_ATR_MULTIPLIER: 0.5,
+        ATR_VOLATILITY_THRESHOLD: 3.0,
+        GRID_LEVELS: 5
+      }),
+      getRiskParameters: jest.fn().mockReturnValue({
+        MAX_RISK_PER_TRADE: 0.02,
+        MAX_POSITION_PERCENTAGE: 0.1,
+        BLACK_SWAN_THRESHOLD: 0.15,
+        MIN_STOP_DISTANCE_PERCENTAGE: 1.0
+      }),
+      getMonitoringParameters: jest.fn().mockReturnValue({
+        ENABLE_DISCORD: false,
+        LOG_LEVEL: 'info'
+      }),
+      getOperationMode: jest.fn().mockReturnValue('simulation'),
+      getAllParameters: jest.fn().mockReturnValue({
+        market: {
+          ATR_PERIOD: 14,
+          DONCHIAN_PERIOD: 20,
+          EMA_PERIOD: 200,
+          ATR_PERCENTAGE: 5.0,
+          EMA_SLOPE_THRESHOLD: 0.1,
+          ADJUST_SLOPE_PERIODS: 5
+        },
+        trend: {
+          TRAILING_STOP_FACTOR: 2.0,
+          ADDON_POSITION_R_THRESHOLD: 1.0,
+          ADDON_POSITION_SIZE_FACTOR: 0.5,
+          POSITION_SIZING: 0.1,
+          ADX_PERIOD: 14,
+          ADX_THRESHOLD: 25
+        },
+        range: {
+          GRID_ATR_MULTIPLIER: 0.5,
+          ATR_VOLATILITY_THRESHOLD: 3.0,
+          GRID_LEVELS: 5
+        },
+        risk: {
+          MAX_RISK_PER_TRADE: 0.02,
+          MAX_POSITION_PERCENTAGE: 0.1,
+          BLACK_SWAN_THRESHOLD: 0.15,
+          MIN_STOP_DISTANCE_PERCENTAGE: 1.0
+        }
+      })
+    },
+    ParameterService: jest.fn().mockImplementation(() => {
+      return {
+        get: jest.fn((key, defaultValue) => {
+          const mockParams = {
+            'trendFollowStrategy.donchianPeriod': 20,
+            'trendFollowStrategy.adxThreshold': 25,
+            'trendFollowStrategy.atrMultiplier': 3.0,
+            'trendFollowStrategy.trailingStopFactor': 2.5,
+            'trendFollowStrategy.useParabolicSAR': true,
+            'risk.maxRiskPerTrade': 0.02,
+            'trendFollowStrategy.initialStopAtrFactor': 1.5,
+            'trendFollowStrategy.breakevenMoveThreshold': 2.0,
+            'trendFollowStrategy.profitLockThreshold': 3.0,
+            'trendFollowStrategy.profitLockPercentage': 0.5
+          };
+          return mockParams[key as string] ?? defaultValue;
+        }),
+        getMarketParameters: jest.fn().mockReturnValue({
+          ATR_PERIOD: 14,
+          DONCHIAN_PERIOD: 20,
+          EMA_PERIOD: 200,
+          ATR_PERCENTAGE: 5.0,
+          EMA_SLOPE_THRESHOLD: 0.1,
+          ADJUST_SLOPE_PERIODS: 5
+        }),
+        getTrendParameters: jest.fn().mockReturnValue({
+          TRAILING_STOP_FACTOR: 2.0,
+          ADDON_POSITION_R_THRESHOLD: 1.0,
+          ADDON_POSITION_SIZE_FACTOR: 0.5,
+          POSITION_SIZING: 0.1,
+          ADX_PERIOD: 14,
+          ADX_THRESHOLD: 25
+        }),
+        getRangeParameters: jest.fn().mockReturnValue({
+          GRID_ATR_MULTIPLIER: 0.5,
+          ATR_VOLATILITY_THRESHOLD: 3.0,
+          GRID_LEVELS: 5
+        }),
+        getRiskParameters: jest.fn().mockReturnValue({
+          MAX_RISK_PER_TRADE: 0.02,
+          MAX_POSITION_PERCENTAGE: 0.1,
+          BLACK_SWAN_THRESHOLD: 0.15,
+          MIN_STOP_DISTANCE_PERCENTAGE: 1.0
+        }),
+        getMonitoringParameters: jest.fn().mockReturnValue({
+          ENABLE_DISCORD: false,
+          LOG_LEVEL: 'info'
+        }),
+        getOperationMode: jest.fn().mockReturnValue('simulation'),
+        getAllParameters: jest.fn().mockReturnValue({
+          market: {
+            ATR_PERIOD: 14,
+            DONCHIAN_PERIOD: 20,
+            EMA_PERIOD: 200,
+            ATR_PERCENTAGE: 5.0,
+            EMA_SLOPE_THRESHOLD: 0.1,
+            ADJUST_SLOPE_PERIODS: 5
+          },
+          trend: {
+            TRAILING_STOP_FACTOR: 2.0,
+            ADDON_POSITION_R_THRESHOLD: 1.0,
+            ADDON_POSITION_SIZE_FACTOR: 0.5,
+            POSITION_SIZING: 0.1,
+            ADX_PERIOD: 14,
+            ADX_THRESHOLD: 25
+          },
+          range: {
+            GRID_ATR_MULTIPLIER: 0.5,
+            ATR_VOLATILITY_THRESHOLD: 3.0,
+            GRID_LEVELS: 5
+          },
+          risk: {
+            MAX_RISK_PER_TRADE: 0.02,
+            MAX_POSITION_PERCENTAGE: 0.1,
+            BLACK_SWAN_THRESHOLD: 0.15,
+            MIN_STOP_DISTANCE_PERCENTAGE: 1.0
+          }
+        })
+      };
     })
   };
-
-  // ParameterServiceのコンストラクタをモック
-  const MockParameterService = jest.fn().mockImplementation(() => {
-    return parameterServiceMock;
-  });
-
-  return {
-    parameterService: parameterServiceMock,
-    ParameterService: MockParameterService
-  };
 });
+
+// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
+const { 
+  standardBeforeEach, 
+  standardAfterEach, 
+  standardAfterAll 
+} = require('../../utils/test-helpers/test-cleanup');
 
 // global型拡張
 declare global {
