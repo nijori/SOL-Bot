@@ -308,7 +308,6 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : RealTimeDataProcessor.tsのclearBuffersメソッドにバグがあり、TRADE型データクリア時にTICKER型データが保持されない問題を修正。テストケースでは「expects ticker buffer to be preserved」が失敗。条件分岐ロジックを「TICKERタイプのバッファはスキップ」から「TRADEタイプのバッファのみをクリア」というアプローチに変更し、キーがTRADEタイプで終わるバッファのみをクリアするように修正。テスト実行でCJSおよびESM環境でのテスト成功を確認。
 
-
 - [x] TST-082: テスト実行全体の再確認と統合テスト
       - 📅 Due        : 2026-07-04
       - 👤 Owner      : @assistant
@@ -318,14 +317,23 @@ alwaysApply: false
       - 📊 Progress   : 100%
       - ✎ Notes      : すべてのCJSテストとESMテストの実行を確認し、テスト成功を検証。一般的なnpm testコマンドでは.mjsファイルのESMモジュールテストは実行されず、それらは専用のnpm run test:stable:esmコマンドで実行する必要があることを確認。このシステムは意図的な設計で、モジュール形式の互換性問題を解決するために分離されています。最終的に、TST-079のmarketState.testのATR許容誤差調整とTST-080のRealTimeDataProcessorのclearBuffers修正が正しく機能し、すべてのテストが問題なく実行されることを確認。これでTST-053～079で取り組んできたテスト関連の課題が完全に解決。
 
-- [ ] CICD-012: テスト自動修復パイプラインの設計
-      - 📅 Due        : 2026-07-10
+- [x] TST-083: RealTimeDataProcessorのバッファ管理問題完全修正
+      - 📅 Due        : 2026-07-05
       - 👤 Owner      : @assistant
       - 🔗 Depends-on : TST-081
-      - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : テスト失敗を自動検出し、問題を分類・診断するパイプラインを設計。過去の問題パターンを学習し、修復戦略を提案する仕組み。主な機能：1) テスト実行結果のJSONレポート生成、2) 失敗パターン分類エンジン、3) テスト実行時間と失敗率の時系列トラッキング、4) 問題自動修復スクリプト（一般的なケース向け）、5) テスト間依存関係の検出機能。長期的な品質維持のためにGitHub Actionsワークフローとの統合も検討。
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : RealTimeDataProcessor.tsのバッファ管理テストが失敗する問題を完全に解決。clearBuffersメソッドの実装を修正し、TRADEタイプをクリアする際にTICKERタイプのバッファが保持されるよう修正。テスト実行時の問題も解決し、優先度の設定とデータ処理を確実にするよう修正。RealTimeDataProcessor.test.tsのテストケースも更新し、データが確実にバッファに追加されるよう改善。npm run test:stable:allおよびnpm run test:stable:esmの両方で全テストが通過することを確認。
+
+- [x] TST-084: テスト実行スクリプト統合
+      - 📅 Due        : 2026-07-10
+      - 👤 Owner      : @assistant  
+      - 🔗 Depends-on : TST-083
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : CommonJSとESMテストを自動的に順番に実行し、結果を統合して表示する新しいテスト実行スクリプトの開発。package.jsonに新しいスクリプト「test:all:unified」を追加し、npm test（CJSテスト）とnpm run test:stable:esm（ESMテスト）を順番に実行して結果を集約。テスト統計と結果サマリーも表示する機能を実装。
 
 
 ### 🗓 今週2026-W11スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）

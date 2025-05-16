@@ -157,7 +157,12 @@
     "test:stableEsm:file": "node --experimental-vm-modules scripts/run-jest-tests.mjs",
     "test:stableJest:simple": "node scripts/run-jest-tests.js src/__tests__/simple.test.js",
     "test:stableEsm:basic": "node --experimental-vm-modules scripts/run-jest-tests.mjs src/__tests__/esm-basic.test.mjs",
-    "test:fullStable": "npm run test:stableJest && npm run test:stableEsm"
+    "test:fullStable": "npm run test:stableJest && npm run test:stableEsm",
+    "test:all:unified": "node scripts/run-unified-tests.js",
+    "test:unified": "node scripts/run-unified-tests.js",
+    "test:unified:report": "node scripts/run-unified-tests.js --report",
+    "test:unified:cjs": "node scripts/run-unified-tests.js --cjs-only",
+    "test:unified:esm": "node scripts/run-unified-tests.js --esm-only"
   },
   "keywords": [
     "crypto",
