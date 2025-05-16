@@ -4,11 +4,11 @@ import {
   KILL_SWITCH_FLAG_PATH,
   checkKillSwitch,
   executeKillSwitch
-} from '../../utils/killSwitchChecker.js';
+} from '../../utils/killSwitchChecker';
 
 // モックの設定
 jest.mock('fs');
-jest.mock('../../utils/logger.js', () => ({
+jest.mock('../../utils/logger', () => ({
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),
