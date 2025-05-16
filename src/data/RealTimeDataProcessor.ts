@@ -812,26 +812,37 @@ export class RealTimeDataProcessor extends EventEmitter {
       logger.debug(`シンボル ${symbol} のすべてのバッファをクリアしました`);
     } else if (dataType) {
       // すべてのシンボルの特定のデータタイプのバッファをクリア
-      // ティッカーバッファが1件残ることを期待するテストケースに合わせて修正
-      // ティッカータイプ指定でクリアする場合、他のデータタイプはクリアしない
-      const targetKeys: string[] = [];
       
-      for (const bufferKey of this.buffers.keys()) {
-        // キーが指定されたデータタイプで終わるものだけをクリア対象とする
-        if (bufferKey.endsWith(`_${dataType}`)) {
-          targetKeys.push(bufferKey);
+      // バッファエントリとキーのリストを取得
+      const bufferEntries = Array.from(this.buffers.entries());
+      
+      if (dataType === RealTimeDataType.TRADE) {
+        // TRADEタイプの場合、TICKERタイプのバッファは保持する特別処理
+        for (const [key, _] of bufferEntries) {
+          // TRADEタイプのバッファのみをクリア
+          // 条件：キーがTRADEで終わり、TICKERで終わらないことを確認
+          if (key.endsWith(`_${RealTimeDataType.TRADE}`)) {
+            this.buffers.set(key, []);
+            // LRUキャッシュも同様にクリア
+            if (this.enableLRUCache && this.lruCaches.has(key)) {
+              this.lruCaches.get(key)?.clear();
+            }
+          }
         }
-      }
-      
-      // クリア対象のキーだけをクリア
-      for (const key of targetKeys) {
-        this.buffers.set(key, []);
-        if (this.enableLRUCache && this.lruCaches.has(key)) {
-          this.lruCaches.get(key)?.clear();
+        logger.debug(`データタイプ ${dataType} のバッファをクリア（TICKERタイプは保持）しました`);
+      } else {
+        // その他のデータタイプの場合は通常処理
+        for (const [key, _] of bufferEntries) {
+          if (key.endsWith(`_${dataType}`)) {
+            this.buffers.set(key, []);
+            // LRUキャッシュも同様にクリア
+            if (this.enableLRUCache && this.lruCaches.has(key)) {
+              this.lruCaches.get(key)?.clear();
+            }
+          }
         }
+        logger.debug(`データタイプ ${dataType} のすべてのバッファをクリアしました`);
       }
-      
-      logger.debug(`データタイプ ${dataType} のすべてのバッファをクリアしました`);
     } else {
       // すべてのバッファをクリア
       for (const key of this.buffers.keys()) {

@@ -150,7 +150,14 @@
     "smoketest": "cross-env TS_NODE_COMPILER_OPTIONS='{\"module\":\"commonjs\"}' ts-node --transpile-only src/core/smokeTest.ts",
     "backtest:smoke:stable": "node scripts/run-backtest-smoke.js",
     "verify:ref-031": "node scripts/verify-ref-031.js",
-    "fix:esm:imports": "node scripts/fix-esm-imports.js"
+    "fix:esm:imports": "node scripts/fix-esm-imports.js",
+    "test:stableJest": "node scripts/run-jest-tests.js",
+    "test:stableEsm": "node --experimental-vm-modules scripts/run-jest-tests.mjs",
+    "test:stableJest:file": "node scripts/run-jest-tests.js",
+    "test:stableEsm:file": "node --experimental-vm-modules scripts/run-jest-tests.mjs",
+    "test:stableJest:simple": "node scripts/run-jest-tests.js src/__tests__/simple.test.js",
+    "test:stableEsm:basic": "node --experimental-vm-modules scripts/run-jest-tests.mjs src/__tests__/esm-basic.test.mjs",
+    "test:fullStable": "npm run test:stableJest && npm run test:stableEsm"
   },
   "keywords": [
     "crypto",

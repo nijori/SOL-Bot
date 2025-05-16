@@ -4,10 +4,21 @@
  * TST-057: ESMテスト環境の修正と安定化
  * TST-058: リソーストラッカーの無限ループ問題修正
  * TST-060: Jest実行タイムアウトとクリーンアップ処理の最適化
+ * TST-079: Jest環境設定とテスト実行スクリプトの改善
  */
 
 // jestをインポート
 const { jest, beforeAll, afterEach, afterAll } = require('@jest/globals');
+
+// TST-079: Jestのグローバル関数をグローバルスコープに設定
+try {
+  // グローバルセットアップヘルパーを読み込み
+  const jestGlobalsHelper = require('../../scripts/test-jest-globals');
+  jestGlobalsHelper.setupJestGlobals();
+} catch (error) {
+  console.warn('Jest関数のグローバル設定中にエラーが発生しました:', error);
+  // エラーが発生しても実行を継続（フォールバックメカニズム）
+}
 
 // グローバルにモジュール解決をパッチする（TST-056/057対応）
 // 拡張子が省略されたモジュールパスの解決を支援

@@ -1,7 +1,7 @@
 import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
 
 /**
- * ParameterServiceの型変換テスト
+ * ParameterService型変換テスト
  */
 
 import {
@@ -529,8 +529,8 @@ operation:
     it('createMockParameterServiceでモックが作成できる', () => {
       // 直接ParameterServiceを作成してテスト
       const mockParams = {
-        test: { param: 123 },
-        mock: { value: true }
+        'test.param': 123,
+        'mock.value': true
       };
       
       // 直接インスタンス化
@@ -544,10 +544,8 @@ operation:
     it('モックサービスを戦略に注入できる', () => {
       // モックパラメータを設定
       const mockParams = {
-        trendFollowStrategy: {
-          donchianPeriod: 50,
-          trailingStopFactor: 3.0
-        }
+        'trendFollowStrategy.donchianPeriod': 50,
+        'trendFollowStrategy.trailingStopFactor': 3.0
       };
       
       // 直接インスタンス化
@@ -574,7 +572,7 @@ operation:
     it('applyParametersで値を上書きできる', () => {
       // 初期値を持つインスタンスを作成
       const mockService = new ParameterService(undefined, {
-        original: { value: 100 }
+        'original.value': 100
       });
 
       // 元の値を確認
@@ -582,8 +580,8 @@ operation:
 
       // パラメータを適用
       applyParameters({
-        original: { value: 200 },
-        new: { value: 300 }
+        'original.value': 200,
+        'new.value': 300
       }, mockService);
 
       // 値が更新されていることを確認
@@ -591,4 +589,109 @@ operation:
       expect(mockService.get('new.value')).toBe(300);
     });
   });
-}); 
+});
+
+/**
+ * u30b7u30f3u30b0u30ebu30c8u30f3u30d1u30bfu30fcu30f3u306eu52d5u4f5cu3092u30c6u30b9u30c8
+ */
+describe('u30b7u30f3u30b0u30ebu30c8u30f3u30d1u30bfu30fcu30f3u3067u306eu52d5u4f5c', () => {
+  it('parameterServiceu30a8u30afu30b9u30ddu30fcu30c8u306fu30b7u30f3u30b0u30ebu30c8u30f3u30a4u30f3u30b9u30bfu30f3u30b9u3092u53c2u7167u3057u3066u3044u308b', () => {
+    // parameterServiceu304cglobal._parameterServiceSingletonu3068u540cu3058u3067u3042u308bu3053u3068u3092u78bau8a8d
+    const singletonInstance = ParameterService.getInstance();
+    
+    // u30b7u30f3u30b0u30ebu30c8u30f3u306egetAllParametersu30e1u30bdu30c3u30c9u3067u8a2du5b9au3092u53d6u5f97
+    const singletonParams = singletonInstance.getAllParameters();
+    
+    // u30d1u30e9u30e1u30fcu30bfu306eu4e00u90e8u3092u78bau8a8du3059u308bu ff08u5b8cu5168u4e00u81f4u306fu4e0du8981uff09
+    expect(singletonParams.market).toBeDefined();
+    expect(singletonParams.trend).toBeDefined();
+    expect(singletonParams.risk).toBeDefined();
+  });
+
+  it('u30b7u30f3u30b0u30ebu30c8u30f3u30a4u30f3u30b9u30bfu30f3u30b9u304bu3089u5024u3092u53d6u5f97u3067u304du308b', () => {
+    // u30c6u30b9u30c8u7528u306bu30b7u30f3u30b0u30ebu30c8u30f3u3092u518du521du671fu5316
+    ParameterService.resetInstance({
+      market: { atr_period: 42 }
+    });
+    
+    // u30b7u30f3u30b0u30ebu30c8u30f3u304bu3089u5024u3092u53d6u5f97u3067u304du308bu3053u3068u3092u78bau8a8d
+    const singletonInstance = ParameterService.getInstance();
+    expect(singletonInstance.get('market.atr_period')).toBe(42);
+  });
+
+  it('resetInstanceu3067u65b0u3057u3044u5024u306bu66f4u65b0u3067u304du308b', () => {
+    // u65b0u3057u3044u30d1u30e9u30e1u30fcu30bfu3067u30eau30bbu30c3u30c8
+    ParameterService.resetInstance({
+      market: { atr_period: 99 }
+    });
+
+    // u65b0u3057u3044u5024u304cu8a2du5b9au3055u308cu3066u3044u308bu3053u3068u3092u78bau8a8d
+    const instance = ParameterService.getInstance();
+    expect(instance.get('market.atr_period')).toBe(99);
+  });
+});
+
+describe('u30b5u30fcu30d3u30b9u306eu4f9du5b58u6ce8u5165', () => {
+  it('createMockParameterServiceu3067u30e2u30c3u30afu304cu4f5cu6210u3067u304du308b', () => {
+    // u76f4u63a5ParameterServiceu3092u4f5cu6210u3057u3066u30c6u30b9u30c8
+    const mockParams = {
+      'test.param': 123,
+      'mock.value': true
+    };
+    
+    // u76f4u63a5u30a4u30f3u30b9u30bfu30f3u30b9u5316
+    const mockService = new ParameterService(undefined, mockParams);
+
+    // u5b9fu969bu306eu5024u3092u78bau8a8d
+    expect(mockService.get('test.param')).toBe(123);
+    expect(mockService.get('mock.value')).toBe(true);
+  });
+
+  it('u30e2u30c3u30afu30b5u30fcu30d3u30b9u3092u6226u7565u306bu6ce8u5165u3067u304du308b', () => {
+    // u30e2u30c3u30afu30d1u30e9u30e1u30fcu30bfu3092u8a2du5b9a
+    const mockParams = {
+      'trendFollowStrategy.donchianPeriod': 50,
+      'trendFollowStrategy.trailingStopFactor': 3.0
+    };
+    
+    // u76f4u63a5u30a4u30f3u30b9u30bfu30f3u30b9u5316
+    const mockService = new ParameterService(undefined, mockParams);
+
+    // u30e2u30c3u30afu30b5u30fcu30d3u30b9u3092u4f7fu7528u3059u308bu6226u7565u30afu30e9u30b9
+    class MockStrategy {
+      constructor(private paramService: IParameterService) {}
+
+      getTrailingStopFactor(): number {
+        return this.paramService.get('trendFollowStrategy.trailingStopFactor', 2.0);
+      }
+
+      getDonchianPeriod(): number {
+        return this.paramService.get('trendFollowStrategy.donchianPeriod', 20);
+      }
+    }
+
+    const strategy = new MockStrategy(mockService);
+    expect(strategy.getTrailingStopFactor()).toBe(3.0);
+    expect(strategy.getDonchianPeriod()).toBe(50);
+  });
+
+  it('applyParametersu3067u5024u3092u4e0au66f8u304du3067u304du308b', () => {
+    // u521du671fu5024u3092u6301u3064u30a4u30f3u30b9u30bfu30f3u30b9u3092u4f5cu6210
+    const mockService = new ParameterService(undefined, {
+      'original.value': 100
+    });
+
+    // u5143u306eu5024u3092u78bau8a8d
+    expect(mockService.get('original.value')).toBe(100);
+
+    // u30d1u30e9u30e1u30fcu30bfu3092u9069u7528
+    applyParameters({
+      'original.value': 200,
+      'new.value': 300
+    }, mockService);
+
+    // u5024u304cu66f4u65b0u3055u308cu3066u3044u308bu3053u3068u3092u78bau8a8d
+    expect(mockService.get('original.value')).toBe(200);
+    expect(mockService.get('new.value')).toBe(300);
+  });
+});

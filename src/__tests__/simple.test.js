@@ -1,6 +1,7 @@
 /**
  * シンプルなCommonJSテスト
  */
+const { describe, test, expect } = require('@jest/globals');
 
 describe('シンプルな基本テスト', () => {
   test('基本的な計算が動作する', () => {

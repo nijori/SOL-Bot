@@ -73,13 +73,15 @@ export class ParameterService implements IParameterService {
   public static getInstance(): ParameterService {
     if (ParameterService.instance === null) {
       // グローバル変数にインスタンスがある場合はそれを使用
-      if (global._parameterServiceSingleton !== null) {
+      if (global._parameterServiceSingleton !== null && global._parameterServiceSingleton !== undefined) {
         ParameterService.instance = global._parameterServiceSingleton;
+        logger.debug('既存のパラメータサービスを使用しました');
       } else {
         // なければ新規作成
         ParameterService.instance = new ParameterService();
         // グローバル変数にも保存
         global._parameterServiceSingleton = ParameterService.instance;
+        logger.debug('新しいパラメータサービスを作成しました');
       }
     }
     return ParameterService.instance;
@@ -90,14 +92,18 @@ export class ParameterService implements IParameterService {
    * @param parameters 新しいパラメータ
    */
   public static resetInstance(parameters?: Record<string, any>): void {
-    if (parameters) {
-      ParameterService.instance = new ParameterService(undefined, parameters);
-    } else {
-      ParameterService.instance = new ParameterService();
-    }
+    // 新しいインスタンスを作成
+    const newInstance = parameters 
+      ? new ParameterService(undefined, parameters)
+      : new ParameterService();
+    
+    // 既存のインスタンスを更新
+    ParameterService.instance = newInstance;
     
     // グローバルのparameterServiceも同じインスタンスを参照するように更新
-    global._parameterServiceSingleton = ParameterService.instance;
+    global._parameterServiceSingleton = newInstance;
+    
+    logger.debug('パラメータサービスをリセットしました');
   }
 
   /**
@@ -135,88 +141,33 @@ export class ParameterService implements IParameterService {
   private processEnvVariables(obj: any): any {
     if (typeof obj === 'string') {
       // 環境変数プレースホルダーを検出して置換
-      // 新しい正規表現パターンで型ヒントをサポート
       return obj.replace(
         /\${([^:}]+)(?::([^:}]+))?(?::([^}]+))?}/g,
         (match, envVar, typeHint, defaultValue) => {
           const envValue = process.env[envVar];
-
+          
           // 環境変数が存在しない場合はデフォルト値を使用
           if (envValue === undefined) {
-            // デフォルト値を適切な型に変換して返す
+            // デフォルト値を適切な型に変換
             if (typeHint && defaultValue) {
-              switch (typeHint.toLowerCase()) {
-                case 'number':
-                  return Number(defaultValue);
-                case 'boolean':
-                  return ['true', 'yes', '1', 'on', 'y'].includes(defaultValue.toLowerCase());
-                default:
-                  return defaultValue || '';
-              }
+              return this.convertValueByTypeHint(defaultValue, typeHint.toLowerCase());
             }
+            
+            // 以前の形式 ${MISSING_VAR:-default} に対応
+            if (defaultValue && !typeHint) {
+              return this.autoDetectAndConvertType(defaultValue);
+            }
+            
             return defaultValue || '';
           }
-
-          // 型ヒントがある場合は適切な型に変換
+          
+          // 型ヒントがある場合の処理
           if (typeHint) {
-            try {
-              switch (typeHint.toLowerCase()) {
-                case 'number':
-                  // 数値に変換
-                  const numValue = Number(envValue);
-                  // 有効な数値であることを確認
-                  if (!isNaN(numValue)) {
-                    return numValue;
-                  }
-                  // 変換できなければデフォルト値を数値として返す
-                  return defaultValue ? Number(defaultValue) : 0;
-
-                case 'boolean':
-                  // 真偽値に変換 (true、yes、1、onなどを真として扱う)
-                  const boolStr = envValue.toLowerCase();
-                  if (['true', 'yes', '1', 'on', 'y'].includes(boolStr)) {
-                    return true;
-                  }
-                  if (['false', 'no', '0', 'off', 'n'].includes(boolStr)) {
-                    return false;
-                  }
-                  // 変換できなければデフォルト値を真偽値として返す
-                  return defaultValue
-                    ? ['true', 'yes', '1', 'on', 'y'].includes(defaultValue.toLowerCase())
-                    : false;
-
-                case 'string':
-                  // 明示的に文字列として扱う
-                  return envValue;
-
-                default:
-                  // 不明な型ヒントの場合は文字列として処理
-                  logger.warn(
-                    `未知の型ヒント '${typeHint}' が指定されました。文字列として処理します。`
-                  );
-                  return envValue;
-              }
-            } catch (error) {
-              logger.error(
-                `環境変数 ${envVar} の型変換中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`
-              );
-              return defaultValue || envValue;
-            }
+            return this.convertValueByTypeHint(envValue, typeHint.toLowerCase());
           }
-
-          // 型ヒントがない場合は自動的に型を推論
-          // 数値として解析可能かチェック
-          if (/^-?\d+(\.\d+)?$/.test(envValue)) {
-            return Number(envValue);
-          }
-
-          // 真偽値として解析可能かチェック
-          if (['true', 'false'].includes(envValue.toLowerCase())) {
-            return envValue.toLowerCase() === 'true';
-          }
-
-          // それ以外は文字列として扱う
-          return envValue;
+          
+          // 一般的な型推論処理
+          return this.autoDetectAndConvertType(envValue);
         }
       );
     } else if (Array.isArray(obj)) {
@@ -230,6 +181,7 @@ export class ParameterService implements IParameterService {
       }
       return result;
     }
+    
     // その他の型はそのまま返す
     return obj;
   }
@@ -386,6 +338,69 @@ export class ParameterService implements IParameterService {
     this.symbolOverrides = overrides;
     logger.info(`${Object.keys(overrides).length}通貨ペアのオーバーライド設定を適用しました`);
   }
+
+  /**
+   * 値を型ヒントに基づいて変換する
+   * @param value 変換する値
+   * @param typeHint 型ヒント
+   * @returns 変換された値
+   */
+  private convertValueByTypeHint(value: string, typeHint: string): any {
+    try {
+      switch (typeHint) {
+        case 'number':
+          // 数値に変換
+          return Number(value);
+          
+        case 'boolean':
+          // 真偽値に変換
+          const boolStr = value.toLowerCase();
+          if (['true', 'yes', '1', 'on', 'y'].includes(boolStr)) {
+            return true;
+          }
+          if (['false', 'no', '0', 'off', 'n'].includes(boolStr)) {
+            return false;
+          }
+          // 変換できない場合はデフォルト値を使用
+          return value === 'true';
+          
+        case 'string':
+          // 明示的に文字列として扱う
+          return String(value);
+          
+        default:
+          logger.warn(`未知の型ヒント '${typeHint}' が指定されました。文字列として処理します。`);
+          return value;
+      }
+    } catch (error) {
+      logger.error(`値 ${value} の型変換中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      return value;
+    }
+  }
+
+  /**
+   * 値を自動検出して変換する
+   * @param value 変換する値
+   * @returns 変換された値
+   */
+  private autoDetectAndConvertType(value: string): any {
+    // 数値に見える場合は数値に変換
+    if (/^-?\d+(\.\d+)?$/.test(value)) {
+      return Number(value);
+    }
+    
+    // 真偽値に見える場合
+    const lowerValue = value.toLowerCase();
+    if (lowerValue === 'true') {
+      return true;
+    }
+    if (lowerValue === 'false') {
+      return false;
+    }
+    
+    // それ以外は文字列として扱う
+    return value;
+  }
 }
 
 /**
@@ -402,7 +417,37 @@ export const parameterService = ParameterService.getInstance();
 export function createMockParameterService(
   mockParams: Record<string, any> = {}
 ): IParameterService {
-  return new ParameterService(undefined, mockParams);
+  // モックパラメータにドット表記のキーが含まれているか確認
+  const processedParams: Record<string, any> = {};
+  
+  // ドット表記のキーをネストされたオブジェクトとして変換
+  for (const [key, value] of Object.entries(mockParams)) {
+    if (key.includes('.')) {
+      // ドット区切りのキーを分割
+      const parts = key.split('.');
+      let current = processedParams;
+      
+      // 最後のパートを除く各階層を作成
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      // 最後のパートに値を設定
+      current[parts[parts.length - 1]] = value;
+    } else {
+      // ドットがない場合はそのまま設定
+      processedParams[key] = value;
+    }
+  }
+  
+  // 処理したパラメータでモックサービスを作成
+  const mockService = new ParameterService(undefined, processedParams);
+  
+  // モックパラメータサービスを返す
+  return mockService;
 }
 
 /**

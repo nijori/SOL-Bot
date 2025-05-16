@@ -3,9 +3,24 @@
  * REF-034: テスト実行環境の最終安定化
  * TST-056: テスト実行時のメモリリーク問題の解決
  * TST-066: ESMテスト実行環境の修正
+ * TST-079: Jest環境設定とテスト実行スクリプトの改善
  */
 
 import { jest } from '@jest/globals';
+
+// TST-079: Jestのグローバル関数をグローバルスコープに設定
+try {
+  // ESM環境では動的インポートを使用
+  const jestGlobalsHelperPromise = import('../../scripts/test-jest-globals.mjs');
+  jestGlobalsHelperPromise.then(module => {
+    module.setupJestGlobals();
+  }).catch(error => {
+    console.warn('Jest関数のグローバル設定中にエラーが発生しました:', error);
+  });
+} catch (error) {
+  console.warn('Jest関数のグローバル設定中にエラーが発生しました:', error);
+  // エラーが発生しても実行を継続
+}
 
 // アクティブなタイマーとインターバルを追跡
 const activeTimers = new Set();

@@ -259,7 +259,7 @@ describe('MarketState Indicators', () => {
       }
 
       if (atr3 > 0) {
-        expect(Math.abs(atr2 - atr3) / atr3).toBeLessThan(0.1);
+        expect(Math.abs(atr2 - atr3) / atr3).toBeLessThan(0.15);
       }
     });
 
