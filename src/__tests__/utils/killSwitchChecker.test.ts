@@ -8,12 +8,17 @@ import {
 
 // モックの設定
 jest.mock('fs');
-jest.mock('../../utils/logger', () => ({
+
+// ロガーのモックを直接インライン定義
+const mockLogger = {
   error: jest.fn(),
   warn: jest.fn(),
   info: jest.fn(),
   debug: jest.fn()
-}));
+};
+
+// ロガーのモジュールをモック
+jest.mock('../../utils/logger', () => mockLogger);
 
 describe('killSwitchChecker', () => {
   const mockExistSync = fs.existsSync as jest.Mock;
@@ -25,6 +30,9 @@ describe('killSwitchChecker', () => {
     
     // fsのモックをリセット
     mockExistSync.mockReset();
+    
+    // ロガーのモックをリセット
+    Object.values(mockLogger).forEach(mock => (mock as jest.Mock).mockReset());
     
     // setTimeout をモック化して即時実行
     jest.useFakeTimers();
@@ -53,6 +61,7 @@ describe('killSwitchChecker', () => {
     mockExistSync.mockReturnValue(true);
     expect(checkKillSwitch()).toBe(true);
     expect(mockExistSync).toHaveBeenCalledWith(KILL_SWITCH_FLAG_PATH);
+    expect(mockLogger.error).toHaveBeenCalled();
   });
 
   test('checkKillSwitch はエラーが発生した場合 true を返す', () => {
@@ -60,11 +69,13 @@ describe('killSwitchChecker', () => {
       throw new Error('テスト用エラー');
     });
     expect(checkKillSwitch()).toBe(true);
+    expect(mockLogger.error).toHaveBeenCalled();
   });
 
   test('executeKillSwitch は500ms後にprocess.exitを呼び出す', () => {
     executeKillSwitch(99);
     expect(process.exit).not.toHaveBeenCalled();
+    expect(mockLogger.error).toHaveBeenCalled();
     
     // 500ms進める
     jest.advanceTimersByTime(500);
