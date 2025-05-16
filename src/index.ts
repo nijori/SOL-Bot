@@ -28,6 +28,7 @@ import { parameterService } from './config/parameterService.js';
 import metricsService from './utils/metrics.js';
 import { CliParser } from './utils/cliParser.js';
 import { BacktestRunner } from './core/backtestRunner.js';
+import { checkAndExecuteKillSwitch } from './utils/killSwitchChecker.js';
 
 // 設定
 const PORT = process.env.PORT || 3000;
@@ -270,12 +271,22 @@ async function runTradingLogic(): Promise<void> {
 
 async function main() {
   try {
+    // 起動時に緊急停止フラグをチェック
+    if (checkAndExecuteKillSwitch()) {
+      return;
+    }
+    
     // メトリクスサーバーの初期化
     metricsService.initMetricsServer();
     logger.info('メトリクスサーバーを初期化しました');
 
     // 定期実行のスケジュール設定
     cron.schedule('*/5 * * * *', async () => {
+      // 緊急停止フラグをチェック
+      if (checkAndExecuteKillSwitch()) {
+        return;
+      }
+      
       logger.info('定期実行：取引ロジックを実行します');
       await runTradingLogic();
     });

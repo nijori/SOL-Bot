@@ -32,6 +32,7 @@ import { OrderSizingService } from '../services/orderSizingService.js';
 import { PerformanceStats } from '../types/performanceStats.js';
 import { MarketStateResult } from '../types/marketStateResult.js';
 import { checkSignificantPriceChange, calculateVolatility } from '../utils/atrUtils.js';
+import { checkKillSwitch } from '../utils/killSwitchChecker.js';
 
 /**
  * TradingEngine用のオプションインターフェース
@@ -143,6 +144,13 @@ export class TradingEngine {
    * @param newCandles 新しいローソク足データ
    */
   public updateMarketData(newCandles: Candle[]): void {
+    // 緊急停止フラグをチェック
+    if (checkKillSwitch()) {
+      logger.error(`[TradingEngine] 緊急停止フラグが検出されました。処理を中断します。`);
+      this.tradingEnabled = false;
+      return;
+    }
+
     // 前回の終値を保存
     if (this.latestCandles.length > 0) {
       this.previousClose = this.latestCandles[this.latestCandles.length - 1].close;
@@ -329,10 +337,32 @@ export class TradingEngine {
   }
 
   /**
-   * 現在の市場環境に基づいて最適な戦略を実行する
-   * @returns 戦略実行結果
+   * 戦略を実行し、シグナルを生成
    */
   public executeStrategy(): StrategyResult {
+    // 緊急停止フラグをチェック
+    if (checkKillSwitch()) {
+      logger.error(`[TradingEngine] 緊急停止フラグが検出されました。戦略実行を中断します。`);
+      this.tradingEnabled = false;
+      return { 
+        strategy: StrategyType.EMERGENCY,
+        signals: [],
+        timestamp: Date.now(),
+        error: '緊急停止フラグが検出されました'
+      };
+    }
+
+    // 取引が一時停止されている場合は、空のシグナルを返す
+    if (!this.tradingEnabled) {
+      logger.warn(`[TradingEngine] 取引が一時停止中のため、戦略は実行されません。`);
+      return { 
+        strategy: StrategyType.EMERGENCY,
+        signals: [],
+        timestamp: Date.now(),
+        error: '取引が一時停止中です'
+      };
+    }
+
     // スモークテスト中は簡易的な処理のみ行う
     if (this.isBacktest && this.isSmokeTest) {
       logger.info('[TradingEngine] スモークテストモード: 簡易的なバックテスト実行');
@@ -1095,23 +1125,37 @@ export class TradingEngine {
    * @returns Promiseを返す
    */
   public async update(candle: Candle): Promise<void> {
-    // 1. 市場データを更新
-    this.updateMarketData([candle]);
+    try {
+      // 緊急停止フラグをチェック
+      if (checkKillSwitch()) {
+        logger.error(`[TradingEngine] 緊急停止フラグが検出されました。処理を中断します。`);
+        this.tradingEnabled = false;
+        return;
+      }
 
-    // 2. 市場状態を分析
-    this.analyzeMarket();
+      // 最新の価格情報を更新
+      this.updatePrice(candle.close);
 
-    // 3. 戦略を実行
-    const strategyResult = this.executeStrategy();
+      // 1. 市場データを更新
+      this.updateMarketData([candle]);
 
-    // 4. シグナルを処理（重要: これがないとシグナルが処理されない）
-    if (strategyResult && strategyResult.signals && strategyResult.signals.length > 0) {
-      logger.info(`[TradingEngine] シグナル処理: ${strategyResult.signals.length}件の注文を処理`);
-      this.processSignals(strategyResult.signals);
+      // 2. 市場状態を分析
+      this.analyzeMarket();
+
+      // 3. 戦略を実行
+      const strategyResult = this.executeStrategy();
+
+      // 4. シグナルを処理（重要: これがないとシグナルが処理されない）
+      if (strategyResult && strategyResult.signals && strategyResult.signals.length > 0) {
+        logger.info(`[TradingEngine] シグナル処理: ${strategyResult.signals.length}件の注文を処理`);
+        this.processSignals(strategyResult.signals);
+      }
+
+      // 価格更新通知
+      this.updatePrice(candle.close);
+    } catch (error) {
+      logger.error(`[TradingEngine] エンジン更新中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
     }
-
-    // 価格更新通知
-    this.updatePrice(candle.close);
   }
 
   /**
