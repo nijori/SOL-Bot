@@ -1,4 +1,4 @@
-import {
+const { 
   Candle,
   MarketAnalysisResult,
   MarketEnvironment,
@@ -15,87 +15,50 @@ import {
   SystemMode,
   RiskLevel,
   TimeFrame
-} from './types.js';
-import { analyzeMarketState } from '../indicators/marketState.js';
-import { executeTrendStrategy } from '../strategies/trendStrategy.js';
-import { executeRangeStrategy } from '../strategies/rangeStrategy.js';
-import { RISK_PARAMETERS } from '../config/parameters.js';
-import logger from '../utils/logger.js';
-import { OrderManagementSystem } from './orderManagementSystem.js';
-import { parameterService } from '../config/parameterService.js';
-import { syncOrderForSimulateFill } from '../utils/orderUtils.js';
-import metricsService from '../utils/metrics.js';
-import { ExchangeService } from '../services/exchangeService.js';
-import { DonchianBreakoutStrategy } from '../strategies/DonchianBreakoutStrategy.js';
-import { executeTrendFollowStrategy } from '../strategies/trendFollowStrategy.js';
-import { OrderSizingService } from '../services/orderSizingService.js';
-import { PerformanceStats } from '../types/performanceStats.js';
-import { MarketStateResult } from '../types/marketStateResult.js';
-import { checkSignificantPriceChange, calculateVolatility } from '../utils/atrUtils.js';
-import { checkKillSwitch } from '../utils/killSwitchChecker.js';
+} = require('./types');
+const { analyzeMarketState } = require('../indicators/marketState');
+const { executeTrendStrategy } = require('../strategies/trendStrategy');
+const { executeRangeStrategy } = require('../strategies/rangeStrategy');
+const { RISK_PARAMETERS } = require('../config/parameters');
+const logger = require('../utils/logger').default;
+const { OrderManagementSystem } = require('./orderManagementSystem');
+const { parameterService } = require('../config/parameterService');
+const { syncOrderForSimulateFill } = require('../utils/orderUtils');
+const metricsService = require('../utils/metrics').default;
+const { ExchangeService } = require('../services/exchangeService');
+const { DonchianBreakoutStrategy } = require('../strategies/DonchianBreakoutStrategy');
+const { executeTrendFollowStrategy } = require('../strategies/trendFollowStrategy');
+const { OrderSizingService } = require('../services/orderSizingService');
+const { PerformanceStats } = require('../types/performanceStats');
+const { MarketStateResult } = require('../types/marketStateResult');
+const { checkSignificantPriceChange, calculateVolatility } = require('../utils/atrUtils');
+const { checkKillSwitch } = require('../utils/killSwitchChecker');
 
 /**
  * TradingEngine用のオプションインターフェース
  */
-export interface TradingEngineOptions {
-  // 基本設定
-  symbol: string;
-  timeframeHours?: number;
-  initialBalance?: number;
-  isBacktest?: boolean;
-  slippage?: number;
-  commissionRate?: number;
-  isSmokeTest?: boolean;
-  quiet?: boolean; // ログ出力を抑制するモード
+// export interface TradingEngineOptions {
+//   // 基本設定
+//   symbol: string;
+//   timeframeHours?: number;
+//   initialBalance?: number;
+//   isBacktest?: boolean;
+//   slippage?: number;
+//   commissionRate?: number;
+//   isSmokeTest?: boolean;
+//   quiet?: boolean; // ログ出力を抑制するモード
 
-  // 依存サービス
-  oms?: OrderManagementSystem;
-  exchangeService?: ExchangeService;
-  orderSizingService?: OrderSizingService;
-}
+//   // 依存サービス
+//   oms?: OrderManagementSystem;
+//   exchangeService?: ExchangeService;
+//   orderSizingService?: OrderSizingService;
+// }
 
 /**
  * トレーディングエンジンのメインクラス
  */
-export class TradingEngine {
-  private symbol: string;
-  private timeframeHours: number; // タイムフレーム（時間単位）
-  private latestCandles: Candle[] = [];
-  private marketAnalysis: MarketAnalysisResult | null = null;
-  private activeStrategy: StrategyType = StrategyType.TREND_FOLLOWING;
-  private previousClose: number | null = null;
-  private previousDailyClose: number | null = null; // 24時間前の終値
-  private lastDailyCloseUpdateTime: number = 0; // 前回のDailyClose更新時刻
-  private dailyStartingBalance: number = 0; // 午前0時の残高
-  private account: Account;
-  private oms: OrderManagementSystem;
-  private isBacktest: boolean = false;
-  private slippage: number = 0; // スリッページ率
-  private commissionRate: number = 0; // 取引手数料率
-  private completedTrades: any[] = []; // 完了した取引履歴
-  private isSmokeTest: boolean = false;
-  private quiet: boolean = false; // ログ出力抑制モード
-  private exchangeService: ExchangeService;
-  private donchianBreakoutStrategy: DonchianBreakoutStrategy;
-  private performanceStats: PerformanceStats | null = null;
-  private lastSystemModeUpdateTime: number = 0;
-  private marketSummary: MarketStateResult | null = null;
-  private orderSizingService: OrderSizingService | null = null;
-  private dailyTrades: number = 0;
-  private dailyPnL: number = 0;
-  private lastClosingTime: number = 0;
-  private tradingEnabled: boolean = true;
-  private systemMode: SystemMode = SystemMode.NORMAL;
-  private riskLevel: RiskLevel = RiskLevel.MEDIUM;
-  private strategyWeights: Record<string, number> = {
-    DonchianBreakout: 0.35,
-    TrendFollow: 0.35,
-    MeanReversion: 0.3
-  };
-  private emergencyModeStartTime: number = 0; // EMERGENCYモード開始時間
-  private significantPriceChanges: { timestamp: number; change: number }[] = []; // 過去の価格変動履歴
-
-  constructor(options: TradingEngineOptions) {
+class TradingEngine {
+  constructor(options) {
     this.symbol = options.symbol;
     this.timeframeHours = options.timeframeHours || 4;
     this.isBacktest = options.isBacktest || false;
@@ -103,6 +66,31 @@ export class TradingEngine {
     this.commissionRate = options.commissionRate || 0;
     this.isSmokeTest = options.isSmokeTest || false;
     this.quiet = options.quiet || false;
+
+    this.latestCandles = [];
+    this.marketAnalysis = null;
+    this.activeStrategy = StrategyType.TREND_FOLLOWING;
+    this.previousClose = null;
+    this.previousDailyClose = null;
+    this.lastDailyCloseUpdateTime = 0;
+    this.dailyStartingBalance = 0;
+    this.completedTrades = [];
+    this.lastSystemModeUpdateTime = 0;
+    this.marketSummary = null;
+    this.orderSizingService = null;
+    this.dailyTrades = 0;
+    this.dailyPnL = 0;
+    this.lastClosingTime = 0;
+    this.tradingEnabled = true;
+    this.systemMode = SystemMode.NORMAL;
+    this.riskLevel = RiskLevel.MEDIUM;
+    this.strategyWeights = {
+      DonchianBreakout: 0.35,
+      TrendFollow: 0.35,
+      MeanReversion: 0.3
+    };
+    this.emergencyModeStartTime = 0;
+    this.significantPriceChanges = [];
 
     this.account = {
       balance: options.initialBalance || 10000,
@@ -141,9 +129,9 @@ export class TradingEngine {
 
   /**
    * 市場データを更新
-   * @param newCandles 新しいローソク足データ
+   * @param {Array} newCandles 新しいローソク足データ
    */
-  public updateMarketData(newCandles: Candle[]): void {
+  updateMarketData(newCandles) {
     // 緊急停止フラグをチェック
     if (checkKillSwitch()) {
       logger.error(`[TradingEngine] 緊急停止フラグが検出されました。処理を中断します。`);
@@ -1448,3 +1436,8 @@ export class TradingEngine {
     }
   }
 }
+
+// Commonjs export
+module.exports = {
+  TradingEngine
+};
