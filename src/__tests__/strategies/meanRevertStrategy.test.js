@@ -1,9 +1,10 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
+// core/typesの明示的なインポートを修正
+const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types');
+
 const meanRevertStrategyModule = require('../../strategies/meanRevertStrategy');
-const Types = require('../../core/types');
-const { OrderSide, OrderType } = Types;
 
 // リソーストラッカーとテストクリーンアップ関連のインポート
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');

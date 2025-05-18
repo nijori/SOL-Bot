@@ -1,6 +1,9 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
+// core/typesの明示的なインポートを修正
+const { Types, TimeFrame } = require('../../core/types');
+
 const MultiTimeframeDataFetcherModule = require('../../data/MultiTimeframeDataFetcher');
 const { MultiTimeframeDataFetcher, Timeframe } = MultiTimeframeDataFetcherModule;
 const { ParquetDataStore } = require('../../data/parquetDataStore');
