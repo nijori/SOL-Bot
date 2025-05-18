@@ -249,11 +249,13 @@ function checkPositionImbalance(
 function isWithinRange(price, high, low, buffer = 0.01) {
   const upperBound = high * (1 + buffer);
   const lowerBound = low * (1 - buffer);
-  return price <= upperBound && price >= lowerBound;
+  
+  return price >= lowerBound && price <= upperBound;
 }
 
 /**
- * ミーンリバート戦略を実行
+ * ミーンリバージョン戦略を実行する関数
+ * 
  * @param {Array} candles ローソク足データ
  * @param {string} symbol 銘柄シンボル
  * @param {Array} currentPositions 現在のポジション
@@ -266,133 +268,135 @@ function executeMeanRevertStrategy(
   currentPositions,
   accountBalance = 10000
 ) {
-  const signals = [];
-  
-  // データが十分にあるか確認
-  if (candles.length < RANGE_PERIOD) {
+  // データが不足している場合は空のシグナルを返す
+  if (candles.length < Math.max(RANGE_PERIOD, MARKET_PARAMETERS.ATR_PERIOD) + 10) {
     return {
       strategy: StrategyType.MEAN_REVERSION,
       signals: [],
       timestamp: Date.now()
     };
   }
-  
-  // 現在の価格
-  const currentPrice = candles[candles.length - 1].close;
-  
-  // Donchianチャネルを計算
-  const donchian = calculateDonchianChannel(candles, RANGE_PERIOD);
-  const rangeHigh = donchian.high;
-  const rangeLow = donchian.low;
-  
-  // レンジを識別（高値と安値の差の％）
-  const rangePercentage = ((rangeHigh - rangeLow) / rangeLow) * 100;
-  
-  // 指定範囲内かどうかを確認
-  const inRange = isWithinRange(currentPrice, rangeHigh, rangeLow);
-  
-  // VWAPを計算
-  const vwap = calculateVWAP(candles.slice(-20));
-  
-  // ATRを計算
-  const atr = calculateATR(candles, 14);
-  const atrPercentage = calculateAtrPercentage(atr, currentPrice);
-  
-  // 動的グリッドレベル数を計算
-  const gridLevels = calculateDynamicGridLevels(rangePercentage, atrPercentage);
-  
-  // グリッドレベルを計算
-  const levels = calculateGridLevels(rangeHigh, rangeLow, gridLevels);
-  
-  // 現在のポジションサイズを確認
-  const symbolPositions = currentPositions.filter(p => p.symbol === symbol);
-  const totalPositionSize = symbolPositions.reduce((sum, p) => sum + p.amount, 0);
-  const positionPercentage = totalPositionSize / accountBalance;
-  
-  // リスク管理：ポジションサイズ上限チェック
-  const underPositionLimit = positionPercentage < MAX_POSITION_SIZE;
-  
-  // レンジが十分に広く、かつポジション上限に達していない場合
-  if (inRange && rangePercentage > MARKET_PARAMETERS.MIN_RANGE_PERCENTAGE && underPositionLimit) {
-    // 現在のレベルを特定
-    const currentLevel = levels.findIndex(level => currentPrice < level);
+
+  try {
+    // Donchianチャネルを計算
+    const donchian = calculateDonchianChannel(candles, RANGE_PERIOD);
+    const rangeHigh = donchian.high;
+    const rangeLow = donchian.low;
     
-    // レベルの中間にいる場合（グリッド取引可能）
-    if (currentLevel > 0 && currentLevel < levels.length) {
-      // 上のレベルに近い場合は売り、下のレベルに近い場合は買い
-      const upperLevel = levels[currentLevel];
-      const lowerLevel = levels[currentLevel - 1];
-      const middlePoint = (upperLevel + lowerLevel) / 2;
+    // ATRを計算
+    const currentATR = calculateATR(candles, MARKET_PARAMETERS.ATR_PERIOD);
+    const currentPrice = candles[candles.length - 1].close;
+    
+    // ATR%を計算
+    const atrPercent = calculateAtrPercentage(currentATR, currentPrice);
+    
+    // レンジ幅の計算
+    const rangeWidth = rangeHigh - rangeLow;
+    const adjustedRangeWidth = rangeWidth * RANGE_MULTIPLIER;
+    
+    // グリッドレベル数を動的に計算
+    const gridLevels = calculateDynamicGridLevels(adjustedRangeWidth, atrPercent);
+    
+    // グリッドレベルを計算
+    const gridPrices = calculateGridLevels(rangeHigh, rangeLow, gridLevels);
+    
+    // シグナルを格納する配列
+    const signals = [];
+    
+    // 現在のポジションサイズを集計
+    const totalPositionSize = currentPositions
+      .filter(p => p.symbol === symbol)
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    // 最大ポジションサイズを超えていないか確認
+    const maxAllowedSize = accountBalance * MAX_POSITION_SIZE;
+    const availableSize = Math.max(0, maxAllowedSize - totalPositionSize);
+    
+    // グリッド基準のサイズ計算（総利用可能枠をグリッド数で割る）
+    const baseGridSize = availableSize / gridLevels;
+    
+    // レンジ内にいるか確認
+    const isInRange = isWithinRange(currentPrice, rangeHigh, rangeLow);
+    
+    if (isInRange) {
+      // レンジ内の場合、グリッド注文を生成
+      for (const gridPrice of gridPrices) {
+        // 現在価格より上のグリッドは売り、下のグリッドは買い
+        const side = gridPrice > currentPrice ? OrderSide.SELL : OrderSide.BUY;
+        
+        // グリッドからの距離に応じてサイズを調整
+        const priceDistance = Math.abs(gridPrice - currentPrice) / currentPrice;
+        const sizeMultiplier = 1 + priceDistance * 2; // 距離が遠いほど大きいサイズ
+        const gridSize = baseGridSize * sizeMultiplier;
+        
+        // 注文を生成（icebergで分割）
+        const gridOrders = createIcebergOrders(symbol, side, gridPrice, gridSize);
+        signals.push(...gridOrders);
+      }
       
-      // ポジションサイズを計算
-      // リスク管理：注文あたりの最大リスク（口座残高の1%）
-      const riskAmount = accountBalance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
-      const levelDistance = upperLevel - lowerLevel;
-      const positionSize = riskAmount / levelDistance;
+      // ポジション偏りのチェック
+      const hedgeOrder = checkPositionImbalance(currentPositions, symbol, currentPrice);
+      if (hedgeOrder) {
+        signals.push(hedgeOrder);
+      }
+    } else {
+      // レンジ外の場合、エスケープロジック
+      // レンジを飛び出した方向に価格が動いた場合のトレンドフォロー的対応
       
-      if (currentPrice < middlePoint) {
-        // 下方レベルに近い：買い注文を生成
-        signals.push(
-          createMakerOnlyLimitOrder(symbol, OrderSide.BUY, currentPrice, positionSize)
-        );
-      } else {
-        // 上方レベルに近い：売り注文を生成
-        signals.push(
-          createMakerOnlyLimitOrder(symbol, OrderSide.SELL, currentPrice, positionSize)
-        );
+      const isBreakingUp = currentPrice > rangeHigh;
+      const isBreakingDown = currentPrice < rangeLow;
+      
+      if (isBreakingUp) {
+        // 上方ブレイクアウト - 小さい買いポジションでトレンドに乗る
+        const breakoutAmount = baseGridSize * 0.5; // 小さめのサイズ
+        
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: OrderSide.BUY,
+          amount: breakoutAmount,
+          timestamp: Date.now()
+        });
+      } else if (isBreakingDown) {
+        // 下方ブレイクアウト - 小さい売りポジションでトレンドに乗る
+        const breakoutAmount = baseGridSize * 0.5; // 小さめのサイズ
+        
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: OrderSide.SELL,
+          amount: breakoutAmount,
+          timestamp: Date.now()
+        });
       }
     }
+    
+    return {
+      strategy: StrategyType.MEAN_REVERSION,
+      signals,
+      timestamp: Date.now()
+    };
+  } catch (error) {
+    console.error(`[MeanRevertStrategy] エラー発生: ${error.message}`);
+    return {
+      strategy: StrategyType.MEAN_REVERSION,
+      signals: [],
+      timestamp: Date.now(),
+      error: error.message
+    };
   }
-  
-  // レンジを大きく逸脱した場合（エスケープシナリオ）
-  const escapeUpper = rangeHigh * (1 + ESCAPE_THRESHOLD);
-  const escapeLower = rangeLow * (1 - ESCAPE_THRESHOLD);
-  
-  if (currentPrice > escapeUpper || currentPrice < escapeLower) {
-    // 全ポジションをクローズするシグナルを生成
-    symbolPositions.forEach(position => {
-      const closeSide = position.side === OrderSide.BUY ? OrderSide.SELL : OrderSide.BUY;
-      signals.push({
-        symbol,
-        type: OrderType.MARKET,
-        side: closeSide,
-        amount: position.amount,
-        timestamp: Date.now(),
-        isClosePosition: true,
-        relatedPositionId: position.id
-      });
-    });
-  }
-  
-  // ポジション偏りのチェックとヘッジ
-  const hedgeOrder = checkPositionImbalance(currentPositions, symbol, currentPrice);
-  if (hedgeOrder) {
-    signals.push(hedgeOrder);
-  }
-  
-  return {
-    strategy: StrategyType.MEAN_REVERSION,
-    signals,
-    timestamp: Date.now(),
-    metadata: {
-      rangeHigh,
-      rangeLow,
-      rangePercentage,
-      inRange,
-      gridLevels,
-      vwap,
-      atr,
-      currentPrice
-    }
-  };
 }
 
-// CommonJS形式でのエクスポート
+// CommonJS形式でエクスポート
 module.exports = {
   executeMeanRevertStrategy,
   calculateDonchianChannel,
   calculateATR,
+  calculateAtrPercentage,
+  calculateDynamicGridLevels,
   calculateGridLevels,
   createMakerOnlyLimitOrder,
-  createIcebergOrders
+  createIcebergOrders,
+  checkPositionImbalance,
+  isWithinRange
 };
