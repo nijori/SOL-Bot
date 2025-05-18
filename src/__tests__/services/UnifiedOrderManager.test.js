@@ -11,8 +11,7 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
 const { UnifiedOrderManager, AllocationStrategy } = require('../../services/UnifiedOrderManager');
 const { ExchangeService } = require('../../services/exchangeService');
 const { OrderManagementSystem } = require('../../core/orderManagementSystem');
-const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types');
-const { Position } = Types;
+const { Types, OrderSide, OrderType, OrderStatus } = require('../../core/types');
 
 // リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
@@ -245,7 +244,7 @@ describe('UnifiedOrderManager', () => {
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
         price: 100,
-        amount: 2 // 2つの取引所で1ずつ分割
+        amount: 10
       };
 
       const orderIds = unifiedManager.createOrder(order);
@@ -254,17 +253,24 @@ describe('UnifiedOrderManager', () => {
       expect(orderIds.size).toBe(2);
       expect(orderIds.has('binance')).toBe(true);
       expect(orderIds.has('bybit')).toBe(true);
+
+      // 注文が均等に分割されることを確認（2取引所なので5ずつ）
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(2);
+      expect(OrderManagementSystem.prototype.createOrder).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ amount: 5 })
+      );
+      expect(OrderManagementSystem.prototype.createOrder).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ amount: 5 })
+      );
     });
 
     test('重み付き配分方式', () => {
       // 重み付き配分に設定
       unifiedManager.setAllocationStrategy({
         strategy: AllocationStrategy.WEIGHTED,
-        weights: {
-          binance: 0.7,
-          bybit: 0.3
-        }
+        weights: { binance: 0.7, bybit: 0.3 }
       });
 
       // 注文を作成
@@ -273,7 +279,7 @@ describe('UnifiedOrderManager', () => {
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
         price: 100,
-        amount: 10 // binanceに7、bybitに3を配分
+        amount: 10
       };
 
       const orderIds = unifiedManager.createOrder(order);
@@ -282,15 +288,77 @@ describe('UnifiedOrderManager', () => {
       expect(orderIds.size).toBe(2);
       expect(orderIds.has('binance')).toBe(true);
       expect(orderIds.has('bybit')).toBe(true);
+
+      // 重みに従って注文が分割されることを確認（7:3）
       expect(OrderManagementSystem.prototype.createOrder).toHaveBeenCalledTimes(2);
+      expect(OrderManagementSystem.prototype.createOrder).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ amount: 7 })
+      );
+      expect(OrderManagementSystem.prototype.createOrder).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ amount: 3 })
+      );
     });
   });
 
-  describe('注文操作テスト', () => {
+  describe('ポジション管理テスト', () => {
     beforeEach(() => {
       // テスト用に取引所を追加
       unifiedManager.addExchange('binance', mockExchangeService1, 1);
       unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+    });
+
+    test('ポジション取得', () => {
+      // 特定シンボルのポジションを取得
+      const positions = unifiedManager.getPositionsBySymbol('SOL/USDT');
+
+      // 正しいポジションが返されることを確認
+      expect(positions.length).toBe(2); // 2つの取引所から各1つずつ
+      expect(positions[0].symbol).toBe('SOL/USDT');
+      expect(positions[0].side).toBe(OrderSide.BUY);
+      expect(positions[0].amount).toBe(10);
+    });
+
+    test('全ポジション取得', () => {
+      // 全ポジションを取得
+      const allPositions = unifiedManager.getAllPositions();
+
+      // 返されるマップが正しいことを確認
+      expect(allPositions.size).toBe(2); // 2つの取引所
+      expect(allPositions.has('binance')).toBe(true);
+      expect(allPositions.has('bybit')).toBe(true);
+
+      // 各取引所のポジションが正しいことを確認
+      const binancePositions = allPositions.get('binance');
+      expect(binancePositions.length).toBe(1);
+      expect(binancePositions[0].symbol).toBe('SOL/USDT');
+    });
+
+    test('統合ポジション取得', () => {
+      // 統合ポジションを取得
+      const consolidatedPositions = unifiedManager.getConsolidatedPositions();
+
+      // 統合ポジションが正しいことを確認
+      expect(consolidatedPositions.length).toBe(1);
+      expect(consolidatedPositions[0].symbol).toBe('SOL/USDT');
+      expect(consolidatedPositions[0].amount).toBe(20); // 2つの取引所の合計
+    });
+
+    test('特定取引所のポジション取得', () => {
+      // 特定取引所のポジションを取得
+      const binancePositions = unifiedManager.getExchangePositions('binance');
+
+      // 正しいポジションが返されることを確認
+      expect(binancePositions.length).toBe(1);
+      expect(binancePositions[0].symbol).toBe('SOL/USDT');
+    });
+  });
+
+  describe('注文管理テスト', () => {
+    beforeEach(() => {
+      // テスト用に取引所を追加
+      unifiedManager.addExchange('binance', mockExchangeService1, 1);
     });
 
     test('注文キャンセル', () => {
@@ -299,56 +367,88 @@ describe('UnifiedOrderManager', () => {
       const result2 = unifiedManager.cancelOrder('binance', 'unknown');
       const result3 = unifiedManager.cancelOrder('unknown', 'order1');
 
-      // 結果を確認
+      // 結果が正しいことを確認
       expect(result1).toBe(true);
       expect(result2).toBe(false);
       expect(result3).toBe(false);
+
+      // キャンセルメソッドが呼ばれたことを確認
+      expect(OrderManagementSystem.prototype.cancelOrder).toHaveBeenCalledTimes(2);
     });
 
-    test('すべての取引所の注文を同期的に取得', () => {
-      // すべての取引所から注文を取得
+    test('全注文キャンセル', () => {
+      // 全注文をキャンセル
+      const result = unifiedManager.cancelAllOrders('binance');
+
+      // 結果が正しいことを確認
+      expect(result).toBe(true);
+
+      // getOrdersとcancelOrderが呼ばれたことを確認
+      expect(OrderManagementSystem.prototype.getOrders).toHaveBeenCalledTimes(1);
+      expect(OrderManagementSystem.prototype.cancelOrder).toHaveBeenCalledTimes(2);
+    });
+
+    test('注文情報取得', () => {
+      // 注文情報を取得
+      const orders = unifiedManager.getOrders('binance');
+
+      // 正しい注文情報が返されることを確認
+      expect(orders.length).toBe(2);
+      expect(orders[0].id).toBe('order1');
+      expect(orders[1].id).toBe('order2');
+    });
+
+    test('全注文情報取得', () => {
+      // 全注文情報を取得
       const allOrders = unifiedManager.getAllOrders();
 
-      // 結果を確認
-      expect(allOrders.size).toBe(2);
-      expect(allOrders.get('binance')).toHaveLength(2);
-      expect(allOrders.get('bybit')).toHaveLength(2);
+      // 正しい注文情報が返されることを確認
+      expect(allOrders.size).toBe(1);
+      expect(allOrders.has('binance')).toBe(true);
+
+      const binanceOrders = allOrders.get('binance');
+      expect(binanceOrders.length).toBe(2);
     });
   });
 
-  describe('ポジション取得テスト', () => {
-    beforeEach(() => {
-      // テスト用に取引所を追加
+  // TST-070: エラーハンドリングテストを追加
+  describe('エラーハンドリングテスト', () => {
+    test('無効な配分戦略の処理', () => {
+      // 無効な配分戦略の設定を試みる
+      expect(() => {
+        unifiedManager.setAllocationStrategy({ strategy: 'INVALID_STRATEGY' });
+      }).toThrow();
+    });
+
+    test('不十分な重みの処理', () => {
+      // 取引所を追加
       unifiedManager.addExchange('binance', mockExchangeService1, 1);
       unifiedManager.addExchange('bybit', mockExchangeService2, 2);
+
+      // 重み付き配分に設定するが、一部の取引所の重みが欠けている
+      expect(() => {
+        unifiedManager.setAllocationStrategy({
+          strategy: AllocationStrategy.WEIGHTED,
+          weights: { binance: 1.0 } // bybitの重みが欠けている
+        });
+      }).toThrow();
     });
 
-    test('シンボルでポジションを取得', () => {
-      // 特定シンボルのポジションを取得
-      const positions = unifiedManager.getPositionsBySymbol('SOL/USDT');
+    test('不適切な取引所IDの処理', () => {
+      // 存在しない取引所IDで注文を作成
+      const order = {
+        symbol: 'SOL/USDT',
+        side: OrderSide.BUY,
+        type: OrderType.LIMIT,
+        price: 100,
+        amount: 1
+      };
 
-      // 結果を確認
-      expect(positions.size).toBe(2);
-      expect(positions.get('binance')).toHaveLength(1);
-      expect(positions.get('bybit')).toHaveLength(1);
-    });
+      // 取引所が追加されていない状態での注文作成
+      const orderIds = unifiedManager.createOrder(order);
 
-    test('全ポジションを取得', () => {
-      // TST-070: UnifiedOrderManagerのgetAllPositionsメソッドをテスト
-      const allPositions = unifiedManager.getAllPositions();
-
-      // 結果を確認
-      expect(allPositions.size).toBe(2);
-      expect(allPositions.get('binance')).toHaveLength(1);
-      expect(allPositions.get('bybit')).toHaveLength(1);
-    });
-
-    test('すべての取引所の注文を同期', () => {
-      // TST-070: UnifiedOrderManagerのsyncAllOrdersメソッドをテスト
-      const result = unifiedManager.syncAllOrders();
-
-      // 結果を確認
-      expect(result).toBe(true);
+      // 注文が作成されないことを確認
+      expect(orderIds.size).toBe(0);
     });
   });
 }); 

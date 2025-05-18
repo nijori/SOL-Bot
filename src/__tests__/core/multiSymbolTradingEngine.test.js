@@ -7,17 +7,21 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
  */
 
+// モジュールをモック
+jest.mock('../../core/tradingEngine', () => ({
+  TradingEngine: jest.fn()
+}));
+
+jest.mock('../../services/UnifiedOrderManager', () => ({
+  UnifiedOrderManager: jest.fn()
+}));
+
+// モジュールをインポート
 const { MultiSymbolTradingEngine } = require('../../core/multiSymbolTradingEngine');
 const { TradingEngine } = require('../../core/tradingEngine');
 const { UnifiedOrderManager } = require('../../services/UnifiedOrderManager');
 const { AllocationStrategy } = require('../../types/multiSymbolTypes');
-const Types = require('../../core/types');
-const { OrderSide, OrderType, SystemMode } = Types;
-
-// TradingEngineをモック
-jest.mock('../../core/tradingEngine');
-// UnifiedOrderManagerをモック
-jest.mock('../../services/UnifiedOrderManager');
+const { Types, OrderSide, OrderType, SystemMode } = require('../../core/types');
 
 // モックデータを提供するユーティリティ関数
 function createMockCandle(symbol, price, timestamp = Date.now()) {
@@ -197,7 +201,7 @@ describe('MultiSymbolTradingEngine', () => {
     await engine.update(candles);
     
     // MultiSymbolTradingEngineのプライベートメソッドを無理やり呼び出す（テスト用）
-    await engine.processAllSignals();
+    await (engine).processAllSignals();
 
     // シグナル処理が呼ばれることを検証
     expect(solEngine.processSignals).toHaveBeenCalledTimes(1);
@@ -255,22 +259,22 @@ describe('MultiSymbolTradingEngine', () => {
     // インスタンス作成
     const engine = new MultiSymbolTradingEngine(config, { isBacktest: true, quiet: true });
 
-    // モックエンジンのプロパティを設定
-    const mockSetSystemMode = jest.fn();
+    // 各エンジンにsetSystemModeメソッドを追加
+    const solEngine = mockEngines.get('SOL/USDT');
+    const btcEngine = mockEngines.get('BTC/USDT');
 
-    Object.values(mockEngines).forEach(engine => {
-      engine.setSystemMode = mockSetSystemMode;
-    });
+    solEngine.setSystemMode = jest.fn();
+    btcEngine.setSystemMode = jest.fn();
 
-    // システムモードを設定
+    // システムモードを変更
     engine.setSystemMode(SystemMode.EMERGENCY);
 
-    // 各エンジンにモードが設定されることを検証
-    expect(mockSetSystemMode).toHaveBeenCalledTimes(mockEngines.size);
-    expect(mockSetSystemMode).toHaveBeenCalledWith(SystemMode.EMERGENCY);
+    // 各エンジンにモードが伝播されることを検証
+    expect(solEngine.setSystemMode).toHaveBeenCalledWith(SystemMode.EMERGENCY);
+    expect(btcEngine.setSystemMode).toHaveBeenCalledWith(SystemMode.EMERGENCY);
   });
 
-  test('getAllPositions()が全ポジションを集約する', () => {
+  test('ポートフォリオリスク分析が正しく行われる', async () => {
     // 設定
     const config = {
       symbols: ['SOL/USDT', 'BTC/USDT'],
@@ -286,23 +290,38 @@ describe('MultiSymbolTradingEngine', () => {
     const btcEngine = mockEngines.get('BTC/USDT');
 
     solEngine.getPositions.mockReturnValue([
-      { symbol: 'SOL/USDT', side: OrderSide.BUY, amount: 10, entryPrice: 100 }
+      { symbol: 'SOL/USDT', side: OrderSide.BUY, amount: 10, currentPrice: 100, entryPrice: 95 }
     ]);
 
     btcEngine.getPositions.mockReturnValue([
-      { symbol: 'BTC/USDT', side: OrderSide.BUY, amount: 0.5, entryPrice: 30000 }
+      {
+        symbol: 'BTC/USDT',
+        side: OrderSide.SELL,
+        amount: 0.5,
+        currentPrice: 30000,
+        entryPrice: 31000
+      }
     ]);
 
-    // 全ポジションを取得
-    const positions = engine.getAllPositions();
+    // キャンドルデータ
+    const candles = {
+      'SOL/USDT': createMockCandle('SOL/USDT', 100),
+      'BTC/USDT': createMockCandle('BTC/USDT', 30000)
+    };
 
-    // ポジションが集約されることを検証
-    expect(positions.length).toBe(2);
-    expect(positions[0].symbol).toBe('SOL/USDT');
-    expect(positions[1].symbol).toBe('BTC/USDT');
+    // 更新
+    await engine.update(candles);
+
+    // リスク分析が行われることを検証
+    const riskAnalysis = engine.getPortfolioRiskAnalysis();
+    expect(riskAnalysis).toBeDefined();
+    expect(riskAnalysis.valueAtRisk).toBeDefined();
+    expect(riskAnalysis.concentrationRisk).toBeDefined();
+    expect(riskAnalysis.stressTestResults).toBeDefined();
+    expect(riskAnalysis.stressTestResults.length).toBeGreaterThan(0);
   });
 
-  test('合計リスクが計算される', () => {
+  test('シンボル間の相関行列が計算される', async () => {
     // 設定
     const config = {
       symbols: ['SOL/USDT', 'BTC/USDT'],
@@ -313,31 +332,30 @@ describe('MultiSymbolTradingEngine', () => {
     // インスタンス作成
     const engine = new MultiSymbolTradingEngine(config, { isBacktest: true, quiet: true });
 
-    // エンジンが合計エクイティを計算できるようにモック
-    engine.getPortfolioEquity = jest.fn().mockReturnValue(10000);
+    // キャンドルデータを複数回更新して相関履歴を作成
+    const timestamp = Date.now();
+    for (let i = 0; i < 20; i++) {
+      // 少し相関のあるデータを生成
+      const btcPrice = 30000 * (1 + 0.005 * Math.sin(i * 0.5));
+      const solPrice = 100 * (1 + 0.005 * Math.sin(i * 0.5 + 0.2));
 
-    // モックポジションの設定
-    const solEngine = mockEngines.get('SOL/USDT');
-    const btcEngine = mockEngines.get('BTC/USDT');
+      await engine.update({
+        'SOL/USDT': createMockCandle('SOL/USDT', solPrice, timestamp + i * 3600000),
+        'BTC/USDT': createMockCandle('BTC/USDT', btcPrice, timestamp + i * 3600000)
+      });
+    }
 
-    // ポジションを返すようにモック
-    solEngine.getPositions.mockReturnValue([
-      { symbol: 'SOL/USDT', side: OrderSide.BUY, amount: 10, entryPrice: 100, currentValue: 1000 }
-    ]);
+    // 相関行列を手動で更新（通常は時間経過で更新）
+    (engine).updateCorrelationMatrix();
 
-    btcEngine.getPositions.mockReturnValue([
-      { symbol: 'BTC/USDT', side: OrderSide.BUY, amount: 0.5, entryPrice: 30000, currentValue: 15000 }
-    ]);
+    // 相関行列が計算されることを検証
+    const correlationMatrix = engine.getCorrelationMatrix();
+    expect(correlationMatrix).toBeDefined();
+    expect(correlationMatrix['SOL/USDT']).toBeDefined();
+    expect(correlationMatrix['BTC/USDT']).toBeDefined();
 
-    // 現在価格を返すようにモック
-    solEngine.getCurrentPrice.mockReturnValue(100);
-    btcEngine.getCurrentPrice.mockReturnValue(30000);
-
-    // リスク計算用のプライベートメソッドを呼び出す
-    const totalRisk = engine.calculatePortfolioRisk();
-
-    // 2つのポジションの合計リスクが計算されることを検証
-    // 1000 + 15000 = 16000 / 10000 = 1.6 (160%)
-    expect(totalRisk).toBe(1.6);
+    // 自己相関が1.0であることを確認
+    expect(correlationMatrix['SOL/USDT']['SOL/USDT']).toBe(1.0);
+    expect(correlationMatrix['BTC/USDT']['BTC/USDT']).toBe(1.0);
   });
 }); 

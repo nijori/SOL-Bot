@@ -1,4 +1,5 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @ts-nocheck
+const { describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
 /**
  * UnifiedOrderManager テスト
@@ -7,10 +8,11 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * OMS-009: 複数取引所対応
  */
 
-import { UnifiedOrderManager, AllocationStrategy } from '../../services/UnifiedOrderManager';
-import { ExchangeService } from '../../services/exchangeService';
-import { OrderManagementSystem } from '../../core/orderManagementSystem';
-import { Order, OrderSide, OrderType, OrderStatus, Position } from '../../core/types';
+const { UnifiedOrderManager, AllocationStrategy } = require('../../services/UnifiedOrderManager');
+const { ExchangeService } = require('../../services/exchangeService');
+const { OrderManagementSystem } = require('../../core/orderManagementSystem');
+const Types = require('../../core/types');
+const { OrderSide, OrderType, OrderStatus, Position } = Types;
 
 // リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
@@ -30,13 +32,13 @@ declare global {
 }
 
 // モックの作成
-jest.mock('../../services/exchangeService.js');
-jest.mock('../../core/orderManagementSystem.js');
+jest.mock('../../services/exchangeService');
+jest.mock('../../core/orderManagementSystem');
 
 describe('UnifiedOrderManager', () => {
-  let unifiedManager: UnifiedOrderManager;
-  let mockExchangeService1: jest.Mocked<ExchangeService>;
-  let mockExchangeService2: jest.Mocked<ExchangeService>;
+  let unifiedManager;
+  let mockExchangeService1;
+  let mockExchangeService2;
 
   beforeEach(() => {
     // モックのリセット
@@ -49,28 +51,25 @@ describe('UnifiedOrderManager', () => {
     }
 
     // ExchangeServiceモックの作成
-    mockExchangeService1 = new ExchangeService() as jest.Mocked<ExchangeService>;
-    mockExchangeService2 = new ExchangeService() as jest.Mocked<ExchangeService>;
+    mockExchangeService1 = new ExchangeService();
+    mockExchangeService2 = new ExchangeService();
 
     // UnifiedOrderManagerのインスタンス作成
-    unifiedManager = new UnifiedOrderManager([
-      mockExchangeService1,
-      mockExchangeService2
-    ]);
+    unifiedManager = new UnifiedOrderManager();
 
     // モックメソッドの設定
     mockExchangeService1.getExchangeName = jest.fn().mockReturnValue('Binance');
     mockExchangeService2.getExchangeName = jest.fn().mockReturnValue('Bybit');
 
     // OrderManagementSystemのcreateOrderメソッドをモック
-    OrderManagementSystem.prototype.createOrder = jest.fn().mockImplementation((order: Order) => {
+    OrderManagementSystem.prototype.createOrder = jest.fn().mockImplementation((order) => {
       return `mock-order-id-${Math.random()}`;
     });
 
     // OrderManagementSystemのgetPositionsBySymbolメソッドをモック
     OrderManagementSystem.prototype.getPositionsBySymbol = jest
       .fn()
-      .mockImplementation((symbol: string) => {
+      .mockImplementation((symbol) => {
         if (symbol === 'SOL/USDT') {
           return [
             {
@@ -129,7 +128,7 @@ describe('UnifiedOrderManager', () => {
     // OrderManagementSystemのcancelOrderメソッドをモック
     OrderManagementSystem.prototype.cancelOrder = jest
       .fn()
-      .mockImplementation((orderId: string) => {
+      .mockImplementation((orderId) => {
         return orderId === 'order1';
       });
   });
@@ -197,7 +196,7 @@ describe('UnifiedOrderManager', () => {
       unifiedManager.setAllocationStrategy({ strategy: AllocationStrategy.PRIORITY });
 
       // 注文を作成
-      const order: Order = {
+      const order = {
         symbol: 'SOL/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
@@ -218,7 +217,7 @@ describe('UnifiedOrderManager', () => {
       unifiedManager.setAllocationStrategy({ strategy: AllocationStrategy.ROUND_ROBIN });
 
       // 2回注文を作成
-      const order1: Order = {
+      const order1 = {
         symbol: 'SOL/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
@@ -226,7 +225,7 @@ describe('UnifiedOrderManager', () => {
         amount: 1
       };
 
-      const order2: Order = {
+      const order2 = {
         symbol: 'SOL/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
@@ -250,7 +249,7 @@ describe('UnifiedOrderManager', () => {
       unifiedManager.setAllocationStrategy({ strategy: AllocationStrategy.SPLIT_EQUAL });
 
       // 注文を作成
-      const order: Order = {
+      const order = {
         symbol: 'SOL/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
@@ -276,7 +275,7 @@ describe('UnifiedOrderManager', () => {
 
     test('カスタム配分方式', () => {
       // カスタム配分率を設定（binance: 70%, bybit: 30%）
-      const customRatios = new Map<string, number>();
+      const customRatios = new Map();
       customRatios.set('binance', 0.7);
       customRatios.set('bybit', 0.3);
 
@@ -286,7 +285,7 @@ describe('UnifiedOrderManager', () => {
       });
 
       // 注文を作成
-      const order: Order = {
+      const order = {
         symbol: 'SOL/USDT',
         side: OrderSide.BUY,
         type: OrderType.LIMIT,
