@@ -4,19 +4,21 @@
  * ccxtライブラリを使用して取引所から定期的にデータを取得し、DuckDBに保存する処理
  */
 
+// @ts-nocheck
 // Node.js関連の型定義
 declare const require: any;
 declare const process: any;
 declare const module: any;
 
-import ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from '../core/types.js';
-import { DataRepository } from './dataRepository.js';
-import { ParquetDataStore } from './parquetDataStore.js';
-import logger from '../utils/logger.js';
-import cron from 'node-cron';
-import 'dotenv/config';
-import { OPERATION_MODE } from '../config/parameters.js';
+// import文をrequire文に変換
+const ccxt = require('ccxt');
+const { Candle, normalizeTimestamp } = require('../core/types');
+const { DataRepository } = require('./dataRepository');
+const { ParquetDataStore } = require('./parquetDataStore');
+const logger = require('../utils/logger');
+const cron = require('node-cron');
+require('dotenv/config');
+const { OPERATION_MODE } = require('../config/parameters');
 
 // 取り込み設定
 const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
@@ -26,14 +28,12 @@ const EXCHANGES = ['binance', 'kucoin', 'bybit']; // 利用する取引所のリ
 const RETRY_COUNT = 3; // エラー時の再試行回数
 const USE_PARQUET = process.env.USE_PARQUET === 'true'; // 追加: Parquet形式を使用するかどうか
 
-export class MarketDataFetcher {
-  private dataRepository: DataRepository;
-  private parquetDataStore: ParquetDataStore | null = null; // 追加: Parquetデータストア
-  private exchanges: Map<string, ccxt.Exchange>;
-  private isRunning: boolean = false;
-
+class MarketDataFetcher {
   constructor() {
     this.dataRepository = new DataRepository();
+    this.parquetDataStore = null; // 追加: Parquetデータストア
+    this.exchanges = new Map();
+    this.isRunning = false;
 
     // Parquet形式を使用する場合は初期化
     if (USE_PARQUET) {
@@ -48,12 +48,10 @@ export class MarketDataFetcher {
       }
     }
 
-    this.exchanges = new Map();
-
     // 指定された取引所を初期化
     for (const exchangeId of EXCHANGES) {
       try {
-        const exchange = new (ccxt as any)[exchangeId]({
+        const exchange = new ccxt[exchangeId]({
           enableRateLimit: true // レート制限を有効化
         });
         this.exchanges.set(exchangeId, exchange);
@@ -69,12 +67,12 @@ export class MarketDataFetcher {
   /**
    * 指定した取引所からローソク足データを取得する
    */
-  private async fetchCandlesFromExchange(
-    exchangeId: string,
-    symbol: string = DEFAULT_SYMBOL,
-    timeframe: string = DEFAULT_TIMEFRAME,
-    limit: number = DEFAULT_LIMIT
-  ): Promise<Candle[]> {
+  async fetchCandlesFromExchange(
+    exchangeId,
+    symbol = DEFAULT_SYMBOL,
+    timeframe = DEFAULT_TIMEFRAME,
+    limit = DEFAULT_LIMIT
+  ) {
     const exchange = this.exchanges.get(exchangeId);
     if (!exchange) {
       throw new Error(`取引所が初期化されていません: ${exchangeId}`);
@@ -90,7 +88,7 @@ export class MarketDataFetcher {
         const ohlcv = await exchange.fetchOHLCV(symbol, timeframe, undefined, limit);
 
         // レスポンスを標準形式に変換
-        const candles: Candle[] = ohlcv.map((candle: number[]) => ({
+        const candles = ohlcv.map((candle) => ({
           // タイムスタンプはnumber型として統一
           timestamp: candle[0],
           open: candle[1],
@@ -124,10 +122,10 @@ export class MarketDataFetcher {
   /**
    * すべての設定済み取引所からデータを取得して保存
    */
-  public async fetchAndSaveCandles(
-    symbol: string = DEFAULT_SYMBOL,
-    timeframe: string = DEFAULT_TIMEFRAME
-  ): Promise<boolean> {
+  async fetchAndSaveCandles(
+    symbol = DEFAULT_SYMBOL,
+    timeframe = DEFAULT_TIMEFRAME
+  ) {
     if (this.isRunning) {
       logger.warn('データ取得ジョブが既に実行中です');
       return false;
@@ -172,7 +170,7 @@ export class MarketDataFetcher {
    * スケジュールされたジョブを開始する
    * デフォルトでは毎時0分に実行
    */
-  public startScheduledJob(cronExpression: string = '0 * * * *'): void {
+  startScheduledJob(cronExpression = '0 * * * *') {
     cron.schedule(cronExpression, async () => {
       logger.info('定期データ取得ジョブを開始します');
       await this.fetchAndSaveCandles();
@@ -190,11 +188,11 @@ export class MarketDataFetcher {
    * 手動でデータ取得を実行する
    * 初期データロードや特定期間のデータ取得に使用
    */
-  public async manualFetch(
-    symbol: string = DEFAULT_SYMBOL,
-    timeframe: string = DEFAULT_TIMEFRAME,
-    days: number = 7 // 取得する日数
-  ): Promise<boolean> {
+  async manualFetch(
+    symbol = DEFAULT_SYMBOL,
+    timeframe = DEFAULT_TIMEFRAME,
+    days = 7 // 取得する日数
+  ) {
     logger.info(`${symbol}の${days}日分の${timeframe}足データを取得します`);
     return await this.fetchAndSaveCandles(symbol, timeframe);
   }
@@ -202,7 +200,7 @@ export class MarketDataFetcher {
   /**
    * リソースを解放する
    */
-  public close(): void {
+  close() {
     if (this.parquetDataStore) {
       try {
         this.parquetDataStore.close();
@@ -230,3 +228,8 @@ if (typeof require !== 'undefined' && require.main === module) {
     });
   })();
 }
+
+// CommonJS exports
+module.exports = {
+  MarketDataFetcher
+};
