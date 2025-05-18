@@ -1,5 +1,5 @@
 // @ts-nocheck
-const { describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
 /**
  * UnifiedOrderManager テスト
@@ -11,8 +11,8 @@ const { describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll }
 const { UnifiedOrderManager, AllocationStrategy } = require('../../services/UnifiedOrderManager');
 const { ExchangeService } = require('../../services/exchangeService');
 const { OrderManagementSystem } = require('../../core/orderManagementSystem');
-const Types = require('../../core/types');
-const { OrderSide, OrderType, OrderStatus, Position } = Types;
+const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types');
+const { Position } = Types;
 
 // リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
