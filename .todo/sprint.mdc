@@ -20,7 +20,7 @@ alwaysApply: false
 | P4 ― Runbook & リハーサル | 障害対応ドキュメント & Drill 完了 | "EC2 停止→復旧" をペアで 1 回成功 | 1 d |
 | P5 ― Go-Live | 実弾投入 & 監視運用開始 | 週次決算まで問題なし | - |
 
-現在の進捗状況は「P0→P1フェーズ移行中」と評価されており、P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んで行く予定です。
+P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んで行く予定です。
 
 #### 本スプリント（P0→P1）の"Next-Action"指示:
 
@@ -35,7 +35,138 @@ alwaysApply: false
 | 1-5 | Data-Lifecycle Cron 実機テスト | EC2 で npm run data-lifecycle --run-now → S3 にファイル移行確認 |
 
 
-### 🗓 今週2026-W11スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
+### 🗓 2026-W11スプリント計画と優先順位:（Infra Pipeline Kick-off）
+目的：ステージング EC2 を最小機能で回し、CI→EC2 のパイプラインを通す
+
+0. [x] CICD-003: todo-lintスクリプトの修正
+      - 📅 Due        : 2026-04-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ESモジュール環境のloggerインポート問題を修正。todoValidator.tsとtodo-lint.tsのlogger依存をconsole.logに変更。コードをコミット済み。
+
+1. [x] SEC-004: 緊急停止フラグ機能の実装
+      - 📅 Due        : 2026-05-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : security
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。アプリケーション起動時と定期実行時(5分ごと)にフラグをチェック。TradingEngineにも緊急停止機能を追加。テスト実装とドキュメント作成も完了。
+
+2. [ ] INF-025: docker-compose Healthcheck 整備
+      - 📅 Due        : 2026-06-28
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 25%
+      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。
+
+3. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
+      - 📅 Due        : 2026-06-29
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Terraform (or AWS CLI script) で AMI + security-group + EIP + user-data(docker install) を自動化。タグ `Env=stg` を付与。
+
+4. [ ] SEC-007: GitHub OIDC AssumeRole 作成
+      - 📅 Due        : 2026-06-29
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : IAM Role `solbot-ci` を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:sol-bot/*` を許可。最小権限ポリシーは EC2:start/stop, SSM:GetParameter, ECR:GetAuth 等。
+
+5. [ ] INF-027: bot.service (systemd) ユニット実装
+      - 📅 Due        : 2026-06-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。
+
+6. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
+      - 📅 Due        : 2026-07-01
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : SEC-007, INF-027
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : `main` → `deploy-stg` ワークフロー。OIDC → scp env_runtime → systemctl reload。E2Eで healthcheck OK をアサート。
+
+7. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
+      - 📅 Due        : 2026-07-02
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : CICD-005
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ワークフロー後段で `ssh systemctl stop bot.service` → 終了コードチェック、30 s 超過で fail させる。成功時は systemctl start で復旧し PnL=0 を確認。
+
+### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
+目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
+
+1. [ ] SEC-008: SSM Parameter Store に `.env` SecureString 登録
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : パス `/solbot/stg/env` `/solbot/prod/env` を作成。KMS default key 使用。GitHub Actions から `aws ssm get-parameters` で取得できることを確認。
+
+2. [ ] INF-028: deploy.yml に SSM 取得ステップ追加
+      - 📅 Due        : 2026-07-06
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : SEC-008
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ステージングと本番でパス切替可能に。取得した env_runtime を `/opt/solbot/env.d/runtime` にアップロード。
+
+3. [ ] INF-029: ParameterService の runtime-env 読み込み対応
+      - 📅 Due        : 2026-07-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ファイルパス指定があれば `.env` より優先してロード。ユニットテストを追加。
+
+4. [ ] CICD-006: Blue/Green デプロイトグル追加
+      - 📅 Due        : 2026-07-08
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : `deploy-prod.yml` で `HOST=$(BLUE_OR_GREEN)` を切り替えるジョブを追加。タグ `prod-blue`, `prod-green` を使い交互再起動。
+
+5. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
+      - 📅 Due        : 2026-07-09
+      - 👤 Owner      : @qa-team
+      - 🔗 Depends-on : INF-029, CICD-006
+      - 🏷️  Label      : ops
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : デプロイ後 `/api/account` で `dailyPnL===0` を確認。失敗時は `systemctl stop bot` ＋ GitHub status red に。
+
+6. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
+      - 📅 Due        : 2026-07-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : prom-client で `orders_total`,`account_balance`,`order_latency_ms` を公開。prometheus.yml に stg target 追加し scrape 成功を確認。
+
+7. [ ] DOC-008: Runbook & Pipeline 図 更新
+      - 📅 Due        : 2026-07-11
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : docs/runbook.md に "ステージング→本番 Blue/Green" 流れと rollback 手順を追加。図は Mermaid で作成。
+
+
+### 🗓 2026-W13スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
 P0→P1フェーズのスプリント（本番稼働に向けた安全ネットとインフラHardening）。優先順位は以下の通り：
 
 0. [x] CICD-003: todo-lintスクリプトの修正
@@ -89,7 +220,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
 
 
-## 🗓 2026-W12スプリント候補（P1→P2：監視システム整備）
+## 🗓 2026-W14スプリント候補（P1→P2：監視システム整備）
 
 ### 監視システムの整備方針:
 
