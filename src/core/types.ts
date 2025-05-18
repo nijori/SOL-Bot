@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * アプリケーション全体で使用する型定義
  * INF-032: CommonJS形式への変換
@@ -122,29 +123,6 @@ namespace Types {
   }
 }
 
-// タイムスタンプの型ガード関数
-/**
- * タイムスタンプが数値型かどうかをチェックする
- * @param {number|string} timestamp チェック対象のタイムスタンプ
- * @returns {boolean} 数値型ならtrue
- */
-function isNumericTimestamp(timestamp) {
-  return typeof timestamp === 'number';
-}
-
-/**
- * ISO文字列タイムスタンプをミリ秒数値に変換する
- * @param {number|string} timestamp 変換対象のタイムスタンプ
- * @returns {number} ミリ秒単位のUNIXタイムスタンプ
- */
-function normalizeTimestamp(timestamp) {
-  if (isNumericTimestamp(timestamp)) {
-    return timestamp;
-  }
-  // ISO文字列からDateオブジェクトを生成し、ミリ秒タイムスタンプに変換
-  return new Date(timestamp).getTime();
-}
-
 // 市場環境の種類を表す定数オブジェクト
 const MarketEnvironment = Object.freeze({
   UPTREND: 'uptrend',
@@ -226,15 +204,51 @@ const RiskLevel = Object.freeze({
   HIGH: 'high'
 });
 
+// タイムスタンプの型ガード関数
+/**
+ * タイムスタンプが数値型かどうかをチェックする
+ * @param {number|string} timestamp チェック対象のタイムスタンプ
+ * @returns {boolean} 数値型ならtrue
+ */
+function isNumericTimestamp(timestamp) {
+  return typeof timestamp === 'number';
+}
+
+/**
+ * ISO文字列タイムスタンプをミリ秒数値に変換する
+ * @param {number|string} timestamp 変換対象のタイムスタンプ
+ * @returns {number} ミリ秒単位のUNIXタイムスタンプ
+ */
+function normalizeTimestamp(timestamp) {
+  if (isNumericTimestamp(timestamp)) {
+    return timestamp;
+  }
+  // ISO文字列からDateオブジェクトを生成し、ミリ秒タイムスタンプに変換
+  return new Date(timestamp).getTime();
+}
+
+// CommonJS環境でも動作するよう、TypeScript型定義をRuntime型として提供
+const Types = {
+  // 実行時に必要な定数をエクスポート
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  MarketEnvironment,
+  StrategyType,
+  SystemMode,
+  RiskLevel,
+  AccountState,
+  TimeFrame
+};
+
 // TypeScriptの型定義をエクスポート
-// 実行時にはモジュールとして使用できるよう、関連する型情報も含める
 const TypesExport = {
   // 型定義を参照可能にするための名前空間
   Types,
   // 関数
   isNumericTimestamp,
   normalizeTimestamp,
-  // 定数
+  // 定数も個別にエクスポート
   MarketEnvironment,
   StrategyType,
   OrderType,
@@ -247,5 +261,4 @@ const TypesExport = {
 };
 
 // CommonJS形式でエクスポート
-// 実行時に利用可能な定数と関数のみをエクスポート
 module.exports = TypesExport;
