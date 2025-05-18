@@ -59,8 +59,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。
+      - 📊 Progress   : 75%
+      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。実装完了、テスト環境での検証待ち。
 
 3. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
