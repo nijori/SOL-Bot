@@ -15,20 +15,20 @@ const ccxt = require('ccxt');
 
 // モック用の取引所サービスを作成
 class MockExchangeService {
-  // ExchangeServiceインターフェースを実装するために必要なプロパティ
-  exchange; // ダミーのccxt.Exchangeインスタンス
-  isInitialized = true;
-  MAX_RETRIES = 7; // ExchangeServiceと同じ値
-  INITIAL_BACKOFF_MS = 1000;
-  MAX_BACKOFF_MS = 64000; // ExchangeServiceと同じ値
-  BACKOFF_FACTOR = 2;
-
   constructor(
     exchangeName,
     feeRate = 0.001,
     latency = 0,
     priceOffset = 0
   ) {
+    // ExchangeServiceインターフェースを実装するために必要なプロパティ
+    this.exchange = {}; // ダミーのccxt.Exchangeインスタンス
+    this.isInitialized = true;
+    this.MAX_RETRIES = 7; // ExchangeServiceと同じ値
+    this.INITIAL_BACKOFF_MS = 1000;
+    this.MAX_BACKOFF_MS = 64000; // ExchangeServiceと同じ値
+    this.BACKOFF_FACTOR = 2;
+
     this.exchangeName = exchangeName;
     this.feeRate = feeRate;
     this.latency = latency;
