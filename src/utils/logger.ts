@@ -1,3 +1,8 @@
+/**
+ * ロギングユーティリティ
+ * INF-032: CommonJS形式への変換
+ */
+
 const winston = require('winston');
 // 循環参照を避けるため、parametersからの直接インポートを削除
 // const { MONITORING_PARAMETERS } = require('../config/parameters');
@@ -52,8 +57,7 @@ if (process.env.NODE_ENV !== 'production') {
   );
 }
 
-// CommonJS形式でエクスポート
-module.exports = { default: logger };
-
-// TypeScriptでのエクスポート
-export default logger;
+// 循環参照を避けるため、直接loggerをエクスポート
+module.exports = logger;
+// 後方互換性のために.defaultもサポート
+module.exports.default = logger;
