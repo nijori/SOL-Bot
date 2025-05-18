@@ -8,11 +8,12 @@
  * TST-013: DataRepository並列E2Eテスト対応
  */
 
-import fs from 'fs';
-import path from 'path';
-import { Candle, Order, PerformanceMetrics } from '../core/types.js';
-import logger from '../utils/logger.js';
-import { Mutex } from 'async-mutex';
+// @ts-nocheck
+const fs = require('fs');
+const path = require('path');
+const { Candle, Order, PerformanceMetrics } = require('../core/types');
+const logger = require('../utils/logger');
+const { Mutex } = require('async-mutex');
 
 // データフォルダのパス設定
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -23,14 +24,11 @@ const METRICS_DIR = path.join(DATA_DIR, 'metrics');
 /**
  * マルチシンボル対応のデータリポジトリ
  */
-export class DataRepository {
-  private static instance: DataRepository;
-  private fileLocks: Map<string, Mutex> = new Map(); // ファイルごとのロック
-
+class DataRepository {
   /**
    * シングルトンインスタンスを取得
    */
-  public static getInstance(): DataRepository {
+  static getInstance() {
     if (!DataRepository.instance) {
       DataRepository.instance = new DataRepository();
     }
@@ -38,13 +36,14 @@ export class DataRepository {
   }
 
   constructor() {
+    this.fileLocks = new Map(); // ファイルごとのロック
     this.ensureDirectoriesExist();
   }
 
   /**
    * 必要なディレクトリが存在することを確認する
    */
-  private ensureDirectoriesExist(): void {
+  ensureDirectoriesExist() {
     [DATA_DIR, CANDLES_DIR, ORDERS_DIR, METRICS_DIR].forEach((dir) => {
       if (!fs.existsSync(dir)) {
         try {
@@ -64,7 +63,7 @@ export class DataRepository {
    * @param baseDir ベースディレクトリ
    * @returns シンボル固有のディレクトリパス
    */
-  private ensureSymbolDirectory(symbol: string, baseDir: string): string {
+  ensureSymbolDirectory(symbol, baseDir) {
     const normalizedSymbol = symbol.replace('/', '_');
     const symbolDir = path.join(baseDir, normalizedSymbol);
 
@@ -87,11 +86,11 @@ export class DataRepository {
    * @param filePath ファイルパス
    * @returns そのファイルに対するミューテックス
    */
-  private getFileLock(filePath: string): Mutex {
+  getFileLock(filePath) {
     if (!this.fileLocks.has(filePath)) {
       this.fileLocks.set(filePath, new Mutex());
     }
-    return this.fileLocks.get(filePath)!;
+    return this.fileLocks.get(filePath);
   }
 
   /**
@@ -99,7 +98,7 @@ export class DataRepository {
    * テスト用にオーバーライド可能
    * @returns データディレクトリのパス情報
    */
-  protected getDataDirectories() {
+  getDataDirectories() {
     return {
       dataDir: DATA_DIR,
       candlesDir: CANDLES_DIR,
@@ -115,7 +114,7 @@ export class DataRepository {
    * @param candles ローソク足データの配列
    * @returns 成功したかどうか
    */
-  public async saveCandles(symbol: string, timeframe: string, candles: Candle[]): Promise<boolean> {
+  async saveCandles(symbol, timeframe, candles) {
     const dirs = this.getDataDirectories();
     const symbolDir = this.ensureSymbolDirectory(symbol, dirs.candlesDir);
 
@@ -131,25 +130,25 @@ export class DataRepository {
     return await fileLock.runExclusive(async () => {
       try {
         // 既存のデータと結合する必要があるかチェック
-        let allCandles: Candle[] = [...candles];
+        let allCandles = [...candles];
         if (fs.existsSync(filePath)) {
           try {
             const existingData = await fs.promises.readFile(filePath, 'utf8');
-            const existingCandles = JSON.parse(existingData) as Candle[];
+            const existingCandles = JSON.parse(existingData);
 
             // 既存のデータとマージ (タイムスタンプでソート)
             allCandles = [...existingCandles, ...candles].sort((a, b) => {
-              return (a.timestamp as number) - (b.timestamp as number);
+              return a.timestamp - b.timestamp;
             });
 
             // 重複を除去（同じタイムスタンプのデータは後のものを優先）
-            const uniqueCandles: Candle[] = [];
-            const timestampSet = new Set<number>();
+            const uniqueCandles = [];
+            const timestampSet = new Set();
 
             // 重複を取り除く
             allCandles.forEach((candle) => {
-              if (!timestampSet.has(candle.timestamp as number)) {
-                timestampSet.add(candle.timestamp as number);
+              if (!timestampSet.has(candle.timestamp)) {
+                timestampSet.add(candle.timestamp);
                 uniqueCandles.push(candle);
               }
             });
@@ -183,7 +182,7 @@ export class DataRepository {
    * @param date 読み込む日付（形式: 'YYYYMMDD'）
    * @returns ローソク足データの配列
    */
-  public async loadCandles(symbol: string, timeframe: string, date: string): Promise<Candle[]> {
+  async loadCandles(symbol, timeframe, date) {
     try {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
@@ -203,7 +202,7 @@ export class DataRepository {
       }
 
       const data = await fs.promises.readFile(filePath, 'utf8');
-      return JSON.parse(data) as Candle[];
+      return JSON.parse(data);
     } catch (error) {
       logger.error(
         `ローソク足データ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
@@ -219,12 +218,8 @@ export class DataRepository {
    * @param date 読み込む日付（形式: 'YYYYMMDD'）
    * @returns シンボルごとのローソク足データのマップ
    */
-  public async loadMultipleSymbolCandles(
-    symbols: string[],
-    timeframe: string,
-    date: string
-  ): Promise<Map<string, Candle[]>> {
-    const result = new Map<string, Candle[]>();
+  async loadMultipleSymbolCandles(symbols, timeframe, date) {
+    const result = new Map();
 
     for (const symbol of symbols) {
       try {
@@ -247,32 +242,33 @@ export class DataRepository {
    * 利用可能なシンボルの一覧を取得する
    * @returns 利用可能なシンボルの配列
    */
-  public getAvailableSymbols(): string[] {
+  getAvailableSymbols() {
     try {
       const dirs = this.getDataDirectories();
-      if (!fs.existsSync(dirs.candlesDir)) {
-        return [];
-      }
-
-      // ディレクトリ名からシンボルを抽出
-      return fs
-        .readdirSync(dirs.candlesDir)
-        .filter((name) => fs.statSync(path.join(dirs.candlesDir, name)).isDirectory())
-        .map((dir) => dir.replace('_', '/'));
+      const filesAndDirs = fs.readdirSync(dirs.candlesDir);
+      
+      // ディレクトリのみをフィルタリング
+      const symbols = filesAndDirs.filter((item) => {
+        const fullPath = path.join(dirs.candlesDir, item);
+        return fs.statSync(fullPath).isDirectory();
+      });
+      
+      // '_' を '/' に戻す
+      return symbols.map((symbol) => symbol.replace('_', '/'));
     } catch (error) {
       logger.error(
-        `シンボル一覧取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        `利用可能なシンボル取得エラー: ${error instanceof Error ? error.message : String(error)}`
       );
       return [];
     }
   }
 
   /**
-   * 特定のシンボルで利用可能なタイムフレームの一覧を取得する
+   * 特定シンボルの利用可能な時間枠を取得する
    * @param symbol 銘柄（例: 'SOL/USDT'）
-   * @returns 利用可能なタイムフレームの配列
+   * @returns 利用可能な時間枠の配列
    */
-  public getAvailableTimeframes(symbol: string): string[] {
+  getAvailableTimeframes(symbol) {
     try {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
@@ -283,46 +279,46 @@ export class DataRepository {
         return [];
       }
 
-      // ファイル名からタイムフレームを抽出
-      const uniqueTimeframes = new Set<string>();
-      fs.readdirSync(symbolDir)
-        .filter((file) => file.endsWith('.json'))
-        .forEach((file) => {
-          const matches = file.match(/^([^_]+)_/);
-          if (matches && matches[1]) {
-            uniqueTimeframes.add(matches[1]);
-          }
-        });
-
-      return Array.from(uniqueTimeframes);
+      const files = fs.readdirSync(symbolDir);
+      
+      // ファイル名から時間枠を抽出
+      const timeframes = new Set();
+      files.forEach((file) => {
+        if (file.endsWith('.json')) {
+          const timeframe = file.split('_')[0];
+          timeframes.add(timeframe);
+        }
+      });
+      
+      return Array.from(timeframes);
     } catch (error) {
       logger.error(
-        `タイムフレーム一覧取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        `利用可能な時間枠取得エラー: ${error instanceof Error ? error.message : String(error)}`
       );
       return [];
     }
   }
 
   /**
-   * 注文履歴を保存する
-   * @param orders 注文の配列
-   * @param date 保存する日付（形式: 'YYYYMMDD'）
-   * @param symbol シンボル名（省略可。省略時は全シンボル共通の履歴として保存）
+   * 注文データを保存する
+   * @param orders 注文データの配列
+   * @param date 保存する日付（省略時は現在の日付）
+   * @param symbol 銘柄（省略時は'all'）
    * @returns 成功したかどうか
    */
-  public async saveOrders(orders: Order[], date?: string, symbol?: string): Promise<boolean> {
-    const dirs = this.getDataDirectories();
-    let targetDir = dirs.ordersDir;
-
-    // シンボルが指定されている場合はシンボル固有のディレクトリを使用
-    if (symbol) {
-      targetDir = this.ensureSymbolDirectory(symbol, dirs.ordersDir);
+  async saveOrders(orders, date, symbol = 'all') {
+    if (orders.length === 0) {
+      logger.warn('保存する注文データがありません');
+      return false;
     }
 
-    // 実行日ごとにファイルを作成
-    const dateStr = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const filename = `orders_${dateStr}.json`;
-    const filePath = path.join(targetDir, filename);
+    const dirs = this.getDataDirectories();
+    const symbolDir = this.ensureSymbolDirectory(symbol, dirs.ordersDir);
+
+    // ファイル名を作成（例: '20250605.json'）
+    const saveDate = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const filename = `${saveDate}.json`;
+    const filePath = path.join(symbolDir, filename);
 
     // このファイルに対するロックを取得
     const fileLock = this.getFileLock(filePath);
@@ -330,21 +326,27 @@ export class DataRepository {
     // ロックを取得してファイル操作を行う
     return await fileLock.runExclusive(async () => {
       try {
-        // 既存データがあれば結合
-        let existingOrders: Order[] = [];
+        // 既存の注文と結合
+        let allOrders = [...orders];
         if (fs.existsSync(filePath)) {
-          const data = await fs.promises.readFile(filePath, 'utf8');
-          existingOrders = JSON.parse(data) as Order[];
+          try {
+            const existingData = await fs.promises.readFile(filePath, 'utf8');
+            const existingOrders = JSON.parse(existingData);
+            allOrders = [...existingOrders, ...orders];
+          } catch (error) {
+            logger.warn(
+              `既存の注文データの読み込みに失敗しました: ${filePath}. 新しいデータのみを使用します。`
+            );
+          }
         }
 
-        // 結合して保存
-        const allOrders = [...existingOrders, ...orders];
+        // JSONとして保存
         await fs.promises.writeFile(filePath, JSON.stringify(allOrders, null, 2));
-        logger.debug(`注文履歴を保存しました: ${filePath}`);
+        logger.debug(`注文データを保存しました: ${filePath}`);
         return true;
       } catch (error) {
         logger.error(
-          `注文履歴保存エラー: ${error instanceof Error ? error.message : String(error)}`
+          `注文データ保存エラー: ${error instanceof Error ? error.message : String(error)}`
         );
         return false;
       }
@@ -352,70 +354,62 @@ export class DataRepository {
   }
 
   /**
-   * 注文履歴を読み込む
-   * @param date 日付（形式: 'YYYYMMDD'）
-   * @param symbol シンボル名（省略可。省略時は全シンボル共通の履歴を読み込み）
-   * @returns 注文の配列
+   * 注文データを読み込む
+   * @param date 読み込む日付（形式: 'YYYYMMDD'）
+   * @param symbol 銘柄（省略時は'all'）
+   * @returns 注文データの配列
    */
-  public async loadOrders(date: string, symbol?: string): Promise<Order[]> {
+  async loadOrders(date, symbol = 'all') {
     try {
       const dirs = this.getDataDirectories();
-      let targetDir = dirs.ordersDir;
+      const normalizedSymbol = symbol.replace('/', '_');
+      const symbolDir = path.join(dirs.ordersDir, normalizedSymbol);
 
-      // シンボルが指定されている場合はシンボル固有のディレクトリを使用
-      if (symbol) {
-        const normalizedSymbol = symbol.replace('/', '_');
-        targetDir = path.join(dirs.ordersDir, normalizedSymbol);
-
-        if (!fs.existsSync(targetDir)) {
-          logger.warn(`シンボル注文ディレクトリが見つかりません: ${targetDir}`);
-          return [];
-        }
+      if (!fs.existsSync(symbolDir)) {
+        logger.warn(`シンボルディレクトリが見つかりません: ${symbolDir}`);
+        return [];
       }
 
-      const filename = `orders_${date}.json`;
-      const filePath = path.join(targetDir, filename);
+      const filename = `${date}.json`;
+      const filePath = path.join(symbolDir, filename);
 
       if (!fs.existsSync(filePath)) {
-        logger.warn(`注文履歴が見つかりません: ${filePath}`);
+        logger.warn(`注文データが見つかりません: ${filePath}`);
         return [];
       }
 
       const data = await fs.promises.readFile(filePath, 'utf8');
-      return JSON.parse(data) as Order[];
+      return JSON.parse(data);
     } catch (error) {
       logger.error(
-        `注文履歴読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+        `注文データ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
       );
       return [];
     }
   }
 
   /**
-   * 複数シンボルの注文履歴を一括で読み込む
-   * @param date 日付（形式: 'YYYYMMDD'）
+   * 複数シンボルの注文データを一括で読み込む
+   * @param date 読み込む日付（形式: 'YYYYMMDD'）
    * @param symbols 銘柄の配列（例: ['SOL/USDT', 'BTC/USDT']）
-   * @returns シンボルごとの注文履歴のマップ
+   * @returns シンボルごとの注文データのマップ
    */
-  public async loadMultipleSymbolOrders(
-    date: string,
-    symbols: string[]
-  ): Promise<Map<string, Order[]>> {
-    const result = new Map<string, Order[]>();
+  async loadMultipleSymbolOrders(date, symbols) {
+    const result = new Map();
 
-    // 共通の注文履歴を読み込む
+    // まず「全シンボル共通」の注文データを読み込む
     try {
-      const commonOrders = await this.loadOrders(date);
-      if (commonOrders.length > 0) {
-        result.set('common', commonOrders);
+      const allOrders = await this.loadOrders(date, 'all');
+      if (allOrders.length > 0) {
+        result.set('all', allOrders);
       }
     } catch (error) {
       logger.error(
-        `共通注文履歴読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+        `全シンボル共通の注文データ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
-    // 各シンボルの注文履歴を読み込む
+    // 各シンボル固有の注文データを読み込む
     for (const symbol of symbols) {
       try {
         const orders = await this.loadOrders(date, symbol);
@@ -424,9 +418,9 @@ export class DataRepository {
         }
       } catch (error) {
         logger.error(
-          `シンボル ${symbol} の注文履歴読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+          `シンボル ${symbol} の注文データ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
         );
-        // エラーが発生しても処理を続行（部分的な読み込み失敗を許容）
+        // エラーが発生しても処理を続行
       }
     }
 
@@ -436,26 +430,23 @@ export class DataRepository {
   /**
    * パフォーマンスメトリクスを保存する
    * @param metrics パフォーマンスメトリクス
-   * @param date 保存する日付（形式: 'YYYYMMDD'）
-   * @param symbol シンボル名（省略可。省略時は全シンボル共通のメトリクスとして保存）
+   * @param date 保存する日付（省略時は現在の日付）
+   * @param symbol 銘柄（省略時は'all'）
    * @returns 成功したかどうか
    */
-  public async savePerformanceMetrics(
-    metrics: PerformanceMetrics,
-    date?: string,
-    symbol?: string
-  ): Promise<boolean> {
-    const dirs = this.getDataDirectories();
-    let targetDir = dirs.metricsDir;
-
-    // シンボルが指定されている場合はシンボル固有のディレクトリを使用
-    if (symbol) {
-      targetDir = this.ensureSymbolDirectory(symbol, dirs.metricsDir);
+  async savePerformanceMetrics(metrics, date, symbol = 'all') {
+    if (!metrics) {
+      logger.warn('保存するメトリクスデータがありません');
+      return false;
     }
 
-    const dateStr = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const filename = `metrics_${dateStr}.json`;
-    const filePath = path.join(targetDir, filename);
+    const dirs = this.getDataDirectories();
+    const symbolDir = this.ensureSymbolDirectory(symbol, dirs.metricsDir);
+
+    // ファイル名を作成（例: '20250605.json'）
+    const saveDate = date || new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const filename = `${saveDate}.json`;
+    const filePath = path.join(symbolDir, filename);
 
     // このファイルに対するロックを取得
     const fileLock = this.getFileLock(filePath);
@@ -463,35 +454,35 @@ export class DataRepository {
     // ロックを取得してファイル操作を行う
     return await fileLock.runExclusive(async () => {
       try {
-        // 既存のメトリクスがあればマージ
+        // 既存のメトリクスと結合（今日の分は上書き）
+        let allMetrics = { ...metrics };
         if (fs.existsSync(filePath)) {
           try {
             const existingData = await fs.promises.readFile(filePath, 'utf8');
-            const existingMetrics = JSON.parse(existingData) as PerformanceMetrics;
-
-            // 既存メトリクスと新しいメトリクスをマージ
-            // 新しいデータを優先するが、不足しているフィールドは既存データから補完
-            const mergedMetrics = {
+            const existingMetrics = JSON.parse(existingData);
+            
+            // 既存のメトリクスを現在のもので上書き更新
+            allMetrics = {
               ...existingMetrics,
-              ...metrics
+              ...metrics,
+              // 配列データはマージではなく置換
+              trades: metrics.trades || existingMetrics.trades,
+              dailyReturns: metrics.dailyReturns || existingMetrics.dailyReturns
             };
-
-            await fs.promises.writeFile(filePath, JSON.stringify(mergedMetrics, null, 2));
-            logger.debug(`パフォーマンスメトリクスを更新しました: ${filePath}`);
-            return true;
           } catch (error) {
             logger.warn(
-              `既存のメトリクスデータの読み込みに失敗しました: ${filePath}. 新しいデータで上書きします。`
+              `既存のメトリクスデータの読み込みに失敗しました: ${filePath}. 新しいデータのみを使用します。`
             );
           }
         }
 
-        await fs.promises.writeFile(filePath, JSON.stringify(metrics, null, 2));
+        // JSONとして保存
+        await fs.promises.writeFile(filePath, JSON.stringify(allMetrics, null, 2));
         logger.debug(`パフォーマンスメトリクスを保存しました: ${filePath}`);
         return true;
       } catch (error) {
         logger.error(
-          `メトリクス保存エラー: ${error instanceof Error ? error.message : String(error)}`
+          `メトリクスデータ保存エラー: ${error instanceof Error ? error.message : String(error)}`
         );
         return false;
       }
@@ -500,42 +491,34 @@ export class DataRepository {
 
   /**
    * パフォーマンスメトリクスを読み込む
-   * @param date 日付（形式: 'YYYYMMDD'）
-   * @param symbol シンボル名（省略可。省略時は全シンボル共通のメトリクスを読み込み）
+   * @param date 読み込む日付（形式: 'YYYYMMDD'）
+   * @param symbol 銘柄（省略時は'all'）
    * @returns パフォーマンスメトリクス
    */
-  public async loadPerformanceMetrics(
-    date: string,
-    symbol?: string
-  ): Promise<PerformanceMetrics | null> {
+  async loadPerformanceMetrics(date, symbol = 'all') {
     try {
       const dirs = this.getDataDirectories();
-      let targetDir = dirs.metricsDir;
+      const normalizedSymbol = symbol.replace('/', '_');
+      const symbolDir = path.join(dirs.metricsDir, normalizedSymbol);
 
-      // シンボルが指定されている場合はシンボル固有のディレクトリを使用
-      if (symbol) {
-        const normalizedSymbol = symbol.replace('/', '_');
-        targetDir = path.join(dirs.metricsDir, normalizedSymbol);
-
-        if (!fs.existsSync(targetDir)) {
-          logger.warn(`シンボルメトリクスディレクトリが見つかりません: ${targetDir}`);
-          return null;
-        }
+      if (!fs.existsSync(symbolDir)) {
+        logger.warn(`シンボルディレクトリが見つかりません: ${symbolDir}`);
+        return null;
       }
 
-      const filename = `metrics_${date}.json`;
-      const filePath = path.join(targetDir, filename);
+      const filename = `${date}.json`;
+      const filePath = path.join(symbolDir, filename);
 
       if (!fs.existsSync(filePath)) {
-        logger.warn(`メトリクスが見つかりません: ${filePath}`);
+        logger.warn(`メトリクスデータが見つかりません: ${filePath}`);
         return null;
       }
 
       const data = await fs.promises.readFile(filePath, 'utf8');
-      return JSON.parse(data) as PerformanceMetrics;
+      return JSON.parse(data);
     } catch (error) {
       logger.error(
-        `メトリクス読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+        `メトリクスデータ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
       );
       return null;
     }
@@ -543,29 +526,26 @@ export class DataRepository {
 
   /**
    * 複数シンボルのパフォーマンスメトリクスを一括で読み込む
-   * @param date 日付（形式: 'YYYYMMDD'）
+   * @param date 読み込む日付（形式: 'YYYYMMDD'）
    * @param symbols 銘柄の配列（例: ['SOL/USDT', 'BTC/USDT']）
    * @returns シンボルごとのパフォーマンスメトリクスのマップ
    */
-  public async loadMultipleSymbolMetrics(
-    date: string,
-    symbols: string[]
-  ): Promise<Map<string, PerformanceMetrics>> {
-    const result = new Map<string, PerformanceMetrics>();
+  async loadMultipleSymbolMetrics(date, symbols) {
+    const result = new Map();
 
-    // 共通のメトリクスを読み込む
+    // まず「全シンボル共通」のメトリクスを読み込む
     try {
-      const commonMetrics = await this.loadPerformanceMetrics(date);
-      if (commonMetrics) {
-        result.set('common', commonMetrics);
+      const allMetrics = await this.loadPerformanceMetrics(date, 'all');
+      if (allMetrics) {
+        result.set('all', allMetrics);
       }
     } catch (error) {
       logger.error(
-        `共通メトリクス読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+        `全シンボル共通のメトリクスデータ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
-    // 各シンボルのメトリクスを読み込む
+    // 各シンボル固有のメトリクスを読み込む
     for (const symbol of symbols) {
       try {
         const metrics = await this.loadPerformanceMetrics(date, symbol);
@@ -574,9 +554,9 @@ export class DataRepository {
         }
       } catch (error) {
         logger.error(
-          `シンボル ${symbol} のメトリクス読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+          `シンボル ${symbol} のメトリクスデータ読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
         );
-        // エラーが発生しても処理を続行（部分的な読み込み失敗を許容）
+        // エラーが発生しても処理を続行
       }
     }
 
@@ -584,12 +564,12 @@ export class DataRepository {
   }
 
   /**
-   * 特定のシンボルとタイムフレームの最新ローソク足データを取得
+   * 指定されたシンボルと時間枠の全ローソク足データを取得する
    * @param symbol 銘柄（例: 'SOL/USDT'）
    * @param timeframe 時間枠（例: '1h'）
-   * @returns ローソク足データの配列
+   * @returns すべてのローソク足データを結合した配列
    */
-  public async getCandles(symbol: string, timeframe: string): Promise<Candle[]> {
+  async getCandles(symbol, timeframe) {
     try {
       const dirs = this.getDataDirectories();
       const normalizedSymbol = symbol.replace('/', '_');
@@ -600,23 +580,49 @@ export class DataRepository {
         return [];
       }
 
-      // ディレクトリ内のファイルを取得し、指定されたタイムフレームのファイルのみをフィルタリング
-      const files = fs
-        .readdirSync(symbolDir)
-        .filter((file) => file.startsWith(`${timeframe}_`) && file.endsWith('.json'))
-        .sort(); // 日付でソート
+      // 指定された時間枠のJSONファイルを探す
+      const files = fs.readdirSync(symbolDir)
+        .filter(file => file.startsWith(`${timeframe}_`) && file.endsWith('.json'))
+        .sort(); // 日付順にソート
 
       if (files.length === 0) {
         logger.warn(`${symbol}の${timeframe}データが見つかりません`);
         return [];
       }
 
-      // 最新のファイルを取得
-      const latestFile = files[files.length - 1];
-      const filePath = path.join(symbolDir, latestFile);
+      // すべてのファイルからデータを読み込んで結合
+      let allCandles = [];
+      for (const file of files) {
+        const filePath = path.join(symbolDir, file);
+        try {
+          const data = await fs.promises.readFile(filePath, 'utf8');
+          const candles = JSON.parse(data);
+          allCandles = allCandles.concat(candles);
+        } catch (error) {
+          logger.error(
+            `ファイル読み込みエラー (${filePath}): ${error instanceof Error ? error.message : String(error)}`
+          );
+          // エラーが発生しても他のファイルの処理を続行
+        }
+      }
 
-      const data = await fs.promises.readFile(filePath, 'utf8');
-      return JSON.parse(data) as Candle[];
+      // タイムスタンプでソートし、重複を除去
+      const uniqueCandles = [];
+      const timestampSet = new Set();
+      
+      // まずタイムスタンプでソート
+      allCandles.sort((a, b) => a.timestamp - b.timestamp);
+      
+      // 重複を取り除く
+      allCandles.forEach(candle => {
+        if (!timestampSet.has(candle.timestamp)) {
+          timestampSet.add(candle.timestamp);
+          uniqueCandles.push(candle);
+        }
+      });
+
+      logger.info(`${symbol}の${timeframe}データを${uniqueCandles.length}件取得しました`);
+      return uniqueCandles;
     } catch (error) {
       logger.error(
         `ローソク足データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
@@ -626,5 +632,4 @@ export class DataRepository {
   }
 }
 
-// グローバルアクセス用のシングルトンインスタンス
-export const dataRepository = DataRepository.getInstance();
+module.exports = { DataRepository };

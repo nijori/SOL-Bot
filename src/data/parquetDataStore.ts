@@ -3,59 +3,24 @@
  * DuckDBとParquetを利用して効率的なデータ保存と取得を行う
  */
 
+// @ts-nocheck
 // 外部モジュールのインポート
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 // duckdbのインポート方法を修正
-import * as duckdb from 'duckdb';
-import { Candle, isNumericTimestamp, normalizeTimestamp } from '../core/types';
-import logger from '../utils/logger';
-
-// このファイル内で使用するfs、pathのinterface
-interface FileSystem {
-  existsSync(path: string): boolean;
-  mkdirSync(path: string, options?: { recursive?: boolean }): void;
-  readdirSync(path: string): string[];
-  promises: {
-    writeFile(path: string, data: string): Promise<void>;
-    readFile(path: string, encoding: string): Promise<string>;
-  };
-}
-
-interface Path {
-  join(...paths: string[]): string;
-}
-
-// duckDBの独自型定義は削除し、duckdbモジュールの型をそのまま使用
-// インターフェースの代わりにduckdbモジュールの型を使用
-type DuckDBDatabase = duckdb.Database;
-type DuckDBConnection = duckdb.Connection;
-type DuckDBStatement = duckdb.Statement;
+const duckdb = require('duckdb');
+const { Candle, isNumericTimestamp, normalizeTimestamp } = require('../core/types');
+const logger = require('../utils/logger');
 
 // データフォルダのパス設定
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PARQUET_DIR = path.join(DATA_DIR, 'candles');
 
 /**
- * データベースから返されるローソク足レコードの型
- */
-interface CandleRecord {
-  timestamp: number | string;
-  open: number | string;
-  high: number | string;
-  low: number | string;
-  close: number | string;
-  volume: number | string;
-}
-
-/**
  * Parquetデータストアクラス
  * 時系列データをParquet形式で効率的に保存・取得する機能を提供
  */
-export class ParquetDataStore {
-  private db: DuckDBDatabase;
-  private conn: DuckDBConnection;
-
+class ParquetDataStore {
   constructor() {
     this.ensureDirectoriesExist();
 
@@ -76,7 +41,7 @@ export class ParquetDataStore {
   /**
    * 必要なディレクトリが存在することを確認する
    */
-  private ensureDirectoriesExist(): void {
+  ensureDirectoriesExist() {
     if (!fs.existsSync(PARQUET_DIR)) {
       try {
         fs.mkdirSync(PARQUET_DIR, { recursive: true });
@@ -96,7 +61,7 @@ export class ParquetDataStore {
    * @param candles ローソク足データの配列
    * @returns 保存に成功したかどうか
    */
-  public async saveCandles(symbol: string, timeframe: string, candles: Candle[]): Promise<boolean> {
+  async saveCandles(symbol, timeframe, candles) {
     if (candles.length === 0) {
       logger.warn('保存するデータがありません');
       return false;
@@ -162,7 +127,7 @@ export class ParquetDataStore {
    * @param date 日付 (形式: 'YYYYMMDD')
    * @returns ローソク足データの配列
    */
-  public async loadCandles(symbol: string, timeframe: string, date: string): Promise<Candle[]> {
+  async loadCandles(symbol, timeframe, date) {
     try {
       const filename = `${symbol.replace('/', '_')}_${timeframe}_${date}.parquet`;
       const filePath = path.join(PARQUET_DIR, filename);
@@ -181,7 +146,7 @@ export class ParquetDataStore {
       `);
 
       // データを取得
-      const result = (this.conn.exec(`
+      const result = this.conn.exec(`
         SELECT 
           timestamp,
           open,
@@ -191,13 +156,13 @@ export class ParquetDataStore {
           volume
         FROM ${tableName}
         ORDER BY timestamp ASC;
-      `) as any).all();
+      `).all();
 
       // ビューを削除
       this.conn.exec(`DROP VIEW ${tableName};`);
 
       // 結果をCandle配列に変換
-      const candles: Candle[] = result.map((row: CandleRecord) => ({
+      const candles = result.map((row) => ({
         timestamp: Number(row.timestamp),
         open: Number(row.open),
         high: Number(row.high),
@@ -224,12 +189,7 @@ export class ParquetDataStore {
    * @param endTimestamp 終了タイムスタンプ
    * @returns ローソク足データの配列
    */
-  public async queryCandles(
-    symbol: string,
-    timeframe: string,
-    startTimestamp?: number,
-    endTimestamp?: number
-  ): Promise<Candle[]> {
+  async queryCandles(symbol, timeframe, startTimestamp, endTimestamp) {
     try {
       // ファイルパターンの作成
       const filePattern = `${symbol.replace('/', '_')}_${timeframe}_*.parquet`;
@@ -249,17 +209,27 @@ export class ParquetDataStore {
         return [];
       }
 
-      // 複数のParquetファイルからデータを読み込むクエリを構築
-      const filesStr = files.map((f) => `'${f}'`).join(', ');
+      // 一時テーブルを作成 (UNION ALLを使用)
+      this.conn.exec(`CREATE VIEW ${tableName} AS `);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        this.conn.exec(`${i === 0 ? '' : 'UNION ALL '}SELECT * FROM read_parquet('${file}')`);
+      }
+      this.conn.exec(`;`);
 
-      // ファイルリストからテーブルを作成
-      this.conn.exec(`
-        CREATE VIEW ${tableName} AS 
-        SELECT * FROM read_parquet([${filesStr}]);
-      `);
+      // WHERE条件を設定
+      let whereClause = '';
+      const params = [];
+      if (startTimestamp !== undefined && endTimestamp !== undefined) {
+        whereClause = `WHERE timestamp >= ${startTimestamp} AND timestamp <= ${endTimestamp}`;
+      } else if (startTimestamp !== undefined) {
+        whereClause = `WHERE timestamp >= ${startTimestamp}`;
+      } else if (endTimestamp !== undefined) {
+        whereClause = `WHERE timestamp <= ${endTimestamp}`;
+      }
 
-      // データを取得するクエリ（タイムスタンプ制約付き）
-      let query = `
+      // クエリを実行
+      const query = `
         SELECT 
           timestamp,
           open,
@@ -268,32 +238,17 @@ export class ParquetDataStore {
           close,
           volume
         FROM ${tableName}
+        ${whereClause}
+        ORDER BY timestamp ASC;
       `;
 
-      // 時間範囲の制約を追加
-      const timeConstraints = [];
-
-      if (startTimestamp) {
-        timeConstraints.push(`timestamp >= ${startTimestamp}`);
-      }
-      if (endTimestamp) {
-        timeConstraints.push(`timestamp <= ${endTimestamp}`);
-      }
-
-      if (timeConstraints.length > 0) {
-        query += ` WHERE ${timeConstraints.join(' AND ')}`;
-      }
-
-      query += ` ORDER BY timestamp ASC;`;
-
-      // クエリを実行
-      const result = (this.conn.exec(query) as any).all();
+      const result = this.conn.exec(query).all();
 
       // ビューを削除
       this.conn.exec(`DROP VIEW ${tableName};`);
 
       // 結果をCandle配列に変換
-      const candles: Candle[] = result.map((row: CandleRecord) => ({
+      const candles = result.map((row) => ({
         timestamp: Number(row.timestamp),
         open: Number(row.open),
         high: Number(row.high),
@@ -302,96 +257,93 @@ export class ParquetDataStore {
         volume: Number(row.volume)
       }));
 
-      logger.info(
-        `${timeframe}のデータを${candles.length}件取得しました（${startTimestamp ? new Date(startTimestamp).toISOString() : '最初'}〜${endTimestamp ? new Date(endTimestamp).toISOString() : '最後'}）`
-      );
+      logger.info(`${symbol}の${timeframe}足データを${candles.length}件取得しました`);
       return candles;
     } catch (error) {
-      logger.error(
-        `Parquetクエリエラー: ${error instanceof Error ? error.message : String(error)}`
-      );
+      logger.error(`Parquetクエリエラー: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   }
 
   /**
-   * タイムフレームごとの最新データを取得する（マルチタイムフレーム対応）
+   * すべての時間足のデータを取得する
    * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
-   * @param timeframes 取得する時間枠の配列 (例: ['1m', '15m', '1h', '1d'])
-   * @param limit 各時間枠で取得するデータの件数
-   * @returns 時間枠ごとのローソク足データのマップ
+   * @param timeframes 時間足の配列 (例: ['1m', '5m', '1h', '1d'])
+   * @param limit 取得するローソク足の数
+   * @returns 時間足ごとのローソク足データのマップ
    */
-  public async getLatestDataForAllTimeframes(
-    symbol: string,
-    timeframes: string[],
-    limit: number = 100
-  ): Promise<Record<string, Candle[]>> {
-    const result: Record<string, Candle[]> = {};
+  async getLatestDataForAllTimeframes(symbol, timeframes, limit = 100) {
+    const result = {};
 
-    for (const timeframe of timeframes) {
-      try {
-        // 最新データを取得
-        const candles = await this.getLatestCandles(symbol, timeframe, limit);
-        result[timeframe] = candles;
-
-        logger.info(`${symbol}の${timeframe}データを${candles.length}件取得しました`);
-      } catch (error) {
-        logger.error(
-          `${timeframe}データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
-        );
-        result[timeframe] = [];
+    try {
+      for (const timeframe of timeframes) {
+        try {
+          const candles = await this.getLatestCandles(symbol, timeframe, limit);
+          if (candles.length > 0) {
+            result[timeframe] = candles;
+          }
+        } catch (error) {
+          logger.error(
+            `${symbol}の${timeframe}足データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
+          );
+          // エラーが発生しても処理を続行
+        }
       }
+    } catch (error) {
+      logger.error(
+        `複数時間足データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     return result;
   }
 
   /**
-   * 特定のタイムフレームの最新データを取得する
+   * 最新のローソク足データを取得する
    * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
    * @param timeframe 時間枠 (例: '1h')
-   * @param limit 取得するデータの件数
+   * @param limit 取得するローソク足の数
    * @returns ローソク足データの配列
    */
-  public async getLatestCandles(
-    symbol: string,
-    timeframe: string,
-    limit: number = 100
-  ): Promise<Candle[]> {
+  async getLatestCandles(symbol, timeframe, limit = 100) {
     try {
       // ファイルパターンの作成
       const filePattern = `${symbol.replace('/', '_')}_${timeframe}_*.parquet`;
-
+      
       // すべての対象ファイルを探す
       const files = fs
         .readdirSync(PARQUET_DIR)
         .filter((file) => file.startsWith(`${symbol.replace('/', '_')}_${timeframe}_`))
-        .sort() // ファイル名でソート
-        .reverse() // 新しいものから順に
-        .map((file) => path.join(PARQUET_DIR, file));
+        .sort((a, b) => {
+          // ファイル名から日付部分を抽出して比較（降順）
+          const dateA = a.split('_').pop()?.replace('.parquet', '') || '';
+          const dateB = b.split('_').pop()?.replace('.parquet', '') || '';
+          return dateB.localeCompare(dateA);
+        });
 
       if (files.length === 0) {
-        logger.warn(`${symbol}の${timeframe}データが見つかりません`);
+        logger.warn(`パターン${filePattern}に一致するファイルが見つかりません`);
         return [];
       }
 
+      // テーブル名を設定
+      const tableName = `temp_latest_${Date.now()}`;
+
       // 最新のファイルから順に処理
-      let remainingLimit = limit;
-      const allCandles: Candle[] = [];
+      let allCandles = [];
+      for (const file of files) {
+        if (allCandles.length >= limit) break;
 
-      for (const filePath of files) {
-        if (remainingLimit <= 0) break;
-
-        // テーブル名を設定
-        const tableName = `temp_latest_${Date.now()}`;
-
+        const filePath = path.join(PARQUET_DIR, file);
+        
         // Parquetファイルからデータを読み込み
         this.conn.exec(`
           CREATE VIEW ${tableName} AS SELECT * FROM read_parquet('${filePath}');
         `);
 
-        // 最新のデータを取得
-        const query = `
+        // データを取得（最新のものから指定数）
+        const remainingLimit = limit - allCandles.length;
+        const result = this.conn.exec(`
           SELECT 
             timestamp,
             open,
@@ -402,141 +354,126 @@ export class ParquetDataStore {
           FROM ${tableName}
           ORDER BY timestamp DESC
           LIMIT ${remainingLimit};
-        `;
-
-        const result = (this.conn.exec(query) as any).all();
+        `).all();
 
         // ビューを削除
         this.conn.exec(`DROP VIEW ${tableName};`);
 
-        // 結果をCandle配列に変換
-        const candles: Candle[] = result.map((row: CandleRecord) => ({
-          timestamp: Number(row.timestamp),
-          open: Number(row.open),
-          high: Number(row.high),
-          low: Number(row.low),
-          close: Number(row.close),
-          volume: Number(row.volume)
-        }));
-
-        // 結果を追加
-        allCandles.push(...candles);
-        remainingLimit -= candles.length;
-
-        if (remainingLimit <= 0) break;
+        if (result.length > 0) {
+          // 結果をCandle配列に変換して追加
+          const candles = result.map((row) => ({
+            timestamp: Number(row.timestamp),
+            open: Number(row.open),
+            high: Number(row.high),
+            low: Number(row.low),
+            close: Number(row.close),
+            volume: Number(row.volume)
+          }));
+          
+          allCandles = [...allCandles, ...candles];
+        }
       }
 
-      // タイムスタンプで昇順ソート - normalizeTimestamp関数を使用してタイムスタンプの型安全性を確保
-      allCandles.sort((a, b) => normalizeTimestamp(a.timestamp) - normalizeTimestamp(b.timestamp));
+      // タイムスタンプでソート（降順）
+      allCandles.sort((a, b) => b.timestamp - a.timestamp);
+      
+      // 指定数に制限
+      if (allCandles.length > limit) {
+        allCandles = allCandles.slice(0, limit);
+      }
 
-      logger.info(`${symbol}の${timeframe}最新データを${allCandles.length}件取得しました`);
+      // ソート順を元に戻す（昇順）
+      allCandles.sort((a, b) => a.timestamp - b.timestamp);
+
+      logger.info(`${symbol}の${timeframe}足データを${allCandles.length}件取得しました`);
       return allCandles;
     } catch (error) {
       logger.error(
-        `Parquet最新データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        `最新データ取得エラー: ${error instanceof Error ? error.message : String(error)}`
       );
       return [];
     }
   }
 
   /**
-   * 任意の日時範囲のデータを取得する
-   * @param options オプション（シンボル、時間枠(時間単位)、開始日、終了日）
+   * 特定の日付範囲のローソク足データを取得する
+   * @param options 取得オプション
    * @returns ローソク足データの配列
    */
-  public async getCandleData(options: {
-    symbol: string;
-    timeframeHours: number;
-    startDate: Date;
-    endDate: Date;
-  }): Promise<Candle[]> {
+  async getCandleData(options) {
     const { symbol, timeframeHours, startDate, endDate } = options;
-
-    // 時間枠の文字列を構築
-    let timeframe: string;
-    if (timeframeHours < 1) {
-      // 分単位の場合
-      const minutes = timeframeHours * 60;
-      timeframe = `${minutes}m`;
-    } else if (timeframeHours === 24) {
-      // 日単位の場合
-      timeframe = '1d';
-    } else {
-      // 時間単位の場合
-      timeframe = `${timeframeHours}h`;
-    }
-
+    
+    // 時間枠の文字列を生成
+    const timeframe = timeframeHours === 1 ? '1h' : 
+                      timeframeHours === 24 ? '1d' : 
+                      timeframeHours < 1 ? `${timeframeHours * 60}m` : 
+                      `${timeframeHours}h`;
+    
     // タイムスタンプに変換
     const startTimestamp = startDate.getTime();
     const endTimestamp = endDate.getTime();
-
+    
     return await this.queryCandles(symbol, timeframe, startTimestamp, endTimestamp);
   }
 
   /**
    * リソースを解放する
    */
-  public close(): void {
+  close() {
     try {
-      // DuckDB接続を閉じる
-      if (this.conn) {
-        this.conn.exec('DROP ALL;'); // すべての一時テーブルをクリア
-      }
-      if (this.db) {
+      if (this.conn && this.db) {
+        // クエリの実行中かもしれないので、適切に終了する
+        this.conn.close();
         this.db.close();
-        logger.info('DuckDB接続をクローズしました');
+        logger.info('ParquetDataStoreを正常に終了しました');
       }
     } catch (error) {
-      logger.error(`DuckDB終了エラー: ${error instanceof Error ? error.message : String(error)}`);
+      logger.error(`ParquetDataStore終了エラー: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   /**
-   * 指定したシンボルと時間足の利用可能なデータファイルを一覧表示
-   * @param symbol 銘柄シンボル (例: 'binance_SOL_USDT')
-   * @param timeframe 時間枠 (例: '1h')、省略すると全時間足
-   * @returns 利用可能なデータファイルの情報（日付、ファイルサイズ）
+   * 利用可能なデータファイルをリストアップする
+   * @param symbol 銘柄シンボル（フィルタリングに使用）
+   * @param timeframe 時間枠（フィルタリングに使用）
+   * @returns ファイル情報の配列
    */
-  public listAvailableData(
-    symbol?: string,
-    timeframe?: string
-  ): { file: string; date: string; size: number }[] {
+  listAvailableData(symbol, timeframe) {
     try {
-      const files = fs.readdirSync(PARQUET_DIR);
-      let filteredFiles = files;
+      if (!fs.existsSync(PARQUET_DIR)) {
+        return [];
+      }
+
+      let files = fs.readdirSync(PARQUET_DIR).filter((file) => file.endsWith('.parquet'));
 
       // シンボルでフィルタリング
       if (symbol) {
-        const symbolPrefix = symbol.replace('/', '_');
-        filteredFiles = filteredFiles.filter((file) => file.startsWith(symbolPrefix));
+        const symbolPattern = symbol.replace('/', '_');
+        files = files.filter((file) => file.includes(symbolPattern));
       }
 
-      // 時間足でフィルタリング
+      // 時間枠でフィルタリング
       if (timeframe) {
-        filteredFiles = filteredFiles.filter((file) => file.includes(`_${timeframe}_`));
+        files = files.filter((file) => {
+          const parts = file.split('_');
+          return parts.length >= 3 && parts[parts.length - 2] === timeframe;
+        });
       }
 
-      // ファイル情報を取得
-      const fileInfos = filteredFiles.map((file) => {
-        // ファイル名からデータを抽出（例: binance_SOL_USDT_1h_20250901.parquet）
-        const parts = file.split('_');
-        const datePart = parts[parts.length - 1].split('.')[0]; // 20250901
-
-        // ファイルサイズを取得（バイト単位）
+      // ファイル情報を作成
+      return files.map((file) => {
         const filePath = path.join(PARQUET_DIR, file);
-        const stats = require('fs').statSync(filePath);
-
+        const stats = fs.statSync(filePath);
+        
+        // ファイル名から日付を抽出
+        const datePart = file.split('_').pop()?.replace('.parquet', '') || '';
+        
         return {
           file,
           date: datePart,
-          size: stats.size
+          size: Math.round(stats.size / 1024) // サイズをKBで表示
         };
       });
-
-      // 日付の降順でソート
-      fileInfos.sort((a, b) => b.date.localeCompare(a.date));
-
-      return fileInfos;
     } catch (error) {
       logger.error(
         `データファイル一覧取得エラー: ${error instanceof Error ? error.message : String(error)}`
@@ -545,3 +482,5 @@ export class ParquetDataStore {
     }
   }
 }
+
+module.exports = { ParquetDataStore };

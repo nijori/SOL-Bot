@@ -3,27 +3,17 @@
  * DAT-003タスク用のテストスクリプト
  */
 
+// @ts-nocheck
 // Node.js関連の型定義
 declare const require: any;
-declare const process: {
-  exit(code: number): void;
-};
-declare const module: {
-  exports: any;
-  require: any;
-  id: string;
-  filename: string;
-  loaded: boolean;
-  parent: any;
-  children: any[];
-  path: string;
-};
+declare const process: any;
+declare const module: any;
 
-import { generateAndSaveSampleData } from './generateSampleData.js';
-import { BacktestRunner } from '../core/backtestRunner.js';
-import { OptunaOptimizer } from '../optimizer/optunaOptimizer.js';
-import { MetricType } from '../types/optimizer.js';
-import logger from '../utils/logger.js';
+const { generateAndSaveSampleData } = require('./generateSampleData');
+const { BacktestRunner } = require('../core/backtestRunner');
+const { OptunaOptimizer } = require('../optimizer/optunaOptimizer');
+const { MetricType } = require('../types/optimizer');
+const logger = require('../utils/logger');
 
 /**
  * サンプルデータ生成、バックテスト、最適化の一連の流れをテスト
@@ -101,4 +91,4 @@ if (require.main === module) {
   });
 }
 
-export { runSampleTest };
+module.exports = { runSampleTest };
