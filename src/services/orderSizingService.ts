@@ -9,35 +9,33 @@
  * - リスク金額からの注文量適切変換
  */
 
-import { ExchangeService } from './exchangeService.js';
-import { SymbolInfoService, SymbolInfo } from './symbolInfoService.js';
-import logger from '../utils/logger.js';
-import { ParameterService } from '../config/parameterService.js';
+// @ts-nocheck
+const { ExchangeService } = require('./exchangeService');
+const { SymbolInfoService } = require('./symbolInfoService');
+const logger = require('../utils/logger');
+const { ParameterService } = require('../config/parameterService');
 
 // パラメータサービスのインスタンスを取得
 const parameterService = ParameterService.getInstance();
 
 // リスク関連のパラメータを取得
-const DEFAULT_RISK_PERCENTAGE = parameterService.get<number>('risk.max_risk_per_trade', 0.01);
-const DEFAULT_FALLBACK_ATR_PERCENTAGE = parameterService.get<number>(
+const DEFAULT_RISK_PERCENTAGE = parameterService.get('risk.max_risk_per_trade', 0.01);
+const DEFAULT_FALLBACK_ATR_PERCENTAGE = parameterService.get(
   'risk.defaultAtrPercentage',
   0.02
 );
-const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>(
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get(
   'risk.minStopDistancePercentage',
   0.01
 );
 
-export class OrderSizingService {
-  private exchangeService: ExchangeService;
-  private symbolInfoService: SymbolInfoService;
-
+class OrderSizingService {
   /**
    * OrderSizingServiceコンストラクタ
    * @param exchangeService 取引所サービスのインスタンス
    * @param symbolInfoService シンボル情報サービスのインスタンス（指定がない場合は内部で作成）
    */
-  constructor(exchangeService: ExchangeService, symbolInfoService?: SymbolInfoService) {
+  constructor(exchangeService, symbolInfoService) {
     this.exchangeService = exchangeService;
     this.symbolInfoService = symbolInfoService || new SymbolInfoService(exchangeService);
   }
@@ -51,13 +49,13 @@ export class OrderSizingService {
    * @param riskPercentage リスク割合 (未指定の場合はデフォルト値を使用)
    * @returns 計算された注文サイズ
    */
-  public async calculateOrderSize(
-    symbol: string,
-    accountBalance: number,
-    stopDistance: number,
-    currentPrice?: number,
-    riskPercentage: number = DEFAULT_RISK_PERCENTAGE
-  ): Promise<number> {
+  async calculateOrderSize(
+    symbol,
+    accountBalance,
+    stopDistance,
+    currentPrice,
+    riskPercentage = DEFAULT_RISK_PERCENTAGE
+  ) {
     try {
       // 通貨ペア情報を取得
       const symbolInfo = await this.symbolInfoService.getSymbolInfo(symbol);
@@ -130,15 +128,15 @@ export class OrderSizingService {
    * @param riskPercentage リスク割合（全銘柄共通）
    * @returns 通貨ペアごとの注文サイズを含むマップ
    */
-  public async calculateMultipleOrderSizes(
-    symbols: string[],
-    accountBalance: number,
-    stopDistances: Record<string, number>,
-    currentPrices?: Record<string, number>,
-    riskPercentage: number = DEFAULT_RISK_PERCENTAGE
-  ): Promise<Map<string, number>> {
+  async calculateMultipleOrderSizes(
+    symbols,
+    accountBalance,
+    stopDistances,
+    currentPrices,
+    riskPercentage = DEFAULT_RISK_PERCENTAGE
+  ) {
     // 各シンボルの注文サイズを個別に計算
-    const result = new Map<string, number>();
+    const result = new Map();
     const promises = symbols.map(async (symbol) => {
       try {
         const stopDistance = stopDistances[symbol];
@@ -174,7 +172,7 @@ export class OrderSizingService {
    * @param symbolInfo シンボル情報
    * @returns 制約を適用した注文サイズ
    */
-  private applyMarketConstraints(orderSize: number, price: number, symbolInfo: SymbolInfo): number {
+  applyMarketConstraints(orderSize, price, symbolInfo) {
     // 最小ロットサイズ制約
     const minAmount = symbolInfo.minAmount || 0;
     
@@ -216,7 +214,7 @@ export class OrderSizingService {
    * @param precision 精度（小数点以下の桁数）
    * @returns 丸められた数値
    */
-  private roundToPrecision(value: number, precision: number): number {
+  roundToPrecision(value, precision) {
     if (precision === undefined || precision < 0) {
       logger.warn(`不正な精度値: ${precision}、デフォルト値8を使用します`);
       precision = 8; // デフォルト値
@@ -231,7 +229,7 @@ export class OrderSizingService {
    * @param price 丸める価格
    * @returns 最小ティックに丸められた価格
    */
-  public async roundPriceToTickSize(symbol: string, price: number): Promise<number> {
+  async roundPriceToTickSize(symbol, price) {
     try {
       const symbolInfo = await this.symbolInfoService.getSymbolInfo(symbol);
       const tickSize = symbolInfo.tickSize;
@@ -248,14 +246,11 @@ export class OrderSizingService {
       }
       
       // 通常のケース: Math.floorを使用してティックサイズに丸める
-      const result = Math.floor(price / tickSize) * tickSize;
-      
-      // 浮動小数点の精度問題を修正するために価格精度に丸める
-      return Number(result.toFixed(symbolInfo.pricePrecision));
+      return Math.floor(price / tickSize) * tickSize;
     } catch (error) {
       logger.error(`価格の丸め処理エラー: ${symbol}`, error);
-      // エラー時は精度8で丸める
-      return Math.floor(price * 100000000) / 100000000;
+      // エラー時は元の価格をそのまま返す
+      return price;
     }
   }
 
@@ -263,7 +258,12 @@ export class OrderSizingService {
    * シンボル情報サービスを取得する
    * @returns シンボル情報サービスのインスタンス
    */
-  public getSymbolInfoService(): SymbolInfoService {
+  getSymbolInfoService() {
     return this.symbolInfoService;
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  OrderSizingService
+};

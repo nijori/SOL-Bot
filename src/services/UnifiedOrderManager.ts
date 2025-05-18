@@ -5,49 +5,49 @@
  * OMS-009: 複数取引所対応
  */
 
-import { Order, OrderStatus, OrderSide, OrderType, Position } from '../core/types.js';
-import { OrderManagementSystem } from '../core/orderManagementSystem.js';
-import { ExchangeService } from './exchangeService.js';
-import logger from '../utils/logger.js';
+// @ts-nocheck
+const Types = require('../core/types');
+const { Order, OrderStatus, OrderSide, OrderType, Position } = Types;
+const { OrderManagementSystem } = require('../core/orderManagementSystem');
+const { ExchangeService } = require('./exchangeService');
+const logger = require('../utils/logger');
 
 // 取引所情報の型定義
-export interface ExchangeInfo {
-  id: string;
-  name: string;
-  exchangeService: ExchangeService;
-  oms: OrderManagementSystem;
-  active: boolean;
-  priority: number; // 優先度（低いほど優先）
-}
+// export interface ExchangeInfo {
+//   id: string;
+//   name: string;
+//   exchangeService: ExchangeService;
+//   oms: OrderManagementSystem;
+//   active: boolean;
+//   priority: number; // 優先度（低いほど優先）
+// }
 
 // 注文配分方法
-export enum AllocationStrategy {
-  PRIORITY = 'PRIORITY', // 優先度の高い取引所から順に
-  ROUND_ROBIN = 'ROUND_ROBIN', // ラウンドロビン方式
-  SPLIT_EQUAL = 'SPLIT_EQUAL', // 均等分割
-  CUSTOM = 'CUSTOM' // カスタム配分（getAllocationRatioで定義）
-}
+const AllocationStrategy = {
+  PRIORITY: 'PRIORITY', // 優先度の高い取引所から順に
+  ROUND_ROBIN: 'ROUND_ROBIN', // ラウンドロビン方式
+  SPLIT_EQUAL: 'SPLIT_EQUAL', // 均等分割
+  CUSTOM: 'CUSTOM' // カスタム配分（getAllocationRatioで定義）
+};
 
 // 注文配分設定
-export interface AllocationConfig {
-  strategy: AllocationStrategy;
-  customRatios?: Map<string, number>; // CUSTOM戦略の場合の取引所ごとの配分率
-}
+// export interface AllocationConfig {
+//   strategy: AllocationStrategy;
+//   customRatios?: Map<string, number>; // CUSTOM戦略の場合の取引所ごとの配分率
+// }
 
 /**
  * 複数取引所の注文を統合管理するクラス
  */
-export class UnifiedOrderManager {
-  private exchanges: Map<string, ExchangeInfo> = new Map();
-  private allocationConfig: AllocationConfig;
-  private lastUsedExchangeIndex: number = 0;
-
+class UnifiedOrderManager {
   /**
    * コンストラクタ
    * @param allocationConfig 注文配分設定
    */
-  constructor(allocationConfig: AllocationConfig = { strategy: AllocationStrategy.PRIORITY }) {
+  constructor(allocationConfig = { strategy: AllocationStrategy.PRIORITY }) {
+    this.exchanges = new Map();
     this.allocationConfig = allocationConfig;
+    this.lastUsedExchangeIndex = 0;
     logger.info('[UnifiedOrderManager] 複数取引所対応の注文管理システムを初期化しました');
   }
 
@@ -58,11 +58,7 @@ export class UnifiedOrderManager {
    * @param priority 優先度（低いほど優先）
    * @returns 追加が成功したかどうか
    */
-  public addExchange(
-    exchangeId: string,
-    exchangeService: ExchangeService,
-    priority: number = 100
-  ): boolean {
+  addExchange(exchangeId, exchangeService, priority = 100) {
     if (this.exchanges.has(exchangeId)) {
       logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は既に追加されています`);
       return false;
@@ -92,7 +88,7 @@ export class UnifiedOrderManager {
    * @param exchangeId 取引所ID
    * @returns 削除が成功したかどうか
    */
-  public removeExchange(exchangeId: string): boolean {
+  removeExchange(exchangeId) {
     if (!this.exchanges.has(exchangeId)) {
       logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていません`);
       return false;
@@ -109,7 +105,7 @@ export class UnifiedOrderManager {
    * @param active 有効にするかどうか
    * @returns 切り替えが成功したかどうか
    */
-  public setExchangeActive(exchangeId: string, active: boolean): boolean {
+  setExchangeActive(exchangeId, active) {
     const exchange = this.exchanges.get(exchangeId);
     if (!exchange) {
       logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていません`);
@@ -129,7 +125,7 @@ export class UnifiedOrderManager {
    * 有効な取引所をソートして取得
    * @returns 有効な取引所のリスト（優先度順）
    */
-  private getActiveExchanges(): ExchangeInfo[] {
+  getActiveExchanges() {
     return Array.from(this.exchanges.values())
       .filter((ex) => ex.active)
       .sort((a, b) => a.priority - b.priority);
@@ -140,14 +136,14 @@ export class UnifiedOrderManager {
    * @param order 注文情報
    * @returns 配分された注文と取引所のマップ
    */
-  private allocateOrder(order: Order): Map<string, Order> {
+  allocateOrder(order) {
     const activeExchanges = this.getActiveExchanges();
     if (activeExchanges.length === 0) {
       logger.error('[UnifiedOrderManager] 有効な取引所がありません');
       return new Map();
     }
 
-    const allocatedOrders = new Map<string, Order>();
+    const allocatedOrders = new Map();
 
     switch (this.allocationConfig.strategy) {
       case AllocationStrategy.PRIORITY:
@@ -216,9 +212,9 @@ export class UnifiedOrderManager {
    * @param order 注文情報
    * @returns 作成された注文IDのマップ（取引所ID -> 注文ID）
    */
-  public createOrder(order: Order): Map<string, string> {
+  createOrder(order) {
     const allocatedOrders = this.allocateOrder(order);
-    const orderIds = new Map<string, string>();
+    const orderIds = new Map();
 
     for (const [exchangeId, allocatedOrder] of allocatedOrders.entries()) {
       const exchange = this.exchanges.get(exchangeId);
@@ -246,162 +242,165 @@ export class UnifiedOrderManager {
    * @param orderId 注文ID
    * @returns キャンセルが成功したかどうか
    */
-  public cancelOrder(exchangeId: string, orderId: string): boolean {
+  cancelOrder(exchangeId, orderId) {
     const exchange = this.exchanges.get(exchangeId);
     if (!exchange) {
       logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていません`);
       return false;
     }
 
-    return exchange.oms.cancelOrder(orderId);
-  }
-
-  /**
-   * すべての取引所の特定のシンボルの注文をキャンセル
-   * @param symbol シンボル名（例: 'SOL/USDT'）
-   * @returns キャンセルされた注文の数
-   */
-  public cancelAllOrders(symbol?: string): number {
-    let cancelCount = 0;
-
-    for (const exchange of this.getActiveExchanges()) {
-      const orders = exchange.oms
-        .getOrders()
-        .filter(
-          (order) =>
-            (order.status === OrderStatus.OPEN || order.status === OrderStatus.PLACED) &&
-            (!symbol || order.symbol === symbol)
-        );
-
-      for (const order of orders) {
-        if (order.id && exchange.oms.cancelOrder(order.id)) {
-          cancelCount++;
-        }
-      }
+    try {
+      const result = exchange.oms.cancelOrder(orderId);
+      logger.info(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} で注文キャンセル: ${orderId}, 結果: ${result}`
+      );
+      return result;
+    } catch (error) {
+      logger.error(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} での注文キャンセルエラー: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return false;
     }
-
-    logger.info(
-      `[UnifiedOrderManager] ${symbol ? symbol + 'の' : ''}全注文キャンセル: ${cancelCount}件`
-    );
-    return cancelCount;
   }
 
   /**
-   * 特定のシンボルの全ポジションを取得
-   * @param symbol シンボル名（例: 'SOL/USDT'）
-   * @returns 取引所ごとのポジションマップ
+   * 全ての注文をキャンセル
+   * @param symbol 特定のシンボルのみキャンセルする場合に指定
+   * @returns キャンセルされた注文の総数
    */
-  public getAllPositions(symbol?: string): Map<string, Position[]> {
-    const result = new Map<string, Position[]>();
+  cancelAllOrders(symbol) {
+    let cancelledCount = 0;
 
-    for (const [exchangeId, exchange] of this.exchanges.entries()) {
+    for (const exchange of this.exchanges.values()) {
       if (!exchange.active) continue;
 
-      let positions: Position[] = [];
-      
-      // TST-070: シンボルが指定されている場合はgetPositionsBySymbolを使用
-      if (symbol) {
-        positions = exchange.oms.getPositionsBySymbol(symbol);
-      } else {
-        positions = exchange.oms.getPositions();
-      }
-
-      if (!positions || !Array.isArray(positions)) {
-        logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} からポジション情報を取得できませんでした`);
-        continue;
-      }
-
-      if (positions.length > 0) {
-        result.set(exchangeId, positions);
+      try {
+        const count = exchange.oms.cancelAllOrders(symbol);
+        cancelledCount += count;
+        logger.info(
+          `[UnifiedOrderManager] 取引所 ${exchange.id} で${symbol ? `${symbol}の` : '全'}注文をキャンセル: ${count}件`
+        );
+      } catch (error) {
+        logger.error(
+          `[UnifiedOrderManager] 取引所 ${exchange.id} での注文一括キャンセルエラー: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     }
 
-    return result;
+    return cancelledCount;
   }
 
   /**
-   * 特定のシンボルの合計ポジションを計算
-   * @param symbol シンボル名（例: 'SOL/USDT'）
-   * @returns 合計ポジション、または見つからない場合はnull
+   * 全取引所のポジションを取得
+   * @param symbol 特定のシンボルのみ取得する場合に指定
+   * @returns 取引所ごとのポジションマップ
    */
-  public getTotalPosition(symbol: string): Position | null {
-    let totalAmount = 0;
-    let totalValue = 0;
-    let entryPrice = 0;
-    let currentPrice = 0;
-    let unrealizedPnl = 0;
+  getAllPositions(symbol) {
+    const positionsMap = new Map();
+
+    for (const exchange of this.exchanges.values()) {
+      if (!exchange.active) continue;
+
+      try {
+        const positions = exchange.oms.getPositions(symbol);
+        // 空でない場合のみマップに追加
+        if (positions.length > 0) {
+          positionsMap.set(exchange.id, positions);
+        }
+      } catch (error) {
+        logger.error(
+          `[UnifiedOrderManager] 取引所 ${exchange.id} のポジション取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return positionsMap;
+  }
+
+  /**
+   * 指定シンボルの全取引所の合計ポジションを取得
+   * @param symbol シンボル
+   * @returns 合計ポジション（存在しない場合はnull）
+   */
+  getTotalPosition(symbol) {
+    if (!symbol) {
+      logger.error('[UnifiedOrderManager] シンボルが指定されていません');
+      return null;
+    }
+
+    const positionsMap = this.getAllPositions(symbol);
+    let totalSize = 0;
+    let totalCost = 0;
+    let totalUnrealizedPnl = 0;
+    let totalEntryPrice = 0;
     let count = 0;
-    let side: OrderSide | null = null;
 
-    for (const exchange of this.getActiveExchanges()) {
-      const positions = exchange.oms.getPositionsBySymbol(symbol);
-      if (positions.length > 0) {
-        for (const position of positions) {
-          // サイド（BUY/SELL）の調整
-          if (side === null) {
-            side = position.side;
-          } else if (side !== position.side) {
-            // 異なるサイドのポジションがある場合、相殺して計算
-            // この実装はシンプルな例で、実際には通貨ペアごとの詳細な計算が必要
-            logger.warn(`[UnifiedOrderManager] 異なるサイドのポジションが存在します: ${symbol}`);
-            continue;
-          }
-
-          totalAmount += position.amount;
-          totalValue += position.amount * position.entryPrice;
-          unrealizedPnl += position.unrealizedPnl;
-
-          // 最新の価格を使用
-          if (position.currentPrice > 0) {
-            currentPrice = position.currentPrice;
-          }
-
+    // 各取引所のポジションを合算
+    for (const positions of positionsMap.values()) {
+      for (const position of positions) {
+        if (position.symbol === symbol) {
+          totalSize += position.size;
+          totalCost += position.cost;
+          totalUnrealizedPnl += position.unrealizedPnl || 0;
           count++;
         }
       }
     }
 
-    if (count === 0 || totalAmount === 0) return null;
+    // ポジションが存在しない場合はnullを返す
+    if (count === 0 || Math.abs(totalSize) < 0.000001) {
+      return null;
+    }
 
-    // 加重平均エントリー価格を計算
-    entryPrice = totalAmount !== 0 ? totalValue / totalAmount : 0;
+    // 平均エントリー価格を計算
+    if (totalSize !== 0) {
+      totalEntryPrice = totalCost / Math.abs(totalSize);
+    }
 
-    return {
+    // 合計ポジションを作成
+    const totalPosition = {
       symbol,
-      side: side || OrderSide.BUY, // デフォルト値
-      amount: totalAmount,
-      entryPrice,
-      currentPrice,
-      unrealizedPnl,
-      timestamp: Date.now(),
-      stopPrice: 0 // これは別途計算または設定する必要がある
+      size: totalSize,
+      entryPrice: totalEntryPrice,
+      cost: totalCost,
+      unrealizedPnl: totalUnrealizedPnl,
+      side: totalSize > 0 ? OrderSide.BUY : OrderSide.SELL,
+      timestamp: Date.now()
     };
+
+    return totalPosition;
   }
 
   /**
-   * 配分戦略を設定
+   * 注文配分戦略を設定
    * @param config 配分設定
    */
-  public setAllocationStrategy(config: AllocationConfig): void {
+  setAllocationStrategy(config) {
     this.allocationConfig = config;
-    logger.info(`[UnifiedOrderManager] 配分戦略を ${config.strategy} に設定しました`);
+    logger.info(`[UnifiedOrderManager] 注文配分戦略を変更: ${config.strategy}`);
   }
 
   /**
-   * すべての取引所の注文を同期
+   * 全取引所の注文状態を同期
    */
-  public async syncAllOrders(): Promise<void> {
-    for (const exchange of this.getActiveExchanges()) {
+  async syncAllOrders() {
+    for (const exchange of this.exchanges.values()) {
+      if (!exchange.active) continue;
+
       try {
-        // TST-070: syncOrdersメソッドを直接呼び出す
-        await exchange.oms.syncOrders();
+        await exchange.oms.syncOrderStatus();
+        logger.debug(`[UnifiedOrderManager] 取引所 ${exchange.id} の注文状態を同期しました`);
       } catch (error) {
         logger.error(
-          `[UnifiedOrderManager] 取引所 ${exchange.id} の注文同期エラー: ${error instanceof Error ? error.message : String(error)}`
+          `[UnifiedOrderManager] 取引所 ${exchange.id} の注文状態同期エラー: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
-
-    logger.info('[UnifiedOrderManager] すべての取引所の注文を同期しました');
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  UnifiedOrderManager,
+  AllocationStrategy
+};

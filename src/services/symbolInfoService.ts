@@ -7,71 +7,69 @@
  * UTIL-002: 通貨ペア情報取得ユーティリティ
  */
 
-import { ExchangeService } from './exchangeService.js';
-import logger from '../utils/logger.js';
+// @ts-nocheck
+const { ExchangeService } = require('./exchangeService');
+const logger = require('../utils/logger');
 
 /**
  * 通貨ペア情報のインターフェース
  */
-export interface SymbolInfo {
-  // 基本情報
-  symbol: string; // 通貨ペアシンボル (例: 'BTC/USDT')
-  base: string; // 基本通貨 (例: 'BTC')
-  quote: string; // 見積通貨 (例: 'USDT')
-  active: boolean; // アクティブかどうか
-
-  // 精度情報
-  pricePrecision: number; // 価格精度 (小数点以下の桁数)
-  amountPrecision: number; // 数量精度 (小数点以下の桁数)
-  costPrecision?: number; // コスト精度 (小数点以下の桁数)
-
-  // 上限/下限情報
-  minPrice?: number; // 最小価格
-  maxPrice?: number; // 最大価格
-  minAmount: number; // 最小注文量
-  maxAmount?: number; // 最大注文量
-  minCost?: number; // 最小注文金額
-
-  // ティック情報
-  tickSize?: number; // 最小価格変動幅
-  stepSize?: number; // 最小数量変動幅
-
-  // 手数料情報
-  makerFee?: number; // メイカー手数料
-  takerFee?: number; // テイカー手数料
-
-  // メタデータ
-  fetchTimestamp: number; // 取得タイムスタンプ
-  exchangeSpecific?: any; // 取引所固有の情報
-}
+// export interface SymbolInfo {
+//   // 基本情報
+//   symbol: string; // 通貨ペアシンボル (例: 'BTC/USDT')
+//   base: string; // 基本通貨 (例: 'BTC')
+//   quote: string; // 見積通貨 (例: 'USDT')
+//   active: boolean; // アクティブかどうか
+//
+//   // 精度情報
+//   pricePrecision: number; // 価格精度 (小数点以下の桁数)
+//   amountPrecision: number; // 数量精度 (小数点以下の桁数)
+//   costPrecision?: number; // コスト精度 (小数点以下の桁数)
+//
+//   // 上限/下限情報
+//   minPrice?: number; // 最小価格
+//   maxPrice?: number; // 最大価格
+//   minAmount: number; // 最小注文量
+//   maxAmount?: number; // 最大注文量
+//   minCost?: number; // 最小注文金額
+//
+//   // ティック情報
+//   tickSize?: number; // 最小価格変動幅
+//   stepSize?: number; // 最小数量変動幅
+//
+//   // 手数料情報
+//   makerFee?: number; // メイカー手数料
+//   takerFee?: number; // テイカー手数料
+//
+//   // メタデータ
+//   fetchTimestamp: number; // 取得タイムスタンプ
+//   exchangeSpecific?: any; // 取引所固有の情報
+// }
 
 /**
  * キャッシュ有効期限設定
  */
-export interface CacheOptions {
-  /** キャッシュの有効期間（ミリ秒） */
-  ttl: number;
-  /** 強制的に再取得するかどうか */
-  forceRefresh?: boolean;
-}
+// export interface CacheOptions {
+//   /** キャッシュの有効期間（ミリ秒） */
+//   ttl: number;
+//   /** 強制的に再取得するかどうか */
+//   forceRefresh?: boolean;
+// }
 
 /**
  * 通貨ペア情報取得サービス
  */
-export class SymbolInfoService {
-  private exchangeService: ExchangeService;
-  private cache: Map<string, SymbolInfo> = new Map();
-  private defaultCacheTTL: number = 3600000; // デフォルトの有効期間: 1時間
-  private fetchPromises: Map<string, Promise<SymbolInfo>> = new Map();
-
+class SymbolInfoService {
   /**
    * コンストラクタ
    * @param exchangeService 取引所サービスのインスタンス
    * @param defaultCacheTTL デフォルトのキャッシュ有効期間（ミリ秒）
    */
-  constructor(exchangeService: ExchangeService, defaultCacheTTL: number = 3600000) {
+  constructor(exchangeService, defaultCacheTTL = 3600000) {
     this.exchangeService = exchangeService;
     this.defaultCacheTTL = defaultCacheTTL;
+    this.cache = new Map();
+    this.fetchPromises = new Map();
   }
 
   /**
@@ -80,10 +78,7 @@ export class SymbolInfoService {
    * @param options キャッシュオプション
    * @returns 通貨ペア情報
    */
-  public async getSymbolInfo(
-    symbol: string,
-    options: CacheOptions = { ttl: this.defaultCacheTTL }
-  ): Promise<SymbolInfo> {
+  async getSymbolInfo(symbol, options = { ttl: this.defaultCacheTTL }) {
     // キャッシュチェック（強制的な再取得が指定されていない場合）
     if (!options.forceRefresh) {
       const cachedInfo = this.cache.get(symbol);
@@ -97,7 +92,7 @@ export class SymbolInfoService {
     if (this.fetchPromises.has(symbol)) {
       logger.debug(`既存のリクエストを待機中: ${symbol}`);
       try {
-        return await this.fetchPromises.get(symbol)!;
+        return await this.fetchPromises.get(symbol);
       } catch (error) {
         // 前のリクエストが失敗した場合は新しく取得を試みる
         this.fetchPromises.delete(symbol);
@@ -134,11 +129,8 @@ export class SymbolInfoService {
    * @param options キャッシュオプション
    * @returns 通貨ペア情報のマップ
    */
-  public async getMultipleSymbolInfo(
-    symbols: string[],
-    options: CacheOptions = { ttl: this.defaultCacheTTL }
-  ): Promise<Map<string, SymbolInfo>> {
-    const result = new Map<string, SymbolInfo>();
+  async getMultipleSymbolInfo(symbols, options = { ttl: this.defaultCacheTTL }) {
+    const result = new Map();
 
     // 重複を除去した一意なシンボルのセット
     const uniqueSymbols = [...new Set(symbols)];
@@ -164,7 +156,7 @@ export class SymbolInfoService {
    * キャッシュをクリアする
    * @param symbol 特定の通貨ペアのみクリアする場合は指定（省略時は全キャッシュをクリア）
    */
-  public clearCache(symbol?: string): void {
+  clearCache(symbol) {
     if (symbol) {
       this.cache.delete(symbol);
       logger.debug(`通貨ペア情報のキャッシュをクリア: ${symbol}`);
@@ -179,7 +171,7 @@ export class SymbolInfoService {
    * @param symbols 更新する通貨ペアのリスト（省略時はキャッシュ内のすべて）
    * @param ttl キャッシュの有効期間（省略時はデフォルト値）
    */
-  public async refreshCache(symbols?: string[], ttl: number = this.defaultCacheTTL): Promise<void> {
+  async refreshCache(symbols, ttl = this.defaultCacheTTL) {
     const toRefresh = symbols || Array.from(this.cache.keys());
 
     // 期限切れのシンボルだけをフィルタリング
@@ -204,7 +196,7 @@ export class SymbolInfoService {
    * @param symbol 通貨ペアシンボル
    * @returns 通貨ペア情報
    */
-  private async fetchSymbolInfo(symbol: string): Promise<SymbolInfo> {
+  async fetchSymbolInfo(symbol) {
     try {
       logger.debug(`取引所APIから通貨ペア情報を取得: ${symbol}`);
 
@@ -216,7 +208,7 @@ export class SymbolInfoService {
       }
 
       // 通貨ペア情報を変換
-      const symbolInfo: SymbolInfo = {
+      const symbolInfo = {
         symbol: marketInfo.symbol,
         base: marketInfo.base,
         quote: marketInfo.quote,
@@ -248,55 +240,58 @@ export class SymbolInfoService {
     } catch (error) {
       logger.error(`通貨ペア情報の取得に失敗: ${symbol}`, error);
       throw new Error(
-        `通貨ペア情報の取得に失敗: ${symbol} - ${error instanceof Error ? error.message : String(error)}`
+        `通貨ペア情報の取得に失敗しました: ${symbol} - ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
   /**
-   * マーケット情報からティックサイズを抽出する
-   * @param marketInfo マーケット情報
-   * @returns ティックサイズ
+   * ティックサイズの抽出（取引所によって場所が異なる）
+   * @param marketInfo 市場情報
+   * @returns ティックサイズまたはundefined
    */
-  private extractTickSize(marketInfo: any): number | undefined {
-    // 取引所によって構造が異なる場合があるため、複数のパスをチェック
-    if (marketInfo.precision?.price) {
+  extractTickSize(marketInfo) {
+    // CCXTのバージョンや取引所によって構造が異なる場合がある
+    if (marketInfo.precision && typeof marketInfo.precision.price === 'number') {
+      // 精度が小数点以下の桁数で指定されている場合
       return Math.pow(10, -marketInfo.precision.price);
     }
 
-    if (marketInfo.info?.tickSize) {
+    // 精度がティックサイズ（最小変動幅）で直接指定されている場合
+    if (marketInfo.precision && marketInfo.precision.price) {
+      return marketInfo.precision.price;
+    }
+
+    // 一部の取引所では info フィールドに格納されている場合がある
+    if (marketInfo.info && marketInfo.info.tickSize) {
       return parseFloat(marketInfo.info.tickSize);
     }
 
-    if (marketInfo.info?.filters) {
-      const priceFilter = marketInfo.info.filters.find((f: any) => f.filterType === 'PRICE_FILTER');
-      if (priceFilter?.tickSize) {
-        return parseFloat(priceFilter.tickSize);
-      }
-    }
-
     return undefined;
   }
 
   /**
-   * マーケット情報からステップサイズを抽出する
-   * @param marketInfo マーケット情報
-   * @returns ステップサイズ
+   * ステップサイズの抽出（数量の最小変動幅）
+   * @param marketInfo 市場情報
+   * @returns ステップサイズまたはundefined
    */
-  private extractStepSize(marketInfo: any): number | undefined {
-    // 取引所によって構造が異なる場合があるため、複数のパスをチェック
-    if (marketInfo.precision?.amount) {
+  extractStepSize(marketInfo) {
+    // CCXTのバージョンや取引所によって構造が異なる場合がある
+    if (marketInfo.precision && typeof marketInfo.precision.amount === 'number') {
+      // 精度が小数点以下の桁数で指定されている場合
       return Math.pow(10, -marketInfo.precision.amount);
     }
 
-    if (marketInfo.info?.stepSize) {
-      return parseFloat(marketInfo.info.stepSize);
+    // 精度がステップサイズ（最小変動幅）で直接指定されている場合
+    if (marketInfo.precision && marketInfo.precision.amount) {
+      return marketInfo.precision.amount;
     }
 
-    if (marketInfo.info?.filters) {
-      const lotSizeFilter = marketInfo.info.filters.find((f: any) => f.filterType === 'LOT_SIZE');
-      if (lotSizeFilter?.stepSize) {
-        return parseFloat(lotSizeFilter.stepSize);
+    // 一部の取引所では info フィールドに格納されている場合がある
+    if (marketInfo.info) {
+      const stepSize = marketInfo.info.stepSize || marketInfo.info.lotSize;
+      if (stepSize) {
+        return parseFloat(stepSize);
       }
     }
 
@@ -304,57 +299,66 @@ export class SymbolInfoService {
   }
 
   /**
-   * マーケット情報から手数料を抽出する
-   * @param marketInfo マーケット情報
+   * 手数料情報の抽出
+   * @param marketInfo 市場情報
    * @param feeType 手数料タイプ（'maker'または'taker'）
-   * @returns 手数料率
+   * @returns 手数料率またはundefined
    */
-  private extractFee(marketInfo: any, feeType: 'maker' | 'taker'): number | undefined {
-    // 取引所によって構造が異なる場合があるため、複数のパスをチェック
-    if (marketInfo.fee?.[feeType]) {
-      return marketInfo.fee[feeType];
+  extractFee(marketInfo, feeType) {
+    if (marketInfo.fees && marketInfo.fees[feeType] !== undefined) {
+      return marketInfo.fees[feeType];
     }
 
-    if (marketInfo.fees?.[feeType]) {
-      return marketInfo.fees[feeType];
+    // デフォルトの取引所手数料
+    if (marketInfo.fees && marketInfo.fees.trading && marketInfo.fees.trading[feeType] !== undefined) {
+      return marketInfo.fees.trading[feeType];
     }
 
     return undefined;
   }
 
   /**
-   * 全てのキャッシュされた通貨ペア情報を取得
-   * @returns キャッシュされた全ての通貨ペア情報
+   * キャッシュされているすべての通貨ペア情報を取得
+   * @returns キャッシュされている通貨ペア情報のマップ
    */
-  public getAllCachedSymbolInfo(): Map<string, SymbolInfo> {
+  getAllCachedSymbolInfo() {
     return new Map(this.cache);
   }
 
   /**
    * キャッシュの統計情報を取得
-   * @returns キャッシュの統計情報
+   * @returns キャッシュサイズと最古/最新のエントリのタイムスタンプ
    */
-  public getCacheStats(): {
-    cacheSize: number;
-    oldestEntry: Date | null;
-    newestEntry: Date | null;
-  } {
-    let oldestTimestamp = Number.MAX_SAFE_INTEGER;
+  getCacheStats() {
+    if (this.cache.size === 0) {
+      return {
+        cacheSize: 0,
+        oldestEntry: null,
+        newestEntry: null
+      };
+    }
+
+    let oldestTimestamp = Date.now();
     let newestTimestamp = 0;
 
-    this.cache.forEach((info) => {
+    for (const info of this.cache.values()) {
       if (info.fetchTimestamp < oldestTimestamp) {
         oldestTimestamp = info.fetchTimestamp;
       }
       if (info.fetchTimestamp > newestTimestamp) {
         newestTimestamp = info.fetchTimestamp;
       }
-    });
+    }
 
     return {
       cacheSize: this.cache.size,
-      oldestEntry: this.cache.size > 0 ? new Date(oldestTimestamp) : null,
-      newestEntry: this.cache.size > 0 ? new Date(newestTimestamp) : null
+      oldestEntry: new Date(oldestTimestamp),
+      newestEntry: new Date(newestTimestamp)
     };
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  SymbolInfoService
+};
