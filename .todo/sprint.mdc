@@ -86,8 +86,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : index.tsを完全にCommonJS形式に変換。メインサーバーが起動可能に。まだ各モジュール(TradingEngine等)のCommonJS変換が必要。
+      - 📊 Progress   : 90%
+      - ✎ Notes      : index.tsを完全にCommonJS形式に変換。メインサーバーが起動可能に。core/types.ts、core/index.ts、core/backtestRunner.ts、utils/logger.ts、utils/importMetaHelper.ts、utils/memoryMonitor.ts、core/tradingEngine.tsをCommonJS形式に変換完了。残りはサービスモジュールなど一部のファイル。最終的なテストとビルド検証を行う必要があります。
 
 3.3 [ ] INF-033: Docker実行環境のCommonJS対応
       - 📅 Due        : 2026-07-06
@@ -285,6 +285,12 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
+
+
+
 
 
 
