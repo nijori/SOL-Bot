@@ -1,9 +1,14 @@
 /**
  * Parabolic SAR (Stop and Reverse) 指標の実装
  * トレンドの転換点を検出し、ストップロスの設定・更新に使用
+ * INF-032-6: インジケーターディレクトリのCommonJS変換
  */
-import { Candle } from '../core/types.js';
-import { parameterService } from '../config/parameterService.js';
+// @ts-nocheck
+
+// CommonJS形式でのモジュールインポート
+const Types = require('../core/types');
+const { Candle } = Types;
+const { parameterService } = require('../config/parameterService');
 
 // Parabolic SARのデフォルトパラメータ
 const DEFAULT_ACCELERATION_FACTOR_START = 0.02;
@@ -11,55 +16,62 @@ const DEFAULT_ACCELERATION_FACTOR_INCREMENT = 0.02;
 const DEFAULT_ACCELERATION_FACTOR_MAX = 0.2;
 
 // YAML設定からパラメータを取得
-const ACCELERATION_FACTOR_START = parameterService.get<number>(
+const ACCELERATION_FACTOR_START = parameterService.get(
   'parabolicSAR.accelerationFactorStart',
   DEFAULT_ACCELERATION_FACTOR_START
 );
-const ACCELERATION_FACTOR_INCREMENT = parameterService.get<number>(
+const ACCELERATION_FACTOR_INCREMENT = parameterService.get(
   'parabolicSAR.accelerationFactorIncrement',
   DEFAULT_ACCELERATION_FACTOR_INCREMENT
 );
-const ACCELERATION_FACTOR_MAX = parameterService.get<number>(
+const ACCELERATION_FACTOR_MAX = parameterService.get(
   'parabolicSAR.accelerationFactorMax',
   DEFAULT_ACCELERATION_FACTOR_MAX
 );
 
 /**
  * Parabolic SAR指標の計算結果
+ * @typedef {Object} ParabolicSARResult
+ * @property {number} sar 現在のSAR値
+ * @property {boolean} isUptrend 上昇トレンドの場合true、下降トレンドの場合false
+ * @property {number} accelerationFactor 現在の加速係数
+ * @property {number} extremePoint 極値（上昇トレンドの場合は最高値、下降トレンドの場合は最安値）
  */
-export interface ParabolicSARResult {
-  sar: number; // 現在のSAR値
-  isUptrend: boolean; // 上昇トレンドの場合true、下降トレンドの場合false
-  accelerationFactor: number; // 現在の加速係数
-  extremePoint: number; // 極値（上昇トレンドの場合は最高値、下降トレンドの場合は最安値）
-}
 
 /**
  * インクリメンタルParabolicSAR計算クラス
  * 全履歴の再計算をせず、増分計算でSARを更新
  */
-export class IncrementalParabolicSAR {
-  private isUptrend: boolean = true; // 上昇トレンドフラグ
-  private sar: number = 0; // 現在のSAR値
-  private extremePoint: number = 0; // 極値
-  private accelerationFactor: number = ACCELERATION_FACTOR_START; // 加速係数
-  private prevSAR: number = 0; // 前回のSAR値（反転時に使用）
-  private prevHigh: number = 0; // 前回の高値
-  private prevLow: number = 0; // 前回の安値
-  private isInitialized: boolean = false; // 初期化フラグ
-
+class IncrementalParabolicSAR {
+  /**
+   * @param {number} accelerationFactorStart 開始時の加速係数
+   * @param {number} accelerationFactorIncrement 加速係数の増分
+   * @param {number} accelerationFactorMax 加速係数の最大値
+   */
   constructor(
-    private accelerationFactorStart: number = ACCELERATION_FACTOR_START,
-    private accelerationFactorIncrement: number = ACCELERATION_FACTOR_INCREMENT,
-    private accelerationFactorMax: number = ACCELERATION_FACTOR_MAX
-  ) {}
+    accelerationFactorStart = ACCELERATION_FACTOR_START,
+    accelerationFactorIncrement = ACCELERATION_FACTOR_INCREMENT,
+    accelerationFactorMax = ACCELERATION_FACTOR_MAX
+  ) {
+    this.accelerationFactorStart = accelerationFactorStart;
+    this.accelerationFactorIncrement = accelerationFactorIncrement;
+    this.accelerationFactorMax = accelerationFactorMax;
+    this.isUptrend = true; // 上昇トレンドフラグ
+    this.sar = 0; // 現在のSAR値
+    this.extremePoint = 0; // 極値
+    this.accelerationFactor = ACCELERATION_FACTOR_START; // 加速係数
+    this.prevSAR = 0; // 前回のSAR値（反転時に使用）
+    this.prevHigh = 0; // 前回の高値
+    this.prevLow = 0; // 前回の安値
+    this.isInitialized = false; // 初期化フラグ
+  }
 
   /**
    * SARの初期化
-   * @param candles ローソク足データ（最低2本以上必要）
-   * @returns 初期化されたSAR値
+   * @param {Candle[]} candles ローソク足データ（最低2本以上必要）
+   * @returns {ParabolicSARResult} 初期化されたSAR値
    */
-  initialize(candles: Candle[]): ParabolicSARResult {
+  initialize(candles) {
     if (!candles || candles.length < 2) {
       throw new Error('Parabolic SAR計算には最低2本のローソク足が必要です');
     }
@@ -105,10 +117,10 @@ export class IncrementalParabolicSAR {
 
   /**
    * 新しいローソク足でSARを更新
-   * @param candle 新しいローソク足
-   * @returns 更新されたSARの結果
+   * @param {Candle} candle 新しいローソク足
+   * @returns {ParabolicSARResult} 更新されたSARの結果
    */
-  update(candle: Candle): ParabolicSARResult {
+  update(candle) {
     if (!this.isInitialized) {
       throw new Error(
         'Parabolic SARが初期化されていません。初期化は最低2本のローソク足が必要です。'
@@ -200,21 +212,21 @@ export class IncrementalParabolicSAR {
 }
 
 // グローバルインスタンスを保持（インクリメンタル計算用）
-let globalParabolicSARInstance: IncrementalParabolicSAR | null = null;
+let globalParabolicSARInstance = null;
 
 /**
  * インクリメンタル計算用インスタンスをリセット
  */
-export function resetParabolicSARCalculator(): void {
+function resetParabolicSARCalculator() {
   globalParabolicSARInstance = null;
 }
 
 /**
  * Parabolic SARを計算する関数
- * @param candles ローソク足データ
- * @returns Parabolic SARの結果
+ * @param {Candle[]} candles ローソク足データ
+ * @returns {ParabolicSARResult} Parabolic SARの結果
  */
-export function calculateParabolicSAR(candles: Candle[]): ParabolicSARResult {
+function calculateParabolicSAR(candles) {
   if (!candles || candles.length < 2) {
     throw new Error('Parabolic SAR計算には最低2本のローソク足が必要です');
   }
@@ -228,3 +240,10 @@ export function calculateParabolicSAR(candles: Candle[]): ParabolicSARResult {
   // 最新のローソク足でSARを更新
   return globalParabolicSARInstance.update(candles[candles.length - 1]);
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  IncrementalParabolicSAR,
+  resetParabolicSARCalculator,
+  calculateParabolicSAR
+};
