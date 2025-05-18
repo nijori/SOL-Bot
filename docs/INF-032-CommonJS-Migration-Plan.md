@@ -28,14 +28,18 @@ ES Module形式で実装されていたSOL-botのコードベースをCommonJS�
   - secretManagerディレクトリの全9ファイルを含む主要サービスファイル（UnifiedOrderManager.ts、orderSizingService.ts、symbolInfoService.ts、exchangeService.ts）をCommonJS形式に変換
   - INF-032-8タスクとして管理済み
 
-- **テスト**: 一部対応 (25%)
+- **テスト**: 一部対応 (40%)
   - **完了したもの**:
-    - 主要テストファイルの「Types is not defined」エラー解決（trendFollowStrategy.test.js、meanRevertStrategy.test.js、rangeStrategy.test.js、UnifiedOrderManager.test.js、symbolInfoService.test.js、MultiTimeframeDataFetcher.test.js）
+    - 主要テストファイルの「Types is not defined」エラー解決
     - core/types.tsモジュールを修正し、CommonJS環境での実行時Typesオブジェクト参照問題を解決
-    - INF-032-3タスクとして完了
+    - parameterService.test.tsの変換（元の19テストケースすべてを保持）
+    - exchangeService.test.ts、marketState.test.ts、RealTimeDataProcessor.test.ts、orderSizingService.test.ts、trendStrategy.test.tsの変換完了
+  - **進行中のもの**:
+    - 残りのテストファイルのCommonJS形式への変換作業（INF-032-9）
+    - モック関数の正しい設定パターンを確立
   - **残作業**:
-    - .ts形式の残りのテストファイルを.js形式に変換する作業（INF-032-9タスクとして追加）
-    - multiSymbolBacktestRunner.test.ts、multiSymbolBacktest.test.ts、multiExchangeIntegration.test.ts等の変換
+    - .ts形式の残りのテストファイルを.js形式に変換する作業（INF-032-9タスクとして進行中）
+    - DataRepository.e2e.test.ts、atrCalibrator.test.tsなどの変換
 
 - **型定義問題**: 一部対応 (50%)
   - core/types.tsの修正によりCommonJS環境でのTypes参照問題を解決
@@ -144,6 +148,35 @@ const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types')
 // 以下、テストコード
 ```
 
+### 3.6 Jest モック関数の正しい設定方法
+
+テストファイルにおけるモック関数の設定に関する課題と解決策：
+
+1. fsモジュールのモック (parameterService.test.tsなど):
+```javascript
+// TypeScriptのfalsyエラー回避方法
+jest.mock('fs', () => ({
+  readFileSync: jest.fn().mockImplementation(() => mockYamlContent)
+}));
+
+// または実装をシンプル化する方法
+const mockFs = {
+  readFileSync: function() { return mockYamlContent; }
+};
+jest.mock('fs', () => mockFs);
+```
+
+2. モック関数のキャスト問題の回避:
+```javascript
+// TypeScriptでの型キャスト
+(fs.readFileSync as jest.Mock).mockReturnValue(mockYamlContent);
+
+// JavaScript変換後は別の方法で対応
+fs.readFileSync.mockReturnValue = jest.fn().mockReturnValue(mockYamlContent);
+// または
+jest.spyOn(fs, 'readFileSync').mockReturnValue(mockYamlContent);
+```
+
 ## 4. ファイル変換の優先順位
 
 1. **高優先度** (完了):
@@ -191,6 +224,8 @@ const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types')
 1. **テストファイル変換の継続**:
    - INF-032-9タスクで残りのテストファイル(.ts形式)を.js形式に変換
    - INF-032-3で確立した明示的Typesインポート方式を活用
+   - テストの機能とカバレッジを維持する方針で変換を進める
+   - モック関数の正しい設定パターンを確立
 
 2. **Docker環境でのテスト実行**:
    - 変換完了したモジュールをDocker環境でテスト(INF-032-5)

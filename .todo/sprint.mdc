@@ -155,8 +155,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-032-3
       - 🏷️  Label      : refactor
       - 🩺 Health     : 🚑
-      - 📊 Progress   : 40%
-      - ✎ Notes      : 残りのテストファイル（.ts形式）をCommonJS形式（.js）に変換中。変換済み：multiSymbolBacktestRunner.test.ts、multiSymbolBacktest.test.ts、multiExchangeIntegration.test.ts。残りの対象ファイル：parameterService.test.ts、exchangeService.test.ts、RealTimeDataProcessor.test.ts、DataRepository.e2e.test.ts、atrCalibrator.test.ts、killSwitchChecker.test.ts、todoValidator.test.ts、testScenarioFactory.test.ts、marketDataFactory.test.ts、mathUtils.test.ts。変換手順：1)ファイル拡張子を.jsに変更、2)import文をrequire文に変換、3)export文をmodule.exports形式に変更、4)const { Types, OrderType, OrderSide } = require('../../core/types')形式でTypesを明示的にインポート、5)モック設定を適宜調整。INF-032-3で実装したパターンを参考に、各ファイルのTypes参照問題を解決する。
+      - 📊 Progress   : 50%
+      - ✎ Notes      : 残りのテストファイル（.ts形式）をCommonJS形式（.js）に変換中。変換済み：multiSymbolBacktestRunner.test.ts、multiSymbolBacktest.test.ts、multiExchangeIntegration.test.ts、parameterService.test.ts。parameterService.test.tsの変換では、元の19のテストケースすべてを保持したまま変換が完了し、テストが正常に動作することを確認。Jestのモック関数（特にfs.readFileSync.mockReturnValue）の問題は、適切な書き方で解決。環境変数プレースホルダー置換などの複雑なテストもすべて正常に動作。残りのファイル：exchangeService.test.ts、RealTimeDataProcessor.test.ts、DataRepository.e2e.test.ts、atrCalibrator.test.ts、killSwitchChecker.test.ts、todoValidator.test.ts、testScenarioFactory.test.ts、marketDataFactory.test.ts、mathUtils.test.ts。
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
@@ -364,6 +364,9 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
 
 
 
