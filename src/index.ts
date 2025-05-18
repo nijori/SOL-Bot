@@ -1,70 +1,89 @@
+/**
+ * SOL-Bot メインエントリーポイント
+ * INF-032: CommonJS形式への変換
+ * 
+ * @fileoverview このファイルはアプリケーションのメインエントリーポイントです
+ * @author SOL-Bot Team
+ */
+
 // REF-031対応: グローバル型拡張
 // TypeScriptの型定義
-import { Express, Request, Response } from 'express';
-import { Exchange } from 'ccxt';
+// import { Express, Request, Response } from 'express';
+// import { Exchange } from 'ccxt';
 
 // CommonJSモジュールであることを明示
-export {};
+// export {};
 
-// グローバル型定義
-declare global {
-  namespace NodeJS {
-    interface Global {
-      __ESM_ENVIRONMENT: boolean;
-    }
-  }
-}
+// グローバル型定義 - TypeScriptのみに影響するためコメントとして保持
+/**
+ * TypeScript用の型定義 (CommonJS環境で利用するためコメントとして残し参照用に)
+ * 
+ * interface Express {}
+ * interface Request {}
+ * interface Response {}
+ * interface Exchange {}
+ * 
+ * declare global {
+ *   namespace NodeJS {
+ *     interface Global {
+ *       __ESM_ENVIRONMENT: boolean;
+ *     }
+ *   }
+ * }
+ */
 
 // CommonJS環境設定
 (global as any).__ESM_ENVIRONMENT = false;
 
 // 依存関係のインポート (CommonJS形式)
 require('dotenv/config');
-const express = require('express');
-const cron = require('node-cron');
-const ccxt = require('ccxt');
-const { TradingEngine } = require('./core/tradingEngine');
-const { OrderManagementSystem } = require('./core/orderManagementSystem');
-const { OperationMode, OPERATION_MODE } = require('./config/parameters');
-const logger = require('./utils/logger').default;
-const { Candle } = require('./core/types');
-const { ExchangeService } = require('./services/exchangeService');
-const { parameterService } = require('./config/parameterService');
-const metricsService = require('./utils/metrics').default;
-const { CliParser } = require('./utils/cliParser');
-const { BacktestRunner } = require('./core/backtestRunner');
-const { checkAndExecuteKillSwitch } = require('./utils/killSwitchChecker');
+var express = require('express');
+var cron = require('node-cron');
+var ccxt = require('ccxt');
+var { TradingEngine } = require('./core/tradingEngine');
+var { OrderManagementSystem } = require('./core/orderManagementSystem');
+var { OperationMode, OPERATION_MODE } = require('./config/parameters');
+var logger = require('./utils/logger').default;
+var { Candle } = require('./core/types');
+var { ExchangeService } = require('./services/exchangeService');
+var { parameterService } = require('./config/parameterService');
+var metricsService = require('./utils/metrics').default;
+var { CliParser } = require('./utils/cliParser');
+var { BacktestRunner } = require('./core/backtestRunner');
+var { checkAndExecuteKillSwitch } = require('./utils/killSwitchChecker');
 
-// インターフェース定義
-interface Order {
-  symbol: string;
-  type: string;
-  side: string;
-  amount: number;
-  price?: number;
-}
+/**
+ * インターフェース定義 (TypeScript型定義用コメントとして保持)
+ * 
+ * interface Order {
+ *   symbol: string;
+ *   type: string;
+ *   side: string;
+ *   amount: number;
+ *   price?: number;
+ * }
+ * 
+ * type EngineStatus = {
+ *   balance: number;
+ *   position: number;
+ *   unrealizedPnL: number;
+ *   [key: string]: any;
+ * };
+ */
 
 // 設定
-const PORT = process.env.PORT || 3000;
-const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
-const DEFAULT_TIMEFRAME = process.env.TIMEFRAME || '5m';
-const INITIAL_BALANCE = parseFloat(process.env.INITIAL_BALANCE || '10000');
-
-// 型定義
-type EngineStatus = {
-  balance: number;
-  position: number;
-  unrealizedPnL: number;
-  [key: string]: any;
-};
+var PORT = process.env.PORT || 3000;
+var DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
+var DEFAULT_TIMEFRAME = process.env.TIMEFRAME || '5m';
+var INITIAL_BALANCE = parseFloat(process.env.INITIAL_BALANCE || '10000');
 
 // CLIモードのチェック
-const isCliMode = process.argv.length > 2;
+var isCliMode = process.argv.length > 2;
 
 // CLIモードの場合はCLIを実行
 if (isCliMode) {
   // CommonJSスタイルの動的ロード
-  const cli = require('./scripts/cli');
+  var cli = require('./scripts/cli');
   logger.info('CLIモードで実行しています');
   process.exit(0);
 }
@@ -74,7 +93,8 @@ logger.info(`サーバーモードで実行しています（CLI引数なし）`
 logger.info(`動作モード: ${OPERATION_MODE}`);
 
 // 取引所の初期化
-let exchange: Exchange;
+/** @type {any} */
+var exchange;
 try {
   exchange = new ccxt.binance({
     apiKey: process.env.EXCHANGE_API_KEY,
@@ -88,17 +108,23 @@ try {
 }
 
 // OrderManagementSystemのインスタンスを作成
-const oms = new OrderManagementSystem();
+var oms = new OrderManagementSystem();
 
 // マルチシンボル対応：複数のトレーディングエンジンを管理
-const tradingEngines = new Map<string, any>();
+/** @type {Map<string, any>} */
+var tradingEngines = new Map();
 
 // デフォルトシンボルのトレーディングエンジンを初期化
-function initializeTradingEngine(symbol: string): any {
+/**
+ * トレーディングエンジンを初期化する関数
+ * @param {string} symbol トレーディングペア
+ * @returns {any} 初期化されたエンジンインスタンス
+ */
+function initializeTradingEngine(symbol) {
   // シンボル固有のパラメータを取得
-  const symbolParams = parameterService.getParametersForSymbol(symbol);
+  var symbolParams = parameterService.getParametersForSymbol(symbol);
 
-  const engine = new TradingEngine({
+  var engine = new TradingEngine({
     symbol,
     initialBalance: INITIAL_BALANCE,
     oms
@@ -113,13 +139,14 @@ function initializeTradingEngine(symbol: string): any {
 tradingEngines.set(DEFAULT_SYMBOL, initializeTradingEngine(DEFAULT_SYMBOL));
 
 // Expressアプリの設定
-const app = express();
+var app = express();
 app.use(express.json());
 
 // ステータスエンドポイント
-app.get('/api/status', (req: Request, res: Response) => {
+app.get('/api/status', (req, res) => {
   // すべてのエンジンのステータスを取得
-  const engineStatuses: Record<string, any> = {};
+  /** @type {Record<string, any>} */
+  var engineStatuses = {};
 
   tradingEngines.forEach((engine, symbol) => {
     engineStatuses[symbol] = engine.getStatus();
@@ -133,15 +160,15 @@ app.get('/api/status', (req: Request, res: Response) => {
 });
 
 // シンボル一覧エンドポイント
-app.get('/api/symbols', (req: Request, res: Response) => {
-  const symbols = Array.from(tradingEngines.keys());
+app.get('/api/symbols', (req, res) => {
+  var symbols = Array.from(tradingEngines.keys());
   res.json({ symbols });
 });
 
 // 特定シンボルの詳細エンドポイント
-app.get('/api/symbol/:symbol', (req: Request, res: Response) => {
-  const symbol = req.params.symbol;
-  const engine = tradingEngines.get(symbol);
+app.get('/api/symbol/:symbol', (req, res) => {
+  var symbol = req.params.symbol;
+  var engine = tradingEngines.get(symbol);
 
   if (!engine) {
     return res.status(404).json({ error: `シンボル ${symbol} が見つかりません` });
@@ -154,10 +181,10 @@ app.get('/api/symbol/:symbol', (req: Request, res: Response) => {
 });
 
 // 手動注文エンドポイント
-app.post('/api/order', async (req: Request, res: Response) => {
+app.post('/api/order', async (req, res) => {
   try {
     if (OPERATION_MODE === OperationMode.LIVE) {
-      const order = req.body as Order;
+      var order = req.body;
       // 実際の取引所で注文を実行するロジックをここに実装
       // 本番環境では追加の認証と検証が必要
       res.json({ success: true, message: '注文を送信しました', order });
@@ -172,20 +199,22 @@ app.post('/api/order', async (req: Request, res: Response) => {
 
 /**
  * 市場データを取得する関数
- * @param symbol 取引ペア
- * @param timeframe タイムフレーム
+ * @param {string} symbol 取引ペア
+ * @param {string} timeframe タイムフレーム
+ * @returns {Promise<Array>} ローソク足データの配列
  */
-async function fetchMarketData(symbol: string, timeframe: string): Promise<any[]> {
+async function fetchMarketData(symbol, timeframe) {
   try {
     if (OPERATION_MODE === OperationMode.SIMULATION) {
       // シミュレーションモードではダミーデータを生成
-      const now = Date.now();
-      const candles: any[] = [];
+      var now = Date.now();
+      /** @type {Array<any>} */
+      var candles = [];
 
       for (let i = 100; i >= 0; i--) {
-        const timestamp = now - i * 60000; // 1分ごと
-        const basePrice = 100 + Math.sin(i / 10) * 10; // 基本的な価格の変動
-        const noise = Math.random() * 2 - 1; // ランダムなノイズ
+        var timestamp = now - i * 60000; // 1分ごと
+        var basePrice = 100 + Math.sin(i / 10) * 10; // 基本的な価格の変動
+        var noise = Math.random() * 2 - 1; // ランダムなノイズ
 
         candles.push({
           timestamp,
@@ -200,9 +229,9 @@ async function fetchMarketData(symbol: string, timeframe: string): Promise<any[]
       return candles;
     } else {
       // 実際の取引所からデータを取得
-      const ohlcv = await exchange.fetchOHLCV(symbol, timeframe);
+      var ohlcv = await exchange.fetchOHLCV(symbol, timeframe);
 
-      return ohlcv.map((candle: any) => ({
+      return ohlcv.map((candle) => ({
         timestamp: candle[0],
         open: candle[1],
         high: candle[2],
@@ -219,8 +248,10 @@ async function fetchMarketData(symbol: string, timeframe: string): Promise<any[]
 
 /**
  * 注文を実行する関数
+ * @param {Array} orders 注文の配列
+ * @returns {Promise<void>}
  */
-async function executeOrders(orders: any[]): Promise<void> {
+async function executeOrders(orders) {
   if (orders.length === 0) return;
 
   logger.info(`${orders.length}件の注文を実行します`);
@@ -229,7 +260,7 @@ async function executeOrders(orders: any[]): Promise<void> {
     try {
       if (OPERATION_MODE === OperationMode.LIVE) {
         // 実際の取引所で注文を実行
-        const params = {};
+        var params = {};
         await exchange.createOrder(
           order.symbol,
           order.type.toLowerCase(),
@@ -254,22 +285,23 @@ async function executeOrders(orders: any[]): Promise<void> {
 
 /**
  * メインの取引ロジックを実行する関数
+ * @returns {Promise<void>}
  */
-async function runTradingLogic(): Promise<void> {
+async function runTradingLogic() {
   try {
     // 各シンボルに対して処理を実行
     for (const [symbol, engine] of tradingEngines.entries()) {
       logger.info(`${symbol}の取引ロジックを実行中...`);
 
       // 市場データを取得
-      const candles = await fetchMarketData(symbol, DEFAULT_TIMEFRAME);
+      var candles = await fetchMarketData(symbol, DEFAULT_TIMEFRAME);
       if (candles.length === 0) {
         logger.warn(`${symbol}の市場データが取得できませんでした`);
         continue;
       }
 
       // トレーディングエンジンにデータを供給
-      const newOrders = engine.processCandles(candles);
+      var newOrders = engine.processCandles(candles);
 
       // 新しい注文があれば実行
       if (newOrders.length > 0) {
@@ -277,7 +309,7 @@ async function runTradingLogic(): Promise<void> {
       }
 
       // エンジンの状態を報告
-      const status = engine.getStatus();
+      var status = engine.getStatus();
       logger.info(
         `${symbol} 状態: 残高=${status.balance.toFixed(2)}USDT, ポジション=${
           status.position
@@ -294,8 +326,9 @@ async function runTradingLogic(): Promise<void> {
 
 /**
  * メイン関数
+ * @returns {Promise<void>}
  */
-async function main(): Promise<void> {
+async function main() {
   logger.info('SOL-Bot 起動中...');
 
   // 緊急停止フラグのチェック (INF-004対応)
@@ -319,7 +352,7 @@ async function main(): Promise<void> {
   });
 
   // クリーンアップ処理の登録
-  const cleanupTasks = () => {
+  var cleanupTasks = () => {
     logger.info('アプリケーションを終了中...');
     // 必要なクリーンアップ処理をここに追加
     // 例: DB接続を閉じる、一時ファイルを削除するなど
