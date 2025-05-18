@@ -1,0 +1,148 @@
+/**
+ * このファイルはtypes.tsの実装参考例です。
+ * 実際の修正に活用してください。
+ */
+
+// タイムスタンプの型ガード関数
+/**
+ * タイムスタンプが数値型かどうかをチェックする
+ * @param {number|string} timestamp チェック対象のタイムスタンプ
+ * @returns {boolean} 数値型ならtrue
+ */
+function isNumericTimestamp(timestamp) {
+  return typeof timestamp === 'number';
+}
+
+/**
+ * ISO文字列タイムスタンプをミリ秒数値に変換する
+ * @param {number|string} timestamp 変換対象のタイムスタンプ
+ * @returns {number} ミリ秒単位のUNIXタイムスタンプ
+ */
+function normalizeTimestamp(timestamp) {
+  if (isNumericTimestamp(timestamp)) {
+    return timestamp;
+  }
+  // ISO文字列からDateオブジェクトを生成し、ミリ秒タイムスタンプに変換
+  return new Date(timestamp).getTime();
+}
+
+// 市場環境の種類を表す定数オブジェクト
+const MarketEnvironment = Object.freeze({
+  UPTREND: 'uptrend',
+  DOWNTREND: 'downtrend',
+  STRONG_UPTREND: 'strong_uptrend',
+  STRONG_DOWNTREND: 'strong_downtrend',
+  WEAK_UPTREND: 'weak_uptrend',
+  WEAK_DOWNTREND: 'weak_downtrend',
+  RANGE: 'range',
+  UNKNOWN: 'unknown'
+});
+
+// 取引戦略の種類を表す定数オブジェクト
+const StrategyType = Object.freeze({
+  TREND_FOLLOWING: 'trend_following',
+  RANGE_TRADING: 'range_trading',
+  MEAN_REVERT: 'mean_revert',
+  EMERGENCY: 'emergency',
+  DONCHIAN_BREAKOUT: 'donchian_breakout'
+});
+
+// 注文のタイプを表す定数オブジェクト
+const OrderType = Object.freeze({
+  MARKET: 'market',
+  LIMIT: 'limit',
+  STOP: 'stop',
+  STOP_LIMIT: 'stop_limit',
+  STOP_MARKET: 'stop_market'
+});
+
+// 注文の方向を表す定数オブジェクト
+const OrderSide = Object.freeze({
+  BUY: 'buy',
+  SELL: 'sell'
+});
+
+// 注文のステータスを表す定数オブジェクト
+const OrderStatus = Object.freeze({
+  OPEN: 'open', // システム内で作成された注文（取引所送信前）
+  PLACED: 'placed', // 取引所に送信され受け付けられた注文
+  FILLED: 'filled', // 約定済みの注文
+  CANCELED: 'canceled', // キャンセルされた注文
+  REJECTED: 'rejected' // 拒否された注文
+});
+
+// アカウント状態を表す定数オブジェクト
+const AccountState = Object.freeze({
+  NORMAL: 'NORMAL',
+  MARGIN_CALL: 'MARGIN_CALL',
+  LIQUIDATION: 'LIQUIDATION',
+  RESTRICTED: 'RESTRICTED'
+});
+
+// タイムフレームを表す定数オブジェクト
+const TimeFrame = Object.freeze({
+  ONE_MIN: '1m',
+  FIVE_MIN: '5m',
+  FIFTEEN_MIN: '15m',
+  THIRTY_MIN: '30m',
+  ONE_HOUR: '1h',
+  FOUR_HOUR: '4h',
+  ONE_DAY: '1d',
+  ONE_WEEK: '1w'
+});
+
+// システムモードを表す定数オブジェクト
+const SystemMode = Object.freeze({
+  NORMAL: 'normal',
+  RISK_REDUCTION: 'risk_reduction',
+  STANDBY: 'standby',
+  EMERGENCY: 'emergency',
+  KILL_SWITCH: 'kill_switch'
+});
+
+// リスクレベルを表す定数オブジェクト
+const RiskLevel = Object.freeze({
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high'
+});
+
+/**
+ * 以下が重要な変更点：
+ * CommonJS環境でTypesを使えるように、実行時オブジェクトとしてTypesを定義
+ */
+const Types = {
+  // 各種定数をTypesオブジェクトのプロパティとして追加
+  MarketEnvironment,
+  StrategyType,
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  AccountState,
+  TimeFrame,
+  SystemMode,
+  RiskLevel
+};
+
+// TypeScriptの型定義をエクスポート
+// 実行時にはモジュールとして使用できるよう、関連する型情報も含める
+const TypesExport = {
+  // 型定義を参照可能にするための名前空間 - ここでCommonJS用のTypesを含める
+  Types,
+  // 関数
+  isNumericTimestamp,
+  normalizeTimestamp,
+  // 定数も直接エクスポート - 両方のアクセス方法をサポート
+  MarketEnvironment,
+  StrategyType,
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  SystemMode,
+  RiskLevel,
+  AccountState,
+  TimeFrame
+};
+
+// CommonJS形式でエクスポート
+module.exports = TypesExport; 
