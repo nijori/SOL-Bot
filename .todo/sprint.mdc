@@ -146,8 +146,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-032-2, INF-032-6, INF-032-7, INF-032-8
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 30%
-      - ✎ Notes      : テストファイル(__tests__/)をCommonJS形式に変換完了。UnifiedOrderManager.test.jsをCJS形式に変換し、テストパターンを確立。変換手順：1)@ts-nocheck追加、2)importをrequire()に変更、3)型アノテーション削除、4)ファイル拡張子.jsに変更、5)モックの修正。残りのテストファイルも同じパターンで順次変換予定。
+      - 📊 Progress   : 60%
+      - ✎ Notes      : 多数のテストファイルをCommonJS形式に変換。変換パターン：1)@ts-nocheck追加、2)importをrequire()に変換、3)型アノテーション削除、4)ファイル拡張子を.jsに変更、5)モック設定の調整。metrics.test.js、multiSymbolTradingEngine.test.js、marketState.test.js、trendStrategy.test.jsの変換が完了。他の既存CommonJSテスト（atrUtils.test.js、orderUtils.test.js）も正常に動作。一部のテストファイルではモックが有効に機能しない問題を調査中。今後は依存関係の複雑なテストファイルを優先的に変換予定。
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
@@ -355,6 +355,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
