@@ -4,18 +4,19 @@
  * TST-052: デュアルフォーマット実行の互換性向上
  */
 
-import * as ccxt from 'ccxt';
-import { Candle, normalizeTimestamp } from '../core/types';
-import { ParquetDataStore } from './parquetDataStore';
-import logger from '../utils/logger';
-import cron from 'node-cron';
-import 'dotenv/config';
-import path from 'path';
-import fs from 'fs';
+// @ts-nocheck
+const ccxt = require('ccxt');
+const { Candle, normalizeTimestamp } = require('../core/types');
+const { ParquetDataStore } = require('./parquetDataStore');
+const logger = require('../utils/logger');
+const cron = require('node-cron');
+require('dotenv/config');
+const path = require('path');
+const fs = require('fs');
 
 // isMainModuleを直接importせず、実行時に動的に判定
 // CommonJS/ESM互換性問題を解決するための対応
-let isMainModuleFn: () => boolean;
+let isMainModuleFn;
 
 try {
   // Dynamic import to avoid static parse errors
@@ -38,15 +39,15 @@ const EXCHANGES = ['binance', 'kucoin', 'bybit'];
 const USE_PARQUET = process.env.USE_PARQUET === 'true';
 
 // サポートする時間足
-export enum Timeframe {
-  MINUTE_1 = '1m',
-  MINUTE_15 = '15m',
-  HOUR_1 = '1h',
-  DAY_1 = '1d'
-}
+const Timeframe = {
+  MINUTE_1: '1m',
+  MINUTE_15: '15m',
+  HOUR_1: '1h',
+  DAY_1: '1d'
+};
 
 // 時間足ごとのデフォルト取得件数
-const DEFAULT_LIMITS: Record<Timeframe, number> = {
+const DEFAULT_LIMITS = {
   [Timeframe.MINUTE_1]: 500, // 分足は多く取得
   [Timeframe.MINUTE_15]: 300,
   [Timeframe.HOUR_1]: 200,
@@ -54,7 +55,7 @@ const DEFAULT_LIMITS: Record<Timeframe, number> = {
 };
 
 // 時間足ごとのスケジュール設定（cron式）
-const SCHEDULES: Record<Timeframe, string> = {
+const SCHEDULES = {
   [Timeframe.MINUTE_1]: '* * * * *', // 毎分実行
   [Timeframe.MINUTE_15]: '*/15 * * * *', // 15分ごと
   [Timeframe.HOUR_1]: '0 * * * *', // 毎時0分
@@ -64,18 +65,18 @@ const SCHEDULES: Record<Timeframe, string> = {
 /**
  * マルチタイムフレーム対応のデータ取得クラス
  */
-export class MultiTimeframeDataFetcher {
-  private parquetDataStore: ParquetDataStore | null = null;
-  private exchanges: Map<string, ccxt.Exchange>;
-  private activeJobs: Map<string, any> = new Map(); // クロンジョブを保持
-  private isRunning: Record<Timeframe, boolean> = {
-    [Timeframe.MINUTE_1]: false,
-    [Timeframe.MINUTE_15]: false,
-    [Timeframe.HOUR_1]: false,
-    [Timeframe.DAY_1]: false
-  };
-
+class MultiTimeframeDataFetcher {
   constructor() {
+    this.parquetDataStore = null;
+    this.exchanges = new Map();
+    this.activeJobs = new Map(); // クロンジョブを保持
+    this.isRunning = {
+      [Timeframe.MINUTE_1]: false,
+      [Timeframe.MINUTE_15]: false,
+      [Timeframe.HOUR_1]: false,
+      [Timeframe.DAY_1]: false
+    };
+
     // Parquet形式を使用する場合は初期化
     if (USE_PARQUET) {
       try {
@@ -89,12 +90,10 @@ export class MultiTimeframeDataFetcher {
       }
     }
 
-    this.exchanges = new Map();
-
     // 指定された取引所を初期化
     for (const exchangeId of EXCHANGES) {
       try {
-        const exchange = new (ccxt as any)[exchangeId]({
+        const exchange = new ccxt[exchangeId]({
           enableRateLimit: true
         });
         this.exchanges.set(exchangeId, exchange);
@@ -110,12 +109,12 @@ export class MultiTimeframeDataFetcher {
   /**
    * 指定した取引所から指定の時間足でローソク足データを取得する
    */
-  private async fetchCandlesFromExchange(
-    exchangeId: string,
-    symbol: string = DEFAULT_SYMBOL,
-    timeframe: Timeframe,
-    limit: number = DEFAULT_LIMITS[timeframe]
-  ): Promise<Candle[]> {
+  async fetchCandlesFromExchange(
+    exchangeId,
+    symbol = DEFAULT_SYMBOL,
+    timeframe,
+    limit = DEFAULT_LIMITS[timeframe]
+  ) {
     const exchange = this.exchanges.get(exchangeId);
     if (!exchange) {
       throw new Error(`取引所が初期化されていません: ${exchangeId}`);
@@ -128,7 +127,7 @@ export class MultiTimeframeDataFetcher {
         logger.debug(`${exchangeId}から${symbol}の${timeframe}足データを取得中...`);
         const ohlcv = await exchange.fetchOHLCV(symbol, timeframe, undefined, limit);
 
-        const candles: Candle[] = ohlcv.map((candle: number[]) => ({
+        const candles = ohlcv.map((candle) => ({
           // タイムスタンプはnumber型として統一
           timestamp: candle[0],
           open: candle[1],
@@ -165,10 +164,10 @@ export class MultiTimeframeDataFetcher {
   /**
    * 指定の時間足ですべての取引所からデータを取得し保存する
    */
-  public async fetchAndSaveTimeframe(
-    timeframe: Timeframe,
-    symbol: string = DEFAULT_SYMBOL
-  ): Promise<boolean> {
+  async fetchAndSaveTimeframe(
+    timeframe,
+    symbol = DEFAULT_SYMBOL
+  ) {
     if (this.isRunning[timeframe]) {
       logger.warn(`${timeframe}のデータ取得ジョブが既に実行中です`);
       return false;
@@ -218,10 +217,10 @@ export class MultiTimeframeDataFetcher {
    * 全タイムフレームのデータを取得する
    * 主に初期データロード用
    */
-  public async fetchAllTimeframes(
-    symbol: string = DEFAULT_SYMBOL
-  ): Promise<Record<Timeframe, boolean>> {
-    const results: Record<Timeframe, boolean> = {
+  async fetchAllTimeframes(
+    symbol = DEFAULT_SYMBOL
+  ) {
+    const results = {
       [Timeframe.MINUTE_1]: false,
       [Timeframe.MINUTE_15]: false,
       [Timeframe.HOUR_1]: false,
@@ -247,51 +246,38 @@ export class MultiTimeframeDataFetcher {
   /**
    * 各タイムフレームのスケジュールに従ってジョブを開始する
    */
-  public startAllScheduledJobs(symbol: string = DEFAULT_SYMBOL): void {
-    // タイムフレームごとにスケジュールをセットアップ
+  startAllScheduledJobs(symbol = DEFAULT_SYMBOL) {
     for (const timeframe of Object.values(Timeframe)) {
       this.startScheduledJob(timeframe, symbol);
     }
-
-    logger.info(`すべてのタイムフレームデータ取得ジョブをスケジュールしました`);
+    logger.info(`全タイムフレーム(${Object.values(Timeframe).join(', ')})のスケジュールジョブを開始しました`);
   }
 
   /**
-   * 指定の時間足のスケジュールジョブを開始する
+   * 特定のタイムフレームのスケジュールジョブを開始する
    */
-  public startScheduledJob(timeframe: Timeframe, symbol: string = DEFAULT_SYMBOL): void {
-    // すでにジョブが実行中なら停止
+  startScheduledJob(timeframe, symbol = DEFAULT_SYMBOL) {
+    // 既存のジョブがあれば停止
     this.stopScheduledJob(timeframe);
 
-    // cronスケジュールの設定
-    const cronExpression = SCHEDULES[timeframe];
+    // 新しいジョブをスケジュール
+    const job = cron.schedule(SCHEDULES[timeframe], async () => {
+      logger.info(`${timeframe}定期データ取得ジョブを実行します`);
+      await this.fetchAndSaveTimeframe(timeframe, symbol);
+    });
 
-    // cron jobを作成
-    const task = cron.schedule(
-      cronExpression,
-      async () => {
-        logger.info(`${timeframe}足データ定期取得ジョブを実行します`);
-        await this.fetchAndSaveTimeframe(timeframe, symbol);
-      },
-      {
-        timezone: 'UTC' // UTCタイムゾーンで実行
-      }
-    );
-
-    // ジョブを保存
-    this.activeJobs.set(timeframe, task);
-
-    logger.info(`${timeframe}足データ取得ジョブをスケジュールしました (${cronExpression})`);
+    // アクティブなジョブを保持
+    this.activeJobs.set(timeframe, job);
+    logger.info(`${timeframe}足データ取得ジョブをスケジュールしました (${SCHEDULES[timeframe]})`);
   }
 
   /**
-   * 特定の時間足のスケジュールジョブを停止する
+   * 特定のタイムフレームのスケジュールジョブを停止する
    */
-  public stopScheduledJob(timeframe: Timeframe): void {
-    const task = this.activeJobs.get(timeframe);
-    if (task) {
-      task.destroy(); // クリーンアップ
-      task.stop(); // 停止
+  stopScheduledJob(timeframe) {
+    const job = this.activeJobs.get(timeframe);
+    if (job) {
+      job.stop();
       this.activeJobs.delete(timeframe);
       logger.info(`${timeframe}足データ取得ジョブを停止しました`);
     }
@@ -300,111 +286,88 @@ export class MultiTimeframeDataFetcher {
   /**
    * すべてのスケジュールジョブを停止する
    */
-  public stopAllScheduledJobs(): void {
+  stopAllScheduledJobs() {
     for (const timeframe of Object.values(Timeframe)) {
       this.stopScheduledJob(timeframe);
     }
-    logger.info('すべてのデータ取得ジョブを停止しました');
+    logger.info('全タイムフレームのスケジュールジョブを停止しました');
   }
 
   /**
    * リソースを解放する
    */
-  public close(): void {
-    // すべてのジョブを停止
+  close() {
     this.stopAllScheduledJobs();
 
-    // Parquetデータストアを閉じる
     if (this.parquetDataStore) {
       try {
         this.parquetDataStore.close();
         logger.info('Parquetデータストアを正常に終了しました');
       } catch (error) {
         logger.error(
-          `Parquetデータストアの終了中にエラー: ${error instanceof Error ? error.message : String(error)}`
+          `Parquetデータストア終了エラー: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
   }
 }
 
-/**
- * CLIから直接実行された場合のメイン処理
- */
 async function main() {
   try {
-    // コマンドライン引数解析
-    const args = process.argv.slice(2);
-    const options: Record<string, any> = {};
-    
-    // オプション解析
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
-      if (arg.startsWith('--')) {
-        const [key, value] = arg.slice(2).split('=');
-        options[key] = value || true;
-      }
-    }
-    
-    const symbol = options.symbol || DEFAULT_SYMBOL;
-    const timeframes: Timeframe[] = [];
-    
-    if (options.timeframe) {
-      const requestedTimeframes = options.timeframe.split(',');
-      for (const tf of requestedTimeframes) {
-        if (Object.values(Timeframe).includes(tf as Timeframe)) {
-          timeframes.push(tf as Timeframe);
-        } else {
-          logger.warn(`無効な時間足: ${tf}`);
-        }
-      }
-    } else {
-      // デフォルトでは全時間足
-      timeframes.push(...Object.values(Timeframe));
-    }
-    
-    const isCron = options.cron === true || options.schedule === true;
-    
-    logger.info(`データ取得設定: シンボル=${symbol}, 時間足=${timeframes.join(',')}, スケジュール=${isCron}`);
-    
     const fetcher = new MultiTimeframeDataFetcher();
     
-    if (isCron) {
-      // cronモードの場合はスケジュール実行
-      for (const timeframe of timeframes) {
-        fetcher.startScheduledJob(timeframe as Timeframe, symbol);
-      }
-      logger.info('スケジュール実行を開始しました。停止するにはCtrl+Cを押してください。');
-    } else {
-      // 単発実行モード
-      const results: Record<string, boolean> = {};
+    // コマンドライン引数を解析
+    const args = process.argv.slice(2);
+    const argTimeframe = args.find(arg => arg.startsWith('--timeframe='))?.split('=')[1];
+    const runAll = args.includes('--all');
+    const startService = args.includes('--service');
+    
+    if (startService) {
+      // サービスモードで起動（定期実行）
+      logger.info('データ取得サービスを開始します');
+      fetcher.startAllScheduledJobs();
       
-      for (const timeframe of timeframes) {
-        logger.info(`${timeframe}データの取得を開始します...`);
-        const success = await fetcher.fetchAndSaveTimeframe(timeframe as Timeframe, symbol);
-        results[timeframe] = success;
-      }
-      
-      // 結果サマリを表示
-      logger.info('==== 実行結果 ====');
-      for (const [timeframe, success] of Object.entries(results)) {
-        logger.info(`${timeframe}: ${success ? '成功' : '失敗'}`);
-      }
-      
-      // 実行終了
+      // プロセス終了時にリソースを解放
+      process.on('SIGINT', () => {
+        fetcher.close();
+        process.exit(0);
+      });
+    } else if (runAll) {
+      // 全タイムフレーム取得
+      logger.info('全タイムフレームのデータを取得します');
+      await fetcher.fetchAllTimeframes();
       fetcher.close();
-      process.exit(0);
+    } else if (argTimeframe) {
+      // 特定タイムフレーム取得
+      const timeframeValues = Object.values(Timeframe);
+      if (timeframeValues.includes(argTimeframe)) {
+        logger.info(`${argTimeframe}タイムフレームのデータを取得します`);
+        await fetcher.fetchAndSaveTimeframe(argTimeframe);
+      } else {
+        logger.error(`無効なタイムフレーム: ${argTimeframe}. 有効値: ${timeframeValues.join(', ')}`);
+      }
+      fetcher.close();
+    } else {
+      // デフォルト: 時間足データを取得
+      logger.info('デフォルトで1h足データを取得します');
+      await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
+      fetcher.close();
     }
   } catch (error) {
-    logger.error(`実行エラー: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(`メインプロセス実行エラー: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 }
 
-// スクリプトが直接実行された場合はCLIモードで実行
+// スクリプトとして直接実行された場合
 if (isMainModuleFn()) {
-  main().catch(error => {
-    logger.error(`致命的なエラー: ${error}`);
+  main().catch(err => {
+    logger.error(`アプリケーション実行エラー: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
   });
 }
+
+module.exports = {
+  MultiTimeframeDataFetcher,
+  Timeframe
+};

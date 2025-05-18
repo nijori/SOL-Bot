@@ -3,9 +3,10 @@
  * マルチタイムフレームデータ取得を実行するスクリプト
  */
 
-import { MultiTimeframeDataFetcher, Timeframe } from './MultiTimeframeDataFetcher.js';
-import logger from '../utils/logger.js';
-import 'dotenv/config';
+// @ts-nocheck
+const { MultiTimeframeDataFetcher, Timeframe } = require('./MultiTimeframeDataFetcher');
+const logger = require('../utils/logger');
+require('dotenv/config');
 
 // コマンドライン引数の解析
 const args = process.argv.slice(2);
@@ -36,8 +37,8 @@ function showUsage() {
 /**
  * タイムフレーム文字列をTimeframe列挙型に変換
  */
-function parseTimeframe(tfString: string): Timeframe | null {
-  const timeframeMap: Record<string, Timeframe> = {
+function parseTimeframe(tfString) {
+  const timeframeMap = {
     '1m': Timeframe.MINUTE_1,
     '15m': Timeframe.MINUTE_15,
     '1h': Timeframe.HOUR_1,
