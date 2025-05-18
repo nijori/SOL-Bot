@@ -59,7 +59,7 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:copy-mjs": "node scripts/copy-mjs-files.cjs",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
-    "dev": "node --loader ts-node/esm src/index.ts",
+    "dev": "node --import ts-node/register --experimental-specifier-resolution=node src/index.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
