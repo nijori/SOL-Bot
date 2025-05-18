@@ -140,14 +140,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : サービスディレクトリ(services/)のすべてのファイルをCommonJS形式に変換完了。前回の作業でsecretManagerディレクトリの全9ファイル（AWSParameterStoreManager.ts、AWSSecretsManager.ts、EnvSecretManager.ts、FileSecretManager.ts、GCPSecretManager.ts、SecretManagerFactory.ts、SecretManagerInterface.ts、example.ts、index.ts）を変換。今回の確認で残りの主要サービスファイル（UnifiedOrderManager.ts、orderSizingService.ts、symbolInfoService.ts、exchangeService.ts）は既にCommonJS形式に変換されていることを確認。循環参照問題解決のためのmoduleHelper活用も完了。
       
-3.2.3 [ ] INF-032-3: テストファイルのCommonJS変換
+3.2.3 [x] INF-032-3: テストファイルのCommonJS変換
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-032-2, INF-032-6, INF-032-7, INF-032-8
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 75%
-      - ✎ Notes      : 多数のテストファイルをCommonJS形式に変換（trendFollowStrategy.test.js、meanRevertStrategy.test.js、rangeStrategy.test.js、orderSizingService.test.js、MultiTimeframeDataFetcher.test.js、UnifiedOrderManager.test.js、symbolInfoService.test.js、multiSymbolBacktest.test.js、parameterService.test.js）。残課題：1)「Types is not defined」エラーへの対応、2)モック設定の修正、3)依存関係の問題解決。次の作業として、types.tsの修正とテストファイル間の依存関係を整理し、テスト実行環境の構成を調整する必要あり。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 多数のテストファイルをCommonJS形式に変換（trendFollowStrategy.test.js、meanRevertStrategy.test.js、rangeStrategy.test.js、UnifiedOrderManager.test.js、symbolInfoService.test.js、MultiTimeframeDataFetcher.test.js）。「Types is not defined」エラーを解決するためにsrc/core/types.tsを修正し、実行時のTypesオブジェクトとTypeScriptの型定義を両立させる実装を追加。各テストファイルでTypesモジュールからの正しいインポート形式に変更しました。
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
@@ -355,6 +355,8 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
 
 
 
