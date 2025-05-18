@@ -3,10 +3,12 @@
  * 
  * CommonJSとESMの両方の環境で動作する互換性レイヤーを提供します。
  * tsconfig.build.jsonのmodule=commonjsでもimport.metaに依存するコードを動作させます。
+ * 
+ * INF-032: CommonJS形式への変換
  */
 
-import * as path from 'path';
-import * as url from 'url';
+const path = require('path');
+const url = require('url');
 
 // グローバル変数で実行環境を判定
 const isEsmEnvironment = (): boolean => {
@@ -34,7 +36,7 @@ const isEsmEnvironment = (): boolean => {
  * CommonJS環境ではファイルパスから構築、ESM環境ではimport.meta.urlから取得
  * @returns {string} 現在のスクリプトのURL
  */
-export function getCurrentFileUrl(): string {
+function getCurrentFileUrl(): string {
   // ESM環境では直接import.meta.urlを返す 
   if (isEsmEnvironment()) {
     try {
@@ -76,7 +78,7 @@ export function getCurrentFileUrl(): string {
  * node scriptname.js として実行されているか、importされているかを区別
  * @returns {boolean} 直接実行の場合はtrue、importされている場合はfalse
  */
-export function isMainModule(): boolean {
+function isMainModule(): boolean {
   // CommonJS環境での検出
   try {
     if (typeof require !== 'undefined' && typeof module !== 'undefined') {
@@ -112,7 +114,7 @@ export function isMainModule(): boolean {
  * @param {string} relativePath 現在のファイルからの相対パス
  * @returns {string} 絶対パス
  */
-export function resolvePathFromCurrent(relativePath: string): string {
+function resolvePathFromCurrent(relativePath: string): string {
   const currentUrl = getCurrentFileUrl();
   const currentDir = path.dirname(url.fileURLToPath(currentUrl));
   return path.resolve(currentDir, relativePath);
@@ -123,7 +125,7 @@ export function resolvePathFromCurrent(relativePath: string): string {
  * @param {string} fileUrl ファイルURL
  * @returns {string} 絶対パス
  */
-export function fileUrlToPath(fileUrl: string): string {
+function fileUrlToPath(fileUrl: string): string {
   return url.fileURLToPath(fileUrl);
 }
 
@@ -132,6 +134,25 @@ export function fileUrlToPath(fileUrl: string): string {
  * @param {string} filePath ファイルパス
  * @returns {string} ファイルURL
  */
-export function pathToFileUrl(filePath: string): string {
+function pathToFileUrl(filePath: string): string {
   return url.pathToFileURL(filePath).toString();
-} 
+}
+
+// CommonJS形式でエクスポート
+module.exports = {
+  isEsmEnvironment,
+  getCurrentFileUrl,
+  isMainModule,
+  resolvePathFromCurrent,
+  fileUrlToPath,
+  pathToFileUrl
+};
+
+// TypeScriptの型定義のためのエクスポート
+export {
+  getCurrentFileUrl,
+  isMainModule,
+  resolvePathFromCurrent,
+  fileUrlToPath,
+  pathToFileUrl
+}; 

@@ -2,14 +2,16 @@
  * coreモジュールのTypeScriptエントリポイント
  * 
  * TST-051: テスト環境のビルド出力問題解決の一部
+ * INF-032: CommonJS形式への変換
  */
 
-import { TradingEngine } from './tradingEngine';
-import { BacktestRunner } from './backtestRunner';
-import { OrderManagementSystem } from './orderManagementSystem';
-import * as Types from './types';
+// CommonJSスタイルのrequire
+const { TradingEngine } = require('./tradingEngine');
+const { BacktestRunner } = require('./backtestRunner');
+const { OrderManagementSystem } = require('./orderManagementSystem');
+const Types = require('./types');
 
-// メインエクスポート
+// 型定義のためのエクスポート（TypeScript用）
 export {
   TradingEngine,
   BacktestRunner,
@@ -17,8 +19,8 @@ export {
   Types
 };
 
-// デフォルトエクスポート
-export default {
+// CommonJSスタイルのエクスポート
+module.exports = {
   TradingEngine,
   BacktestRunner,
   OrderManagementSystem,

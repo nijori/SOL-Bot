@@ -2,21 +2,22 @@
  * バックテスト実行クラス
  * 指定されたパラメータと期間でバックテストを実行し、結果を返す
  * TST-052: デュアルフォーマット実行の互換性向上
+ * INF-032: CommonJS形式への変換
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import { ParquetDataStore } from '../data/parquetDataStore';
-import { TradingEngine } from './tradingEngine';
-import { applyParameters } from '../config/parameterService';
-import { BACKTEST_PARAMETERS } from '../config/parameters';
-import { Candle, normalizeTimestamp } from './types';
-import logger from '../utils/logger';
-import { OrderManagementSystem } from './orderManagementSystem';
-import { MemoryMonitor } from '../utils/memoryMonitor';
+const fs = require('fs');
+const path = require('path');
+const { ParquetDataStore } = require('../data/parquetDataStore');
+const { TradingEngine } = require('./tradingEngine');
+const { applyParameters } = require('../config/parameterService');
+const { BACKTEST_PARAMETERS } = require('../config/parameters');
+const { Candle, normalizeTimestamp } = require('./types');
+const logger = require('../utils/logger').default;
+const { OrderManagementSystem } = require('./orderManagementSystem');
+const { MemoryMonitor } = require('../utils/memoryMonitor');
 
 // isMainModuleを直接importせず、実行時に動的に判定
 // CommonJS/ESM互換性問題を解決するための対応
-let isMainModuleFn: () => boolean;
+let isMainModuleFn;
 
 try {
   // Dynamic import to avoid static parse errors
@@ -35,7 +36,7 @@ try {
 /**
  * バックテスト設定インターフェース
  */
-export interface BacktestConfig {
+interface BacktestConfig {
   symbol: string;
   timeframeHours: number;
   startDate: string;
@@ -54,7 +55,7 @@ export interface BacktestConfig {
 /**
  * バックテスト結果インターフェース
  */
-export interface BacktestResult {
+interface BacktestResult {
   metrics: {
     totalReturn: number;
     sharpeRatio: number;
@@ -78,10 +79,10 @@ export interface BacktestResult {
   parameters: Record<string, any>;
 }
 
-export class BacktestRunner {
+class BacktestRunner {
   private config: BacktestConfig;
-  private dataStore: ParquetDataStore;
-  private memoryMonitor: MemoryMonitor | null = null;
+  private dataStore: any;
+  private memoryMonitor: any | null = null;
 
   constructor(config: BacktestConfig) {
     // デフォルト値の設定
@@ -218,7 +219,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
           if (completedTrades.length > lastTradeIndex) {
             const newTrades = completedTrades.slice(lastTradeIndex);
             // ユニークIDの付与と重複チェック
-            const uniqueNewTrades = newTrades.filter((trade) => {
+            const uniqueNewTrades = newTrades.filter((trade: any) => {
               // 各トレードにユニークIDを付与（なければ）
               if (!trade.id) {
                 trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
@@ -296,7 +297,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       if (finalCompletedTrades.length > lastTradeIndex) {
         const newTrades = finalCompletedTrades.slice(lastTradeIndex);
         // ユニークIDの付与と重複チェック
-        const uniqueNewTrades = newTrades.filter((trade) => {
+        const uniqueNewTrades = newTrades.filter((trade: any) => {
           // 各トレードにユニークIDを付与（なければ）
           if (!trade.id) {
             trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
@@ -352,7 +353,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       const processingTimeMS = Date.now() - startTime;
 
       // 完了したバックテストの結果を取得して評価
-      const metrics = this.calculateMetrics(allTrades, equityHistory);
+      const metrics: any = this.calculateMetrics(allTrades, equityHistory);
 
       // メモリ使用量と処理時間をメトリクスに追加
       metrics.peakMemoryUsageMB = peakMemoryUsageMB;
@@ -405,7 +406,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
   /**
    * 期間内のデータを読み込む
    */
-  private async loadData(): Promise<Candle[]> {
+  private async loadData(): Promise<any[]> {
     try {
       // Parquetストアから読み込み
       const dataStore = new ParquetDataStore();
@@ -449,7 +450,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
         }
 
         const now = new Date().getTime();
-        const sampleData: Candle[] = [];
+        const sampleData: any[] = [];
 
         // 技術指標計算のために十分なデータを生成（最低でも60本）
         const candleCount = 120; // より多くのデータポイントを生成
@@ -564,29 +565,26 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
   /**
    * 取引結果から各種指標を計算
    */
-  private calculateMetrics(
-    trades: any[],
-    equityHistory: { timestamp: string; equity: number }[]
-  ): BacktestResult['metrics'] {
+  private calculateMetrics(trades: any[], equityHistory: any[]): any {
     // 勝率計算
-    const winningTrades = trades.filter((t) => t.pnl > 0);
-    const losingTrades = trades.filter((t) => t.pnl < 0);
+    const winningTrades = trades.filter((t: any) => t.pnl > 0);
+    const losingTrades = trades.filter((t: any) => t.pnl < 0);
     const winRate = trades.length > 0 ? winningTrades.length / trades.length : 0;
 
     // 平均損益
     const averageWin =
       winningTrades.length > 0
-        ? winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length
+        ? winningTrades.reduce((sum: number, t: any) => sum + t.pnl, 0) / winningTrades.length
         : 0;
 
     const averageLoss =
       losingTrades.length > 0
-        ? Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length)
+        ? Math.abs(losingTrades.reduce((sum: number, t: any) => sum + t.pnl, 0) / losingTrades.length)
         : 0;
 
     // 総利益と総損失
-    const totalProfit = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
-    const totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
+    const totalProfit = winningTrades.reduce((sum: number, t: any) => sum + t.pnl, 0);
+    const totalLoss = Math.abs(losingTrades.reduce((sum: number, t: any) => sum + t.pnl, 0));
 
     // プロフィットファクター
     const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
@@ -904,7 +902,7 @@ function parseCommandLineArgs(): { [key: string]: string | boolean } {
 /**
  * main関数とCLI関連機能
  */
-async function main() {
+async function main(): Promise<void> {
   try {
     // コマンドライン引数を解析
     const args = parseCommandLineArgs();
@@ -1011,3 +1009,13 @@ if (isMainModuleFn()) {
     process.exit(1);
   });
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  BacktestRunner,
+  parseCommandLineArgs,
+  main
+};
+
+// 型定義のためのTypeScriptエクスポート
+export type { BacktestRunner, BacktestConfig, BacktestResult };

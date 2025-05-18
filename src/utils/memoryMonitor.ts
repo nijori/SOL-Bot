@@ -1,13 +1,14 @@
 /**
  * メモリ使用量モニタリングユーティリティ
  * バックテストなどの大量のデータを扱う処理でメモリ使用状況を追跡
+ * INF-032: CommonJS形式への変換
  */
-import logger from './logger.js';
+const logger = require('./logger').default;
 
 /**
  * メモリ使用情報
  */
-export interface MemoryUsageInfo {
+interface MemoryUsageInfo {
   heapTotal: number; // 合計ヒープサイズ (MB)
   heapUsed: number; // 使用中ヒープサイズ (MB)
   external: number; // 外部メモリ (MB)
@@ -19,7 +20,7 @@ export interface MemoryUsageInfo {
 /**
  * メモリピーク情報
  */
-export interface MemoryPeaks {
+interface MemoryPeaks {
   heapTotal: number; // ピーク時の合計ヒープサイズ (bytes)
   heapUsed: number; // ピーク時の使用中ヒープサイズ (bytes)
   external: number; // ピーク時の外部メモリ (bytes)
@@ -30,7 +31,7 @@ export interface MemoryPeaks {
 /**
  * メモリ使用量モニタリングクラス
  */
-export class MemoryMonitor {
+class MemoryMonitor {
   private snapshots: MemoryUsageInfo[] = [];
   private maxHeapUsed: number = 0;
   private enabled: boolean = true;
@@ -226,7 +227,7 @@ RSS増加量: ${(endSnapshot.rss - startSnapshot.rss).toFixed(2)}MB
  * 現在のヒープ使用率を取得
  * @returns ヒープ使用率 (0-1の範囲)
  */
-export function getHeapUsageRatio(): number {
+function getHeapUsageRatio(): number {
   const memUsage = process.memoryUsage();
   return memUsage.heapUsed / memUsage.heapTotal;
 }
@@ -235,7 +236,7 @@ export function getHeapUsageRatio(): number {
  * メモリ問題のディープ分析
  * リーク疑いのある場合に呼び出す詳細分析
  */
-export function analyzeMemoryIssues(): void {
+function analyzeMemoryIssues(): void {
   // Node.jsはV8エンジンを使用しているため、V8のヒープスナップショット機能が利用可能
   try {
     // v8-profilerモジュールが必要（事前にインストールしておく必要あり）
@@ -250,29 +251,30 @@ heapTotal: ${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB
 heapUsed: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB
 external: ${(memUsage.external / 1024 / 1024).toFixed(2)}MB
 rss: ${(memUsage.rss / 1024 / 1024).toFixed(2)}MB
-arrayBuffers: ${((memUsage as any).arrayBuffers / 1024 / 1024).toFixed(2)}MB
-使用率: ${((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(1)}%
     `);
 
-    // ガベージコレクションを強制実行
+    // ガベージコレクションの強制実行と比較
     if (global.gc) {
-      logger.info('ガベージコレクションを強制実行...');
+      logger.info('ガベージコレクションを強制実行します...');
+      const beforeGC = process.memoryUsage().heapUsed;
       global.gc();
-
-      // GC後のメモリ使用状況
-      const afterGcMemUsage = process.memoryUsage();
-      logger.info(`
-GC後のメモリ状況:
-heapTotal: ${(afterGcMemUsage.heapTotal / 1024 / 1024).toFixed(2)}MB
-heapUsed: ${(afterGcMemUsage.heapUsed / 1024 / 1024).toFixed(2)}MB
-回収量: ${((memUsage.heapUsed - afterGcMemUsage.heapUsed) / 1024 / 1024).toFixed(2)}MB
-      `);
-    } else {
-      logger.warn(
-        'ガベージコレクションを強制実行できません。--expose-gc オプションでNode.jsを起動してください。'
-      );
+      const afterGC = process.memoryUsage().heapUsed;
+      logger.info(`GC実行前: ${(beforeGC / 1024 / 1024).toFixed(2)}MB, GC実行後: ${(afterGC / 1024 / 1024).toFixed(2)}MB, 解放: ${((beforeGC - afterGC) / 1024 / 1024).toFixed(2)}MB`);
     }
-  } catch (error) {
-    logger.error(`メモリ分析エラー: ${error instanceof Error ? error.message : String(error)}`);
+
+    // ここにV8ヒープスナップショット取得コードを追加（別モジュールが必要）
+  } catch (e) {
+    logger.error('メモリ分析中にエラーが発生しました:', e);
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  MemoryMonitor,
+  getHeapUsageRatio,
+  analyzeMemoryIssues
+};
+
+// TypeScriptの型定義用エクスポート
+export type { MemoryUsageInfo, MemoryPeaks };
+export { MemoryMonitor, getHeapUsageRatio, analyzeMemoryIssues };

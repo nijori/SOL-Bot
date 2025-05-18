@@ -201,3 +201,17 @@ export interface Signal {
   stopLoss?: number;
   takeProfit?: number;
 }
+
+// CommonJS形式でエクスポート
+// 関数と列挙型（実行時に存在する値）のみをエクスポート
+module.exports = {
+  isNumericTimestamp,
+  normalizeTimestamp,
+  MarketEnvironment,
+  StrategyType,
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  SystemMode,
+  RiskLevel
+};

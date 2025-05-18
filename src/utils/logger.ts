@@ -1,6 +1,6 @@
-import * as winston from 'winston';
+const winston = require('winston');
 // 循環参照を避けるため、parametersからの直接インポートを削除
-// import { MONITORING_PARAMETERS } from '../config/parameters.js';
+// const { MONITORING_PARAMETERS } = require('../config/parameters');
 
 // 環境変数からログレベルを取得するか、デフォルト値を使用
 const logLevel = process.env.LOG_LEVEL || 'info';
@@ -52,4 +52,8 @@ if (process.env.NODE_ENV !== 'production') {
   );
 }
 
+// CommonJS形式でエクスポート
+module.exports = { default: logger };
+
+// TypeScriptでのエクスポート
 export default logger;
