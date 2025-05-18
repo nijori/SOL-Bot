@@ -60,7 +60,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - 📊 Progress   : 75%
-      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。実装完了、テスト環境での検証待ち。
+      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。実装完了、テスト環境での検証待ち。詳細な実装内容とテスト手順はREADME_INF_025.mdに記載しました。
 
 3. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
@@ -132,7 +132,16 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : ファイルパス指定があれば `.env` より優先してロード。ユニットテストを追加。
 
-4. [ ] CICD-006: Blue/Green デプロイトグル追加
+4. [ ] INF-030: ESモジュール設定の修正
+      - 📅 Due        : 2026-07-07
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-025
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 0%
+      - ✎ Notes      : package.jsonに"type": "module"を追加し、ESM/CJSの互換性問題を解決。Docker環境のHealthcheckテストが失敗している原因。ビルドスクリプトと依存関係の修正が必要。
+
+5. [ ] CICD-006: Blue/Green デプロイトグル追加
       - 📅 Due        : 2026-07-08
       - 👤 Owner      : @assistant
       - 🏷️  Label      : cicd
@@ -140,7 +149,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : `deploy-prod.yml` で `HOST=$(BLUE_OR_GREEN)` を切り替えるジョブを追加。タグ `prod-blue`, `prod-green` を使い交互再起動。
 
-5. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
+6. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
       - 📅 Due        : 2026-07-09
       - 👤 Owner      : @qa-team
       - 🔗 Depends-on : INF-029, CICD-006
@@ -149,7 +158,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : デプロイ後 `/api/account` で `dailyPnL===0` を確認。失敗時は `systemctl stop bot` ＋ GitHub status red に。
 
-6. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
+7. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
       - 📅 Due        : 2026-07-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
@@ -157,7 +166,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : prom-client で `orders_total`,`account_balance`,`order_latency_ms` を公開。prometheus.yml に stg target 追加し scrape 成功を確認。
 
-7. [ ] DOC-008: Runbook & Pipeline 図 更新
+8. [ ] DOC-008: Runbook & Pipeline 図 更新
       - 📅 Due        : 2026-07-11
       - 👤 Owner      : @nijor
       - 🏷️  Label      : doc
