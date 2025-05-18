@@ -1,18 +1,24 @@
-import fs from 'fs';
-import path from 'path';
-import logger from './logger.js';
+/**
+ * 緊急停止機能チェッカー
+ * INF-032: CommonJS形式への変換
+ */
+
+const fs = require('fs');
+const path = require('path');
+const logger = require('./logger').default;
 
 /**
  * 緊急停止フラグファイルのパス
+ * @type {string}
  */
-export const KILL_SWITCH_FLAG_PATH = path.resolve(process.cwd(), 'data', 'kill-switch.flag');
+const KILL_SWITCH_FLAG_PATH = path.resolve(process.cwd(), 'data', 'kill-switch.flag');
 
 /**
  * 緊急停止フラグが存在するかチェックする
  * 
- * @returns 緊急停止フラグが存在する場合はtrue、存在しない場合はfalse
+ * @returns {boolean} 緊急停止フラグが存在する場合はtrue、存在しない場合はfalse
  */
-export function checkKillSwitch(): boolean {
+function checkKillSwitch() {
   try {
     // ファイルが存在するか確認
     const exists = fs.existsSync(KILL_SWITCH_FLAG_PATH);
@@ -33,9 +39,9 @@ export function checkKillSwitch(): boolean {
 /**
  * 緊急停止処理を実行する
  * 
- * @param exitCode プロセス終了コード（デフォルト: 1）
+ * @param {number} [exitCode=1] プロセス終了コード（デフォルト: 1）
  */
-export function executeKillSwitch(exitCode: number = 1): void {
+function executeKillSwitch(exitCode = 1) {
   logger.error('緊急停止処理を実行します。プロセスを終了します。');
   
   // 一度ログをflushするために少し待ってから終了
@@ -47,14 +53,22 @@ export function executeKillSwitch(exitCode: number = 1): void {
 /**
  * 緊急停止フラグをチェックし、存在する場合はプロセスを終了する
  * 
- * @param exitCode プロセス終了コード（デフォルト: 1）
- * @returns 緊急停止フラグが存在しない場合はfalse、存在する場合はプロセスが終了するため返り値なし
+ * @param {number} [exitCode=1] プロセス終了コード（デフォルト: 1）
+ * @returns {boolean} 緊急停止フラグが存在しない場合はfalse、存在する場合はプロセスが終了するため返り値なし
  */
-export function checkAndExecuteKillSwitch(exitCode: number = 1): boolean {
+function checkAndExecuteKillSwitch(exitCode = 1) {
   if (checkKillSwitch()) {
     executeKillSwitch(exitCode);
     // ここには到達しないが、TypeScriptの型検査を満たすために返り値を設定
     return true;
   }
   return false;
-} 
+}
+
+// CommonJS形式でエクスポート
+module.exports = {
+  KILL_SWITCH_FLAG_PATH,
+  checkKillSwitch,
+  executeKillSwitch,
+  checkAndExecuteKillSwitch
+}; 

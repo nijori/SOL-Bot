@@ -1,17 +1,22 @@
-import { Order, OrderStatus, Fill } from '../core/types.js';
-import logger from './logger.js';
+/**
+ * 注文ユーティリティ関数
+ * INF-032: CommonJS形式への変換
+ */
+
+const { OrderStatus } = require('../core/types');
+const logger = require('./logger').default;
 
 /**
  * simulateFill処理用に注文オブジェクトを更新する
  * createOrderの結果をsimulatedFillに適切に渡すためのヘルパー関数
  *
- * @param originalOrder 元の注文オブジェクト
- * @param updatedOrder 更新された注文オブジェクト（取引所APIからのレスポンス等）
- * @returns 同期された注文オブジェクト
+ * @param {Object} originalOrder 元の注文オブジェクト
+ * @param {Object} updatedOrder 更新された注文オブジェクト（取引所APIからのレスポンス等）
+ * @returns {Object} 同期された注文オブジェクト
  */
-export function syncOrderForSimulateFill(originalOrder: Order, updatedOrder: Order): Order {
+function syncOrderForSimulateFill(originalOrder, updatedOrder) {
   // IDの同期（取引所からのIDが返ってきている場合）
-  const syncedOrder: Order = {
+  const syncedOrder = {
     ...originalOrder,
     ...updatedOrder,
     // 必須フィールドが欠落した場合は元の値を保持
@@ -32,12 +37,12 @@ export function syncOrderForSimulateFill(originalOrder: Order, updatedOrder: Ord
  * 注文IDと約定情報を同期する
  * 取引所APIからの約定レスポンスと内部注文オブジェクトを一致させる
  *
- * @param order 注文オブジェクト
- * @param fill 約定情報
- * @returns 同期された約定情報
+ * @param {Object} order 注文オブジェクト
+ * @param {Object} fill 約定情報
+ * @returns {Object} 同期された約定情報
  */
-export function syncFillWithOrder(order: Order, fill: Partial<Fill>): Fill {
-  const syncedFill: Fill = {
+function syncFillWithOrder(order, fill) {
+  const syncedFill = {
     orderId: order.id,
     exchangeOrderId: order.exchangeOrderId,
     symbol: order.symbol,
@@ -57,11 +62,11 @@ export function syncFillWithOrder(order: Order, fill: Partial<Fill>): Fill {
 /**
  * 注文状態を取引所の状態に基づいて更新する
  *
- * @param order 更新する注文オブジェクト
- * @param exchangeStatus 取引所から返された状態文字列
- * @returns 更新された注文オブジェクト
+ * @param {Object} order 更新する注文オブジェクト
+ * @param {string|undefined|null} exchangeStatus 取引所から返された状態文字列
+ * @returns {Object} 更新された注文オブジェクト
  */
-export function updateOrderStatus(order: Order, exchangeStatus: string | undefined | null): Order {
+function updateOrderStatus(order, exchangeStatus) {
   const updatedOrder = { ...order };
 
   // exchangeStatusが未定義の場合は現在の状態を維持
@@ -98,3 +103,10 @@ export function updateOrderStatus(order: Order, exchangeStatus: string | undefin
 
   return updatedOrder;
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  syncOrderForSimulateFill,
+  syncFillWithOrder,
+  updateOrderStatus
+};
