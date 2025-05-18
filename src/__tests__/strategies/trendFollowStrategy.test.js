@@ -1,6 +1,9 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
+// core/typesの明示的なインポートを追加
+const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types');
+
 // モック設定を最上部に移動
 jest.mock('../../config/parameters', () => {
   return {
@@ -266,8 +269,6 @@ jest.mock('../../config/parameterService', () => {
 });
 
 // 型定義の代わりにモジュールを直接参照
-const Types = require('../../core/types');
-const { OrderSide, OrderType } = Types;
 const trendFollowStrategyModule = require('../../strategies/trendFollowStrategy');
 const parabolicSARModule = require('../../indicators/parabolicSAR');
 const atrUtilsModule = require('../../utils/atrUtils');
