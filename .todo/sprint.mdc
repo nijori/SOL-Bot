@@ -85,13 +85,13 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
-      - 🩺 Health     : 🚑
-      - 📊 Progress   : 60%
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 80%
       - ✎ Notes      : moduleHelper実装で循環参照問題一部解決。logger, memoryMonitor, killSwitchChecker, orderUtilsなど重要クラスをリファクタリング。TypeScript型エラーは@ts-nocheck指定でビルド可能だが、今後最適化を継続。子タスクを作成し、より詳細に進捗を管理。変換完了までの残作業：
         1. 戦略ファイル（strategies/）: 6ファイル中全ファイル変換完了（INF-032-2完了）
-        2. インジケーター（indicators/）: marketState.tsとparabolicSAR.tsの2ファイル変換完了（INF-032-6完了）
-        3. データ処理モジュール（data/）: 推定8ファイル、未着手（優先度:中）
-        4. サービス（services/）: 推定12ファイル、未着手（優先度:中）
+        2. インジケーター（indicators/）: 全ファイル変換完了（INF-032-6完了）
+        3. データ処理モジュール（data/）: 全8ファイル変換完了（INF-032-7完了）
+        4. サービス（services/）: 全ファイル変換完了（INF-032-8完了）
         5. 型定義と循環参照問題: 一部対応済み、現在@ts-nocheck回避中（優先度:高）
         6. テストファイル（__tests__/）: 推定50+ファイル、未着手（優先度:低）
 
@@ -122,23 +122,23 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : インジケーターディレクトリ(indicators/)のmarketState.tsとparabolicSAR.tsファイルをCommonJS形式に変換完了。主要なテクニカル指標のリファクタリングとtechnicalindicatorsライブラリの参照方法も修正。@ts-nocheck指示子を追加し、型定義問題は INF-032-4 タスクで対応予定。
 
-3.2.7 [ ] INF-032-7: データ処理モジュールのCommonJS変換
+3.2.7 [x] INF-032-7: データ処理モジュールのCommonJS変換
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-032-1
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : データ処理ディレクトリ(data/)の約8ファイルをCommonJS形式に変換。DataFetcher、ParquetDataStore、HistoricalDataProviderなどのクラスを変換。fsPromisesの参照方法も修正。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : データ処理ディレクトリ(data/)の全8ファイル（marketDataFetcher.ts、parquetDataStore.ts、dataRepository.ts、MultiTimeframeDataFetcher.ts、fetchHourlyData.ts、fetchMultiTimeframeData.ts、generateSampleData.ts、runSampleTest.ts）をCommonJS形式に変換完了。型定義を削除し、import文をrequire文に変換。循環参照問題を解決するためのモジュール参照方法も修正。
 
-3.2.8 [ ] INF-032-8: サービスモジュールのCommonJS変換
+3.2.8 [x] INF-032-8: サービスモジュールのCommonJS変換
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-032-1
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : サービスディレクトリ(services/)の約12ファイルをCommonJS形式に変換。ExchangeService、ParameterService、NotificationService、LoggerServiceなど重要なサービスクラスを変換。各サービスの依存関係解決にmoduleHelperを活用。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : サービスディレクトリ(services/)のすべてのファイルをCommonJS形式に変換完了。前回の作業でsecretManagerディレクトリの全9ファイル（AWSParameterStoreManager.ts、AWSSecretsManager.ts、EnvSecretManager.ts、FileSecretManager.ts、GCPSecretManager.ts、SecretManagerFactory.ts、SecretManagerInterface.ts、example.ts、index.ts）を変換。今回の確認で残りの主要サービスファイル（UnifiedOrderManager.ts、orderSizingService.ts、symbolInfoService.ts、exchangeService.ts）は既にCommonJS形式に変換されていることを確認。循環参照問題解決のためのmoduleHelper活用も完了。
       
 3.2.3 [ ] INF-032-3: テストファイルのCommonJS変換
       - 📅 Due        : 2026-07-05
@@ -355,6 +355,15 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
+
+
+
+
+
+
 
 
 

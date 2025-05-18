@@ -3,29 +3,30 @@
  * 開発環境やテスト環境で使用するためのもので、本番環境では使用しないでください
  */
 
-import fs from 'fs';
-import path from 'path';
-import { SecretManagerInterface } from './SecretManagerInterface.js';
-import logger from '../../utils/logger.js';
+// @ts-nocheck
+const fs = require('fs');
+const path = require('path');
+const logger = require('../../utils/logger');
 
-export class FileSecretManager implements SecretManagerInterface {
-  private readonly secretsFilePath: string;
-  private secrets: Record<string, string> = {};
-
+/**
+ * ファイルベースのシークレットマネージャークラス
+ */
+class FileSecretManager {
   /**
    * コンストラクタ
-   * @param secretsFilePath シークレットを保存するJSONファイルのパス（デフォルト: ".secrets.json"）
+   * @param {string} [secretsFilePath='.secrets.json'] - シークレットを保存するJSONファイルのパス
    */
-  constructor(secretsFilePath: string = '.secrets.json') {
+  constructor(secretsFilePath = '.secrets.json') {
     // プロジェクトルートからの相対パスを絶対パスに変換
     this.secretsFilePath = path.resolve(process.cwd(), secretsFilePath);
+    this.secrets = {};
     this.loadSecrets();
   }
 
   /**
    * シークレットをファイルから読み込む
    */
-  private loadSecrets(): void {
+  loadSecrets() {
     try {
       if (fs.existsSync(this.secretsFilePath)) {
         const data = fs.readFileSync(this.secretsFilePath, 'utf8');
@@ -48,7 +49,7 @@ export class FileSecretManager implements SecretManagerInterface {
   /**
    * シークレットをファイルに保存する
    */
-  private saveSecrets(): void {
+  saveSecrets() {
     try {
       const dirPath = path.dirname(this.secretsFilePath);
 
@@ -74,20 +75,20 @@ export class FileSecretManager implements SecretManagerInterface {
 
   /**
    * シークレット値を取得する
-   * @param key シークレットのキー
-   * @returns 取得した値、エラーまたは存在しない場合はnull
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<string|null>} 取得した値、エラーまたは存在しない場合はnull
    */
-  async getSecret(key: string): Promise<string | null> {
+  async getSecret(key) {
     return this.secrets[key] || null;
   }
 
   /**
    * シークレット値を設定/更新する
-   * @param key シークレットのキー
-   * @param value 設定する値
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @param {string} value - 設定する値
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async setSecret(key: string, value: string): Promise<boolean> {
+  async setSecret(key, value) {
     try {
       this.secrets[key] = value;
       this.saveSecrets();
@@ -102,10 +103,10 @@ export class FileSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットを削除する
-   * @param key シークレットのキー
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async deleteSecret(key: string): Promise<boolean> {
+  async deleteSecret(key) {
     try {
       if (this.secrets[key]) {
         delete this.secrets[key];
@@ -122,10 +123,15 @@ export class FileSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットが存在するか確認
-   * @param key シークレットのキー
-   * @returns 存在する場合はtrue
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 存在する場合はtrue
    */
-  async hasSecret(key: string): Promise<boolean> {
+  async hasSecret(key) {
     return key in this.secrets;
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  FileSecretManager
+};
