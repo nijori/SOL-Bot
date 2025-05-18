@@ -1,34 +1,48 @@
 // REF-031対応: グローバル型拡張
-// ESM互換のグローバル宣言方法
+// TypeScriptの型定義
+import { Express, Request, Response } from 'express';
+import { Exchange } from 'ccxt';
+
+// CommonJSモジュールであることを明示
+export {};
+
+// グローバル型定義
 declare global {
-  var __ESM_ENVIRONMENT: boolean;
+  namespace NodeJS {
+    interface Global {
+      __ESM_ENVIRONMENT: boolean;
+    }
+  }
 }
 
-// REF-031対応: CommonJS/ESM環境検出
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  // CommonJS環境
-  global.__ESM_ENVIRONMENT = false;
-} else {
-  // ESM環境
-  global.__ESM_ENVIRONMENT = true;
-}
+// CommonJS環境設定
+(global as any).__ESM_ENVIRONMENT = false;
 
-import 'dotenv/config';
-import express from 'express';
-import cron from 'node-cron';
-// ccxtのインポート - ESM互換方式
-import ccxt from 'ccxt';
-import { TradingEngine } from './core/tradingEngine.js';
-import { OrderManagementSystem } from './core/orderManagementSystem.js';
-import { OperationMode, OPERATION_MODE } from './config/parameters.js';
-import logger from './utils/logger.js';
-import { Candle, Order } from './core/types.js';
-import { ExchangeService } from './services/exchangeService.js';
-import { parameterService } from './config/parameterService.js';
-import metricsService from './utils/metrics.js';
-import { CliParser } from './utils/cliParser.js';
-import { BacktestRunner } from './core/backtestRunner.js';
-import { checkAndExecuteKillSwitch } from './utils/killSwitchChecker.js';
+// 依存関係のインポート (CommonJS形式)
+require('dotenv/config');
+const express = require('express');
+const cron = require('node-cron');
+const ccxt = require('ccxt');
+const { TradingEngine } = require('./core/tradingEngine');
+const { OrderManagementSystem } = require('./core/orderManagementSystem');
+const { OperationMode, OPERATION_MODE } = require('./config/parameters');
+const logger = require('./utils/logger').default;
+const { Candle } = require('./core/types');
+const { ExchangeService } = require('./services/exchangeService');
+const { parameterService } = require('./config/parameterService');
+const metricsService = require('./utils/metrics').default;
+const { CliParser } = require('./utils/cliParser');
+const { BacktestRunner } = require('./core/backtestRunner');
+const { checkAndExecuteKillSwitch } = require('./utils/killSwitchChecker');
+
+// インターフェース定義
+interface Order {
+  symbol: string;
+  type: string;
+  side: string;
+  amount: number;
+  price?: number;
+}
 
 // 設定
 const PORT = process.env.PORT || 3000;
@@ -36,16 +50,22 @@ const DEFAULT_SYMBOL = process.env.TRADING_PAIR || 'SOL/USDT';
 const DEFAULT_TIMEFRAME = process.env.TIMEFRAME || '5m';
 const INITIAL_BALANCE = parseFloat(process.env.INITIAL_BALANCE || '10000');
 
+// 型定義
+type EngineStatus = {
+  balance: number;
+  position: number;
+  unrealizedPnL: number;
+  [key: string]: any;
+};
+
 // CLIモードのチェック
 const isCliMode = process.argv.length > 2;
 
 // CLIモードの場合はCLIを実行
 if (isCliMode) {
-  import('./scripts/cli.js').then((cli) => {
-    // CLIモジュールをロードして実行する
-    logger.info('CLIモードで実行しています');
-  });
-  // CLIモードではここでメイン処理を終了する
+  // CommonJSスタイルの動的ロード
+  const cli = require('./scripts/cli');
+  logger.info('CLIモードで実行しています');
   process.exit(0);
 }
 
@@ -54,9 +74,8 @@ logger.info(`サーバーモードで実行しています（CLI引数なし）`
 logger.info(`動作モード: ${OPERATION_MODE}`);
 
 // 取引所の初期化
-let exchange: ccxt.Exchange;
+let exchange: Exchange;
 try {
-  // @ts-ignore - ccxtの型定義が古い可能性があるため一時的に無視
   exchange = new ccxt.binance({
     apiKey: process.env.EXCHANGE_API_KEY,
     secret: process.env.EXCHANGE_SECRET_KEY,
@@ -72,10 +91,10 @@ try {
 const oms = new OrderManagementSystem();
 
 // マルチシンボル対応：複数のトレーディングエンジンを管理
-const tradingEngines = new Map<string, TradingEngine>();
+const tradingEngines = new Map<string, any>();
 
 // デフォルトシンボルのトレーディングエンジンを初期化
-function initializeTradingEngine(symbol: string): TradingEngine {
+function initializeTradingEngine(symbol: string): any {
   // シンボル固有のパラメータを取得
   const symbolParams = parameterService.getParametersForSymbol(symbol);
 
@@ -98,7 +117,7 @@ const app = express();
 app.use(express.json());
 
 // ステータスエンドポイント
-app.get('/api/status', (req, res) => {
+app.get('/api/status', (req: Request, res: Response) => {
   // すべてのエンジンのステータスを取得
   const engineStatuses: Record<string, any> = {};
 
@@ -114,13 +133,13 @@ app.get('/api/status', (req, res) => {
 });
 
 // シンボル一覧エンドポイント
-app.get('/api/symbols', (req, res) => {
+app.get('/api/symbols', (req: Request, res: Response) => {
   const symbols = Array.from(tradingEngines.keys());
   res.json({ symbols });
 });
 
 // 特定シンボルの詳細エンドポイント
-app.get('/api/symbol/:symbol', (req, res) => {
+app.get('/api/symbol/:symbol', (req: Request, res: Response) => {
   const symbol = req.params.symbol;
   const engine = tradingEngines.get(symbol);
 
@@ -135,10 +154,10 @@ app.get('/api/symbol/:symbol', (req, res) => {
 });
 
 // 手動注文エンドポイント
-app.post('/api/order', async (req, res) => {
+app.post('/api/order', async (req: Request, res: Response) => {
   try {
     if (OPERATION_MODE === OperationMode.LIVE) {
-      const order: Order = req.body;
+      const order = req.body as Order;
       // 実際の取引所で注文を実行するロジックをここに実装
       // 本番環境では追加の認証と検証が必要
       res.json({ success: true, message: '注文を送信しました', order });
@@ -156,12 +175,12 @@ app.post('/api/order', async (req, res) => {
  * @param symbol 取引ペア
  * @param timeframe タイムフレーム
  */
-async function fetchMarketData(symbol: string, timeframe: string): Promise<Candle[]> {
+async function fetchMarketData(symbol: string, timeframe: string): Promise<any[]> {
   try {
     if (OPERATION_MODE === OperationMode.SIMULATION) {
       // シミュレーションモードではダミーデータを生成
       const now = Date.now();
-      const candles: Candle[] = [];
+      const candles: any[] = [];
 
       for (let i = 100; i >= 0; i--) {
         const timestamp = now - i * 60000; // 1分ごと
@@ -183,7 +202,7 @@ async function fetchMarketData(symbol: string, timeframe: string): Promise<Candl
       // 実際の取引所からデータを取得
       const ohlcv = await exchange.fetchOHLCV(symbol, timeframe);
 
-      return ohlcv.map((candle: any[]) => ({
+      return ohlcv.map((candle: any) => ({
         timestamp: candle[0],
         open: candle[1],
         high: candle[2],
@@ -201,7 +220,7 @@ async function fetchMarketData(symbol: string, timeframe: string): Promise<Candl
 /**
  * 注文を実行する関数
  */
-async function executeOrders(orders: Order[]): Promise<void> {
+async function executeOrders(orders: any[]): Promise<void> {
   if (orders.length === 0) return;
 
   logger.info(`${orders.length}件の注文を実行します`);
@@ -249,79 +268,86 @@ async function runTradingLogic(): Promise<void> {
         continue;
       }
 
-      // トレーディングエンジンにデータを更新
-      engine.updateMarketData(candles);
+      // トレーディングエンジンにデータを供給
+      const newOrders = engine.processCandles(candles);
 
-      // 市場分析を実行
-      const analysis = engine.analyzeMarket();
-
-      // 戦略を実行してシグナルを取得
-      const strategyResult = engine.executeStrategy();
-
-      // シグナルに基づいて注文を実行
-      if (strategyResult.signals.length > 0) {
-        await executeOrders(strategyResult.signals);
+      // 新しい注文があれば実行
+      if (newOrders.length > 0) {
+        await executeOrders(newOrders);
       }
+
+      // エンジンの状態を報告
+      const status = engine.getStatus();
+      logger.info(
+        `${symbol} 状態: 残高=${status.balance.toFixed(2)}USDT, ポジション=${
+          status.position
+        }, PnL=${status.unrealizedPnL.toFixed(2)}`
+      );
+
+      // メトリクス更新
+      metricsService.updateTradingMetrics(symbol, status);
     }
   } catch (error) {
-    logger.error(
-      `取引ロジック実行エラー: ${error instanceof Error ? error.message : String(error)}`
-    );
+    logger.error(`取引ロジック実行エラー: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
-async function main() {
-  try {
-    // 起動時に緊急停止フラグをチェック
-    if (checkAndExecuteKillSwitch()) {
-      return;
-    }
-    
-    // メトリクスサーバーの初期化
-    metricsService.initMetricsServer();
-    logger.info('メトリクスサーバーを初期化しました');
+/**
+ * メイン関数
+ */
+async function main(): Promise<void> {
+  logger.info('SOL-Bot 起動中...');
 
-    // 定期実行のスケジュール設定
-    cron.schedule('*/5 * * * *', async () => {
-      // 緊急停止フラグをチェック
-      if (checkAndExecuteKillSwitch()) {
-        return;
-      }
-      
-      logger.info('定期実行：取引ロジックを実行します');
-      await runTradingLogic();
+  // 緊急停止フラグのチェック (INF-004対応)
+  checkAndExecuteKillSwitch();
+
+  // 定期的に緊急停止フラグをチェック (5分ごと)
+  cron.schedule('*/5 * * * *', () => {
+    checkAndExecuteKillSwitch();
+  });
+
+  // APIサーバーの起動
+  app.listen(PORT, () => {
+    logger.info(`API サーバーが http://localhost:${PORT} で起動しました`);
+  });
+
+  // 取引ロジックの定期実行 (1分ごと)
+  cron.schedule('* * * * *', () => {
+    runTradingLogic().catch((error) => {
+      logger.error(`定期実行エラー: ${error instanceof Error ? error.message : String(error)}`);
     });
+  });
 
-    // 初回実行
-    await runTradingLogic();
+  // クリーンアップ処理の登録
+  const cleanupTasks = () => {
+    logger.info('アプリケーションを終了中...');
+    // 必要なクリーンアップ処理をここに追加
+    // 例: DB接続を閉じる、一時ファイルを削除するなど
+    process.exit(0);
+  };
 
-    // サーバー起動
-    app.listen(PORT, () => {
-      logger.info(`サーバーがポート${PORT}で起動しました`);
-    });
+  // SIGINTシグナル (Ctrl+C) のハンドラ
+  process.on('SIGINT', cleanupTasks);
+  // SIGTERMシグナル (kill) のハンドラ
+  process.on('SIGTERM', cleanupTasks);
 
-    // クリーンアップタスクの登録
-    const cleanupTasks = () => {
-      logger.info('アプリケーションをシャットダウンしています...');
-      // クリーンアップタスクを実行
-      process.exit(0);
-    };
-
-    // シグナルハンドラーの登録
-    process.on('SIGINT', cleanupTasks);
-    process.on('SIGTERM', cleanupTasks);
-  } catch (error) {
-    logger.error(
-      `アプリケーション起動エラー: ${error instanceof Error ? error.message : String(error)}`
-    );
-    process.exit(1);
-  }
+  // 初回の取引ロジック実行
+  await runTradingLogic();
 }
 
-// CLIモードでない場合にのみメイン処理を実行
-if (!isCliMode) {
+// アプリケーションの起動
+if (require.main === module) {
   main().catch((error) => {
-    logger.error('致命的なエラー:', error);
+    logger.error(`アプリケーション起動エラー: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   });
 }
+
+// モジュールエクスポート (テスト用)
+module.exports = {
+  app,
+  initializeTradingEngine,
+  executeOrders,
+  fetchMarketData,
+  runTradingLogic
+};

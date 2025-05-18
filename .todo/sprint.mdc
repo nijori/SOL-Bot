@@ -77,8 +77,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-030
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
-      - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。作業開始。
+      - 📊 Progress   : 75%
+      - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。ESM関連の設定と不要なスクリプトを削除。tsconfig.jsonもCommonJS設定に更新。
 
 3.2 [ ] INF-032: コードベースをCommonJS形式に変換
       - 📅 Due        : 2026-07-06
@@ -86,8 +86,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : import/export構文をrequire/module.exportsに一括変換。スクリプト作成または既存ツールでの変換実施。TS型定義の互換性確保。
+      - 📊 Progress   : 25%
+      - ✎ Notes      : import/export構文をrequire/module.exportsに一括変換。まずindex.tsなどの主要ファイルから変換作業を開始。
 
 3.3 [ ] INF-033: Docker実行環境のCommonJS対応
       - 📅 Due        : 2026-07-07
@@ -285,6 +285,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
