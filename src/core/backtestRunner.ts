@@ -2,21 +2,22 @@
  * バックテスト実行クラス
  * 指定されたパラメータと期間でバックテストを実行し、結果を返す
  * TST-052: デュアルフォーマット実行の互換性向上
+ * INF-032: CommonJS形式への変換
  */
-import * as fs from 'fs';
-import * as path from 'path';
-import { ParquetDataStore } from '../data/parquetDataStore';
-import { TradingEngine } from './tradingEngine';
-import { applyParameters } from '../config/parameterService';
-import { BACKTEST_PARAMETERS } from '../config/parameters';
-import { Candle, normalizeTimestamp } from './types';
-import logger from '../utils/logger';
-import { OrderManagementSystem } from './orderManagementSystem';
-import { MemoryMonitor } from '../utils/memoryMonitor';
+const fs = require('fs');
+const path = require('path');
+const { ParquetDataStore } = require('../data/parquetDataStore');
+const { TradingEngine } = require('./tradingEngine');
+const { applyParameters } = require('../config/parameterService');
+const { BACKTEST_PARAMETERS } = require('../config/parameters');
+const { Candle, normalizeTimestamp } = require('./types');
+const logger = require('../utils/logger').default;
+const { OrderManagementSystem } = require('./orderManagementSystem');
+const { MemoryMonitor } = require('../utils/memoryMonitor');
 
 // isMainModuleを直接importせず、実行時に動的に判定
 // CommonJS/ESM互換性問題を解決するための対応
-let isMainModuleFn: () => boolean;
+let isMainModuleFn;
 
 try {
   // Dynamic import to avoid static parse errors
@@ -34,56 +35,52 @@ try {
 
 /**
  * バックテスト設定インターフェース
+ * @typedef {Object} BacktestConfig
+ * @property {string} symbol - トレード対象通貨ペア
+ * @property {number} timeframeHours - 時間枠（時間単位）
+ * @property {string} startDate - バックテスト開始日
+ * @property {string} endDate - バックテスト終了日 
+ * @property {number} initialBalance - 初期残高
+ * @property {Object} [parameters] - カスタムパラメータ
+ * @property {boolean} [isSmokeTest] - スモークテストフラグ
+ * @property {number} [slippage] - スリッページ
+ * @property {number} [commissionRate] - 取引手数料率
+ * @property {boolean} [quiet] - ログ出力を抑制するモード
+ * @property {number} [batchSize] - データ処理バッチサイズ
+ * @property {boolean} [memoryMonitoring] - メモリ監視を有効にするか
+ * @property {number} [gcInterval] - ガベージコレクション実行間隔（キャンドル数）
  */
-export interface BacktestConfig {
-  symbol: string;
-  timeframeHours: number;
-  startDate: string;
-  endDate: string;
-  initialBalance: number;
-  parameters?: Record<string, any>;
-  isSmokeTest?: boolean;
-  slippage?: number; // スリッページ
-  commissionRate?: number; // 取引手数料率
-  quiet?: boolean; // ログ出力を抑制するモード
-  batchSize?: number; // データ処理バッチサイズ
-  memoryMonitoring?: boolean; // メモリ監視を有効にするか
-  gcInterval?: number; // ガベージコレクション実行間隔（キャンドル数）
-}
 
 /**
  * バックテスト結果インターフェース
+ * @typedef {Object} BacktestResult
+ * @property {Object} metrics - パフォーマンスメトリクス
+ * @property {number} metrics.totalReturn - 総リターン
+ * @property {number} metrics.sharpeRatio - シャープレシオ
+ * @property {number} metrics.maxDrawdown - 最大ドローダウン
+ * @property {number} metrics.winRate - 勝率
+ * @property {number} metrics.profitFactor - 損益率
+ * @property {number} metrics.calmarRatio - カルマールレシオ
+ * @property {number} metrics.sortinoRatio - ソルティノレシオ
+ * @property {number} metrics.averageWin - 平均利益
+ * @property {number} metrics.averageLoss - 平均損失
+ * @property {number} metrics.maxConsecutiveWins - 最大連勝数
+ * @property {number} metrics.maxConsecutiveLosses - 最大連敗数
+ * @property {number} [metrics.peakMemoryUsageMB] - 最大メモリ使用量
+ * @property {number} [metrics.processingTimeMS] - 処理時間
+ * @property {Array} trades - 完了した取引
+ * @property {Array} equity - 資産推移
+ * @property {Object} parameters - 使用したパラメータ
  */
-export interface BacktestResult {
-  metrics: {
-    totalReturn: number;
-    sharpeRatio: number;
-    maxDrawdown: number;
-    winRate: number;
-    profitFactor: number;
-    calmarRatio: number;
-    sortinoRatio: number;
-    averageWin: number;
-    averageLoss: number;
-    maxConsecutiveWins: number;
-    maxConsecutiveLosses: number;
-    peakMemoryUsageMB?: number; // 最大メモリ使用量
-    processingTimeMS?: number; // 処理時間
-  };
-  trades: any[];
-  equity: {
-    timestamp: string;
-    equity: number;
-  }[];
-  parameters: Record<string, any>;
-}
 
-export class BacktestRunner {
-  private config: BacktestConfig;
-  private dataStore: ParquetDataStore;
-  private memoryMonitor: MemoryMonitor | null = null;
-
-  constructor(config: BacktestConfig) {
+/**
+ * バックテスト実行クラス
+ */
+class BacktestRunner {
+  /**
+   * @param {BacktestConfig} config バックテスト設定
+   */
+  constructor(config) {
     // デフォルト値の設定
     this.config = {
       ...config,
@@ -98,13 +95,16 @@ export class BacktestRunner {
     // メモリモニターの初期化
     if (this.config.memoryMonitoring) {
       this.memoryMonitor = new MemoryMonitor('backtest', !config.quiet);
+    } else {
+      this.memoryMonitor = null;
     }
   }
 
   /**
    * バックテストを実行
+   * @returns {Promise<BacktestResult>} バックテスト結果
    */
-  async run(): Promise<BacktestResult> {
+  async run() {
     // 処理時間計測開始
     const startTime = Date.now();
 
@@ -169,13 +169,13 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       }
 
       // すべてのローソク足でシミュレーション実行
-      const equityHistory: { timestamp: string; equity: number }[] = [];
-      const allTrades: any[] = [];
+      const equityHistory = [];
+      const allTrades = [];
 
       // 取引の重複を防ぐために最後のトレードのインデックスを追跡
       let lastTradeIndex = 0;
       // トレードIDのセットを使用して重複チェック（安全策）
-      const processedTradeIds = new Set<string>();
+      const processedTradeIds = new Set();
 
       if (!this.config.quiet) {
         logger.debug(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
@@ -218,7 +218,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
           if (completedTrades.length > lastTradeIndex) {
             const newTrades = completedTrades.slice(lastTradeIndex);
             // ユニークIDの付与と重複チェック
-            const uniqueNewTrades = newTrades.filter((trade) => {
+            const uniqueNewTrades = newTrades.filter((trade: any) => {
               // 各トレードにユニークIDを付与（なければ）
               if (!trade.id) {
                 trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
@@ -296,7 +296,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       if (finalCompletedTrades.length > lastTradeIndex) {
         const newTrades = finalCompletedTrades.slice(lastTradeIndex);
         // ユニークIDの付与と重複チェック
-        const uniqueNewTrades = newTrades.filter((trade) => {
+        const uniqueNewTrades = newTrades.filter((trade: any) => {
           // 各トレードにユニークIDを付与（なければ）
           if (!trade.id) {
             trade.id = `trade-${trade.entryTime}-${trade.exitTime}-${Math.random().toString(36).substring(2, 10)}`;
@@ -352,7 +352,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       const processingTimeMS = Date.now() - startTime;
 
       // 完了したバックテストの結果を取得して評価
-      const metrics = this.calculateMetrics(allTrades, equityHistory);
+      const metrics: any = this.calculateMetrics(allTrades, equityHistory);
 
       // メモリ使用量と処理時間をメトリクスに追加
       metrics.peakMemoryUsageMB = peakMemoryUsageMB;
@@ -405,7 +405,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
   /**
    * 期間内のデータを読み込む
    */
-  private async loadData(): Promise<Candle[]> {
+  private async loadData(): Promise<any[]> {
     try {
       // Parquetストアから読み込み
       const dataStore = new ParquetDataStore();
@@ -449,7 +449,7 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
         }
 
         const now = new Date().getTime();
-        const sampleData: Candle[] = [];
+        const sampleData: any[] = [];
 
         // 技術指標計算のために十分なデータを生成（最低でも60本）
         const candleCount = 120; // より多くのデータポイントを生成
@@ -564,29 +564,26 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
   /**
    * 取引結果から各種指標を計算
    */
-  private calculateMetrics(
-    trades: any[],
-    equityHistory: { timestamp: string; equity: number }[]
-  ): BacktestResult['metrics'] {
+  private calculateMetrics(trades: any[], equityHistory: any[]): any {
     // 勝率計算
-    const winningTrades = trades.filter((t) => t.pnl > 0);
-    const losingTrades = trades.filter((t) => t.pnl < 0);
+    const winningTrades = trades.filter((t: any) => t.pnl > 0);
+    const losingTrades = trades.filter((t: any) => t.pnl < 0);
     const winRate = trades.length > 0 ? winningTrades.length / trades.length : 0;
 
     // 平均損益
     const averageWin =
       winningTrades.length > 0
-        ? winningTrades.reduce((sum, t) => sum + t.pnl, 0) / winningTrades.length
+        ? winningTrades.reduce((sum: number, t: any) => sum + t.pnl, 0) / winningTrades.length
         : 0;
 
     const averageLoss =
       losingTrades.length > 0
-        ? Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0) / losingTrades.length)
+        ? Math.abs(losingTrades.reduce((sum: number, t: any) => sum + t.pnl, 0) / losingTrades.length)
         : 0;
 
     // 総利益と総損失
-    const totalProfit = winningTrades.reduce((sum, t) => sum + t.pnl, 0);
-    const totalLoss = Math.abs(losingTrades.reduce((sum, t) => sum + t.pnl, 0));
+    const totalProfit = winningTrades.reduce((sum: number, t: any) => sum + t.pnl, 0);
+    const totalLoss = Math.abs(losingTrades.reduce((sum: number, t: any) => sum + t.pnl, 0));
 
     // プロフィットファクター
     const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
@@ -904,7 +901,7 @@ function parseCommandLineArgs(): { [key: string]: string | boolean } {
 /**
  * main関数とCLI関連機能
  */
-async function main() {
+async function main(): Promise<void> {
   try {
     // コマンドライン引数を解析
     const args = parseCommandLineArgs();
@@ -1011,3 +1008,9 @@ if (isMainModuleFn()) {
     process.exit(1);
   });
 }
+
+// CommonJS形式でエクスポート
+module.exports = { BacktestRunner, BacktestConfig: {}, BacktestResult: {} };
+
+// 型定義のためのTypeScriptエクスポート
+export type { BacktestRunner, BacktestConfig, BacktestResult };

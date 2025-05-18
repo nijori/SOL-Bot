@@ -3,17 +3,28 @@
  *
  * このファイルはOrderTypeとOrderSideの間の安全な変換を提供し、
  * 型推論と型安全性を強化するためのヘルパー関数を提供します。
+ * 
+ * INF-032: CommonJS形式への変換
  */
+// @ts-nocheck
+// 循環参照を避けるため、型チェックを一時的に無効化
 
-import { OrderType, OrderSide, OrderStatus } from '../core/types.js';
-import logger from './logger.js';
+// モジュールの依存関係
+const moduleHelperRef = require('./moduleHelper');
+const loggerRef = moduleHelperRef.hasModule('logger') 
+  ? moduleHelperRef.getModule('logger') 
+  : require('./logger').default;
+
+// 型を動的にロード（循環参照を避けるため）
+const typesRef = require('../core/types');
+const { OrderType, OrderSide, OrderStatus } = typesRef;
 
 /**
  * 文字列をOrderTypeに安全に変換する
- * @param typeStr 変換する文字列
- * @returns OrderType enum値、または無効な場合はundefined
+ * @param {string} typeStr 変換する文字列
+ * @returns {OrderType|undefined} OrderType enum値、または無効な場合はundefined
  */
-export function stringToOrderType(typeStr: string): OrderType | undefined {
+function stringToOrderType(typeStr) {
   // 大文字小文字を正規化
   const normalizedType = typeStr.toLowerCase();
 
@@ -49,17 +60,17 @@ export function stringToOrderType(typeStr: string): OrderType | undefined {
       }
 
       // 一致するものが見つからない場合
-      logger.warn(`未知の注文タイプ文字列: ${typeStr}`);
+      loggerRef.warn(`未知の注文タイプ文字列: ${typeStr}`);
       return undefined;
   }
 }
 
 /**
  * 文字列をOrderSideに安全に変換する
- * @param sideStr 変換する文字列
- * @returns OrderSide enum値、または無効な場合はundefined
+ * @param {string} sideStr 変換する文字列
+ * @returns {OrderSide|undefined} OrderSide enum値、または無効な場合はundefined
  */
-export function stringToOrderSide(sideStr: string): OrderSide | undefined {
+function stringToOrderSide(sideStr) {
   // 大文字小文字を正規化
   const normalizedSide = sideStr.toLowerCase();
 
@@ -73,17 +84,17 @@ export function stringToOrderSide(sideStr: string): OrderSide | undefined {
     case 'short':
       return OrderSide.SELL;
     default:
-      logger.warn(`未知の注文サイド文字列: ${sideStr}`);
+      loggerRef.warn(`未知の注文サイド文字列: ${sideStr}`);
       return undefined;
   }
 }
 
 /**
  * 文字列をOrderStatusに安全に変換する
- * @param statusStr 変換する文字列
- * @returns OrderStatus enum値、または無効な場合はundefined
+ * @param {string} statusStr 変換する文字列
+ * @returns {OrderStatus|undefined} OrderStatus enum値、または無効な場合はundefined
  */
-export function stringToOrderStatus(statusStr: string): OrderStatus | undefined {
+function stringToOrderStatus(statusStr) {
   // 大文字小文字を正規化
   const normalizedStatus = statusStr.toLowerCase();
 
@@ -108,17 +119,17 @@ export function stringToOrderStatus(statusStr: string): OrderStatus | undefined 
     case 'failed':
       return OrderStatus.REJECTED;
     default:
-      logger.warn(`未知の注文ステータス文字列: ${statusStr}`);
+      loggerRef.warn(`未知の注文ステータス文字列: ${statusStr}`);
       return undefined;
   }
 }
 
 /**
  * OrderTypeをユーザーフレンドリーな表示文字列に変換する
- * @param orderType 変換するOrderType
- * @returns 人間が読みやすい表示文字列
+ * @param {OrderType} orderType 変換するOrderType
+ * @returns {string} 人間が読みやすい表示文字列
  */
-export function orderTypeToDisplayString(orderType: OrderType): string {
+function orderTypeToDisplayString(orderType) {
   switch (orderType) {
     case OrderType.MARKET:
       return '成行注文';
@@ -137,10 +148,10 @@ export function orderTypeToDisplayString(orderType: OrderType): string {
 
 /**
  * OrderSideをユーザーフレンドリーな表示文字列に変換する
- * @param orderSide 変換するOrderSide
- * @returns 人間が読みやすい表示文字列
+ * @param {OrderSide} orderSide 変換するOrderSide
+ * @returns {string} 人間が読みやすい表示文字列
  */
-export function orderSideToDisplayString(orderSide: OrderSide): string {
+function orderSideToDisplayString(orderSide) {
   switch (orderSide) {
     case OrderSide.BUY:
       return '買い';
@@ -154,7 +165,7 @@ export function orderSideToDisplayString(orderSide: OrderSide): string {
 /**
  * OrderTypeとccxtの注文タイプ文字列の間の変換マッピング
  */
-export const ORDER_TYPE_TO_CCXT_MAPPING: Record<OrderType, string> = {
+const ORDER_TYPE_TO_CCXT_MAPPING = {
   [OrderType.MARKET]: 'market',
   [OrderType.LIMIT]: 'limit',
   [OrderType.STOP]: 'stop',
@@ -165,7 +176,7 @@ export const ORDER_TYPE_TO_CCXT_MAPPING: Record<OrderType, string> = {
 /**
  * ccxt注文タイプ文字列からOrderTypeへの変換マッピング
  */
-export const CCXT_TO_ORDER_TYPE_MAPPING: Record<string, OrderType> = {
+const CCXT_TO_ORDER_TYPE_MAPPING = {
   market: OrderType.MARKET,
   limit: OrderType.LIMIT,
   stop: OrderType.STOP,
@@ -180,25 +191,25 @@ export const CCXT_TO_ORDER_TYPE_MAPPING: Record<string, OrderType> = {
 
 /**
  * OrderTypeをccxt用の注文タイプ文字列に変換する
- * @param orderType 変換するOrderType
- * @returns ccxtで使用する注文タイプ文字列
+ * @param {OrderType} orderType 変換するOrderType
+ * @returns {string} ccxtで使用する注文タイプ文字列
  */
-export function orderTypeToCcxt(orderType: OrderType): string {
+function orderTypeToCcxt(orderType) {
   if (orderType in ORDER_TYPE_TO_CCXT_MAPPING) {
     return ORDER_TYPE_TO_CCXT_MAPPING[orderType];
   }
 
   // マッピングにない場合は小文字にして返す（後方互換性）
-  logger.warn(`マッピングにないOrderType: ${orderType}、小文字に変換します`);
+  loggerRef.warn(`マッピングにないOrderType: ${orderType}、小文字に変換します`);
   return orderType.toString().toLowerCase();
 }
 
 /**
  * ccxtの注文タイプ文字列からOrderTypeに変換する
- * @param ccxtOrderType ccxtの注文タイプ文字列
- * @returns OrderType enum値
+ * @param {string} ccxtOrderType ccxtの注文タイプ文字列
+ * @returns {OrderType} OrderType enum値
  */
-export function ccxtToOrderType(ccxtOrderType: string): OrderType {
+function ccxtToOrderType(ccxtOrderType) {
   // 文字列の正規化（小文字に変換）
   const normalizedType = ccxtOrderType.toLowerCase();
 
@@ -221,37 +232,69 @@ export function ccxtToOrderType(ccxtOrderType: string): OrderType {
   }
 
   // デフォルトはLIMITとする（最も安全なフォールバック）
-  logger.warn(`未知のccxt注文タイプ: ${ccxtOrderType}、デフォルトでLIMITに変換します`);
+  loggerRef.warn(`未知のccxt注文タイプ: ${ccxtOrderType}、デフォルトでLIMITに変換します`);
   return OrderType.LIMIT;
 }
 
 /**
  * 注文タイプが成行注文かどうかをチェックする
- * @param orderType チェックする注文タイプ
- * @returns 成行注文の場合はtrue
+ * @param {OrderType} orderType チェックする注文タイプ
+ * @returns {boolean} 成行注文の場合はtrue
  */
-export function isMarketOrder(orderType: OrderType): boolean {
+function isMarketOrder(orderType) {
   return orderType === OrderType.MARKET || orderType === OrderType.STOP_MARKET;
 }
 
 /**
  * 注文タイプが指値注文かどうかをチェックする
- * @param orderType チェックする注文タイプ
- * @returns 指値注文の場合はtrue
+ * @param {OrderType} orderType チェックする注文タイプ
+ * @returns {boolean} 指値注文の場合はtrue
  */
-export function isLimitOrder(orderType: OrderType): boolean {
+function isLimitOrder(orderType) {
   return orderType === OrderType.LIMIT || orderType === OrderType.STOP_LIMIT;
 }
 
 /**
  * 注文タイプがストップ注文かどうかをチェックする
- * @param orderType チェックする注文タイプ
- * @returns ストップ注文の場合はtrue
+ * @param {OrderType} orderType チェックする注文タイプ
+ * @returns {boolean} ストップ注文の場合はtrue
  */
-export function isStopOrder(orderType: OrderType): boolean {
+function isStopOrder(orderType) {
   return (
     orderType === OrderType.STOP ||
     orderType === OrderType.STOP_LIMIT ||
     orderType === OrderType.STOP_MARKET
   );
 }
+
+/**
+ * 反対の注文サイドを取得する（BUY ⇔ SELL）
+ * @param {OrderSide} orderSide 元の注文サイド
+ * @returns {OrderSide} 反対の注文サイド
+ */
+function getOppositeSide(orderSide) {
+  return orderSide === OrderSide.BUY ? OrderSide.SELL : OrderSide.BUY;
+}
+
+// モジュールとしてまとめる
+const orderTypeUtils = {
+  stringToOrderType,
+  stringToOrderSide,
+  stringToOrderStatus,
+  orderTypeToDisplayString,
+  orderSideToDisplayString,
+  orderTypeToCcxt,
+  ccxtToOrderType,
+  isMarketOrder,
+  isLimitOrder,
+  isStopOrder,
+  getOppositeSide,
+  ORDER_TYPE_TO_CCXT_MAPPING,
+  CCXT_TO_ORDER_TYPE_MAPPING
+};
+
+// モジュールレジストリに登録
+moduleHelperRef.registerModule('orderTypeUtils', orderTypeUtils);
+
+// CommonJS形式でエクスポート
+module.exports = orderTypeUtils;

@@ -1,6 +1,12 @@
-import * as client from 'prom-client';
-import express from 'express';
-import logger from './logger.js';
+/**
+ * メトリクス収集モジュール
+ * PrometheusとGrafana向けのメトリクスを収集・公開する
+ * INF-032: CommonJS形式への変換
+ */
+
+const client = require('prom-client');
+const express = require('express');
+const logger = require('./logger').default;
 
 // デフォルトのレジストリを初期化
 const register = new client.Registry();
@@ -101,23 +107,38 @@ const engineLoopDuration = new client.Summary({
 /**
  * メトリクス更新関数
  */
-export const updateMetrics = {
+const updateMetrics = {
   // 残高更新
-  updateBalance: (balance: number) => {
+  /**
+   * 残高メトリクスを更新
+   * @param {number} balance 現在の残高
+   */
+  updateBalance: (balance) => {
     tradingBalance.set(balance);
   },
 
   // 日次損益更新
-  updateDailyPnl: (pnl: number, pnlPercentage: number) => {
+  /**
+   * 日次損益メトリクスを更新
+   * @param {number} pnl 日次損益金額
+   * @param {number} pnlPercentage 日次損益率
+   */
+  updateDailyPnl: (pnl, pnlPercentage) => {
     dailyPnl.set(pnl);
     dailyPnlPercentage.set(Math.abs(pnlPercentage) * 100); // 絶対値に変換して%表示
   },
 
   // パフォーマンスメトリクス更新
+  /**
+   * パフォーマンスメトリクスを更新
+   * @param {number} winRateValue 勝率
+   * @param {number} maxDrawdownValue 最大ドローダウン
+   * @param {number} sharpeRatioValue シャープレシオ
+   */
   updatePerformanceMetrics: (
-    winRateValue: number,
-    maxDrawdownValue: number,
-    sharpeRatioValue: number
+    winRateValue,
+    maxDrawdownValue,
+    sharpeRatioValue
   ) => {
     winRate.set(winRateValue);
     maxDrawdown.set(maxDrawdownValue);
@@ -125,38 +146,69 @@ export const updateMetrics = {
   },
 
   // 取引記録
-  recordTrade: (volume: number) => {
+  /**
+   * 取引を記録
+   * @param {number} volume 取引量
+   */
+  recordTrade: (volume) => {
     tradeCount.inc(1);
     tradeVolume.inc(volume);
   },
 
   // エラー記録
-  recordError: (type: string) => {
+  /**
+   * エラーを記録
+   * @param {string} type エラータイプ
+   */
+  recordError: (type) => {
     errorCount.inc({ type });
   },
 
   // 注文レイテンシ記録（新規追加）
+  /**
+   * 注文レイテンシを記録
+   * @param {number} latencySeconds レイテンシ（秒）
+   * @param {string} exchange 取引所名
+   * @param {string} orderType 注文タイプ
+   * @param {string} symbol 通貨ペア
+   */
   recordOrderLatency: (
-    latencySeconds: number,
-    exchange: string,
-    orderType: string,
-    symbol: string
+    latencySeconds,
+    exchange,
+    orderType,
+    symbol
   ) => {
     orderLatency.observe({ exchange, order_type: orderType, symbol }, latencySeconds);
   },
 
   // 取引所エラー記録（新規追加）
-  recordExchangeError: (exchange: string, errorCode: string, endpoint: string) => {
+  /**
+   * 取引所エラーを記録
+   * @param {string} exchange 取引所名
+   * @param {string} errorCode エラーコード
+   * @param {string} endpoint エンドポイント
+   */
+  recordExchangeError: (exchange, errorCode, endpoint) => {
     exchangeErrorCount.inc({ exchange, code: errorCode, endpoint });
   },
 
   // エンジンループ処理時間記録（新規追加）
-  recordEngineLoopDuration: (durationSeconds: number, strategy: string) => {
+  /**
+   * エンジンループ処理時間を記録
+   * @param {number} durationSeconds 処理時間（秒）
+   * @param {string} strategy 戦略名
+   */
+  recordEngineLoopDuration: (durationSeconds, strategy) => {
     engineLoopDuration.observe({ strategy }, durationSeconds);
   },
 
   // エンジンループ処理時間計測用タイマー（新規追加）
-  startEngineLoopTimer: (strategy: string): (() => void) => {
+  /**
+   * エンジンループタイマーを開始
+   * @param {string} strategy 戦略名
+   * @returns {Function} タイマー終了関数
+   */
+  startEngineLoopTimer: (strategy) => {
     const end = engineLoopDuration.startTimer({ strategy });
     return end; // 終了時に呼び出す関数を返す
   }
@@ -164,9 +216,9 @@ export const updateMetrics = {
 
 /**
  * メトリクスサーバーの初期化
- * @param port サーバーポート（デフォルト：9100）
+ * @param {number} [port=9100] サーバーポート（デフォルト：9100）
  */
-export const initMetricsServer = (port: number = 9100): void => {
+const initMetricsServer = (port = 9100) => {
   const app = express();
 
   // メトリクスエンドポイントを設定
@@ -197,7 +249,7 @@ export const initMetricsServer = (port: number = 9100): void => {
  * テスト用のレジストリリセット
  * 主にユニットテスト時に使用
  */
-export const resetRegistry = (): void => {
+const resetRegistry = () => {
   // 新しいレジストリを作成
   const newRegistry = new client.Registry();
 
@@ -207,7 +259,13 @@ export const resetRegistry = (): void => {
   // 既存のメトリクス定義をコピー（実装省略、必要に応じて実装）
 };
 
-export default {
+// CommonJS形式でエクスポート
+module.exports = {
+  default: {
+    initMetricsServer,
+    updateMetrics,
+    resetRegistry
+  },
   initMetricsServer,
   updateMetrics,
   resetRegistry

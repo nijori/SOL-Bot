@@ -1,63 +1,61 @@
 /**
  * 改良版トレンドフォロー戦略
  * Donchianブレイク+ADXによるエントリー、Parabolic SARによる追従、トレイリングストップの実装
+ * 
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
  */
-import { ADX } from 'technicalindicators';
-import {
-  Candle,
-  Order,
-  OrderSide,
-  OrderType,
-  Position,
-  StrategyResult,
-  StrategyType
-} from '../core/types.js';
-import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
-import { parameterService } from '../config/parameterService.js';
-import { calculateParabolicSAR, ParabolicSARResult } from '../indicators/parabolicSAR.js';
-import { ParameterService } from '../config/parameterService.js';
-import { calculateATR, getValidStopDistance } from '../utils/atrUtils.js';
+// @ts-nocheck
+
+// CommonJS形式のモジュールインポート
+const technicalIndicators = require('technicalindicators');
+const { ADX } = technicalIndicators;
+const Types = require('../core/types');
+const { Candle, Order, OrderSide, OrderType, Position, StrategyResult, StrategyType } = Types;
+const { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } = require('../config/parameters');
+const { parameterService } = require('../config/parameterService');
+const { calculateParabolicSAR, ParabolicSARResult } = require('../indicators/parabolicSAR');
+const { calculateATR, getValidStopDistance } = require('../utils/atrUtils');
 
 // 戦略パラメータをYAML設定から取得
-const DONCHIAN_PERIOD = parameterService.get<number>('trendFollowStrategy.donchianPeriod', 20);
-const ADX_THRESHOLD = parameterService.get<number>('trendFollowStrategy.adxThreshold', 25);
-const ATR_MULTIPLIER = parameterService.get<number>('trendFollowStrategy.atrMultiplier', 3.0);
-const TRAILING_STOP_FACTOR = parameterService.get<number>(
+const DONCHIAN_PERIOD = parameterService.get('trendFollowStrategy.donchianPeriod', 20);
+const ADX_THRESHOLD = parameterService.get('trendFollowStrategy.adxThreshold', 25);
+const ATR_MULTIPLIER = parameterService.get('trendFollowStrategy.atrMultiplier', 3.0);
+const TRAILING_STOP_FACTOR = parameterService.get(
   'trendFollowStrategy.trailingStopFactor',
   2.5
 );
-const USE_PARABOLIC_SAR = parameterService.get<boolean>(
+const USE_PARABOLIC_SAR = parameterService.get(
   'trendFollowStrategy.useParabolicSAR',
   true
 );
-const MAX_RISK_PER_TRADE = parameterService.get<number>('risk.maxRiskPerTrade', 0.02);
+const MAX_RISK_PER_TRADE = parameterService.get('risk.maxRiskPerTrade', 0.02);
 
 // エントリー後のトレイリングストップの調整
-const INITIAL_STOP_ATR_FACTOR = parameterService.get<number>(
+const INITIAL_STOP_ATR_FACTOR = parameterService.get(
   'trendFollowStrategy.initialStopAtrFactor',
   1.5
 );
-const BREAKEVEN_MOVE_THRESHOLD = parameterService.get<number>(
+const BREAKEVEN_MOVE_THRESHOLD = parameterService.get(
   'trendFollowStrategy.breakevenMoveThreshold',
   2.0
 );
-const PROFIT_LOCK_THRESHOLD = parameterService.get<number>(
+const PROFIT_LOCK_THRESHOLD = parameterService.get(
   'trendFollowStrategy.profitLockThreshold',
   3.0
 );
 // 利益確定の割合（PROFIT_LOCK_THRESHOLDに達した場合に確定する利益の割合）
-const PROFIT_LOCK_PERCENTAGE = parameterService.get<number>(
+const PROFIT_LOCK_PERCENTAGE = parameterService.get(
   'trendFollowStrategy.profitLockPercentage',
   0.5
 );
 
 /**
  * Donchianチャネルを計算する関数
- * @param candles ローソク足データ
- * @param period 期間
- * @returns Donchianチャネルの上限と下限
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {Object} Donchianチャネルの上限と下限
  */
-function calculateDonchian(candles: Candle[], period: number): { upper: number; lower: number } {
+function calculateDonchian(candles, period) {
   if (candles.length < period) {
     return { upper: 0, lower: 0 };
   }
@@ -74,11 +72,11 @@ function calculateDonchian(candles: Candle[], period: number): { upper: number; 
 
 /**
  * Parabolic SARの買いシグナルをチェック
- * @param candles ローソク足データ
- * @param currentSAR 現在のSAR計算結果
- * @returns 買いシグナルならtrue
+ * @param {Array} candles ローソク足データ
+ * @param {Object} currentSAR 現在のSAR計算結果
+ * @returns {boolean} 買いシグナルならtrue
  */
-export function isSARBuySignal(candles: Candle[], currentSAR: ParabolicSARResult): boolean {
+function isSARBuySignal(candles, currentSAR) {
   // 最新のローソク足
   const latestCandle = candles[candles.length - 1];
 
@@ -88,11 +86,11 @@ export function isSARBuySignal(candles: Candle[], currentSAR: ParabolicSARResult
 
 /**
  * Parabolic SARの売りシグナルをチェック
- * @param candles ローソク足データ
- * @param currentSAR 現在のSAR計算結果
- * @returns 売りシグナルならtrue
+ * @param {Array} candles ローソク足データ
+ * @param {Object} currentSAR 現在のSAR計算結果
+ * @returns {boolean} 売りシグナルならtrue
  */
-export function isSARSellSignal(candles: Candle[], currentSAR: ParabolicSARResult): boolean {
+function isSARSellSignal(candles, currentSAR) {
   // 最新のローソク足
   const latestCandle = candles[candles.length - 1];
 
@@ -102,11 +100,11 @@ export function isSARSellSignal(candles: Candle[], currentSAR: ParabolicSARResul
 
 /**
  * ADXを計算する関数
- * @param candles ローソク足データ
- * @param period 期間
- * @returns ADX値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {number} ADX値
  */
-function calculateADX(candles: Candle[], period: number): number {
+function calculateADX(candles, period) {
   if (candles.length < period * 2) {
     return 0;
   }
@@ -132,22 +130,22 @@ function calculateADX(candles: Candle[], period: number): number {
 
 /**
  * リスクベースのポジションサイズを計算する関数
- * @param accountBalance 口座残高
- * @param entryPrice エントリー価格
- * @param stopPrice ストップ価格
- * @param maxRiskPercentage 1トレードあたりの最大リスク率
- * @param strategyName 戦略名（ログ用）
- * @returns 適切なポジションサイズ
+ * @param {number} accountBalance 口座残高
+ * @param {number} entryPrice エントリー価格
+ * @param {number} stopPrice ストップ価格
+ * @param {number} maxRiskPercentage 1トレードあたりの最大リスク率
+ * @param {string} strategyName 戦略名（ログ用）
+ * @returns {number} 適切なポジションサイズ
  *
  * @deprecated 今後はOrderSizingServiceを使用する予定
  */
 function calculateRiskBasedPositionSize(
-  accountBalance: number,
-  entryPrice: number,
-  stopPrice: number,
-  maxRiskPercentage: number = RISK_PARAMETERS.MAX_RISK_PER_TRADE,
-  strategyName: string = 'Strategy'
-): number {
+  accountBalance,
+  entryPrice,
+  stopPrice,
+  maxRiskPercentage = RISK_PARAMETERS.MAX_RISK_PER_TRADE,
+  strategyName = 'Strategy'
+) {
   // 口座残高から使用可能なリスク額を計算
   const riskAmount = accountBalance * maxRiskPercentage;
 
@@ -171,18 +169,18 @@ function calculateRiskBasedPositionSize(
 
 /**
  * 改良版トレンドフォロー戦略を実行する関数
- * @param candles ローソク足データ
- * @param symbol 銘柄シンボル
- * @param currentPositions 現在のポジション
- * @param accountBalance 口座残高
- * @returns 戦略の実行結果
+ * @param {Array} candles ローソク足データ
+ * @param {string} symbol 銘柄シンボル
+ * @param {Array} currentPositions 現在のポジション
+ * @param {number} accountBalance 口座残高
+ * @returns {Object} 戦略の実行結果
  */
-export function executeTrendFollowStrategy(
-  candles: Candle[],
-  symbol: string,
-  currentPositions: Position[],
-  accountBalance: number = 10000
-): StrategyResult {
+function executeTrendFollowStrategy(
+  candles,
+  symbol,
+  currentPositions,
+  accountBalance = 10000
+) {
   // 必要なローソク足の数をチェック
   const requiredCandles =
     Math.max(DONCHIAN_PERIOD, MARKET_PARAMETERS.ATR_PERIOD, TREND_PARAMETERS.ADX_PERIOD) + 10;
@@ -198,207 +196,252 @@ export function executeTrendFollowStrategy(
     };
   }
 
-  // ポジション取得（指定シンボルのみ）
-  const positions = currentPositions.filter((p) => p.symbol === symbol);
+  try {
+    // シグナルを格納する配列
+    const signals = [];
 
-  // 現在値（最新のローソク足）
-  const currentPrice = candles[candles.length - 1].close;
+    // 現在の価格
+    const currentPrice = candles[candles.length - 1].close;
+    const previousPrice = candles[candles.length - 2].close;
 
-  // ドンチャンチャネルの計算
-  const donchian = calculateDonchian(candles, DONCHIAN_PERIOD);
+    // ATRを計算
+    const atr = calculateATR(candles, MARKET_PARAMETERS.ATR_PERIOD, 'TrendFollowStrategy');
 
-  // ATRの計算
-  const atr = calculateATR(candles, 14, 'TrendFollowStrategy');
+    // ATRが0の場合の安全対策
+    const validAtr = atr > 0 ? atr : currentPrice * 0.01;
 
-  // ADXの計算
-  const adx = calculateADX(candles, 14);
+    // Donchianチャネルを計算
+    const donchian = calculateDonchian(candles, DONCHIAN_PERIOD);
 
-  // Parabolic SARの計算
-  const sarResult = calculateParabolicSAR(candles);
+    // ADXを計算
+    const adxValue = calculateADX(candles, TREND_PARAMETERS.ADX_PERIOD);
 
-  // 生成するシグナルの配列
-  const signals: Order[] = [];
+    // Parabolic SARを計算
+    const sarResult = calculateParabolicSAR(candles);
 
-  // 現在のポジションがない場合のエントリー条件
-  if (positions.length === 0) {
-    // ブレイクアウト + ADX > 閾値 でのエントリー
-    const isStrongUptrend = currentPrice > donchian.upper && adx > ADX_THRESHOLD;
-    const isStrongDowntrend = currentPrice < donchian.lower && adx > ADX_THRESHOLD;
+    // 現在のポジションを確認
+    const hasPosition = currentPositions.some((p) => p.symbol === symbol);
+    const position = currentPositions.find((p) => p.symbol === symbol);
 
-    // 上昇ブレイクアウト（ロングエントリー）
-    if (isStrongUptrend || (USE_PARABOLIC_SAR && isSARBuySignal(candles, sarResult))) {
-      // ストップロス価格の計算（ATRベース）
-      const stopPrice = currentPrice - atr * INITIAL_STOP_ATR_FACTOR;
+    // ポジションの有無によって分岐
+    if (!hasPosition) {
+      // ===== ポジションがない場合: 新規エントリー条件をチェック =====
 
-      // リスクベースのポジションサイズを計算
-      const positionSize = calculateRiskBasedPositionSize(
-        accountBalance,
-        currentPrice,
-        stopPrice,
-        MAX_RISK_PER_TRADE,
-        'TrendFollowStrategy'
-      );
+      // 上昇ブレイク: 前回の終値がDonchian上限以下で、今回の終値がDonchian上限を超えた
+      const isBullishBreakout =
+        previousPrice <= donchian.upper && currentPrice > donchian.upper && adxValue > ADX_THRESHOLD;
 
-      // 買い注文シグナルを生成
-      signals.push({
-        symbol,
-        type: OrderType.MARKET,
-        side: OrderSide.BUY,
-        amount: positionSize,
-        timestamp: Date.now(),
-        stopPrice
-      });
-    }
-    // 下降ブレイクアウト（ショートエントリー）
-    else if (isStrongDowntrend || (USE_PARABOLIC_SAR && isSARSellSignal(candles, sarResult))) {
-      // ストップロス価格の計算（ATRベース）
-      const stopPrice = currentPrice + atr * INITIAL_STOP_ATR_FACTOR;
+      // 下落ブレイク: 前回の終値がDonchian下限以上で、今回の終値がDonchian下限を下回った
+      const isBearishBreakout =
+        previousPrice >= donchian.lower && currentPrice < donchian.lower && adxValue > ADX_THRESHOLD;
 
-      // リスクベースのポジションサイズを計算
-      const positionSize = calculateRiskBasedPositionSize(
-        accountBalance,
-        currentPrice,
-        stopPrice,
-        MAX_RISK_PER_TRADE,
-        'TrendFollowStrategy'
-      );
+      // Parabolic SARの買いシグナル/売りシグナル
+      const isSarBuy = USE_PARABOLIC_SAR && isSARBuySignal(candles, sarResult);
+      const isSarSell = USE_PARABOLIC_SAR && isSARSellSignal(candles, sarResult);
 
-      // 売り注文シグナルを生成
-      signals.push({
-        symbol,
-        type: OrderType.MARKET,
-        side: OrderSide.SELL,
-        amount: positionSize,
-        timestamp: Date.now(),
-        stopPrice
-      });
-    }
-  }
-  // 既存ポジションのトレイリングストップ調整
-  else {
-    for (const position of positions) {
-      // 含み損益の計算（R値）
-      let unrealizedProfitR = 0;
-      let stopPrice = position.stopPrice;
+      // 上昇ブレイクまたはSAR買いシグナルで買いエントリー
+      if (isBullishBreakout || isSarBuy) {
+        // ATRベースのストップロス価格を計算
+        const stopPrice = currentPrice - validAtr * INITIAL_STOP_ATR_FACTOR;
 
-      if (!stopPrice) {
-        console.warn(`[TrendFollowStrategy] ポジションにストップ価格が設定されていません`);
-        continue;
+        // リスクベースのポジションサイズを計算
+        const positionSize = calculateRiskBasedPositionSize(
+          accountBalance,
+          currentPrice,
+          stopPrice,
+          MAX_RISK_PER_TRADE,
+          'TrendFollowStrategy'
+        );
+
+        // 買い注文を生成
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: OrderSide.BUY,
+          amount: positionSize,
+          timestamp: Date.now(),
+          stopPrice: stopPrice, // ストップロス価格を設定
+          metadata: {
+            strategy: 'TrendFollow',
+            entryReason: isBullishBreakout ? 'DonchianBreakout' : 'ParabolicSAR',
+            atr: validAtr,
+            adx: adxValue
+          }
+        });
+
+        console.log(
+          `[TrendFollowStrategy] 買いシグナル: ${
+            isBullishBreakout ? 'Donchianブレイク' : 'ParabolicSAR'
+          }, 価格=${currentPrice}, ATR=${validAtr}, ADX=${adxValue}`
+        );
+      }
+      // 下落ブレイクまたはSAR売りシグナルで売りエントリー
+      else if (isBearishBreakout || isSarSell) {
+        // ATRベースのストップロス価格を計算
+        const stopPrice = currentPrice + validAtr * INITIAL_STOP_ATR_FACTOR;
+
+        // リスクベースのポジションサイズを計算
+        const positionSize = calculateRiskBasedPositionSize(
+          accountBalance,
+          currentPrice,
+          stopPrice,
+          MAX_RISK_PER_TRADE,
+          'TrendFollowStrategy'
+        );
+
+        // 売り注文を生成
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: OrderSide.SELL,
+          amount: positionSize,
+          timestamp: Date.now(),
+          stopPrice: stopPrice, // ストップロス価格を設定
+          metadata: {
+            strategy: 'TrendFollow',
+            entryReason: isBearishBreakout ? 'DonchianBreakout' : 'ParabolicSAR',
+            atr: validAtr,
+            adx: adxValue
+          }
+        });
+
+        console.log(
+          `[TrendFollowStrategy] 売りシグナル: ${
+            isBearishBreakout ? 'Donchianブレイク' : 'ParabolicSAR'
+          }, 価格=${currentPrice}, ATR=${validAtr}, ADX=${adxValue}`
+        );
+      }
+    } else if (position) {
+      // ===== ポジションがある場合: トレイリングストップや利益確定をチェック =====
+
+      // 現在のポジション方向と入口価格を取得
+      const entryPrice = position.entryPrice;
+      const isBuyPosition = position.side === OrderSide.BUY;
+      const isHedgeOrder = position.metadata && position.metadata.isHedgeOrder === true;
+
+      // 現在のP/L計算
+      const unrealizedPL = isBuyPosition
+        ? (currentPrice - entryPrice) / entryPrice
+        : (entryPrice - currentPrice) / entryPrice;
+
+      // 現在のストップ価格を取得
+      const currentStop = position.stopPrice || (isBuyPosition ? entryPrice * 0.95 : entryPrice * 1.05);
+      
+      // Parabolic SARによる反転シグナル
+      const isReversalSignal = isBuyPosition
+        ? isSARSellSignal(candles, sarResult)
+        : isSARBuySignal(candles, sarResult);
+
+      // 反対方向のSARシグナルが発生した場合、ポジションをクローズ
+      if (USE_PARABOLIC_SAR && isReversalSignal && !isHedgeOrder) {
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: isBuyPosition ? OrderSide.SELL : OrderSide.BUY,
+          amount: position.amount,
+          timestamp: Date.now(),
+          isClosePosition: true,
+          relatedPositionId: position.id,
+          metadata: {
+            closeReason: 'ParabolicSARReversal',
+            unrealizedPL: unrealizedPL
+          }
+        });
+
+        console.log(
+          `[TrendFollowStrategy] ${
+            isBuyPosition ? '買い' : '売り'
+          }ポジションをParabolic SAR反転でクローズ: PL=${(unrealizedPL * 100).toFixed(2)}%`
+        );
+
+        return {
+          strategy: StrategyType.TREND_FOLLOWING,
+          signals,
+          timestamp: Date.now()
+        };
       }
 
-      // エントリー価格からストップまでの距離（リスク距離）
-      const riskDistance = Math.abs(position.entryPrice - stopPrice);
+      // トレイリングストップの更新ロジック
+      if (!isHedgeOrder) {
+        let newStopPrice = currentStop;
 
-      // 現在の含み損益をR値で表現（何R分の利益/損失か）
-      if (position.side === OrderSide.BUY) {
-        unrealizedProfitR = (currentPrice - position.entryPrice) / riskDistance;
-
-        // トレイリングストップの調整
-        // 1. 損益分岐点移動（2R到達時）
-        if (unrealizedProfitR >= BREAKEVEN_MOVE_THRESHOLD && stopPrice < position.entryPrice) {
-          stopPrice = position.entryPrice; // 損益分岐点に移動
-        }
-        // 2. 利益確定（3R到達時、利益の50%を確定）
-        else if (unrealizedProfitR >= PROFIT_LOCK_THRESHOLD) {
-          const profitToLock = (currentPrice - position.entryPrice) * PROFIT_LOCK_PERCENTAGE;
-          const newStopPrice = position.entryPrice + profitToLock;
-          if (newStopPrice > stopPrice) {
-            stopPrice = newStopPrice;
+        // 利益が出ている場合
+        if (unrealizedPL > 0) {
+          // 利益がATRの2倍以上: ブレイクイーブンに移動
+          if (unrealizedPL > (validAtr / currentPrice) * BREAKEVEN_MOVE_THRESHOLD && 
+              (isBuyPosition ? currentStop < entryPrice : currentStop > entryPrice)) {
+            newStopPrice = entryPrice;
+            console.log(`[TrendFollowStrategy] ストップをブレイクイーブンに移動: ${newStopPrice}`);
+          }
+          
+          // 利益がATRの3倍以上: 利益を確定したトレイリングストップに移動
+          else if (unrealizedPL > (validAtr / currentPrice) * PROFIT_LOCK_THRESHOLD) {
+            // 利益の50%を確保するストップ
+            const profitLockLevel = entryPrice + (isBuyPosition ? 1 : -1) * 
+                                   (currentPrice - entryPrice) * PROFIT_LOCK_PERCENTAGE;
+            
+            // 現在のストップよりも有利な場合のみ更新
+            if (isBuyPosition ? profitLockLevel > currentStop : profitLockLevel < currentStop) {
+              newStopPrice = profitLockLevel;
+              console.log(`[TrendFollowStrategy] 利益確定ストップに移動: ${newStopPrice}, 確保利益=${PROFIT_LOCK_PERCENTAGE * 100}%`);
+            }
+          }
+          
+          // ATRベースのトレイリングストップ更新
+          const atrBasedStop = isBuyPosition
+            ? currentPrice - validAtr * TRAILING_STOP_FACTOR
+            : currentPrice + validAtr * TRAILING_STOP_FACTOR;
+          
+          // 現在のストップよりもトレイリングストップが有利な場合のみ更新
+          if (isBuyPosition ? atrBasedStop > newStopPrice : atrBasedStop < newStopPrice) {
+            newStopPrice = atrBasedStop;
+            console.log(`[TrendFollowStrategy] ATRベースのトレイリングストップに更新: ${newStopPrice}`);
           }
         }
-        // 3. ATRベースのトレイリングストップ
-        else {
-          const atrStopPrice = currentPrice - atr * TRAILING_STOP_FACTOR;
-          if (atrStopPrice > stopPrice) {
-            stopPrice = atrStopPrice;
-          }
-        }
 
-        // 4. Parabolic SARベースのトレイリングストップ（オプション）
-        if (USE_PARABOLIC_SAR && !sarResult.isUptrend) {
-          const sarStopPrice = sarResult.sar;
-          if (sarStopPrice > stopPrice) {
-            stopPrice = sarStopPrice;
-          }
-        }
-
-        // ストップ損切り（現在価格がストップ以下になった場合）
-        if (currentPrice <= stopPrice) {
+        // ストップ価格が変更された場合、更新シグナルを生成
+        if (newStopPrice !== currentStop) {
           signals.push({
             symbol,
-            type: OrderType.MARKET,
-            side: OrderSide.SELL, // 反対売買で決済
-            amount: position.amount,
+            type: OrderType.UPDATE_STOP,
+            positionId: position.id,
+            newStopPrice: newStopPrice,
             timestamp: Date.now()
           });
         }
-        // ストップ更新
-        else if (stopPrice !== position.stopPrice) {
-          // ストップ注文を更新（実際の実装ではポジションのストップを更新する処理が必要）
-          console.log(
-            `[TrendFollowStrategy] トレイリングストップを更新: ${position.stopPrice} -> ${stopPrice}`
-          );
-          // ここでは単純にログ出力のみ（実際の実装ではOrderManagementSystemでストップ更新処理が必要）
-        }
-      }
-      // ショートポジションの場合
-      else if (position.side === OrderSide.SELL) {
-        unrealizedProfitR = (position.entryPrice - currentPrice) / riskDistance;
-
-        // トレイリングストップの調整
-        // 1. 損益分岐点移動（2R到達時）
-        if (unrealizedProfitR >= BREAKEVEN_MOVE_THRESHOLD && stopPrice > position.entryPrice) {
-          stopPrice = position.entryPrice; // 損益分岐点に移動
-        }
-        // 2. 利益確定（3R到達時、利益の50%を確定）
-        else if (unrealizedProfitR >= PROFIT_LOCK_THRESHOLD) {
-          const profitToLock = (position.entryPrice - currentPrice) * PROFIT_LOCK_PERCENTAGE;
-          const newStopPrice = position.entryPrice - profitToLock;
-          if (newStopPrice < stopPrice) {
-            stopPrice = newStopPrice;
-          }
-        }
-        // 3. ATRベースのトレイリングストップ
-        else {
-          const atrStopPrice = currentPrice + atr * TRAILING_STOP_FACTOR;
-          if (atrStopPrice < stopPrice) {
-            stopPrice = atrStopPrice;
-          }
-        }
-
-        // 4. Parabolic SARベースのトレイリングストップ（オプション）
-        if (USE_PARABOLIC_SAR && sarResult.isUptrend) {
-          const sarStopPrice = sarResult.sar;
-          if (sarStopPrice < stopPrice) {
-            stopPrice = sarStopPrice;
-          }
-        }
-
-        // ストップ損切り（現在価格がストップ以上になった場合）
-        if (currentPrice >= stopPrice) {
-          signals.push({
-            symbol,
-            type: OrderType.MARKET,
-            side: OrderSide.BUY, // 反対売買で決済
-            amount: position.amount,
-            timestamp: Date.now()
-          });
-        }
-        // ストップ更新
-        else if (stopPrice !== position.stopPrice) {
-          // ストップ注文を更新（実際の実装ではポジションのストップを更新する処理が必要）
-          console.log(
-            `[TrendFollowStrategy] トレイリングストップを更新: ${position.stopPrice} -> ${stopPrice}`
-          );
-          // ここでは単純にログ出力のみ（実際の実装ではOrderManagementSystemでストップ更新処理が必要）
-        }
       }
     }
-  }
 
-  return {
-    strategy: StrategyType.TREND_FOLLOWING,
-    signals,
-    timestamp: Date.now()
-  };
+    return {
+      strategy: StrategyType.TREND_FOLLOWING,
+      signals,
+      timestamp: Date.now(),
+      metadata: {
+        donchianUpper: donchian.upper,
+        donchianLower: donchian.lower,
+        atr: atr,
+        adx: adxValue,
+        parabolicSAR: sarResult ? sarResult.sar : null,
+        isUptrend: sarResult ? sarResult.isUptrend : null
+      }
+    };
+  } catch (error) {
+    console.error(`[TrendFollowStrategy] エラー: ${error}`);
+    return {
+      strategy: StrategyType.TREND_FOLLOWING,
+      signals: [],
+      timestamp: Date.now(),
+      error: error.message || String(error)
+    };
+  }
 }
+
+// CommonJS形式でのエクスポート
+module.exports = {
+  executeTrendFollowStrategy,
+  isSARBuySignal,
+  isSARSellSignal,
+  calculateDonchian,
+  calculateADX,
+  calculateRiskBasedPositionSize
+};

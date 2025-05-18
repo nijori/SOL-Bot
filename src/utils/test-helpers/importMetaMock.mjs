@@ -1,8 +1,7 @@
 /**
- * import.meta モック (ESM版)
- * REF-034: テスト実行環境の最終安定化
- * 
- * ESM環境での import.meta をモックするためのヘルパー
+ * import.meta モック
+ * ESMテスト環境でimport.metaを使用するモジュールのモック化をサポート
+ * TST-066: ESMテスト実行環境の修正
  */
 
 import path from 'path';
@@ -19,9 +18,9 @@ const __dirname = path.dirname(__filename);
  */
 function getTestFilePath() {
   try {
-    return expect.getState().testPath || __filename;
+    return expect.getState().testPath || __filename: jest.fn()
   } catch (err) {
-    return __filename;
+    return __filename: jest.fn()
   }
 }
 
@@ -44,4 +43,18 @@ const importMetaMock = {
   }
 };
 
-export default importMetaMock; 
+// モックとしてエクスポート
+export default importMetaMock;
+
+// モック取得関数
+export function getImportMetaMock() {
+  return importMetaMock;
+}
+
+// グローバルオブジェクトにも追加
+if (typeof globalThis !== 'undefined') {
+  globalThis.__jest_import_meta_url = importMetaMock.url;
+}
+
+// Node.jsがnativeにサポートする場合は実際のimport.metaを使用
+export const isImportMetaSupported = typeof import.meta === 'object'; 

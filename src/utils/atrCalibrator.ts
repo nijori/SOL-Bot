@@ -112,8 +112,8 @@ export class ATRCalibrator {
     // 平均価格を計算
     const avgPrice = this.calculateAveragePrice(relevantCandles);
 
-    // ATR%計算
-    const atrPercentage = (atrValue / avgPrice) * 100;
+    // ATR%計算 - 平均価格が0またはNaNの場合のチェックを追加
+    const atrPercentage = avgPrice > 0 ? (atrValue / avgPrice) * 100 : parameterService.get<number>('risk.defaultAtrPercentage', 0.02) * 100;
 
     // ボラティリティプロファイル分類
     const volatilityProfile = this.classifyVolatility(atrPercentage);
@@ -157,6 +157,11 @@ export class ATRCalibrator {
     const lowThreshold = parameterService.get<number>('risk.volatilityLowThreshold', 2.0);
     const mediumThreshold = parameterService.get<number>('risk.volatilityMediumThreshold', 5.0);
     const highThreshold = parameterService.get<number>('risk.volatilityHighThreshold', 10.0);
+
+    // NaNチェックを追加
+    if (isNaN(atrPercentage)) {
+      return 'MEDIUM'; // NaNの場合はMEDIUMを返す
+    }
 
     if (atrPercentage < lowThreshold) {
       return 'LOW';
@@ -307,40 +312,43 @@ export class ATRCalibrator {
   }
 
   /**
-   * データが不足している場合のフォールバックキャリブレーション
+   * データが不足している場合のフォールバック値
    * @param symbol 通貨ペア
-   * @param candles ロウソク足データ
-   * @returns フォールバックキャリブレーション結果
+   * @param candles 既存のロウソク足（少量）
+   * @returns フォールバックのキャリブレーション結果
    */
   private getFallbackCalibration(symbol: string, candles?: Candle[]): CalibrationResult {
     logger.warn(`[ATRCalibrator] ${symbol} のフォールバックキャリブレーションを使用します`);
 
-    // 利用可能なデータから現在価格を取得
-    const currentPrice = candles && candles.length > 0 ? candles[candles.length - 1].close : 0;
+    // デフォルトのATR%（パラメータサービスから取得）
+    const defaultAtrPercentage = parameterService.get<number>('risk.defaultAtrPercentage', 0.02) * 100;
 
-    // デフォルトのATR%を使用
-    const defaultAtrPercentage =
-      parameterService.get<number>('risk.defaultAtrPercentage', 0.02) * 100;
+    // 平均価格を計算（データがある場合）
+    const avgPrice = candles && candles.length > 0 ? this.calculateAveragePrice(candles) : 0;
 
-    const result: CalibrationResult = {
+    // デフォルトプロファイルはMEDIUM
+    const volatilityProfile = 'MEDIUM';
+
+    // ミディアムボラティリティ用のパラメータ
+    const recommendedParameters = {
+      atrPercentageThreshold: defaultAtrPercentage * 1.1,
+      trailingStopFactor: 1.5,
+      gridAtrMultiplier: 0.6,
+      stopDistanceMultiplier: 1.2
+    };
+
+    return {
       symbol,
       atrPercentage: defaultAtrPercentage,
-      atrValue: (currentPrice * defaultAtrPercentage) / 100,
-      recommendedParameters: {
-        atrPercentageThreshold: 6.0,
-        trailingStopFactor: 1.5,
-        gridAtrMultiplier: 0.6,
-        stopDistanceMultiplier: 1.2
-      },
-      volatilityProfile: 'MEDIUM',
+      atrValue: avgPrice * (defaultAtrPercentage / 100),
+      recommendedParameters,
+      volatilityProfile,
       calculatedFrom: {
         candleCount: candles?.length || 0,
         periodDays: 0,
-        averagePrice: currentPrice
+        averagePrice: avgPrice
       }
     };
-
-    return result;
   }
 
   /**

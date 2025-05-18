@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # ヘルスチェックをテストするための簡易サービス
+  nginx-test:
+    image: nginx:alpine
+    container_name: nginx-test
+    ports:
+      - "8081:80"
+    volumes:
+      - ./monitoring:/usr/share/nginx/html
+    # ヘルスチェックを追加
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # curl付きのテスト用コンテナ
+  curl-test:
+    image: curlimages/curl:latest
+    container_name: curl-test
+    # シェルを保持して常時起動させる
+    command: ["tail", "-f", "/dev/null"]
+    depends_on:
+      - nginx-test 

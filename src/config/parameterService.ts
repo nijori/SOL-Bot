@@ -29,12 +29,22 @@ export interface IParameterService {
   setSymbolOverrides(overrides: MultiSymbolConfig): void;
 }
 
+// シングルトンインスタンスをグローバルに格納するための型拡張
+declare global {
+  var _parameterServiceSingleton: ParameterService | null;
+}
+
+// グローバル変数の初期化（未定義の場合）
+if (global._parameterServiceSingleton === undefined) {
+  global._parameterServiceSingleton = null;
+}
+
 /**
  * パラメータサービスクラス
  * YAMLファイルからパラメータを読み込み、環境変数で上書き可能
  */
 export class ParameterService implements IParameterService {
-  private static instance: ParameterService;
+  private static instance: ParameterService | null = null;
   private parameters: Record<string, any> = {};
   private yamlPath: string;
   private symbolOverrides: MultiSymbolConfig | null = null;
@@ -61,8 +71,18 @@ export class ParameterService implements IParameterService {
    * @returns ParameterServiceのインスタンス
    */
   public static getInstance(): ParameterService {
-    if (!ParameterService.instance) {
-      ParameterService.instance = new ParameterService();
+    if (ParameterService.instance === null) {
+      // グローバル変数にインスタンスがある場合はそれを使用
+      if (global._parameterServiceSingleton !== null && global._parameterServiceSingleton !== undefined) {
+        ParameterService.instance = global._parameterServiceSingleton;
+        logger.debug('既存のパラメータサービスを使用しました');
+      } else {
+        // なければ新規作成
+        ParameterService.instance = new ParameterService();
+        // グローバル変数にも保存
+        global._parameterServiceSingleton = ParameterService.instance;
+        logger.debug('新しいパラメータサービスを作成しました');
+      }
     }
     return ParameterService.instance;
   }
@@ -72,11 +92,18 @@ export class ParameterService implements IParameterService {
    * @param parameters 新しいパラメータ
    */
   public static resetInstance(parameters?: Record<string, any>): void {
-    if (parameters) {
-      ParameterService.instance = new ParameterService(undefined, parameters);
-    } else {
-      ParameterService.instance = new ParameterService();
-    }
+    // 新しいインスタンスを作成
+    const newInstance = parameters 
+      ? new ParameterService(undefined, parameters)
+      : new ParameterService();
+    
+    // 既存のインスタンスを更新
+    ParameterService.instance = newInstance;
+    
+    // グローバルのparameterServiceも同じインスタンスを参照するように更新
+    global._parameterServiceSingleton = newInstance;
+    
+    logger.debug('パラメータサービスをリセットしました');
   }
 
   /**
@@ -114,77 +141,33 @@ export class ParameterService implements IParameterService {
   private processEnvVariables(obj: any): any {
     if (typeof obj === 'string') {
       // 環境変数プレースホルダーを検出して置換
-      // 新しい正規表現パターンで型ヒントをサポート
       return obj.replace(
         /\${([^:}]+)(?::([^:}]+))?(?::([^}]+))?}/g,
         (match, envVar, typeHint, defaultValue) => {
           const envValue = process.env[envVar];
-
+          
           // 環境変数が存在しない場合はデフォルト値を使用
           if (envValue === undefined) {
+            // デフォルト値を適切な型に変換
+            if (typeHint && defaultValue) {
+              return this.convertValueByTypeHint(defaultValue, typeHint.toLowerCase());
+            }
+            
+            // 以前の形式 ${MISSING_VAR:-default} に対応
+            if (defaultValue && !typeHint) {
+              return this.autoDetectAndConvertType(defaultValue);
+            }
+            
             return defaultValue || '';
           }
-
-          // 型ヒントがある場合は適切な型に変換
+          
+          // 型ヒントがある場合の処理
           if (typeHint) {
-            try {
-              switch (typeHint.toLowerCase()) {
-                case 'number':
-                  // 数値に変換
-                  const numValue = Number(envValue);
-                  // 有効な数値であることを確認
-                  if (!isNaN(numValue)) {
-                    return numValue;
-                  }
-                  // 変換できなければデフォルト値を数値として返す
-                  return defaultValue ? Number(defaultValue) : 0;
-
-                case 'boolean':
-                  // 真偽値に変換 (true、yes、1、onなどを真として扱う)
-                  const boolStr = envValue.toLowerCase();
-                  if (['true', 'yes', '1', 'on', 'y'].includes(boolStr)) {
-                    return true;
-                  }
-                  if (['false', 'no', '0', 'off', 'n'].includes(boolStr)) {
-                    return false;
-                  }
-                  // 変換できなければデフォルト値を真偽値として返す
-                  return defaultValue
-                    ? ['true', 'yes', '1', 'on', 'y'].includes(defaultValue.toLowerCase())
-                    : false;
-
-                case 'string':
-                  // 明示的に文字列として扱う
-                  return envValue;
-
-                default:
-                  // 不明な型ヒントの場合は文字列として処理
-                  logger.warn(
-                    `未知の型ヒント '${typeHint}' が指定されました。文字列として処理します。`
-                  );
-                  return envValue;
-              }
-            } catch (error) {
-              logger.error(
-                `環境変数 ${envVar} の型変換中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`
-              );
-              return defaultValue || envValue;
-            }
+            return this.convertValueByTypeHint(envValue, typeHint.toLowerCase());
           }
-
-          // 型ヒントがない場合は自動的に型を推論
-          // 数値として解析可能かチェック
-          if (/^-?\d+(\.\d+)?$/.test(envValue)) {
-            return Number(envValue);
-          }
-
-          // 真偽値として解析可能かチェック
-          if (['true', 'false'].includes(envValue.toLowerCase())) {
-            return envValue.toLowerCase() === 'true';
-          }
-
-          // それ以外は文字列として扱う
-          return envValue;
+          
+          // 一般的な型推論処理
+          return this.autoDetectAndConvertType(envValue);
         }
       );
     } else if (Array.isArray(obj)) {
@@ -198,6 +181,7 @@ export class ParameterService implements IParameterService {
       }
       return result;
     }
+    
     // その他の型はそのまま返す
     return obj;
   }
@@ -227,69 +211,68 @@ export class ParameterService implements IParameterService {
       current = current[part];
     }
 
-    return current !== undefined && current !== null ? current : (defaultValue as T);
+    return current !== undefined && current !== null ? current as T : (defaultValue as T);
   }
 
   /**
    * 相場環境判定用パラメータを取得
    */
   public getMarketParameters(): any {
-    return this.parameters.market || {};
+    return this.get('market', {});
   }
 
   /**
-   * トレンド戦略用パラメータを取得
+   * トレンドフォロー戦略用パラメータを取得
    */
   public getTrendParameters(): any {
-    return this.parameters.trend || {};
+    return this.get('trend', {});
   }
 
   /**
    * レンジ戦略用パラメータを取得
    */
   public getRangeParameters(): any {
-    return this.parameters.range || {};
+    return this.get('range', {});
   }
 
   /**
-   * リスク管理パラメータを取得
+   * リスク管理用パラメータを取得
    */
   public getRiskParameters(): any {
-    return this.parameters.risk || {};
+    return this.get('risk', {});
   }
 
   /**
-   * ログと監視パラメータを取得
+   * モニタリング用パラメータを取得
    */
   public getMonitoringParameters(): any {
-    return this.parameters.monitoring || {};
+    return this.get('monitoring', {});
   }
 
   /**
-   * バックテストパラメータを取得
+   * バックテスト用パラメータを取得
    */
   public getBacktestParameters(): any {
-    return this.parameters.backtest || {};
+    return this.get('backtest', {});
   }
 
   /**
-   * 動作モードを取得
+   * 運用モード（live, simulation, backtest）を取得
    */
   public getOperationMode(): string {
-    return this.parameters.operation?.mode || 'simulation';
+    return this.get('operation.mode', 'simulation');
   }
 
   /**
-   * パラメータを更新する（部分的に）
-   * 主に最適化やテスト用
+   * パラメータをマージして更新する
    * @param params 更新するパラメータ
    */
   public updateParameters(params: Record<string, any>): void {
     // ディープマージ関数
     const deepMerge = (target: any, source: any) => {
       for (const key in source) {
-        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-          if (!target[key]) target[key] = {};
+        if (source[key] === Object(source[key]) && !Array.isArray(source[key])) {
+          target[key] = target[key] || {};
           deepMerge(target[key], source[key]);
         } else {
           target[key] = source[key];
@@ -298,89 +281,179 @@ export class ParameterService implements IParameterService {
       return target;
     };
 
-    // パラメータをマージ
-    this.parameters = deepMerge(this.parameters, params);
+    // 既存のパラメータに新しいパラメータをマージ
+    this.parameters = deepMerge({ ...this.parameters }, params);
     logger.debug('パラメータを更新しました');
   }
 
   /**
-   * 特定のシンボルに対応するパラメータを取得する
-   * シンボル固有の設定がある場合は、デフォルト設定と深くマージして返す
-   * @param symbol 取引ペアシンボル
-   * @returns シンボル用のパラメータ設定
+   * 指定された通貨ペアのパラメータを取得
+   * オーバーライドがあれば適用
+   * @param symbol 通貨ペア（例: "SOL/USDT"）
+   * @returns 通貨ペア固有のパラメータ
    */
   public getParametersForSymbol(symbol: string): Record<string, any> {
-    // シンボルオーバーライドがない場合は標準パラメータを返す
-    if (!this.symbolOverrides) {
-      return this.getAllParameters();
+    // 基本パラメータをコピー
+    const baseParams = { ...this.parameters };
+    
+    // シンボルオーバーライドがなければ基本パラメータを返す
+    if (!this.symbolOverrides || !this.symbolOverrides[symbol]) {
+      return baseParams;
     }
 
-    // シンボル固有の設定がない場合はデフォルト設定を返す
-    if (!this.symbolOverrides[symbol]) {
-      return {
-        ...this.getAllParameters(),
-        ...this.symbolOverrides.default
-      };
-    }
-
-    // デフォルトパラメータをベースに、デフォルトオーバーライドとシンボル固有オーバーライドを適用
-    const baseParams = this.getAllParameters();
-    const defaultOverrides = this.symbolOverrides.default || {};
-    const symbolOverrides = this.symbolOverrides[symbol] || {};
-
-    // 深いマージを行う関数
+    // ディープマージ関数（オーバーライド用）
     const deepMerge = (target: any, source: any): any => {
-      if (source === null || typeof source !== 'object') return source;
-      if (target === null || typeof target !== 'object') return { ...source };
-
       const result = { ...target };
-
-      Object.keys(source).forEach((key) => {
-        if (source[key] instanceof Object && key in target) {
-          result[key] = deepMerge(target[key], source[key]);
+      
+      for (const key in source) {
+        if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+          // 両方がオブジェクトの場合は再帰的にマージ
+          if (target[key] !== null && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+            result[key] = deepMerge(target[key], source[key]);
+          } else {
+            // ターゲットがオブジェクトでない場合はソースのオブジェクトを使用
+            result[key] = { ...source[key] };
+          }
         } else {
+          // オブジェクトでない場合は直接上書き
           result[key] = source[key];
         }
-      });
-
+      }
+      
       return result;
     };
 
-    // パラメータを順番に適用（ベース → デフォルトオーバーライド → シンボル固有オーバーライド）
-    let mergedParams = deepMerge(baseParams, defaultOverrides);
-    mergedParams = deepMerge(mergedParams, symbolOverrides);
-
-    return mergedParams;
+    // 通貨ペア固有のオーバーライドを適用
+    const symbolSpecificParams = deepMerge(baseParams, this.symbolOverrides[symbol]);
+    logger.debug(`${symbol}固有のパラメータを適用しました`);
+    
+    return symbolSpecificParams;
   }
 
   /**
-   * シンボル別設定オーバーライドを設定する
-   * @param overrides シンボル別設定オーバーライド
+   * 複数通貨ペアのパラメータオーバーライドを設定
+   * @param overrides 通貨ペアごとのオーバーライド設定
    */
   public setSymbolOverrides(overrides: MultiSymbolConfig): void {
     this.symbolOverrides = overrides;
-    logger.info('シンボル別設定オーバーライドを適用しました');
+    logger.info(`${Object.keys(overrides).length}通貨ペアのオーバーライド設定を適用しました`);
+  }
+
+  /**
+   * 値を型ヒントに基づいて変換する
+   * @param value 変換する値
+   * @param typeHint 型ヒント
+   * @returns 変換された値
+   */
+  private convertValueByTypeHint(value: string, typeHint: string): any {
+    try {
+      switch (typeHint) {
+        case 'number':
+          // 数値に変換
+          return Number(value);
+          
+        case 'boolean':
+          // 真偽値に変換
+          const boolStr = value.toLowerCase();
+          if (['true', 'yes', '1', 'on', 'y'].includes(boolStr)) {
+            return true;
+          }
+          if (['false', 'no', '0', 'off', 'n'].includes(boolStr)) {
+            return false;
+          }
+          // 変換できない場合はデフォルト値を使用
+          return value === 'true';
+          
+        case 'string':
+          // 明示的に文字列として扱う
+          return String(value);
+          
+        default:
+          logger.warn(`未知の型ヒント '${typeHint}' が指定されました。文字列として処理します。`);
+          return value;
+      }
+    } catch (error) {
+      logger.error(`値 ${value} の型変換中にエラーが発生しました: ${error instanceof Error ? error.message : String(error)}`);
+      return value;
+    }
+  }
+
+  /**
+   * 値を自動検出して変換する
+   * @param value 変換する値
+   * @returns 変換された値
+   */
+  private autoDetectAndConvertType(value: string): any {
+    // 数値に見える場合は数値に変換
+    if (/^-?\d+(\.\d+)?$/.test(value)) {
+      return Number(value);
+    }
+    
+    // 真偽値に見える場合
+    const lowerValue = value.toLowerCase();
+    if (lowerValue === 'true') {
+      return true;
+    }
+    if (lowerValue === 'false') {
+      return false;
+    }
+    
+    // それ以外は文字列として扱う
+    return value;
   }
 }
 
-// 後方互換性のためのシングルトンインスタンス
+/**
+ * シングルトンインスタンス（後方互換性のため）
+ * 注: 新しいコードでは直接インスタンス化するか、DIコンテナを使用することを推奨
+ */
 export const parameterService = ParameterService.getInstance();
 
 /**
- * テスト用のモックパラメータサービスを作成する関数
+ * モックパラメータサービスを作成（テスト用）
  * @param mockParams モックパラメータ
- * @returns モックパラメータサービス
+ * @returns IParameterServiceインターフェースを実装したモックオブジェクト
  */
 export function createMockParameterService(
   mockParams: Record<string, any> = {}
 ): IParameterService {
-  return new ParameterService(undefined, mockParams);
+  // モックパラメータにドット表記のキーが含まれているか確認
+  const processedParams: Record<string, any> = {};
+  
+  // ドット表記のキーをネストされたオブジェクトとして変換
+  for (const [key, value] of Object.entries(mockParams)) {
+    if (key.includes('.')) {
+      // ドット区切りのキーを分割
+      const parts = key.split('.');
+      let current = processedParams;
+      
+      // 最後のパートを除く各階層を作成
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (!current[parts[i]]) {
+          current[parts[i]] = {};
+        }
+        current = current[parts[i]];
+      }
+      
+      // 最後のパートに値を設定
+      current[parts[parts.length - 1]] = value;
+    } else {
+      // ドットがない場合はそのまま設定
+      processedParams[key] = value;
+    }
+  }
+  
+  // 処理したパラメータでモックサービスを作成
+  const mockService = new ParameterService(undefined, processedParams);
+  
+  // モックパラメータサービスを返す
+  return mockService;
 }
 
 /**
- * 最適化のためにパラメータを一時的に適用する
- * @param params 適用するパラメータのオブジェクト
- * @param service 対象のパラメータサービス（省略時はシングルトンインスタンス）
+ * パラメータを適用するユーティリティ関数
+ * @param params 適用するパラメータ
+ * @param service 対象のパラメータサービス（デフォルトはシングルトン）
  */
 export function applyParameters(
   params: Record<string, any>,
@@ -389,16 +462,7 @@ export function applyParameters(
   if (service instanceof ParameterService) {
     service.updateParameters(params);
   } else {
-    logger.warn(
-      '提供されたサービスはParameterServiceのインスタンスではなく、updateParametersメソッドがありません'
-    );
+    logger.warn('パラメータ適用先がParameterServiceのインスタンスではありません');
   }
 }
 
-// CommonJS環境とESM環境の両方でのimport互換性向上のためのデフォルトエクスポート
-export default {
-  parameterService,
-  ParameterService,
-  createMockParameterService,
-  applyParameters
-};

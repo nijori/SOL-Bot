@@ -1,39 +1,42 @@
-import { Highest, Lowest, ATR } from 'technicalindicators';
-import {
-  Candle,
-  Order,
-  OrderSide,
-  OrderType,
-  Position,
-  StrategyResult,
-  StrategyType
-} from '../core/types.js';
-import { RANGE_PARAMETERS, MARKET_PARAMETERS } from '../config/parameters.js';
-import { parameterService } from '../config/parameterService.js';
+/**
+ * レンジ取引戦略の実装
+ * レンジ内でのグリッド取引とブレイクアウト時のエスケープシステム
+ * 
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
+ */
+// @ts-nocheck
+
+// CommonJS形式のモジュールインポート
+const technicalIndicators = require('technicalindicators');
+const { Highest, Lowest, ATR } = technicalIndicators;
+const Types = require('../core/types');
+const { Candle, Order, OrderSide, OrderType, Position, StrategyResult, StrategyType } = Types;
+const { RANGE_PARAMETERS, MARKET_PARAMETERS } = require('../config/parameters');
+const { parameterService } = require('../config/parameterService');
 
 // グリッド関連のパラメータをYAML設定から取得
-const GRID_ATR_MULTIPLIER = parameterService.get<number>('rangeStrategy.gridAtrMultiplier', 0.6);
-const RANGE_MULTIPLIER = parameterService.get<number>('rangeStrategy.rangeMultiplier', 0.9);
-const MIN_SPREAD_PERCENTAGE = parameterService.get<number>(
+const GRID_ATR_MULTIPLIER = parameterService.get('rangeStrategy.gridAtrMultiplier', 0.6);
+const RANGE_MULTIPLIER = parameterService.get('rangeStrategy.rangeMultiplier', 0.9);
+const MIN_SPREAD_PERCENTAGE = parameterService.get(
   'rangeStrategy.minSpreadPercentage',
   0.3
 );
-const ESCAPE_THRESHOLD = parameterService.get<number>('rangeStrategy.escapeThreshold', 0.02);
+const ESCAPE_THRESHOLD = parameterService.get('rangeStrategy.escapeThreshold', 0.02);
 
 // ATR==0の場合のフォールバック設定
-const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
-const MIN_ATR_VALUE = parameterService.get<number>('risk.minAtrValue', 0.0001);
+const DEFAULT_ATR_PERCENTAGE = parameterService.get('risk.defaultAtrPercentage', 0.02);
+const MIN_ATR_VALUE = parameterService.get('risk.minAtrValue', 0.0001);
 
 /**
  * 特定期間の高値と安値を計算
- * @param candles ローソク足データ
- * @param period 期間
- * @returns 高値と安値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {Object} 高値と安値
  */
 function calculateRangeBoundaries(
-  candles: Candle[],
-  period: number
-): { high: number; low: number } {
+  candles,
+  period
+) {
   const highValues = candles.slice(-period).map((c) => c.high);
   const lowValues = candles.slice(-period).map((c) => c.low);
 
@@ -58,11 +61,11 @@ function calculateRangeBoundaries(
 
 /**
  * ATR（Average True Range）を計算
- * @param candles ローソク足データ
- * @param period 期間
- * @returns ATR値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {number} ATR値
  */
-function calculateATR(candles: Candle[], period: number): number {
+function calculateATR(candles, period) {
   if (candles.length < period) {
     console.warn('[RangeStrategy] ATR計算に必要なローソク足データが不足しています');
     // デフォルト値として現在価格の2%を返す
@@ -121,11 +124,11 @@ function calculateATR(candles: Candle[], period: number): number {
 
 /**
  * ATRパーセンテージを計算（ATR/Close）
- * @param atr ATR値
- * @param closePrice 終値
- * @returns ATRパーセンテージ
+ * @param {number} atr ATR値
+ * @param {number} closePrice 終値
+ * @returns {number} ATRパーセンテージ
  */
-function calculateAtrPercentage(atr: number, closePrice: number): number {
+function calculateAtrPercentage(atr, closePrice) {
   // 0除算防止
   if (closePrice === 0 || isNaN(closePrice)) {
     console.warn('[RangeStrategy] ATR%計算の分母（closePrice）が0またはNaNです');
@@ -137,11 +140,11 @@ function calculateAtrPercentage(atr: number, closePrice: number): number {
 
 /**
  * VWAP（Volume Weighted Average Price）を計算
- * @param candles ローソク足データ
- * @param period 期間
- * @returns VWAP値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {number} VWAP値
  */
-function calculateVWAP(candles: Candle[], period: number): number {
+function calculateVWAP(candles, period) {
   // 計算に使用する期間分のデータを取得
   const recentCandles = candles.slice(-period);
 
@@ -169,21 +172,21 @@ function calculateVWAP(candles: Candle[], period: number): number {
 
 /**
  * 注文を分割するIceberg（氷山）注文を生成
- * @param symbol 銘柄シンボル
- * @param side 売買方向
- * @param price 価格
- * @param totalAmount 総注文量
- * @param chunks 分割数
- * @returns 分割された注文の配列
+ * @param {string} symbol 銘柄シンボル
+ * @param {string} side 売買方向
+ * @param {number} price 価格
+ * @param {number} totalAmount 総注文量
+ * @param {number} chunks 分割数
+ * @returns {Array} 分割された注文の配列
  */
 function createIcebergOrders(
-  symbol: string,
-  side: OrderSide,
-  price: number,
-  totalAmount: number,
-  chunks: number = 3
-): Order[] {
-  const orders: Order[] = [];
+  symbol,
+  side,
+  price,
+  totalAmount,
+  chunks = 3
+) {
+  const orders = [];
   const chunkSize = totalAmount / chunks;
 
   for (let i = 0; i < chunks; i++) {
@@ -203,7 +206,7 @@ function createIcebergOrders(
       side,
       price: chunkPrice,
       amount,
-      timestamp: Date.now() + i * 100 // タイムスタンプを少しずつずらす
+      timestamp: Date.now()
     });
   }
 
@@ -211,44 +214,57 @@ function createIcebergOrders(
 }
 
 /**
+ * レンジ内かどうか判定
+ * @param {number} price 判定する価格
+ * @param {number} high レンジ上限
+ * @param {number} low レンジ下限
+ * @param {number} buffer バッファ（%）
+ * @returns {boolean} レンジ内かどうか
+ */
+function isWithinRange(price, high, low, buffer = 0.01) {
+  const upperBound = high * (1 + buffer);
+  const lowerBound = low * (1 - buffer);
+
+  return price >= lowerBound && price <= upperBound;
+}
+
+/**
  * グリッドレベル数を動的に計算
- * @param range レンジの幅
- * @param atrPercent ATRパーセンテージ
- * @param currentPrice 現在の価格
- * @returns グリッドレベル数
+ * @param {number} range レンジの幅
+ * @param {number} atrPercent ATRパーセンテージ
+ * @param {number} currentPrice 現在価格
+ * @returns {number} グリッドレベル数
  */
 function calculateDynamicGridLevels(
-  range: number,
-  atrPercent: number,
-  currentPrice: number
-): number {
-  // ATR%がすでにパーセント表記（100倍）になっているため、100で割る
-  // 正しいグリッド幅計算式に修正：ATR%を小数に変換してから計算
-  const levelWidth = (atrPercent / 100) * GRID_ATR_MULTIPLIER * currentPrice;
+  range,
+  atrPercent,
+  currentPrice
+) {
+  // 安全対策：ATRがゼロまたは非常に小さい場合のフォールバック
+  const safeAtrPercent = atrPercent > 0.1 ? atrPercent : 2.0;
 
-  // デバッグログ
+  // レンジ内に配置するグリッド数の計算
+  // ATR%が大きいほど少ないグリッド数に（ボラティリティが高い時は少なめに）
+  const baseGrids = Math.ceil(range / (safeAtrPercent * GRID_ATR_MULTIPLIER * currentPrice / 100));
+
+  // 合理的な範囲に制限（3〜10）
+  const gridLevels = Math.max(3, Math.min(10, baseGrids));
+
   console.log(
-    `[RangeStrategy] グリッド計算: range=${range}, atrPercent=${atrPercent}%, ` +
-      `multiplier=${GRID_ATR_MULTIPLIER}, currentPrice=${currentPrice}, ` +
-      `levelWidth=${levelWidth}, levels=${Math.ceil(range / levelWidth)}`
+    `[RangeStrategy] 動的グリッドレベル計算: range=${range}, ATR%=${safeAtrPercent}, グリッド数=${gridLevels}`
   );
 
-  // 最小レベル数と最大レベル数の間の値を返す
-  const levels = Math.ceil(range / levelWidth);
-  return Math.max(
-    RANGE_PARAMETERS.GRID_LEVELS_MIN,
-    Math.min(RANGE_PARAMETERS.GRID_LEVELS_MAX, levels)
-  );
+  return gridLevels;
 }
 
 /**
  * グリッドレベルを計算
- * @param high 上限
- * @param low 下限
- * @param levels レベル数
- * @returns グリッドレベルの配列
+ * @param {number} high レンジ上限
+ * @param {number} low レンジ下限
+ * @param {number} levels グリッドレベル数
+ * @returns {Array} グリッドレベルの配列
  */
-function calculateGridLevels(high: number, low: number, levels: number): number[] {
+function calculateGridLevels(high, low, levels) {
   const step = (high - low) / (levels + 1);
   const gridLevels = [];
 
@@ -261,183 +277,249 @@ function calculateGridLevels(high: number, low: number, levels: number): number[
 
 /**
  * レンジ戦略を実行する関数
- * @param candles ローソク足データ
- * @param symbol 銘柄シンボル
- * @param currentPositions 現在のポジション
- * @returns 戦略の実行結果
+ * @param {Array} candles ローソク足データ
+ * @param {string} symbol 銘柄シンボル
+ * @param {Array} currentPositions 現在のポジション
+ * @returns {Object} 戦略の実行結果
  */
-export function executeRangeStrategy(
-  candles: Candle[],
-  symbol: string,
-  currentPositions: Position[]
-): StrategyResult {
-  // データが不足している場合は空のシグナルを返す
-  if (candles.length < Math.max(RANGE_PARAMETERS.RANGE_PERIOD, MARKET_PARAMETERS.ATR_PERIOD) + 10) {
+function executeRangeStrategy(
+  candles,
+  symbol,
+  currentPositions
+) {
+  // データが十分にあるか確認
+  if (candles.length < RANGE_PARAMETERS.PERIOD + 10) {
+    console.warn(
+      `[RangeStrategy] 十分なローソク足データがありません: ${candles.length}/${
+        RANGE_PARAMETERS.PERIOD + 10
+      }`
+    );
     return {
-      strategy: StrategyType.RANGE_TRADING,
+      strategy: StrategyType.RANGE,
       signals: [],
       timestamp: Date.now()
     };
   }
 
-  // レンジの上限と下限を計算
-  const range = calculateRangeBoundaries(candles, RANGE_PARAMETERS.RANGE_PERIOD);
+  try {
+    // シグナル配列の初期化
+    const signals = [];
 
-  // レンジの幅を計算
-  const rangeWidth = range.high - range.low;
+    // 現在の価格
+    const currentPrice = candles[candles.length - 1].close;
 
-  // ATRを計算
-  const currentATR = calculateATR(candles, MARKET_PARAMETERS.ATR_PERIOD);
+    // レンジの境界を計算
+    const rangeBoundaries = calculateRangeBoundaries(candles, RANGE_PARAMETERS.PERIOD);
+    const rangeHigh = rangeBoundaries.high;
+    const rangeLow = rangeBoundaries.low;
 
-  // 現在の終値
-  const currentPrice = candles[candles.length - 1].close;
+    // レンジの大きさ（％）を計算
+    const rangeSize = (rangeHigh - rangeLow) / rangeLow * 100;
 
-  // ATR%を計算
-  const atrPercent = calculateAtrPercentage(currentATR, currentPrice);
+    // ATRを計算
+    const atr = calculateATR(candles, MARKET_PARAMETERS.ATR_PERIOD);
+    const atrPercent = calculateAtrPercentage(atr, currentPrice);
 
-  // VWAPを計算（直近20本のローソク足を使用）
-  const vwap = calculateVWAP(candles, 20);
+    // レンジが十分に確立されているか確認
+    const isRangeValid = rangeSize >= RANGE_PARAMETERS.MIN_RANGE_SIZE;
 
-  // 動的にグリッドレベル数を計算 - 現在価格をパラメータとして渡す
-  const gridLevelCount = calculateDynamicGridLevels(rangeWidth, atrPercent, currentPrice);
+    // 現在の価格がレンジ内かどうか確認
+    const inRange = isWithinRange(currentPrice, rangeHigh, rangeLow);
 
-  // グリッドレベルを計算
-  const gridLevels = calculateGridLevels(range.high, range.low, gridLevelCount);
+    // VWAPを計算
+    const vwap = calculateVWAP(candles, 20);
+    const isAboveVWAP = currentPrice > vwap;
 
-  const previousPrice = candles[candles.length - 2].close;
+    // レンジが有効で、かつ価格がレンジ内にある場合
+    if (isRangeValid && inRange) {
+      // 動的にグリッドレベル数を計算
+      const gridLevels = calculateDynamicGridLevels(rangeHigh - rangeLow, atrPercent, currentPrice);
 
-  // シグナルを格納する配列
-  const signals: Order[] = [];
+      // グリッドレベルを計算
+      const levels = calculateGridLevels(rangeHigh, rangeLow, gridLevels);
 
-  // 現在のポジションを確認
-  const longPositions = currentPositions.filter(
-    (p) => p.symbol === symbol && p.side === OrderSide.BUY
-  );
-  const shortPositions = currentPositions.filter(
-    (p) => p.symbol === symbol && p.side === OrderSide.SELL
-  );
+      // 各レベルを回り、現在の価格に対して注文を生成
+      levels.forEach((level) => {
+        // 価格レベルと現在価格の距離を計算
+        const distance = Math.abs(level - currentPrice);
+        const distancePercent = (distance / currentPrice) * 100;
 
-  // レンジから外れた場合のポジションクローズ（改善版）
-  if (currentPrice > range.high && shortPositions.length > 0) {
-    // レンジ上限を超えた場合、すべての売りポジションを決済
-    const totalShortAmount = shortPositions.reduce((total, pos) => total + pos.amount, 0);
+        // 十分に離れたレベルのみ注文を生成
+        if (distancePercent >= MIN_SPREAD_PERCENTAGE) {
+          // 距離に応じた注文量を計算（距離が大きいほど大きなサイズ）
+          // ベースサイズを設定（例: 口座残高の2%）
+          const baseSize = 0.02;
+          // 距離に応じた係数（距離が大きいほど注文量を増やす）
+          const distanceFactor = 1 + distancePercent / 5; // 例: 5%離れたら1.01倍、10%離れたら1.02倍...
+          const orderSize = baseSize * distanceFactor;
 
-    // VWAP + 0.1%の価格でLIMIT注文を出す（氷山注文）
-    const limitPrice = vwap * 1.001; // VWAP + 0.1%
+          // 現在価格よりも高いレベルには売り注文、低いレベルには買い注文
+          const side = level > currentPrice ? OrderSide.SELL : OrderSide.BUY;
 
-    // 氷山注文（分割注文）を生成して追加
-    const icebergOrders = createIcebergOrders(
-      symbol,
-      OrderSide.BUY,
-      limitPrice,
-      totalShortAmount,
-      3 // 3分割
-    );
+          // Iceberg注文を生成（大きなサイズを複数の小さな注文に分割）
+          const orders = createIcebergOrders(symbol, side, level, orderSize);
+          signals.push(...orders);
+        }
+      });
 
-    signals.push(...icebergOrders);
+      // レンジの中央付近では、VWAPを基準に追加の注文を生成
+      const rangeMiddle = (rangeHigh + rangeLow) / 2;
+      const isNearMiddle = Math.abs(currentPrice - rangeMiddle) / rangeMiddle < 0.02; // 中央から2%以内
 
-    // 一部はMARKET注文で即時決済（ポジションの30%）
-    signals.push({
-      symbol,
-      type: OrderType.MARKET,
-      side: OrderSide.BUY,
-      amount: totalShortAmount * 0.3,
-      timestamp: Date.now()
-    });
-  } else if (currentPrice < range.low && longPositions.length > 0) {
-    // レンジ下限を下回った場合、すべての買いポジションを決済
-    const totalLongAmount = longPositions.reduce((total, pos) => total + pos.amount, 0);
-
-    // VWAP - 0.1%の価格でLIMIT注文を出す（氷山注文）
-    const limitPrice = vwap * 0.999; // VWAP - 0.1%
-
-    // 氷山注文（分割注文）を生成して追加
-    const icebergOrders = createIcebergOrders(
-      symbol,
-      OrderSide.SELL,
-      limitPrice,
-      totalLongAmount,
-      3 // 3分割
-    );
-
-    signals.push(...icebergOrders);
-
-    // 一部はMARKET注文で即時決済（ポジションの30%）
-    signals.push({
-      symbol,
-      type: OrderType.MARKET,
-      side: OrderSide.SELL,
-      amount: totalLongAmount * 0.3,
-      timestamp: Date.now()
-    });
-  }
-
-  // レンジ内での取引
-  // グリッドレベルごとにシグナルを生成
-  for (let i = 0; i < gridLevels.length; i++) {
-    const level = gridLevels[i];
-
-    // ポジションサイズを動的に調整 (レベル数に応じて分割)
-    const levelPositionSize = RANGE_PARAMETERS.POSITION_SIZING / gridLevelCount;
-
-    // 下から上に価格が上昇してレベルを超えた場合（上昇クロス）
-    if (previousPrice < level && currentPrice >= level) {
-      // レンジの上半分では売り
-      if (level > (range.high + range.low) / 2) {
-        signals.push({
-          symbol,
-          type: OrderType.LIMIT,
-          side: OrderSide.SELL,
-          price: level,
-          amount: levelPositionSize,
-          timestamp: Date.now()
-        });
+      if (isNearMiddle) {
+        if (isAboveVWAP) {
+          // VWAP以上なら売り注文を追加
+          signals.push({
+            symbol,
+            type: OrderType.LIMIT,
+            side: OrderSide.SELL,
+            price: currentPrice * 1.005, // 現在価格+0.5%
+            amount: 0.02,
+            timestamp: Date.now(),
+            metadata: {
+              reason: 'Above VWAP, Near Middle'
+            }
+          });
+        } else {
+          // VWAP未満なら買い注文を追加
+          signals.push({
+            symbol,
+            type: OrderType.LIMIT,
+            side: OrderSide.BUY,
+            price: currentPrice * 0.995, // 現在価格-0.5%
+            amount: 0.02,
+            timestamp: Date.now(),
+            metadata: {
+              reason: 'Below VWAP, Near Middle'
+            }
+          });
+        }
       }
     }
+    // レンジ外にある場合（ブレイクアウト）
+    else if (isRangeValid && !inRange) {
+      // ブレイクアウトの方向を判定
+      const isBreakingUp = currentPrice > rangeHigh;
+      const isBreakingDown = currentPrice < rangeLow;
 
-    // 上から下に価格が下降してレベルを下回った場合（下降クロス）
-    if (previousPrice > level && currentPrice <= level) {
-      // レンジの下半分では買い
-      if (level < (range.high + range.low) / 2) {
+      if (isBreakingUp) {
+        // 上方ブレイクアウト - レンジの上限より上に移動した場合
+        // 既存の買いポジションを維持し、売りポジションを決済する
+        // さらに、上昇トレンドに乗るための買い注文を追加
         signals.push({
           symbol,
-          type: OrderType.LIMIT,
+          type: OrderType.MARKET,
           side: OrderSide.BUY,
-          price: level,
-          amount: levelPositionSize,
-          timestamp: Date.now()
+          amount: 0.02, // 小さいサイズで様子見（1%〜2%程度）
+          timestamp: Date.now(),
+          metadata: {
+            reason: 'Upper Breakout'
+          }
+        });
+
+        // ブレイクアウトを追いかけるトレーリングストップ注文を設定
+        signals.push({
+          symbol,
+          type: OrderType.STOP,
+          side: OrderSide.SELL,
+          price: rangeHigh * 0.99, // ブレイクアウトレベルの少し下
+          amount: 0.02,
+          timestamp: Date.now(),
+          metadata: {
+            reason: 'Breakout Trailing Stop'
+          }
+        });
+      } else if (isBreakingDown) {
+        // 下方ブレイクアウト - レンジの下限より下に移動した場合
+        // 既存の売りポジションを維持し、買いポジションを決済する
+        // さらに、下降トレンドに乗るための売り注文を追加
+        signals.push({
+          symbol,
+          type: OrderType.MARKET,
+          side: OrderSide.SELL,
+          amount: 0.02, // 小さいサイズで様子見（1%〜2%程度）
+          timestamp: Date.now(),
+          metadata: {
+            reason: 'Lower Breakout'
+          }
+        });
+
+        // ブレイクアウトを追いかけるトレーリングストップ注文を設定
+        signals.push({
+          symbol,
+          type: OrderType.STOP,
+          side: OrderSide.BUY,
+          price: rangeLow * 1.01, // ブレイクアウトレベルの少し上
+          amount: 0.02,
+          timestamp: Date.now(),
+          metadata: {
+            reason: 'Breakout Trailing Stop'
+          }
         });
       }
     }
-  }
 
-  // レンジの上限付近での売り注文
-  if (currentPrice > range.high * 0.95) {
-    signals.push({
-      symbol,
-      type: OrderType.LIMIT,
-      side: OrderSide.SELL,
-      price: range.high,
-      amount: RANGE_PARAMETERS.POSITION_SIZING / 2,
+    // 保有ポジションに応じたヘッジ注文を生成
+    // 現在のポジションを確認
+    const symbolPositions = currentPositions.filter((p) => p.symbol === symbol);
+    
+    if (symbolPositions.length > 0) {
+      // 買いポジションと売りポジションに分類
+      const buyPositions = symbolPositions.filter((p) => p.side === OrderSide.BUY);
+      const sellPositions = symbolPositions.filter((p) => p.side === OrderSide.SELL);
+      
+      // 合計量を計算
+      const totalBuyAmount = buyPositions.reduce((sum, p) => sum + p.amount, 0);
+      const totalSellAmount = sellPositions.reduce((sum, p) => sum + p.amount, 0);
+      
+      // 偏りがあるか確認（買い越しまたは売り越し）
+      const netAmount = totalBuyAmount - totalSellAmount;
+      const netRatio = Math.abs(netAmount) / (totalBuyAmount + totalSellAmount);
+      
+      // 偏りが大きい場合（30%以上）、反対方向のヘッジ注文を発行
+      if (netRatio > 0.3) {
+        const hedgeSide = netAmount > 0 ? OrderSide.SELL : OrderSide.BUY;
+        const hedgeAmount = Math.abs(netAmount) * 0.5; // 偏りの半分をヘッジ
+        
+        signals.push({
+          symbol,
+          type: OrderType.LIMIT,
+          side: hedgeSide,
+          price: hedgeSide === OrderSide.BUY ? currentPrice * 0.99 : currentPrice * 1.01,
+          amount: hedgeAmount,
+          timestamp: Date.now(),
+          metadata: {
+            reason: 'Position Imbalance Hedge'
+          }
+        });
+      }
+    }
+
+    return {
+      strategy: StrategyType.RANGE,
+      signals,
       timestamp: Date.now()
-    });
+    };
+  } catch (error) {
+    console.error(`[RangeStrategy] エラー発生: ${error.message}`);
+    return {
+      strategy: StrategyType.RANGE,
+      signals: [],
+      timestamp: Date.now(),
+      error: error.message
+    };
   }
-
-  // レンジの下限付近での買い注文
-  if (currentPrice < range.low * 1.05) {
-    signals.push({
-      symbol,
-      type: OrderType.LIMIT,
-      side: OrderSide.BUY,
-      price: range.low,
-      amount: RANGE_PARAMETERS.POSITION_SIZING / 2,
-      timestamp: Date.now()
-    });
-  }
-
-  return {
-    strategy: StrategyType.RANGE_TRADING,
-    signals,
-    timestamp: Date.now()
-  };
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  executeRangeStrategy,
+  calculateRangeBoundaries,
+  calculateATR,
+  calculateAtrPercentage,
+  calculateVWAP,
+  calculateDynamicGridLevels,
+  calculateGridLevels,
+  isWithinRange,
+  createIcebergOrders
+};

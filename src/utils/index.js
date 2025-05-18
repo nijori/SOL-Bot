@@ -13,6 +13,9 @@ const atrUtils = createESMProxy('./atrUtils.js');
 const positionSizing = createESMProxy('./positionSizing.js');
 const cliParser = createESMProxy('./cliParser.js');
 const importMetaHelper = createESMProxy('./importMetaHelper.js');
+const mathUtils = require('./mathUtils.js');
+const orderTypeUtils = require('./orderTypeUtils.js');
+const killSwitchChecker = require('./killSwitchChecker.js');
 
 /**
  * ユーティリティモジュールを初期化する
@@ -45,6 +48,7 @@ async function initUtilsModules() {
   };
 }
 
+// CommonJSのエクスポート
 module.exports = {
   initUtilsModules,
   logger,
@@ -52,5 +56,8 @@ module.exports = {
   atrUtils,
   positionSizing,
   cliParser,
-  importMetaHelper
+  importMetaHelper,
+  mathUtils,
+  orderTypeUtils,
+  killSwitchChecker
 }; 

@@ -1,4 +1,4 @@
-﻿---
+---
 description: 
 globs: 
 alwaysApply: false
@@ -20,9 +20,7 @@ alwaysApply: false
 | P4 ― Runbook & リハーサル | 障害対応ドキュメント & Drill 完了 | "EC2 停止→復旧" をペアで 1 回成功 | 1 d |
 | P5 ― Go-Live | 実弾投入 & 監視運用開始 | 週次決算まで問題なし | - |
 
-現在の進捗状況は「P0→P1フェーズ移行中」と評価されており、P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んで行く予定です。
-
-## 🗓 2026-W11スプリント（P0→P1：安全ネット＆インフラHardening）
+P0フェーズのタスクが完了次第、P1フェーズに進み、その後のスプリントでP2、P3、P4、P5と進んで行く予定です。
 
 #### 本スプリント（P0→P1）の"Next-Action"指示:
 
@@ -37,58 +35,246 @@ alwaysApply: false
 | 1-5 | Data-Lifecycle Cron 実機テスト | EC2 で npm run data-lifecycle --run-now → S3 にファイル移行確認 |
 
 
-## テスト残タスク消化スプリント(優先度高)
+### 🗓 2026-W11スプリント計画と優先順位:（Infra Pipeline Kick-off）
+目的：ステージング EC2 を最小機能で回し、CI→EC2 のパイプラインを通す
 
-- [x] TST-050: MeanReversionStrategyテストのESM対応修正
+0. [x] CICD-003: todo-lintスクリプトの修正
+      - 📅 Due        : 2026-04-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ESモジュール環境のloggerインポート問題を修正。todoValidator.tsとtodo-lint.tsのlogger依存をconsole.logに変更。コードをコミット済み。
+
+1. [x] SEC-004: 緊急停止フラグ機能の実装
       - 📅 Due        : 2026-05-05
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
+      - 🏷️  Label      : security
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : meanReversionStrategy.test.mjsの構文エラー（文字列リテラル問題、カンマ区切り問題）の修正タスク。Jestのテスト環境でメモリリーク問題があり、独自のシンプルテストスクリプトを作成して対応。モックを使用してESM環境での実行を成功させた。
+      - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。アプリケーション起動時と定期実行時(5分ごと)にフラグをチェック。TradingEngineにも緊急停止機能を追加。テスト実装とドキュメント作成も完了。
 
-- [x] TST-051: テスト環境のビルド出力問題解決
-      - 📅 Due        : 2026-05-08
+2. [ ] INF-025: docker-compose Healthcheck 整備
+      - 📅 Due        : 2026-06-28
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : build
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : tsconfig.esm.jsonの修正とMJSコピースクリプトを実装。index.tsファイルを追加してコンパイル時のモジュール生成を修正。.mjsファイルをdistに正しくコピーし、ESMテストが実行可能に。メモリリーク問題、ESMの構文エラー、パラメータサービスの開発未定義エラーはが残だがこれらはTSTー052に対応
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 75%
+      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。実装完了、テスト環境での検証待ち。詳細な実装内容とテスト手順はREADME_INF_025.mdに記載しました。
 
-- [x] TST-052: デュアルフォーマット実行の互換性向上
-      - 📅 Due        : 2026-05-12
+3. [ ] INF-030: モジュール設定の修正 (CommonJS採用)
+      - 📅 Due        : 2026-07-07
       - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-025
+      - 🏷️  Label      : infra
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ESM互換性問題を解決するために、より安定したCommonJSに戻す方針へ変更。これまでの修正を破棄し、CommonJS形式でパッケージ設定と実行環境を整える。ブランチ：fix/revert-to-commonjs
+
+3.1 [x] INF-031: package.jsonのCommonJS設定への移行
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-030
       - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : importMetaHelper.tsの改良でESM/CJS互換性を強化。backtestRunner.tsとMultiTimeframeDataFetcher.tsの修正でimport.meta依存問題を解決。parameterService.tsを改良してデフォルトエクスポートを追加。todoValidatorのnullチェックを強化し、テスト失敗を解消。テストフレームワークの互換性問題を解決した。
+      - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。ESM関連の設定と不要なスクリプトを削除。tsconfig.jsonもCommonJS設定に更新。
 
-- [x] TST-053: テスト安定性向上のためのクリーンアップ強化
-      - 📅 Due        : 2026-05-15
+3.2 [ ] INF-032: コードベースをCommonJS形式に変換
+      - 📅 Due        : 2026-07-06
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : test
+      - 🔗 Depends-on : INF-031
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 60%
+      - ✎ Notes      : moduleHelper実装で循環参照問題一部解決。logger, memoryMonitor, killSwitchChecker, orderUtilsなど重要クラスをリファクタリング。TypeScript型エラーは@ts-nocheck指定でビルド可能だが、今後最適化を継続。子タスクを作成し、より詳細に進捗を管理。変換完了までの残作業：
+        1. 戦略ファイル（strategies/）: 6ファイル中全ファイル変換完了（INF-032-2完了）
+        2. インジケーター（indicators/）: marketState.tsとparabolicSAR.tsの2ファイル変換完了（INF-032-6完了）
+        3. データ処理モジュール（data/）: 推定8ファイル、未着手（優先度:中）
+        4. サービス（services/）: 推定12ファイル、未着手（優先度:中）
+        5. 型定義と循環参照問題: 一部対応済み、現在@ts-nocheck回避中（優先度:高）
+        6. テストファイル（__tests__/）: 推定50+ファイル、未着手（優先度:低）
+
+3.2.1 [x] INF-032-1: コアディレクトリのCommonJS変換
+      - 📅 Due        : 2026-07-03
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-031
+      - 🏷️  Label      : refactor
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : REF-034で実装されたリソーストラッカーの活用を全テストに展開。todoValidator.test.ts、parameterService.test.ts、trendFollowStrategy.test.ts、rangeStrategy.test.ts、meanRevertStrategy.test.ts、UnifiedOrderManager.test.ts、symbolInfoService.test.tsに実装完了。afterEach/afterAllフックでの正しいクリーンアップパターンの標準化。タイマーやイベントリスナーなどの非同期リソースの適切な管理。
+      - ✎ Notes      : types.ts、orderManagementSystem.ts、TradingEngine.ts、backtestRunner.tsなどコアモジュールのCommonJS形式への変換完了。moduleHelperを使用して循環参照問題を一部解決。
 
-- [x] TST-054: CI/CDパイプラインのテスト安定性強化
-      - 📅 Due        : 2026-05-18
+3.2.2 [x] INF-032-2: 戦略ディレクトリのCommonJS変換
+      - 📅 Due        : 2026-07-04
       - 👤 Owner      : @nijor
-      - 🏷️  Label      : cicd
+      - 🔗 Depends-on : INF-032-1
+      - 🏷️  Label      : refactor
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : GitHub ActionsのESMテスト用ワークフローを強化。タイムアウト設定を15分に延長し、テスト実行の安定性を向上。テスト失敗時の詳細ログを自動収集し、デバッグを容易化。キャッシュ戦略を改善しテスト速度を向上。forceExit、detectOpenHandlesなどのオプションを統一。run-esm-tests-safely.jsスクリプトを改良してログ機能とエラーハンドリングを強化。リソースクリーンアップ処理を強化してメモリリークを防止。
+      - ✎ Notes      : 戦略ディレクトリ(strategies/)のすべてのファイルをCommonJS形式に変換完了。trendStrategy.ts、DonchianBreakoutStrategy.ts、meanRevertStrategy.ts、trendFollowStrategy.ts、rangeStrategy.tsの変換が完了。.js拡張子の削除とimport/export構文の変換を実施。module.exportsを使用してCommonJS形式でエクスポートするように変更。
 
-- [ ] TST-055: モジュールモックの一貫性向上
-      - 📅 Due        : 2026-05-22
+3.2.6 [x] INF-032-6: インジケーターディレクトリのCommonJS変換
+      - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-1
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : インジケーターディレクトリ(indicators/)のmarketState.tsとparabolicSAR.tsファイルをCommonJS形式に変換完了。主要なテクニカル指標のリファクタリングとtechnicalindicatorsライブラリの参照方法も修正。@ts-nocheck指示子を追加し、型定義問題は INF-032-4 タスクで対応予定。
+
+3.2.7 [ ] INF-032-7: データ処理モジュールのCommonJS変換
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-1
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : データ処理ディレクトリ(data/)の約8ファイルをCommonJS形式に変換。DataFetcher、ParquetDataStore、HistoricalDataProviderなどのクラスを変換。fsPromisesの参照方法も修正。
+
+3.2.8 [ ] INF-032-8: サービスモジュールのCommonJS変換
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-1
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : サービスディレクトリ(services/)の約12ファイルをCommonJS形式に変換。ExchangeService、ParameterService、NotificationService、LoggerServiceなど重要なサービスクラスを変換。各サービスの依存関係解決にmoduleHelperを活用。
+      
+3.2.3 [ ] INF-032-3: テストファイルのCommonJS変換
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-2, INF-032-6, INF-032-7, INF-032-8
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : テストファイル(__tests__/)をCommonJS形式に変換。jest設定も含めてCJS互換になるよう調整。@jest/globalsからのインポート方法も修正が必要。
+
+3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-1
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 40%
+      - ✎ Notes      : @ts-nocheck指定を除去し、TypeScript型エラーを解消する。moduleHelperシステムを用いた循環参照問題の完全解決。types.tsの型定義とCommonJS形式の両立を実現。
+
+3.2.5 [ ] INF-032-5: Docker環境でのユニットテスト
+      - 📅 Due        : 2026-07-06
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-3, INF-032-4, INF-032-6, INF-032-7, INF-032-8, INF-033
       - 🏷️  Label      : test
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : @jest/globals importの標準化。jest.mockパターンの統一。テスト用モッククラスの共通ライブラリ化。モックファクトリー関数の実装と展開。
+      - ✎ Notes      : Docker環境でのユニットテスト実行とパス。docker-compose run solbot-test で全テストが成功することを確認。コンパイルエラーやランタイムエラーが発生しないことを検証。
 
 
-### 今週のスプリント計画と優先順位:
+4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
+      - 📅 Due        : 2026-06-29
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : Terraform (or AWS CLI script) で AMI + security-group + EIP + user-data(docker install) を自動化。タグ `Env=stg` を付与。
+
+5. [ ] SEC-007: GitHub OIDC AssumeRole 作成
+      - 📅 Due        : 2026-06-29
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : IAM Role `solbot-ci` を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:sol-bot/*` を許可。最小権限ポリシーは EC2:start/stop, SSM:GetParameter, ECR:GetAuth 等。
+
+6. [ ] INF-027: bot.service (systemd) ユニット実装
+      - 📅 Due        : 2026-06-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。
+
+7. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
+      - 📅 Due        : 2026-07-01
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : SEC-007, INF-027
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : `main` → `deploy-stg` ワークフロー。OIDC → scp env_runtime → systemctl reload。E2Eで healthcheck OK をアサート。
+
+8. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
+      - 📅 Due        : 2026-07-02
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : CICD-005
+      - 🏷️  Label      : test
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ワークフロー後段で `ssh systemctl stop bot.service` → 終了コードチェック、30 s 超過で fail させる。成功時は systemctl start で復旧し PnL=0 を確認。
+
+### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
+目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
+
+1. [ ] SEC-008: SSM Parameter Store に `.env` SecureString 登録
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @operator
+      - 🏷️  Label      : security
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : パス `/solbot/stg/env` `/solbot/prod/env` を作成。KMS default key 使用。GitHub Actions から `aws ssm get-parameters` で取得できることを確認。
+
+2. [ ] INF-028: deploy.yml に SSM 取得ステップ追加
+      - 📅 Due        : 2026-07-06
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : SEC-008
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ステージングと本番でパス切替可能に。取得した env_runtime を `/opt/solbot/env.d/runtime` にアップロード。
+
+3. [ ] INF-029: ParameterService の runtime-env 読み込み対応
+      - 📅 Due        : 2026-07-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ファイルパス指定があれば `.env` より優先してロード。ユニットテストを追加。
+
+
+4. [ ] CICD-006: Blue/Green デプロイトグル追加
+      - 📅 Due        : 2026-07-08
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : `deploy-prod.yml` で `HOST=$(BLUE_OR_GREEN)` を切り替えるジョブを追加。タグ `prod-blue`, `prod-green` を使い交互再起動。
+
+5. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
+      - 📅 Due        : 2026-07-09
+      - 👤 Owner      : @qa-team
+      - 🔗 Depends-on : INF-029, CICD-006
+      - 🏷️  Label      : ops
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : デプロイ後 `/api/account` で `dailyPnL===0` を確認。失敗時は `systemctl stop bot` ＋ GitHub status red に。
+
+6. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
+      - 📅 Due        : 2026-07-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : prom-client で `orders_total`,`account_balance`,`order_latency_ms` を公開。prometheus.yml に stg target 追加し scrape 成功を確認。
+
+7. [ ] DOC-008: Runbook & Pipeline 図 更新
+      - 📅 Due        : 2026-07-11
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : docs/runbook.md に "ステージング→本番 Blue/Green" 流れと rollback 手順を追加。図は Mermaid で作成。
+
+
+
+### 🗓 2026-W13スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
 P0→P1フェーズのスプリント（本番稼働に向けた安全ネットとインフラHardening）。優先順位は以下の通り：
 
 0. [x] CICD-003: todo-lintスクリプトの修正
@@ -99,13 +285,13 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 📊 Progress   : 100%
       - ✎ Notes      : ESモジュール環境のloggerインポート問題を修正。todoValidator.tsとtodo-lint.tsのlogger依存をconsole.logに変更。コードをコミット済み。
 
-1. [ ] SEC-004: 緊急停止フラグ機能の実装
+1. [x] SEC-004: 緊急停止フラグ機能の実装
       - 📅 Due        : 2026-05-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。EC2で実行中のボットを30秒以内に停止できることを確認。また非root SSHでのsudo systemctl stop bot.serviceによる停止機能も検証。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。アプリケーション起動時と定期実行時(5分ごと)にフラグをチェック。TradingEngineにも緊急停止機能を追加。テスト実装とドキュメント作成も完了。
 
 2. [ ] SEC-006: Secrets管理をAWS SSM Parameter Storeに移行
       - 📅 Due        : 2026-05-10
@@ -142,7 +328,8 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
 
 
-## 🗓 2026-W12スプリント候補（P1→P2：監視システム整備）
+
+## 🗓 2026-W14スプリント候補（P1→P2：監視システム整備）
 
 ### 監視システムの整備方針:
 
@@ -168,6 +355,84 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

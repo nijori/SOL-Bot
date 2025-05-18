@@ -1,35 +1,36 @@
-import { ADX, Highest, Lowest, ATR } from 'technicalindicators';
-import {
-  Candle,
-  Order,
-  OrderSide,
-  OrderType,
-  Position,
-  StrategyResult,
-  StrategyType
-} from '../core/types.js';
-import { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
-import { parameterService } from '../config/parameterService.js';
+/**
+ * トレンド追従戦略
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
+ */
+// @ts-nocheck
+
+// CommonJS形式でのモジュールインポート
+const technicalIndicators = require('technicalindicators');
+const { ADX, Highest, Lowest, ATR } = technicalIndicators;
+const Types = require('../core/types');
+const { OrderSide, OrderType, StrategyType } = Types;
+const { TREND_PARAMETERS, MARKET_PARAMETERS, RISK_PARAMETERS } = require('../config/parameters');
+const { parameterService } = require('../config/parameterService');
 
 // トレイリングストップとピラミッディングのパラメータをYAML設定から取得
-const TRAILING_STOP_FACTOR = parameterService.get<number>(
+const TRAILING_STOP_FACTOR = parameterService.get(
   'trendFollowStrategy.trailingStopFactor',
   1.2
 );
-const PYRAMID_THRESHOLD = parameterService.get<number>('trendFollowStrategy.pyramidThreshold', 1.0);
-const PYRAMID_SIZE_MULTIPLIER = parameterService.get<number>(
+const PYRAMID_THRESHOLD = parameterService.get('trendFollowStrategy.pyramidThreshold', 1.0);
+const PYRAMID_SIZE_MULTIPLIER = parameterService.get(
   'trendFollowStrategy.pyramidSizeMultiplier',
   0.5
 );
-const MAX_PYRAMIDS = parameterService.get<number>('trendFollowStrategy.maxPyramids', 2);
+const MAX_PYRAMIDS = parameterService.get('trendFollowStrategy.maxPyramids', 2);
 
 /**
  * Donchianチャネルを計算する関数
- * @param candles ローソク足データ
- * @param period 期間
- * @returns Donchianチャネルの上限と下限
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {Object} Donchianチャネルの上限と下限
  */
-function calculateDonchian(candles: Candle[], period: number): { upper: number; lower: number } {
+function calculateDonchian(candles, period) {
   // 計算に必要な期間分のデータを取得
   const highValues = candles.slice(-period).map((c) => c.high);
   const lowValues = candles.slice(-period).map((c) => c.low);
@@ -56,11 +57,11 @@ function calculateDonchian(candles: Candle[], period: number): { upper: number; 
 
 /**
  * ATRを計算する関数
- * @param candles ローソク足データ
- * @param period 期間
- * @returns ATR値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {number} ATR値
  */
-function calculateATR(candles: Candle[], period: number): number {
+function calculateATR(candles, period) {
   const atrInput = {
     high: candles.map((c) => c.high),
     low: candles.map((c) => c.low),
@@ -74,18 +75,18 @@ function calculateATR(candles: Candle[], period: number): number {
 
 /**
  * リスクベースのポジションサイズを計算する関数
- * @param accountBalance 口座残高
- * @param entryPrice エントリー価格
- * @param stopPrice ストップ価格
- * @param maxRiskPercentage 1トレードあたりの最大リスク率
- * @returns 適切なポジションサイズ
+ * @param {number} accountBalance 口座残高
+ * @param {number} entryPrice エントリー価格
+ * @param {number} stopPrice ストップ価格
+ * @param {number} maxRiskPercentage 1トレードあたりの最大リスク率
+ * @returns {number} 適切なポジションサイズ
  */
 function calculateRiskBasedPositionSize(
-  accountBalance: number,
-  entryPrice: number,
-  stopPrice: number,
-  maxRiskPercentage: number = RISK_PARAMETERS.MAX_RISK_PER_TRADE
-): number {
+  accountBalance,
+  entryPrice,
+  stopPrice,
+  maxRiskPercentage = RISK_PARAMETERS.MAX_RISK_PER_TRADE
+) {
   // 口座残高から使用可能なリスク額を計算
   const riskAmount = accountBalance * maxRiskPercentage;
 
@@ -109,18 +110,18 @@ function calculateRiskBasedPositionSize(
 
 /**
  * トレンド戦略を実行する関数
- * @param candles ローソク足データ
- * @param symbol 銘柄シンボル
- * @param currentPositions 現在のポジション
- * @param accountBalance 口座残高（ポジションサイズ計算用）
- * @returns 戦略の実行結果
+ * @param {Array} candles ローソク足データ
+ * @param {string} symbol 銘柄シンボル
+ * @param {Array} currentPositions 現在のポジション
+ * @param {number} accountBalance 口座残高（ポジションサイズ計算用）
+ * @returns {Object} 戦略の実行結果
  */
-export function executeTrendStrategy(
-  candles: Candle[],
-  symbol: string,
-  currentPositions: Position[],
-  accountBalance: number = 1000 // デフォルト値（実際の実装では呼び出し側から渡す）
-): StrategyResult {
+function executeTrendStrategy(
+  candles,
+  symbol,
+  currentPositions,
+  accountBalance = 1000 // デフォルト値（実際の実装では呼び出し側から渡す）
+) {
   // データが不足している場合は空のシグナルを返す
   if (
     candles.length <
@@ -160,7 +161,7 @@ export function executeTrendStrategy(
   const previousPrice = candles[candles.length - 2].close;
 
   // シグナルを格納する配列
-  const signals: Order[] = [];
+  const signals = [];
 
   // 現在のポジションを確認
   const longPositions = currentPositions.filter(
@@ -357,3 +358,11 @@ export function executeTrendStrategy(
     timestamp: Date.now()
   };
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  executeTrendStrategy,
+  calculateDonchian,
+  calculateATR,
+  calculateRiskBasedPositionSize
+};

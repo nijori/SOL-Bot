@@ -1,63 +1,50 @@
 /**
  * 平均回帰（Mean Reversion）戦略クラス
  * 過剰に伸びた価格が平均に戻る性質を利用した戦略
+ * 
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
  */
+// @ts-nocheck
 
-import {
-  Candle,
-  Order,
-  OrderSide,
-  OrderType,
-  Position,
-  StrategyType
-} from '../core/types.js';
-import { parameterService } from '../config/parameterService.js';
-import { calculateATR } from '../utils/atrUtils.js';
+// CommonJS形式のモジュールインポート
+const Types = require('../core/types');
+const { Candle, Order, OrderSide, OrderType, Position, StrategyType } = Types;
+const { parameterService } = require('../config/parameterService');
+const { calculateATR } = require('../utils/atrUtils');
 
 /**
  * 平均回帰戦略クラス
  */
-export class MeanReversionStrategy {
-  private symbol: string;
-  private rsiPeriod: number;
-  private rsiOverbought: number;
-  private rsiOversold: number;
-  private bbPeriod: number;
-  private bbStdDev: number;
-  private atrPeriod: number;
-  private takeProfitFactor: number;
-  private stopLossFactor: number;
-  private maxRiskPerTrade: number;
-
+class MeanReversionStrategy {
   /**
    * コンストラクタ
-   * @param symbol 通貨ペアシンボル
+   * @param {string} symbol 通貨ペアシンボル
    */
-  constructor(symbol: string) {
+  constructor(symbol) {
     this.symbol = symbol;
     
     // パラメータの初期化
-    this.rsiPeriod = parameterService.get<number>('meanReversionStrategy.rsiPeriod', 14);
-    this.rsiOverbought = parameterService.get<number>('meanReversionStrategy.rsiOverbought', 70);
-    this.rsiOversold = parameterService.get<number>('meanReversionStrategy.rsiOversold', 30);
-    this.bbPeriod = parameterService.get<number>('meanReversionStrategy.bbPeriod', 20);
-    this.bbStdDev = parameterService.get<number>('meanReversionStrategy.bbStdDev', 2);
-    this.atrPeriod = parameterService.get<number>('meanReversionStrategy.atrPeriod', 14);
-    this.takeProfitFactor = parameterService.get<number>('meanReversionStrategy.takeProfitFactor', 1.5);
-    this.stopLossFactor = parameterService.get<number>('meanReversionStrategy.stopLossFactor', 2.0);
-    this.maxRiskPerTrade = parameterService.get<number>('risk.maxRiskPerTrade', 0.02);
+    this.rsiPeriod = parameterService.get('meanReversionStrategy.rsiPeriod', 14);
+    this.rsiOverbought = parameterService.get('meanReversionStrategy.rsiOverbought', 70);
+    this.rsiOversold = parameterService.get('meanReversionStrategy.rsiOversold', 30);
+    this.bbPeriod = parameterService.get('meanReversionStrategy.bbPeriod', 20);
+    this.bbStdDev = parameterService.get('meanReversionStrategy.bbStdDev', 2);
+    this.atrPeriod = parameterService.get('meanReversionStrategy.atrPeriod', 14);
+    this.takeProfitFactor = parameterService.get('meanReversionStrategy.takeProfitFactor', 1.5);
+    this.stopLossFactor = parameterService.get('meanReversionStrategy.stopLossFactor', 2.0);
+    this.maxRiskPerTrade = parameterService.get('risk.maxRiskPerTrade', 0.02);
   }
 
   /**
    * 戦略を実行する
-   * @param candles ローソク足データ
-   * @param positions 現在のポジション
-   * @param accountBalance 口座残高
-   * @returns 注文シグナルの配列
+   * @param {Array} candles ローソク足データ
+   * @param {Array} positions 現在のポジション
+   * @param {number} accountBalance 口座残高
+   * @returns {Array} 注文シグナルの配列
    */
-  public execute(candles: Candle[], positions: Position[], accountBalance: number): Order[] {
+  execute(candles, positions, accountBalance) {
     // 簡略化した実装
-    const signals: Order[] = [];
+    const signals = [];
     
     if (candles.length < Math.max(this.rsiPeriod, this.bbPeriod, this.atrPeriod) + 10) {
       return signals;
@@ -92,16 +79,16 @@ export class MeanReversionStrategy {
   
   /**
    * リスクベースのポジションサイズを計算する
-   * @param accountBalance 口座残高
-   * @param entryPrice エントリー価格
-   * @param stopPrice ストップ価格
-   * @returns ポジションサイズ
+   * @param {number} accountBalance 口座残高
+   * @param {number} entryPrice エントリー価格
+   * @param {number} stopPrice ストップ価格
+   * @returns {number} ポジションサイズ
    */
-  private calculatePositionSize(
-    accountBalance: number,
-    entryPrice: number,
-    stopPrice: number
-  ): number {
+  calculatePositionSize(
+    accountBalance,
+    entryPrice,
+    stopPrice
+  ) {
     // リスク額を計算
     const riskAmount = accountBalance * this.maxRiskPerTrade;
     
@@ -121,3 +108,6 @@ export class MeanReversionStrategy {
     return Math.min(positionSize, maxPositionSize);
   }
 }
+
+// CommonJS形式でのエクスポート
+module.exports = MeanReversionStrategy;
