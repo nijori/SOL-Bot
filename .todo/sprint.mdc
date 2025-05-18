@@ -68,7 +68,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-025
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
+      - 📊 Progress   : 50%
       - ✎ Notes      : package.jsonに"type": "module"を追加し、ESM/CJSの互換性問題を解決。Docker環境のHealthcheckテストが失敗している原因。ビルドスクリプトと依存関係の修正が必要。
 
 4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
