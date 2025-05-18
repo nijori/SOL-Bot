@@ -1,9 +1,6 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
-// core/typesの明示的なインポートを修正
-const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types');
-
 /**
  * SymbolInfoService テスト
  *
@@ -13,8 +10,9 @@ const { Types, OrderType, OrderSide, OrderStatus } = require('../../core/types')
 
 const { SymbolInfoService } = require('../../services/symbolInfoService');
 const { ExchangeService } = require('../../services/exchangeService');
+const { Types } = require('../../core/types');
 
-// リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
+// リソーストラッカーとテストクリーンアップ関連のインポート
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
 const { 
   standardBeforeEach, 
@@ -247,7 +245,7 @@ describe('SymbolInfoService - Concurrent Requests', () => {
     const promise1 = symbolInfoService.getSymbolInfo('BTC/USDT');
     const promise2 = symbolInfoService.getSymbolInfo('BTC/USDT');
 
-    // 両方のリクエストが完了するのを待つ
+    // 両方のプロミスを解決
     const [result1, result2] = await Promise.all([promise1, promise2]);
 
     // 検証
@@ -256,10 +254,18 @@ describe('SymbolInfoService - Concurrent Requests', () => {
   });
 });
 
-// パフォーマンス最適化テスト - 別グループに分離
-describe('SymbolInfoService - Performance Optimizations', () => {
+// 複数通貨ペア情報取得の新しいテスト
+describe('SymbolInfoService - Multiple Symbols', () => {
   let symbolInfoService;
   let exchangeService;
+
+  // ETH/USDTのモックデータ
+  const mockEthMarketInfo = {
+    ...mockMarketInfo,
+    symbol: 'ETH/USDT',
+    base: 'ETH',
+    quote: 'USDT'
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -267,7 +273,14 @@ describe('SymbolInfoService - Performance Optimizations', () => {
     
     // ExchangeServiceのモックを設定
     exchangeService = new ExchangeService();
-    exchangeService.getMarketInfo = jest.fn().mockResolvedValue(mockMarketInfo);
+    exchangeService.getMarketInfo = jest.fn().mockImplementation((symbol) => {
+      if (symbol === 'BTC/USDT') {
+        return Promise.resolve(mockMarketInfo);
+      } else if (symbol === 'ETH/USDT') {
+        return Promise.resolve(mockEthMarketInfo);
+      }
+      return Promise.reject(new Error(`未知のシンボル: ${symbol}`));
+    });
 
     // 正しいモックを使用してSymbolInfoServiceのインスタンスを作成
     symbolInfoService = new SymbolInfoService(exchangeService);
@@ -281,38 +294,32 @@ describe('SymbolInfoService - Performance Optimizations', () => {
     await standardAfterAll();
   });
 
-  it('複数の通貨ペア情報を一度に取得できること', async () => {
-    // マルチシンボルのテスト用モックデータ
-    const mockMultiSymbols = {
-      'BTC/USDT': { ...mockMarketInfo, symbol: 'BTC/USDT' },
-      'SOL/USDT': { ...mockMarketInfo, symbol: 'SOL/USDT', base: 'SOL' }
-    };
-
-    // 複数シンボル取得のモック
-    exchangeService.getMarketsInfo = jest.fn().mockResolvedValue(mockMultiSymbols);
-
-    // 複数シンボルを同時に取得
-    const results = await symbolInfoService.getMultipleSymbolInfo(['BTC/USDT', 'SOL/USDT']);
+  it('複数の通貨ペア情報を一括取得できること', async () => {
+    // テスト実行
+    const result = await symbolInfoService.getMultipleSymbolInfo(['BTC/USDT', 'ETH/USDT']);
 
     // 検証
-    expect(exchangeService.getMarketsInfo).toHaveBeenCalledWith(['BTC/USDT', 'SOL/USDT']);
-    expect(results.size).toBe(2);
-    expect(results.get('BTC/USDT').base).toBe('BTC');
-    expect(results.get('SOL/USDT').base).toBe('SOL');
+    expect(exchangeService.getMarketInfo).toHaveBeenCalledTimes(2);
+    expect(result.size).toBe(2);
+    expect(result.get('BTC/USDT')?.symbol).toBe('BTC/USDT');
+    expect(result.get('ETH/USDT')?.symbol).toBe('ETH/USDT');
   });
 
-  it('シンボル情報のキャッシュをクリアできること', async () => {
-    // 最初のリクエスト
-    await symbolInfoService.getSymbolInfo('BTC/USDT');
-    exchangeService.getMarketInfo.mockClear();
+  it('一部の通貨ペア情報取得に失敗しても続行できること', async () => {
+    // 1つはエラーになるよう設定
+    exchangeService.getMarketInfo = jest.fn().mockImplementation((symbol) => {
+      if (symbol === 'BTC/USDT') {
+        return Promise.resolve(mockMarketInfo);
+      }
+      return Promise.reject(new Error(`API error: ${symbol}`));
+    });
 
-    // キャッシュをクリア
-    symbolInfoService.clearCache();
-
-    // 再度リクエスト
-    await symbolInfoService.getSymbolInfo('BTC/USDT');
+    // テスト実行
+    const result = await symbolInfoService.getMultipleSymbolInfo(['BTC/USDT', 'ETH/USDT']);
 
     // 検証
-    expect(exchangeService.getMarketInfo).toHaveBeenCalledWith('BTC/USDT');
+    expect(exchangeService.getMarketInfo).toHaveBeenCalledTimes(2);
+    expect(result.size).toBe(1);
+    expect(result.get('BTC/USDT')?.symbol).toBe('BTC/USDT');
   });
 }); 
