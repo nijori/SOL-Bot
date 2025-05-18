@@ -5,9 +5,10 @@
  * 実際のコードでの参照用で、実行することは意図されていません。
  */
 
-import { createSecretManager } from './index.js';
-import { SecretManagerFactory, SecretManagerType } from './SecretManagerFactory.js';
-import logger from '../../utils/logger.js';
+// @ts-nocheck
+const { createSecretManager } = require('./index');
+const { SecretManagerFactory, SecretManagerType } = require('./SecretManagerFactory');
+const logger = require('../../utils/logger');
 
 /**
  * デフォルトのシークレットマネージャーを使用する例
@@ -116,10 +117,18 @@ async function useEnvSecretManager() {
   }
 }
 
-export async function runExamples() {
+/**
+ * 使用例を実行する関数
+ */
+async function runExamples() {
   await useDefaultSecretManager();
   // 実際の環境に応じてコメントアウトを解除
   // await useSpecificSecretManager();
   // await useGCPSecretManager();
   // await useEnvSecretManager();
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  runExamples
+};
