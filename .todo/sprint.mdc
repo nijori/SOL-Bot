@@ -62,7 +62,16 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 75%
       - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。実装完了、テスト環境での検証待ち。詳細な実装内容とテスト手順はREADME_INF_025.mdに記載しました。
 
-3. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
+3. [ ] INF-030: ESモジュール設定の修正
+      - 📅 Due        : 2026-07-07
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-025
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 25%
+      - ✎ Notes      : package.jsonに"type": "module"を追加し、ESM/CJSの互換性問題を解決。Docker環境のHealthcheckテストが失敗している原因。ビルドスクリプトと依存関係の修正が必要。
+
+4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
       - 👤 Owner      : @operator
       - 🏷️  Label      : infra
@@ -70,7 +79,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : Terraform (or AWS CLI script) で AMI + security-group + EIP + user-data(docker install) を自動化。タグ `Env=stg` を付与。
 
-4. [ ] SEC-007: GitHub OIDC AssumeRole 作成
+5. [ ] SEC-007: GitHub OIDC AssumeRole 作成
       - 📅 Due        : 2026-06-29
       - 👤 Owner      : @assistant
       - 🏷️  Label      : security
@@ -78,7 +87,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : IAM Role `solbot-ci` を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:sol-bot/*` を許可。最小権限ポリシーは EC2:start/stop, SSM:GetParameter, ECR:GetAuth 等。
 
-5. [ ] INF-027: bot.service (systemd) ユニット実装
+6. [ ] INF-027: bot.service (systemd) ユニット実装
       - 📅 Due        : 2026-06-30
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
@@ -86,7 +95,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。
 
-6. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
+7. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
       - 📅 Due        : 2026-07-01
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : SEC-007, INF-027
@@ -95,7 +104,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : `main` → `deploy-stg` ワークフロー。OIDC → scp env_runtime → systemctl reload。E2Eで healthcheck OK をアサート。
 
-7. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
+8. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
       - 📅 Due        : 2026-07-02
       - 👤 Owner      : @assistant
       - 🔗 Depends-on : CICD-005
@@ -132,16 +141,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : ファイルパス指定があれば `.env` より優先してロード。ユニットテストを追加。
 
-4. [ ] INF-030: ESモジュール設定の修正
-      - 📅 Due        : 2026-07-07
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-025
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 0%
-      - ✎ Notes      : package.jsonに"type": "module"を追加し、ESM/CJSの互換性問題を解決。Docker環境のHealthcheckテストが失敗している原因。ビルドスクリプトと依存関係の修正が必要。
 
-5. [ ] CICD-006: Blue/Green デプロイトグル追加
+4. [ ] CICD-006: Blue/Green デプロイトグル追加
       - 📅 Due        : 2026-07-08
       - 👤 Owner      : @assistant
       - 🏷️  Label      : cicd
@@ -149,7 +150,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : `deploy-prod.yml` で `HOST=$(BLUE_OR_GREEN)` を切り替えるジョブを追加。タグ `prod-blue`, `prod-green` を使い交互再起動。
 
-6. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
+5. [ ] OPS-009: Post-Deploy PnL=0 Smoke テスト
       - 📅 Due        : 2026-07-09
       - 👤 Owner      : @qa-team
       - 🔗 Depends-on : INF-029, CICD-006
@@ -158,7 +159,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : デプロイ後 `/api/account` で `dailyPnL===0` を確認。失敗時は `systemctl stop bot` ＋ GitHub status red に。
 
-7. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
+6. [ ] OBS-009: /metrics エンドポイント & Prometheus scrape
       - 📅 Due        : 2026-07-10
       - 👤 Owner      : @nijor
       - 🏷️  Label      : feat
@@ -166,13 +167,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : prom-client で `orders_total`,`account_balance`,`order_latency_ms` を公開。prometheus.yml に stg target 追加し scrape 成功を確認。
 
-8. [ ] DOC-008: Runbook & Pipeline 図 更新
+7. [ ] DOC-008: Runbook & Pipeline 図 更新
       - 📅 Due        : 2026-07-11
       - 👤 Owner      : @nijor
       - 🏷️  Label      : doc
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : docs/runbook.md に "ステージング→本番 Blue/Green" 流れと rollback 手順を追加。図は Mermaid で作成。
+
 
 
 ### 🗓 2026-W13スプリント計画と優先順位:（P0→P1：安全ネット＆インフラHardening）
@@ -227,6 +229,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
       - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
+
 
 
 ## 🗓 2026-W14スプリント候補（P1→P2：監視システム整備）
