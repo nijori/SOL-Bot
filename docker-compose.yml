@@ -188,3 +188,8 @@ volumes:
   grafana_data:
   # ログローテーション設定を永続化
   logrotateconfig:
+
+networks:
+  # ネットワークの定義
+  app-network:
+    driver: bridge
