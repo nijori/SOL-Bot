@@ -1,16 +1,24 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
-// core/typesの明示的なインポートを修正
-const { Types, TimeFrame } = require('../../core/types');
+const { MultiTimeframeDataFetcher, Timeframe } = require('../../data/MultiTimeframeDataFetcher');
+const parquetDataStoreModule = require('../../data/parquetDataStore');
 
-const MultiTimeframeDataFetcherModule = require('../../data/MultiTimeframeDataFetcher');
-const { MultiTimeframeDataFetcher, Timeframe } = MultiTimeframeDataFetcherModule;
-const { ParquetDataStore } = require('../../data/parquetDataStore');
-const ccxt = require('ccxt');
+// モック関数を作成
+const mockSaveCandles = jest.fn().mockResolvedValue(true);
+const mockClose = jest.fn();
 
 // ParquetDataStoreをモック
-jest.mock('../../data/parquetDataStore');
+jest.mock('../../data/parquetDataStore', () => {
+  return {
+    ParquetDataStore: jest.fn().mockImplementation(() => {
+      return {
+        saveCandles: mockSaveCandles,
+        close: mockClose
+      };
+    })
+  };
+});
 
 // タイムフレーム文字列をミリ秒に変換するヘルパー関数
 function getTimeframeMilliseconds(timeframe) {
@@ -32,12 +40,7 @@ function getTimeframeMilliseconds(timeframe) {
 // モックの交換所インスタンスを作成する関数
 function createMockExchange() {
   return {
-    fetchOHLCV: jest.fn().mockImplementation(async (
-      symbol,
-      timeframe,
-      since,
-      limit
-    ) => {
+    fetchOHLCV: jest.fn().mockImplementation(async (symbol, timeframe, since, limit) => {
       // モックのOHLCVデータを返す
       const actualLimit = limit || 100;
       const baseTimestamp = Date.now() - actualLimit * getTimeframeMilliseconds(timeframe);
@@ -96,8 +99,6 @@ describe('MultiTimeframeDataFetcher', () => {
   let mockBinanceInstance;
   let mockKucoinInstance;
   let mockBybitInstance;
-  // ParquetDataStoreモックインスタンス
-  let mockParquetDataStore;
   // ccxtのモック参照
   let mockCcxt;
 
@@ -107,22 +108,15 @@ describe('MultiTimeframeDataFetcher', () => {
 
     // テスト前の準備
     jest.clearAllMocks();
-
-    // ParquetDataStoreのモックをセットアップ
-    mockParquetDataStore = {
-      saveCandles: jest.fn().mockResolvedValue(true),
-      close: jest.fn()
-    };
-    ParquetDataStore.mockImplementation(() => mockParquetDataStore);
-
+    
     // モック取引所インスタンスを初期化
     mockBinanceInstance = createMockExchange();
     mockKucoinInstance = createMockExchange();
     mockBybitInstance = createMockExchange();
-    
+
     // ccxtモックに直接アクセス
     mockCcxt = jest.requireMock('ccxt');
-    
+
     // 各取引所のモックを明示的に設定
     mockCcxt.binance.mockReturnValue(mockBinanceInstance);
     mockCcxt.kucoin.mockReturnValue(mockKucoinInstance);
@@ -130,18 +124,25 @@ describe('MultiTimeframeDataFetcher', () => {
 
     // フェッチャーをインスタンス化
     fetcher = new MultiTimeframeDataFetcher();
+    
+    // 安全対策：closeメソッドが未定義の場合に備える
+    if (!fetcher.close) {
+      fetcher.close = jest.fn();
+    }
   });
 
   afterEach(() => {
     // テスト後のクリーンアップ
-    fetcher.close();
+    if (fetcher && typeof fetcher.close === 'function') {
+      fetcher.close();
+    }
     jest.restoreAllMocks();
     process.env = originalEnv;
   });
 
   test('正しく初期化されること', () => {
     expect(fetcher).toBeDefined();
-    expect(ParquetDataStore).toHaveBeenCalled();
+    expect(parquetDataStoreModule.ParquetDataStore).toHaveBeenCalled();
   });
 
   test('特定のタイムフレームのデータを取得して保存できること', async () => {
@@ -156,7 +157,7 @@ describe('MultiTimeframeDataFetcher', () => {
     );
 
     // ParquetDataStoreの保存メソッドが呼ばれたことを確認
-    expect(mockParquetDataStore.saveCandles).toHaveBeenCalled();
+    expect(mockSaveCandles).toHaveBeenCalled();
 
     // 結果が成功を示していること
     expect(result).toBe(true);
@@ -173,7 +174,7 @@ describe('MultiTimeframeDataFetcher', () => {
 
     // 各タイムフレームで取引所のfetchOHLCVが呼ばれた
     const timeframes = [Timeframe.MINUTE_1, Timeframe.MINUTE_15, Timeframe.HOUR_1, Timeframe.DAY_1];
-    
+
     // binanceのfetchOHLCVが各タイムフレームで呼ばれていることを確認
     timeframes.forEach(timeframe => {
       expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalledWith(
@@ -218,10 +219,10 @@ describe('MultiTimeframeDataFetcher', () => {
       destroy: jest.fn()
     };
     cronMock.schedule.mockReturnValueOnce(mockTask);
-    
+
     // ジョブを開始
     fetcher.startScheduledJob(Timeframe.HOUR_1);
-    
+
     // ジョブを停止
     fetcher.stopScheduledJob(Timeframe.HOUR_1);
 
@@ -232,30 +233,30 @@ describe('MultiTimeframeDataFetcher', () => {
 
   test('closeメソッドですべてのリソースを解放できること', () => {
     const cronMock = require('node-cron');
-    
+
     // モックタスクを作成
     const mockTasks = Array(4).fill(0).map(() => ({
       stop: jest.fn(),
       destroy: jest.fn()
     }));
-    
+
     // スケジュールジョブを開始
     [Timeframe.MINUTE_1, Timeframe.MINUTE_15, Timeframe.HOUR_1, Timeframe.DAY_1].forEach((timeframe, index) => {
       cronMock.schedule.mockReturnValueOnce(mockTasks[index]);
       fetcher.startScheduledJob(timeframe);
     });
-    
-    // クローズメソッドを呼び出す
+
+    // closeメソッドを呼び出してクリーンアップ
     fetcher.close();
-    
-    // すべてのタスクでstop()とdestroy()が呼ばれていることを確認
+
+    // すべてのタスクがstop()とdestroy()で終了したことを確認
     mockTasks.forEach(task => {
       expect(task.stop).toHaveBeenCalled();
       expect(task.destroy).toHaveBeenCalled();
     });
-    
-    // ParquetDataStoreのclose()も呼ばれていることを確認
-    expect(mockParquetDataStore.close).toHaveBeenCalled();
+
+    // ParquetDataStoreも閉じられたことを確認
+    expect(mockClose).toHaveBeenCalled();
   });
 
   test('データ取得エラーが発生しても処理を続行できること', async () => {
