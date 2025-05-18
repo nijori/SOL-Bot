@@ -54,7 +54,7 @@ ENV NODE_ENV=production
 ENV TZ=UTC
 
 # Command to run the application
-CMD ["node", "--experimental-specifier-resolution=node", "dist/index.js"]
+CMD ["node", "--experimental-specifier-resolution=node", "dist/index.mjs"]
 
 # Expose API port (if needed)
 EXPOSE 3000 
