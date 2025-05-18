@@ -24,6 +24,13 @@ services:
     ports:
       - '3000:3000'
     restart: unless-stopped
+    # ヘルスチェックを追加
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/status']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     # ログ設定を追加
     logging:
       driver: 'json-file'
