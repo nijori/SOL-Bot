@@ -5,46 +5,49 @@
  * 市場データの取得や注文の実行など、取引所関連の操作を提供します。
  */
 
-import ccxt from 'ccxt';
-import { Candle, Order, OrderSide, OrderType, OrderStatus } from '../core/types.js';
-import logger from '../utils/logger.js';
-import {
+// @ts-nocheck
+const ccxt = require('ccxt');
+const Types = require('../core/types');
+const { OrderSide, OrderType, OrderStatus } = Types;
+const logger = require('../utils/logger');
+const orderTypeUtils = require('../utils/orderTypeUtils');
+const {
   orderTypeToCcxt,
   ccxtToOrderType,
   ORDER_TYPE_TO_CCXT_MAPPING,
   CCXT_TO_ORDER_TYPE_MAPPING
-} from '../utils/orderTypeUtils.js';
+} = orderTypeUtils;
 
 /**
  * 注文オプションのインターフェース
  */
-export interface OrderOptions {
-  postOnly?: boolean; // Post-Onlyオプション
-  hidden?: boolean; // 隠し注文オプション
-  iceberg?: number; // アイスバーグ注文の表示数量
-  stopPrice?: number; // ストップ価格
-}
+// export interface OrderOptions {
+//   postOnly?: boolean; // Post-Onlyオプション
+//   hidden?: boolean; // 隠し注文オプション
+//   iceberg?: number; // アイスバーグ注文の表示数量
+//   stopPrice?: number; // ストップ価格
+// }
 
 /**
  * OCO注文の入力パラメータ
  */
-export interface OcoOrderParams {
-  symbol: string; // 銘柄シンボル
-  side: OrderSide; // 注文サイド
-  amount: number; // 注文数量
-  stopPrice: number; // ストップ価格
-  limitPrice: number; // 指値価格
-  stopLimitPrice?: number; // ストップリミットの場合の指値価格
-}
+// export interface OcoOrderParams {
+//   symbol: string; // 銘柄シンボル
+//   side: OrderSide; // 注文サイド
+//   amount: number; // 注文数量
+//   stopPrice: number; // ストップ価格
+//   limitPrice: number; // 指値価格
+//   stopLimitPrice?: number; // ストップリミットの場合の指値価格
+// }
 
 /**
  * 取引所APIエラーのインターフェース
  */
-export interface ExchangeError extends Error {
-  code?: number | string;
-  name: string;
-  message: string;
-}
+// export interface ExchangeError extends Error {
+//   code?: number | string;
+//   name: string;
+//   message: string;
+// }
 
 /**
  * OrderType enumとCCXT注文タイプのマッピング
@@ -63,14 +66,27 @@ export interface ExchangeError extends Error {
 /**
  * 取引所サービスクラス
  */
-export class ExchangeService {
-  private exchange!: ccxt.Exchange; // 初期化は initialize() で行うため ! を使用
-  private isInitialized: boolean = false;
-  private readonly MAX_RETRIES = 7; // 最大再試行回数
-  // 固定値ではなく、真の指数バックオフのパラメータを定義
-  private readonly INITIAL_BACKOFF_MS = 1000; // 初期バックオフ時間（ミリ秒）
-  private readonly MAX_BACKOFF_MS = 64000; // 最大バックオフ時間（ミリ秒）
-  private readonly BACKOFF_FACTOR = 2; // バックオフ係数（2倍ずつ増加）
+class ExchangeService {
+  // private exchange!: ccxt.Exchange; // 初期化は initialize() で行うため ! を使用
+  // private isInitialized: boolean = false;
+  // private readonly MAX_RETRIES = 7; // 最大再試行回数
+  // // 固定値ではなく、真の指数バックオフのパラメータを定義
+  // private readonly INITIAL_BACKOFF_MS = 1000; // 初期バックオフ時間（ミリ秒）
+  // private readonly MAX_BACKOFF_MS = 64000; // 最大バックオフ時間（ミリ秒）
+  // private readonly BACKOFF_FACTOR = 2; // バックオフ係数（2倍ずつ増加）
+
+  /**
+   * コンストラクタ
+   */
+  constructor() {
+    this.exchange = null;
+    this.isInitialized = false;
+    this.MAX_RETRIES = 7; // 最大再試行回数
+    // 固定値ではなく、真の指数バックオフのパラメータを定義
+    this.INITIAL_BACKOFF_MS = 1000; // 初期バックオフ時間（ミリ秒）
+    this.MAX_BACKOFF_MS = 64000; // 最大バックオフ時間（ミリ秒）
+    this.BACKOFF_FACTOR = 2; // バックオフ係数（2倍ずつ増加）
+  }
 
   /**
    * 取引所サービスを初期化する
@@ -78,14 +94,11 @@ export class ExchangeService {
    * @param apiKey APIキー
    * @param secret 秘密鍵
    */
-  public async initialize(exchangeId: string, apiKey?: string, secret?: string): Promise<boolean> {
+  async initialize(exchangeId, apiKey, secret) {
     try {
       // 取引所インスタンスの作成
       // ccxtは動的にインスタンス化するのでRecord型を使用
-      const exchangeClasses = ccxt as unknown as Record<
-        string,
-        new (options: ccxt.ExchangeOptions) => ccxt.Exchange
-      >;
+      const exchangeClasses = ccxt;
       const exchangeClass = exchangeClasses[exchangeId];
 
       if (!exchangeClass) {
@@ -115,7 +128,7 @@ export class ExchangeService {
    * @param error 発生したエラー
    * @returns 再試行可能な場合はtrue
    */
-  private isRetryable(error: ExchangeError): boolean {
+  isRetryable(error) {
     // レート制限（429）エラー
     if (
       (error.name && error.name === 'RateLimitExceeded') ||
@@ -162,14 +175,14 @@ export class ExchangeService {
    * @param apiCall API呼び出し関数
    * @returns API呼び出しの結果
    */
-  private async fetchWithExponentialBackoff<T>(apiCall: () => Promise<T>): Promise<T> {
-    let lastError: ExchangeError = new Error('Unknown error') as ExchangeError;
+  async fetchWithExponentialBackoff(apiCall) {
+    let lastError = new Error('Unknown error');
 
     for (let retry = 0; retry < this.MAX_RETRIES; retry++) {
       try {
         return await apiCall();
       } catch (error) {
-        lastError = error as ExchangeError;
+        lastError = error;
 
         // 再試行可能なエラーかどうか判定
         if (this.isRetryable(lastError)) {
@@ -215,11 +228,7 @@ export class ExchangeService {
    * @param limit 取得するローソク足の数
    * @returns ローソク足データの配列
    */
-  public async fetchCandles(
-    symbol: string,
-    timeframe: string,
-    limit: number = 100
-  ): Promise<Candle[]> {
+  async fetchCandles(symbol, timeframe, limit = 100) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return [];
@@ -252,7 +261,7 @@ export class ExchangeService {
    * @param options 注文オプション
    * @returns 注文ID（成功した場合）またはnull
    */
-  public async executeOrder(order: Order, options?: OrderOptions): Promise<string | null> {
+  async executeOrder(order, options) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return null;
@@ -266,7 +275,7 @@ export class ExchangeService {
       let price = order.price;
       const symbol = order.symbol;
 
-      const params: Record<string, unknown> = {};
+      const params = {};
 
       // 成行系注文の場合、priceパラメータを明示的にundefinedに設定
       if (order.type === OrderType.MARKET || order.type.toString().endsWith('MARKET')) {
@@ -389,7 +398,7 @@ export class ExchangeService {
    * @param orderType 注文タイプEnum
    * @returns CCXTで使用する注文タイプ文字列
    */
-  private mapOrderTypeToCCXT(orderType: OrderType): string {
+  mapOrderTypeToCCXT(orderType) {
     // 新しいユーティリティ関数を使用
     return orderTypeToCcxt(orderType);
   }
@@ -399,7 +408,7 @@ export class ExchangeService {
    * @param ccxtOrderType CCXT注文タイプ文字列
    * @returns OrderType enum値
    */
-  private mapCCXTToOrderType(ccxtOrderType: string): OrderType {
+  mapCCXTToOrderType(ccxtOrderType) {
     // 新しいユーティリティ関数を使用
     return ccxtToOrderType(ccxtOrderType);
   }
@@ -410,7 +419,7 @@ export class ExchangeService {
    * @param params OCO注文のパラメータ
    * @returns 注文ID（成功した場合）またはnull
    */
-  public async createOcoOrder(params: OcoOrderParams): Promise<string | null> {
+  async createOcoOrder(params) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return null;
@@ -427,7 +436,7 @@ export class ExchangeService {
 
         // 存在しなければ'createOCO'をチェック（一部の取引所での命名）
         if (!createOCOMethod && 'createOCO' in this.exchange) {
-          createOCOMethod = (this.exchange as any).createOCO;
+          createOCOMethod = this.exchange.createOCO;
         }
 
         if (!createOCOMethod) {
@@ -466,14 +475,14 @@ export class ExchangeService {
             typeof result[0] === 'object' &&
             'id' in result[0]
           ) {
-            return result[0].id as string;
+            return result[0].id;
           }
         }
         // KuCoinなどオブジェクトを返す取引所への対応
         else if (typeof result === 'object') {
           logger.debug(`OCO注文結果がオブジェクト形式で返されました (${this.exchange.id})`);
           if ('id' in result && result.id) {
-            return result.id as string;
+            return result.id;
           }
         }
 
@@ -488,45 +497,74 @@ export class ExchangeService {
           `取引所がOCO注文をサポートしていないため、個別に注文を出します: ${this.exchange.name}`
         );
 
-        // 利確注文（指値）
-        const limitOrderId = await this.executeOrder({
-          symbol: params.symbol,
-          type: OrderType.LIMIT,
-          side: params.side,
-          amount: params.amount,
-          price: params.limitPrice
-        });
+        // 指値注文（利確）
+        let limitOrderId = null;
+        try {
+          limitOrderId = await this.fetchWithExponentialBackoff(() =>
+            this.exchange.createOrder(
+              params.symbol,
+              'limit',
+              params.side.toLowerCase(),
+              params.amount,
+              params.limitPrice
+            )
+          );
+        } catch (limitError) {
+          logger.error(
+            `OCO-指値注文実行エラー: ${
+              limitError instanceof Error ? limitError.message : String(limitError)
+            }`
+          );
+          return null;
+        }
 
-        // 損切り注文（ストップ）
-        const stopOrderId = await this.executeOrder({
-          symbol: params.symbol,
-          type: OrderType.STOP,
-          side: params.side,
-          amount: params.amount,
-          stopPrice: params.stopPrice,
-          price: params.stopLimitPrice || params.stopPrice // ストップリミットの場合は指定された価格、そうでなければストップ価格
-        });
+        // ストップ注文（損切り）- stopまたはstop_limit注文を使用
+        let stopOrderType = 'stop';
+        // ストップリミット価格が指定されている場合はストップリミット注文を使用
+        if (params.stopLimitPrice) {
+          stopOrderType = 'stop_limit';
+        }
 
-        if (limitOrderId && stopOrderId) {
-          logger.info(`個別注文で擬似OCO作成: 指値=${limitOrderId}, ストップ=${stopOrderId}`);
-          return `${limitOrderId},${stopOrderId}`; // 両方の注文IDをカンマ区切りで返す
-        } else {
-          logger.error('OCO注文の作成に失敗しました');
+        let stopOrderId = null;
+        try {
+          // ストップ注文のパラメータを設定
+          const stopParams = {
+            stopPrice: params.stopPrice
+          };
 
-          // 部分的に成功した注文をキャンセル
+          // ストップリミット注文の場合は指値価格をセット、そうでなければstopPriceを使用
+          const price = params.stopLimitPrice || params.stopPrice;
+
+          stopOrderId = await this.fetchWithExponentialBackoff(() =>
+            this.exchange.createOrder(
+              params.symbol,
+              stopOrderType,
+              params.side.toLowerCase(),
+              params.amount,
+              price,
+              stopParams
+            )
+          );
+        } catch (stopError) {
+          logger.error(
+            `OCO-ストップ注文実行エラー: ${
+              stopError instanceof Error ? stopError.message : String(stopError)
+            }`
+          );
+          // 指値注文が成功していた場合はキャンセル
           if (limitOrderId) {
             await this.fetchWithExponentialBackoff(() =>
               this.exchange.cancelOrder(limitOrderId, params.symbol)
             );
           }
-          if (stopOrderId) {
-            await this.fetchWithExponentialBackoff(() =>
-              this.exchange.cancelOrder(stopOrderId, params.symbol)
-            );
-          }
-
           return null;
         }
+
+        // 指値注文のIDを返す（実際のOCO注文ではありませんが、システム内で追跡するために）
+        logger.info(
+          `OCO代替: 指値注文(${limitOrderId})とストップ注文(${stopOrderId})を個別に実行しました`
+        );
+        return limitOrderId;
       }
     } catch (error) {
       logger.error(`OCO注文実行エラー: ${error instanceof Error ? error.message : String(error)}`);
@@ -538,7 +576,7 @@ export class ExchangeService {
    * 口座残高を取得する
    * @returns 利用可能な残高
    */
-  public async fetchBalance(): Promise<Record<string, number>> {
+  async fetchBalance() {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return {};
@@ -546,11 +584,11 @@ export class ExchangeService {
 
     try {
       const balances = await this.fetchWithExponentialBackoff(() => this.exchange.fetchBalance());
-      const result: Record<string, number> = {};
+      const result = {};
 
       // 利用可能な残高を抽出
       for (const [currency, balance] of Object.entries(balances.free || {})) {
-        result[currency] = balance as number;
+        result[currency] = balance;
       }
 
       return result;
@@ -566,7 +604,7 @@ export class ExchangeService {
    * @param symbol 銘柄（例: 'SOL/USDT'）
    * @returns 注文情報
    */
-  public async fetchOrder(orderId: string, symbol: string): Promise<ccxt.Order | null> {
+  async fetchOrder(orderId, symbol) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       return null;
@@ -588,7 +626,7 @@ export class ExchangeService {
    * @param symbol 銘柄（例: 'SOL/USDT'）
    * @returns システム内部のOrder型に変換された注文情報、またはnull
    */
-  public async fetchOrderAndConvert(orderId: string, symbol: string): Promise<Order | null> {
+  async fetchOrderAndConvert(orderId, symbol) {
     const ccxtOrder = await this.fetchOrder(orderId, symbol);
     if (!ccxtOrder) {
       return null;
@@ -603,7 +641,7 @@ export class ExchangeService {
    * @param ccxtOrder CCXT注文オブジェクト
    * @returns システム内部のOrder型
    */
-  private convertCcxtOrderToInternalOrder(ccxtOrder: ccxt.Order): Order {
+  convertCcxtOrderToInternalOrder(ccxtOrder) {
     // 注文タイプが存在する場合は変換、ない場合はデフォルトでLIMIT
     const orderType = ccxtOrder.type ? this.mapCCXTToOrderType(ccxtOrder.type) : OrderType.LIMIT;
 
@@ -611,7 +649,7 @@ export class ExchangeService {
       exchangeOrderId: ccxtOrder.id,
       symbol: ccxtOrder.symbol,
       type: orderType,
-      side: ccxtOrder.side as OrderSide,
+      side: ccxtOrder.side,
       price: ccxtOrder.price,
       amount: ccxtOrder.amount,
       status: this.mapCcxtStatusToOrderStatus(ccxtOrder.status),
@@ -624,7 +662,7 @@ export class ExchangeService {
    * @param ccxtStatus CCXT注文ステータス
    * @returns OrderStatus
    */
-  private mapCcxtStatusToOrderStatus(ccxtStatus?: string): OrderStatus {
+  mapCcxtStatusToOrderStatus(ccxtStatus) {
     if (!ccxtStatus) return OrderStatus.OPEN;
 
     switch (ccxtStatus.toLowerCase()) {
@@ -647,7 +685,7 @@ export class ExchangeService {
    * @param feature チェックする機能（例: 'fetchOHLCV'）
    * @returns サポートされているかどうか
    */
-  public supportsFeature(feature: string): boolean {
+  supportsFeature(feature) {
     if (!this.isInitialized) {
       return false;
     }
@@ -665,7 +703,7 @@ export class ExchangeService {
    * この関数は両方の可能なキー名をチェックします
    * @returns OCO注文がサポートされているかどうか
    */
-  public supportsOCO(): boolean {
+  supportsOCO() {
     if (!this.isInitialized || !this.exchange.has) {
       return false;
     }
@@ -678,7 +716,7 @@ export class ExchangeService {
    * 取引所名を取得する
    * @returns 取引所の名前
    */
-  public getExchangeName(): string {
+  getExchangeName() {
     if (!this.isInitialized) {
       return 'Not initialized';
     }
@@ -691,7 +729,7 @@ export class ExchangeService {
    * @param symbol 通貨ペア (例: 'BTC/USDT')
    * @returns マーケット情報オブジェクト
    */
-  public async getMarketInfo(symbol: string): Promise<any> {
+  async getMarketInfo(symbol) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       throw new Error('取引所が初期化されていません');
@@ -721,7 +759,7 @@ export class ExchangeService {
    * @param symbol 通貨ペア (例: 'BTC/USDT')
    * @returns ティッカーオブジェクト
    */
-  public async fetchTicker(symbol: string): Promise<any> {
+  async fetchTicker(symbol) {
     if (!this.isInitialized) {
       logger.error('取引所が初期化されていません');
       throw new Error('取引所が初期化されていません');
@@ -737,3 +775,8 @@ export class ExchangeService {
     }
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  ExchangeService
+};
