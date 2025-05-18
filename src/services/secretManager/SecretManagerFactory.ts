@@ -4,96 +4,70 @@
  * 環境に応じた適切なシークレットマネージャー実装を提供します。
  */
 
-import { SecretManagerInterface } from './SecretManagerInterface.js';
-import { FileSecretManager } from './FileSecretManager.js';
-import { EnvSecretManager } from './EnvSecretManager.js';
-import { AWSParameterStoreManager, AWSParameterStoreConfig } from './AWSParameterStoreManager.js';
-import { GCPSecretManager, GCPSecretManagerConfig } from './GCPSecretManager.js';
-import logger from '../../utils/logger.js';
+// @ts-nocheck
+const FileSecretManager = require('./FileSecretManager');
+const EnvSecretManager = require('./EnvSecretManager');
+const AWSParameterStoreManager = require('./AWSParameterStoreManager');
+const GCPSecretManager = require('./GCPSecretManager');
+const logger = require('../../utils/logger');
 
 /**
  * シークレットマネージャーの種類
+ * @type {Object}
  */
-export enum SecretManagerType {
+const SecretManagerType = {
   /**
    * ファイルベースのシークレットマネージャー（開発環境用）
    */
-  FILE = 'file',
+  FILE: 'file',
 
   /**
    * 環境変数ベースのシークレットマネージャー
    */
-  ENV = 'env',
+  ENV: 'env',
 
   /**
    * AWS Parameter Storeを使用したシークレットマネージャー
    */
-  AWS_PARAMETER_STORE = 'aws-parameter-store',
+  AWS_PARAMETER_STORE: 'aws-parameter-store',
 
   /**
    * GCP Secret Managerを使用したシークレットマネージャー
    */
-  GCP_SECRET_MANAGER = 'gcp-secret-manager'
-}
+  GCP_SECRET_MANAGER: 'gcp-secret-manager'
+};
 
 /**
- * シークレットマネージャー設定オプション
+ * @typedef {Object} SecretManagerOptions
+ * @property {string} [type] - シークレットマネージャーの種類
+ * @property {string} [filePath] - ファイルシークレットマネージャーのファイルパス
+ * @property {string} [envPrefix] - 環境変数シークレットマネージャーのプレフィックス
+ * @property {Object} [awsConfig] - AWS Parameter Store設定
+ * @property {Object} [gcpConfig] - GCP Secret Manager設定
  */
-export interface SecretManagerOptions {
-  /**
-   * シークレットマネージャーの種類
-   */
-  type?: SecretManagerType;
-
-  /**
-   * ファイルシークレットマネージャーのファイルパス
-   */
-  filePath?: string;
-
-  /**
-   * 環境変数シークレットマネージャーのプレフィックス
-   */
-  envPrefix?: string;
-
-  /**
-   * AWS Parameter Store設定
-   */
-  awsConfig?: AWSParameterStoreConfig;
-
-  /**
-   * GCP Secret Manager設定
-   */
-  gcpConfig?: GCPSecretManagerConfig;
-}
 
 /**
- * シークレットマネージャー設定型
+ * @typedef {Object} SecretManagerConfig
+ * @property {string} [type] - シークレットマネージャーの種類
+ * @property {string} [filePath] - ファイルパス
+ * @property {string} [envPrefix] - 環境変数プレフィックス
+ * @property {Object} [aws] - AWS設定
+ * @property {string} [aws.region] - AWSリージョン
+ * @property {string} [aws.profile] - AWSプロファイル
+ * @property {Object} [gcp] - GCP設定
+ * @property {string} [gcp.projectId] - GCPプロジェクトID
+ * @property {any} [gcp.credentials] - GCP認証情報
  */
-export interface SecretManagerConfig {
-  type?: string;
-  filePath?: string;
-  envPrefix?: string;
-  aws?: {
-    region?: string;
-    profile?: string;
-  };
-  gcp?: {
-    projectId?: string;
-    credentials?: any;
-  };
-}
 
 /**
  * シークレットマネージャーファクトリークラス
  */
-export class SecretManagerFactory {
-  private static instance: SecretManagerInterface;
-
+class SecretManagerFactory {
   /**
    * 環境変数から適切なシークレットマネージャータイプを判定
-   * @returns シークレットマネージャータイプ
+   * @returns {string} シークレットマネージャータイプ
    */
-  private static determineManagerType(): SecretManagerType {
+  static determineManagerType() {
     // 環境変数でタイプが指定されている場合はそれを使用
     const envType = process.env.SECRET_MANAGER_TYPE?.toLowerCase();
     if (envType) {
@@ -127,10 +101,10 @@ export class SecretManagerFactory {
 
   /**
    * シークレットマネージャーのインスタンスを取得
-   * @param options シークレットマネージャー設定オプション
-   * @returns シークレットマネージャーインスタンス
+   * @param {SecretManagerOptions} [options={}] - シークレットマネージャー設定オプション
+   * @returns {Object} シークレットマネージャーインスタンス
    */
-  public static getSecretManager(options: SecretManagerOptions = {}): SecretManagerInterface {
+  static getSecretManager(options = {}) {
     // すでにインスタンスが作成されていれば再利用
     if (SecretManagerFactory.instance) {
       return SecretManagerFactory.instance;
@@ -144,26 +118,26 @@ export class SecretManagerFactory {
     // タイプに応じたシークレットマネージャーを作成
     switch (type) {
       case SecretManagerType.FILE:
-        SecretManagerFactory.instance = new FileSecretManager(options.filePath);
+        SecretManagerFactory.instance = new FileSecretManager.FileSecretManager(options.filePath);
         break;
 
       case SecretManagerType.ENV:
-        SecretManagerFactory.instance = new EnvSecretManager({ prefix: options.envPrefix });
+        SecretManagerFactory.instance = new EnvSecretManager.EnvSecretManager({ prefix: options.envPrefix });
         break;
 
       case SecretManagerType.AWS_PARAMETER_STORE:
-        SecretManagerFactory.instance = new AWSParameterStoreManager(options.awsConfig);
+        SecretManagerFactory.instance = new AWSParameterStoreManager.AWSParameterStoreManager(options.awsConfig);
         break;
 
       case SecretManagerType.GCP_SECRET_MANAGER:
-        SecretManagerFactory.instance = new GCPSecretManager(options.gcpConfig);
+        SecretManagerFactory.instance = new GCPSecretManager.GCPSecretManager(options.gcpConfig);
         break;
 
       default:
         logger.warn(
           `未知のシークレットマネージャータイプ: ${type}、環境変数マネージャーを使用します`
         );
-        SecretManagerFactory.instance = new EnvSecretManager();
+        SecretManagerFactory.instance = new EnvSecretManager.EnvSecretManager();
     }
 
     return SecretManagerFactory.instance;
@@ -172,18 +146,21 @@ export class SecretManagerFactory {
   /**
    * シークレットマネージャーのインスタンスをリセット（主にテスト用）
    */
-  public static resetInstance(): void {
-    SecretManagerFactory.instance = undefined as unknown as SecretManagerInterface;
+  static resetInstance() {
+    SecretManagerFactory.instance = undefined;
   }
 }
 
+// 静的プロパティの初期化
+SecretManagerFactory.instance = null;
+
 /**
  * シークレットマネージャーのインスタンスを作成する関数
- * @param config シークレットマネージャーの設定
- * @returns シークレットマネージャーのインスタンス
+ * @param {SecretManagerConfig} [config] - シークレットマネージャーの設定
+ * @returns {Object} シークレットマネージャーのインスタンス
  */
-export function createSecretManager(config?: SecretManagerConfig): SecretManagerInterface {
-  const options: SecretManagerOptions = {};
+function createSecretManager(config) {
+  const options = {};
   
   if (config) {
     // 種類の変換
@@ -230,8 +207,16 @@ export function createSecretManager(config?: SecretManagerConfig): SecretManager
 
 /**
  * 利用可能なシークレットマネージャータイプを一覧する関数
- * @returns 利用可能なシークレットマネージャーのタイプ一覧
+ * @returns {string[]} 利用可能なシークレットマネージャーのタイプ一覧
  */
-export function listAvailableManagers(): string[] {
+function listAvailableManagers() {
   return Object.values(SecretManagerType);
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  SecretManagerType,
+  SecretManagerFactory,
+  createSecretManager,
+  listAvailableManagers
+};

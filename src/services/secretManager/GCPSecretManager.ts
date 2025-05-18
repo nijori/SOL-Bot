@@ -4,40 +4,27 @@
  * GCPのSecret Managerサービスを使用してシークレットを安全に管理します。
  */
 
-import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-import { SecretManagerInterface } from './SecretManagerInterface.js';
-import logger from '../../utils/logger.js';
+// @ts-nocheck
+const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
+const logger = require('../../utils/logger');
 
 /**
  * GCP Secret Manager設定オプション
+ * @typedef {Object} GCPSecretManagerConfig
+ * @property {string} [projectId] - GCPプロジェクトID
+ * @property {any} [credentials] - 認証情報
+ * @property {string} [keyFilename] - 認証情報ファイル名
  */
-export interface GCPSecretManagerConfig {
-  /**
-   * GCPプロジェクトID
-   */
-  projectId?: string;
 
-  /**
-   * 認証情報
-   */
-  credentials?: any;
-
-  /**
-   * 認証情報ファイル名
-   */
-  keyFilename?: string;
-}
-
-export class GCPSecretManager implements SecretManagerInterface {
-  private client: SecretManagerServiceClient;
-  private readonly projectId: string;
-  private readonly credentials: any;
-
+/**
+ * GCP Secret Managerクラス
+ */
+class GCPSecretManager {
   /**
    * コンストラクタ
-   * @param config GCP Secret Manager設定
+   * @param {GCPSecretManagerConfig} [config={}] - GCP Secret Manager設定
    */
-  constructor(config: GCPSecretManagerConfig = {}) {
+  constructor(config = {}) {
     this.projectId = config.projectId || process.env.GCP_PROJECT_ID || '';
     this.credentials = config.credentials;
 
@@ -57,29 +44,29 @@ export class GCPSecretManager implements SecretManagerInterface {
 
   /**
    * シークレット名のフルパスを生成
-   * @param name シークレット名
-   * @returns フルパスシークレット名
+   * @param {string} name - シークレット名
+   * @returns {string} フルパスシークレット名
    */
-  private getSecretName(name: string): string {
+  getSecretName(name) {
     return `projects/${this.projectId}/secrets/${name}`;
   }
 
   /**
    * シークレットバージョンのフルパスを生成
-   * @param name シークレット名
-   * @param version バージョン（デフォルト: 'latest'）
-   * @returns フルパスバージョン名
+   * @param {string} name - シークレット名
+   * @param {string} [version='latest'] - バージョン（デフォルト: 'latest'）
+   * @returns {string} フルパスバージョン名
    */
-  private getSecretVersionName(name: string, version: string = 'latest'): string {
+  getSecretVersionName(name, version = 'latest') {
     return `${this.getSecretName(name)}/versions/${version}`;
   }
 
   /**
    * シークレット値を取得する
-   * @param key シークレットのキー
-   * @returns 取得した値、エラーまたは存在しない場合はnull
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<string|null>} 取得した値、エラーまたは存在しない場合はnull
    */
-  async getSecret(key: string): Promise<string | null> {
+  async getSecret(key) {
     try {
       const name = this.getSecretVersionName(key);
       const [version] = await this.client.accessSecretVersion({ name });
@@ -105,11 +92,11 @@ export class GCPSecretManager implements SecretManagerInterface {
 
   /**
    * シークレット値を設定/更新する
-   * @param key シークレットのキー
-   * @param value 設定する値
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @param {string} value - 設定する値
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async setSecret(key: string, value: string): Promise<boolean> {
+  async setSecret(key, value) {
     try {
       const secretName = this.getSecretName(key);
 
@@ -153,10 +140,10 @@ export class GCPSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットを削除する
-   * @param key シークレットのキー
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async deleteSecret(key: string): Promise<boolean> {
+  async deleteSecret(key) {
     try {
       const name = this.getSecretName(key);
       await this.client.deleteSecret({ name });
@@ -179,10 +166,10 @@ export class GCPSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットが存在するか確認
-   * @param key シークレットのキー
-   * @returns 存在する場合はtrue
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 存在する場合はtrue
    */
-  async hasSecret(key: string): Promise<boolean> {
+  async hasSecret(key) {
     try {
       const name = this.getSecretName(key);
       await this.client.getSecret({ name });
@@ -199,3 +186,8 @@ export class GCPSecretManager implements SecretManagerInterface {
     }
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  GCPSecretManager
+};
