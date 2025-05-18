@@ -71,13 +71,13 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 25%
       - ✎ Notes      : ESM互換性問題を解決するために、より安定したCommonJSに戻す方針へ変更。これまでの修正を破棄し、CommonJS形式でパッケージ設定と実行環境を整える。ブランチ：fix/revert-to-commonjs
 
-3.1 [ ] INF-031: package.jsonのCommonJS設定への移行
+3.1 [x] INF-031: package.jsonのCommonJS設定への移行
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-030
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 75%
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
       - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。ESM関連の設定と不要なスクリプトを削除。tsconfig.jsonもCommonJS設定に更新。
 
 3.2 [ ] INF-032: コードベースをCommonJS形式に変換
@@ -86,17 +86,17 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
-      - ✎ Notes      : import/export構文をrequire/module.exportsに一括変換。まずindex.tsなどの主要ファイルから変換作業を開始。
+      - 📊 Progress   : 50%
+      - ✎ Notes      : index.tsを完全にCommonJS形式に変換。メインサーバーが起動可能に。まだ各モジュール(TradingEngine等)のCommonJS変換が必要。
 
 3.3 [ ] INF-033: Docker実行環境のCommonJS対応
-      - 📅 Due        : 2026-07-07
+      - 📅 Due        : 2026-07-06
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-032
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : DockerfileとDocker Compose設定からESM関連オプションを削除。CMDを"node dist/index.js"に変更。ビルド方法の一元化。
+      - 📊 Progress   : 25%
+      - ✎ Notes      : Dockerfileは修正済み。docker-composeの修正完了。実際のコンテナビルドとヘルスチェックテスト待ち。
 
 4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
@@ -285,6 +285,8 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
 
 
 
