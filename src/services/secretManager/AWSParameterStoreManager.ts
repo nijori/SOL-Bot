@@ -4,42 +4,41 @@
  * AWSのSSMパラメータストアを使用してシークレットを安全に管理します。
  */
 
-import {
+// @ts-nocheck
+const {
   SSMClient,
   GetParameterCommand,
   PutParameterCommand,
   DeleteParameterCommand,
-  GetParameterCommandOutput,
   ParameterNotFound
-} from '@aws-sdk/client-ssm';
-import { fromIni } from '@aws-sdk/credential-providers';
-import { SecretManagerInterface } from './SecretManagerInterface.js';
-import logger from '../../utils/logger.js';
+} = require('@aws-sdk/client-ssm');
+const { fromIni } = require('@aws-sdk/credential-providers');
+const logger = require('../../utils/logger');
 
-export interface AWSParameterStoreConfig {
-  region?: string;
-  profile?: string;
-  pathPrefix?: string;
-  withDecryption?: boolean;
-}
+/**
+ * @typedef {Object} AWSParameterStoreConfig
+ * @property {string} [region] - AWSリージョン
+ * @property {string} [profile] - AWS認証情報プロファイル
+ * @property {string} [pathPrefix] - パラメータパスのプレフィックス
+ * @property {boolean} [withDecryption] - 復号化フラグ
+ */
 
-export class AWSParameterStoreManager implements SecretManagerInterface {
-  private ssmClient: SSMClient;
-  private readonly pathPrefix: string;
-  private readonly withDecryption: boolean;
-
+/**
+ * AWS Parameter Storeを使用したシークレットマネージャークラス
+ */
+class AWSParameterStoreManager {
   /**
    * コンストラクタ
-   * @param config AWS Parameter Store設定
+   * @param {AWSParameterStoreConfig} [config={}] - AWS Parameter Store設定
    */
-  constructor(config: AWSParameterStoreConfig = {}) {
+  constructor(config = {}) {
     // デフォルト値の設定
     const region = config.region || process.env.AWS_REGION || 'us-east-1';
     this.pathPrefix = config.pathPrefix || '/sol-bot/';
     this.withDecryption = config.withDecryption !== undefined ? config.withDecryption : true;
 
     // SSMClientの初期化
-    const clientConfig: any = { region };
+    const clientConfig = { region };
     
     // プロファイルが指定されている場合は認証情報を設定
     if (config.profile) {
@@ -53,10 +52,10 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
 
   /**
    * キーからSSMパラメータ名を生成
-   * @param key キー名
-   * @returns SSMパラメータ名
+   * @param {string} key - キー名
+   * @returns {string} SSMパラメータ名
    */
-  private getParameterName(key: string): string {
+  getParameterName(key) {
     // キーが既にスラッシュで始まっている場合は、重複を避ける
     const cleanKey = key.startsWith('/') ? key.substring(1) : key;
     return `${this.pathPrefix}${cleanKey}`;
@@ -64,10 +63,10 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
 
   /**
    * シークレット値を取得する
-   * @param key シークレットのキー
-   * @returns 取得した値、エラーまたは存在しない場合はnull
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<string|null>} 取得した値、エラーまたは存在しない場合はnull
    */
-  async getSecret(key: string): Promise<string | null> {
+  async getSecret(key) {
     try {
       const paramName = this.getParameterName(key);
       const command = new GetParameterCommand({
@@ -93,16 +92,16 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
 
   /**
    * シークレット値を設定/更新する
-   * @param key シークレットのキー
-   * @param value 設定する値
-   * @param type パラメータタイプ（String, StringList, またはSecureString）
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @param {string} value - 設定する値
+   * @param {string} [type='SecureString'] - パラメータタイプ（String, StringList, またはSecureString）
+   * @returns {Promise<boolean>} 成功したかどうか
    */
   async setSecret(
-    key: string,
-    value: string,
-    type: 'String' | 'StringList' | 'SecureString' = 'SecureString'
-  ): Promise<boolean> {
+    key,
+    value,
+    type = 'SecureString'
+  ) {
     try {
       const paramName = this.getParameterName(key);
       const command = new PutParameterCommand({
@@ -125,10 +124,10 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
 
   /**
    * シークレットを削除する
-   * @param key シークレットのキー
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async deleteSecret(key: string): Promise<boolean> {
+  async deleteSecret(key) {
     try {
       const paramName = this.getParameterName(key);
       const command = new DeleteParameterCommand({
@@ -154,10 +153,10 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
 
   /**
    * シークレットが存在するか確認
-   * @param key シークレットのキー
-   * @returns 存在する場合はtrue
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 存在する場合はtrue
    */
-  async hasSecret(key: string): Promise<boolean> {
+  async hasSecret(key) {
     try {
       const paramName = this.getParameterName(key);
       const command = new GetParameterCommand({
@@ -179,3 +178,8 @@ export class AWSParameterStoreManager implements SecretManagerInterface {
     }
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  AWSParameterStoreManager
+};

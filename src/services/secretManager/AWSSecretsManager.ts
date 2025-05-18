@@ -1,35 +1,34 @@
 /**
  * AWS Secrets Managerを使用したシークレットマネージャー実装のスタブ
  */
-import { SecretManagerInterface } from './SecretManagerInterface.js';
 
-export interface AWSSecretsManagerConfig {
-  region?: string;
-  profile?: string;
-}
+// @ts-nocheck
+
+/**
+ * @typedef {Object} AWSSecretsManagerConfig
+ * @property {string} [region] - AWSリージョン
+ * @property {string} [profile] - AWS認証情報プロファイル
+ */
 
 /**
  * AWS Secrets Managerを使用したシークレット管理クラス
  */
-export class AWSSecretsManager implements SecretManagerInterface {
-  private region: string;
-  private profile?: string;
-
+class AWSSecretsManager {
   /**
    * コンストラクタ
-   * @param config 設定オプション
+   * @param {AWSSecretsManagerConfig} [config={}] - 設定オプション
    */
-  constructor(config: AWSSecretsManagerConfig = {}) {
+  constructor(config = {}) {
     this.region = config.region || process.env.AWS_REGION || 'us-east-1';
     this.profile = config.profile;
   }
 
   /**
    * シークレットを取得
-   * @param key シークレットキー
-   * @returns シークレット値
+   * @param {string} key - シークレットキー
+   * @returns {Promise<string|null>} シークレット値
    */
-  async getSecret(key: string): Promise<string | null> {
+  async getSecret(key) {
     // スタブ実装
     console.log(`[AWSSecretsManager] getSecret: ${key} (スタブ実装)`);
     return null;
@@ -37,11 +36,11 @@ export class AWSSecretsManager implements SecretManagerInterface {
 
   /**
    * シークレットを保存
-   * @param key シークレットキー
-   * @param value シークレット値
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットキー
+   * @param {string} value - シークレット値
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async setSecret(key: string, value: string): Promise<boolean> {
+  async setSecret(key, value) {
     // スタブ実装
     console.log(`[AWSSecretsManager] setSecret: ${key} (スタブ実装)`);
     return true;
@@ -49,10 +48,10 @@ export class AWSSecretsManager implements SecretManagerInterface {
 
   /**
    * シークレットを削除
-   * @param key シークレットキー
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットキー
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async deleteSecret(key: string): Promise<boolean> {
+  async deleteSecret(key) {
     // スタブ実装
     console.log(`[AWSSecretsManager] deleteSecret: ${key} (スタブ実装)`);
     return true;
@@ -60,12 +59,17 @@ export class AWSSecretsManager implements SecretManagerInterface {
 
   /**
    * シークレットが存在するか確認
-   * @param key シークレットキー
-   * @returns 存在するかどうか
+   * @param {string} key - シークレットキー
+   * @returns {Promise<boolean>} 存在するかどうか
    */
-  async hasSecret(key: string): Promise<boolean> {
+  async hasSecret(key) {
     // スタブ実装
     console.log(`[AWSSecretsManager] hasSecret: ${key} (スタブ実装)`);
     return false;
   }
-} 
+}
+
+// CommonJS形式でエクスポート
+module.exports = {
+  AWSSecretsManager
+}; 

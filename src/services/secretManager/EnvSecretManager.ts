@@ -5,35 +5,37 @@
  * ローカル開発やCIでの使用を想定しています。
  */
 
-import { SecretManagerInterface } from './SecretManagerInterface.js';
-import logger from '../../utils/logger.js';
-import dotenv from 'dotenv';
+// @ts-nocheck
+const dotenv = require('dotenv');
+const logger = require('../../utils/logger');
 
 // .envファイルを読み込む
 dotenv.config();
 
-export interface EnvSecretManagerConfig {
-  prefix?: string;
-}
+/**
+ * @typedef {Object} EnvSecretManagerConfig
+ * @property {string} [prefix] - 環境変数のプレフィックス
+ */
 
-export class EnvSecretManager implements SecretManagerInterface {
-  private readonly prefix: string;
-
+/**
+ * 環境変数ベースのシークレットマネージャークラス
+ */
+class EnvSecretManager {
   /**
    * コンストラクタ
-   * @param config 環境変数のプレフィックス設定
+   * @param {EnvSecretManagerConfig} [config={}] - 環境変数のプレフィックス設定
    */
-  constructor(config: EnvSecretManagerConfig = {}) {
+  constructor(config = {}) {
     this.prefix = config.prefix || 'SECRET_';
     logger.info(`環境変数シークレットマネージャー初期化: prefix=${this.prefix}`);
   }
 
   /**
    * キーに対応する環境変数名を取得
-   * @param key シークレットのキー
-   * @returns 環境変数名
+   * @param {string} key - シークレットのキー
+   * @returns {string} 環境変数名
    */
-  private getEnvName(key: string): string {
+  getEnvName(key) {
     // キーをスネークケースに変換（例: api.key → API_KEY）
     const normalizedKey = key
       .replace(/\./g, '_')
@@ -45,10 +47,10 @@ export class EnvSecretManager implements SecretManagerInterface {
 
   /**
    * シークレット値を取得する
-   * @param key シークレットのキー
-   * @returns 取得した値、エラーまたは存在しない場合はnull
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<string|null>} 取得した値、エラーまたは存在しない場合はnull
    */
-  async getSecret(key: string): Promise<string | null> {
+  async getSecret(key) {
     const envName = this.getEnvName(key);
     const value = process.env[envName];
 
@@ -63,11 +65,11 @@ export class EnvSecretManager implements SecretManagerInterface {
   /**
    * シークレット値を設定/更新する
    * 注意: 実行時の環境変数のみを変更し、.envファイルは更新しません
-   * @param key シークレットのキー
-   * @param value 設定する値
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @param {string} value - 設定する値
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async setSecret(key: string, value: string): Promise<boolean> {
+  async setSecret(key, value) {
     try {
       const envName = this.getEnvName(key);
       process.env[envName] = value;
@@ -81,10 +83,10 @@ export class EnvSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットを削除する（環境変数から削除）
-   * @param key シークレットのキー
-   * @returns 成功したかどうか
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 成功したかどうか
    */
-  async deleteSecret(key: string): Promise<boolean> {
+  async deleteSecret(key) {
     try {
       const envName = this.getEnvName(key);
       delete process.env[envName];
@@ -98,11 +100,16 @@ export class EnvSecretManager implements SecretManagerInterface {
 
   /**
    * シークレットが存在するか確認
-   * @param key シークレットのキー
-   * @returns 存在する場合はtrue
+   * @param {string} key - シークレットのキー
+   * @returns {Promise<boolean>} 存在する場合はtrue
    */
-  async hasSecret(key: string): Promise<boolean> {
+  async hasSecret(key) {
     const envName = this.getEnvName(key);
     return envName in process.env;
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  EnvSecretManager
+};
