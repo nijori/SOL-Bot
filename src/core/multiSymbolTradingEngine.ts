@@ -734,4 +734,51 @@ export class MultiSymbolTradingEngine {
   public getCorrelationMatrix(): Record<string, Record<string, number>> {
     return this.correlationMatrix;
   }
+
+  /**
+   * 全シンボルのシグナルを処理
+   * 注: テスト用に追加されたメソッド
+   */
+  public async processAllSignals(): Promise<void> {
+    // 各シンボルからシグナルを収集
+    const signalsBySymbol: Record<string, Order[]> = {};
+    
+    for (const [symbol, engine] of this.engines.entries()) {
+      // シグナルを収集
+      const signals = engine.getRecentSignals?.() || [];
+      if (signals.length > 0) {
+        signalsBySymbol[symbol] = signals;
+      }
+    }
+
+    // ポートフォリオリスク分析を実行
+    const riskAnalysis = this.analyzePortfolioRisk();
+
+    // リスク分析に基づいてシグナルをフィルタリング
+    const filteredSignals = this.filterSignalsByRisk(signalsBySymbol, riskAnalysis);
+
+    // フィルタリングされたシグナルを処理
+    for (const [symbol, signals] of Object.entries(filteredSignals)) {
+      if (signals.length > 0) {
+        if (!this.quietMode) {
+          logger.info(`[MultiSymbolTradingEngine] ${symbol}のシグナルを処理: ${signals.length}件`);
+        }
+
+        if (this.isBacktest) {
+          // バックテストモードでは各エンジンで個別に処理
+          const engine = this.engines.get(symbol);
+          if (engine) {
+            engine['processSignals'](signals); // privateメソッドにアクセス
+          }
+        } else {
+          // 実トレードモードではUnifiedOrderManagerを使用
+          if (this.unifiedOrderManager) {
+            for (const signal of signals) {
+              this.unifiedOrderManager.createOrder(signal);
+            }
+          }
+        }
+      }
+    }
+  }
 }

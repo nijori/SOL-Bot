@@ -232,93 +232,70 @@ MarketState分析では、以下の環境を識別します：
 
 ## モジュールシステム
 
-### ESMとCommonJSの共存基盤
+### CommonJS形式の採用（INF-030対応）
 
-SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシステムで使用できるデュアルフォーマットパッケージとして実装されています。
+SOL-Botは、安定性と互換性を優先するため、CommonJSモジュールシステムを採用しています。これは以下の利点があります：
 
-#### 互換性レイヤー
+1. **安定性**: Node.jsの長期的なサポート形式であるCommonJSを使用することで、環境間の互換性問題を最小限に抑えられます。
+2. **互換性**: 多くのNode.jsライブラリやツールがCommonJSを前提としており、シームレスな統合が可能です。
+3. **デバッグ容易性**: より成熟したエコシステムのため、問題発生時の解決が容易です。
+4. **Docker環境での安定性**: 特にコンテナ環境での動作が安定しています。
 
-- **`src/utils/esm-compat.mjs`**: ESM環境でCommonJSモジュールを使用するためのヘルパー
-  - `createRequire`による`require`関数の提供
-  - `__filename`と`__dirname`の互換実装
-  - `resolveDir`と`resolveFilePath`のパス解決ヘルパー関数
-  - `isESMEnvironment`と`isMainModule`の実行環境判定関数
-  - CommonJSモジュールのデフォルトエクスポート取得
-- **`src/utils/cjs-wrapper.js`**: CommonJSからESMモジュールを使用するためのラッパー
-  - `createESMWrapper`: ESMモジュールのダイナミックインポート用ラッパー
-  - `createESMProxy`: ESMモジュールへのプロキシアクセス（非同期ロードとキャッシング機能付き）
-  - `convertESMtoCJS`: ESMからCommonJS形式への変換
+#### CommonJSでのインポート/エクスポート規約
 
-#### デュアルフォーマットエントリポイント設計
+- **インポート**: 
+  ```javascript
+  const { Module } = require('./path/to/module');
+  const dependencyModule = require('dependency-name');
+  ```
 
-- **`src/index.js`**: CommonJSエントリポイント
-  - ESMモジュールをプロキシ経由でエクスポート
-  - `initModules`関数による非同期ロード機能
-  - キャッシュ機能による効率的なモジュールアクセス
-- **`src/index.mjs`**: ESMエントリポイント
-  - 直接ESMインポートによる効率的なエクスポート
-  - 名前付きエクスポートとデフォルトエクスポートの提供
-  - グループ化されたモジュールエクスポート
-
-#### モジュールグループ別インデックスファイル
-
-各モジュールグループごとに専用のエントリポイントを提供：
-- `src/core/index.js`と`src/core/index.mjs`
-- `src/strategies/index.js`と`src/strategies/index.mjs`
-- `src/utils/index.js`と`src/utils/index.mjs`
-- その他各モジュールグループでも同様の構造
-
-#### package.json設定
-
-- **Conditional Exports**: Node.jsのパッケージエントリポイント条件分岐
-  ```json
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./core": {
-      "import": "./dist/core/index.mjs",
-      "require": "./dist/core/index.js",
-      "types": "./dist/core/index.d.ts"
-    }
-    // その他のモジュールパス...
+- **エクスポート**:
+  ```javascript
+  class MyClass {
+    // クラス実装
   }
-  ```
-
-- **デュアルフォーマットビルド設定**:
-  - `tsconfig.cjs.json`: CommonJSビルド用設定
-  - `tsconfig.esm.json`: ESMビルド用設定
-  - npm scriptsによる両方のビルドの自動実行
-
-#### 使用例
-
-- **ESM環境での利用**:
-  ```javascript
-  import { TradingEngine, BacktestRunner } from 'sol-bot';
-  // または特定のモジュールグループを直接インポート
-  import { TradingEngine } from 'sol-bot/core';
-  ```
-
-- **CommonJS環境での利用**:
-  ```javascript
-  const solBot = require('sol-bot');
-  // モジュールは非同期ロードが必要
-  await solBot.initModules();
-  const { tradingEngine } = solBot;
-  ```
-
-- **ESM/CJS相互運用**:
-  ```javascript
-  // ESMからCommonJSモジュールを使用
-  import { require, __dirname } from 'sol-bot/utils/esm-compat.mjs';
-  const legacyModule = require('legacy-module');
   
-  // CommonJSからESMモジュールを使用
-  const { createESMProxy } = require('./utils/cjs-wrapper');
-  const esmModule = createESMProxy('./path/to/esm-module.js');
-  await esmModule(); // 非同期ロード
+  function utilityFunction() {
+    // 関数実装
+  }
+  
+  module.exports = {
+    MyClass,
+    utilityFunction
+  };
+  ```
+
+#### TypeScriptとの統合
+
+- TypeScript設定では`"module": "CommonJS"`を指定し、CommonJS形式の出力を生成します。
+- `esModuleInterop`と`allowSyntheticDefaultImports`オプションにより、CommonJSモジュールをESM風の構文でインポート可能です。
+
+```typescript
+// TypeScript内でのインポート
+import express from 'express'; // 内部的にはrequire('express')に変換されます
+import { ComponentClass } from './component';
+
+// エクスポート
+export class MyService {
+  // サービス実装
+}
+```
+
+#### モジュール参照規約
+
+- 相対パスインポートでは拡張子（.js）を省略可能
+  ```javascript
+  const { util } = require('./utilities');
+  ```
+
+- パッケージ参照は完全なパッケージ名を使用
+  ```javascript
+  const axios = require('axios');
+  ```
+
+- 内部モジュールは明示的なパスで参照
+  ```javascript
+  const { TradingEngine } = require('../../core/tradingEngine');
   ```
 
 ## テストとCI/CD
@@ -334,6 +311,25 @@ SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシ�
   - Jestモック関数のESM互換実装
   - **進捗状況**: ESM対応は完了 ✅
 
+- **統合テスト実行システム**:
+  - **TST-084**: 統合テスト実行スクリプト実装
+  - CJS/ESMの両モード対応テスト自動実行
+  - テストグループ別実行機能（fast/medium/slow/heavy/core/esm）
+  - 詳細なテスト統計とパフォーマンス計測
+  - レポート生成と履歴保存機能
+  - NPMスクリプト連携（test:unified）
+  - グループ別タイムアウト設定と並列実行オプション
+  - 実行環境情報の記録と表示
+  - ベースライン時間との比較機能
+
+- **テストグループ分類**:
+  - **fast**: 高速テスト（utils, config, indicators）< 3秒/テスト
+  - **medium**: 中速テスト（strategies, services）3-10秒/テスト
+  - **slow**: 低速テスト（一部services）10-30秒/テスト
+  - **heavy**: 特に重いテスト（RealTimeDataProcessor）30秒以上/テスト
+  - **core**: コア機能テスト（core）
+  - **esm**: ESMテスト（.mjs拡張子）
+
 - **テストヘルパーユーティリティ**:
   - `export-esm-mock.mjs`: ESM環境でのモック作成ヘルパー
   - `test-cleanup-utils.js`: 非同期処理クリーンアップユーティリティ
@@ -342,6 +338,16 @@ SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシ�
     - `MarketDataFactory`: 市場データ生成
     - `TestScenarioFactory`: 戦略テスト用シナリオ生成
     - 固定シード値によるランダムデータの再現性確保
+  - **モックファクトリー** (TST-055):
+    - `strategyMocks.js/mjs`: 戦略モジュールのモックファクトリー
+    - `serviceMocks.js/mjs`: サービスモジュールのモックファクトリー
+    - `dataMocks.js/mjs`: データ関連モジュールのモックファクトリー
+      - `createDataRepositoryMock`: データリポジトリモック
+      - `createParquetDataStoreMock`: Parquetデータストアモック
+      - `createMultiTimeframeDataFetcherMock`: マルチタイムフレームデータフェッチャーモック
+      - `createRealTimeDataProcessorMock`: リアルタイムデータプロセッサーモック
+    - `setupAllMocks`: すべてのモジュールを一括モック化する関数
+    - **デュアルフォーマット対応**: ESM/CJS両環境での一貫したモックパターン実装
 
 - **ESM対応ドキュメント**:
   - `ESM-Migration-Guide.md`: ESM環境での開発とテストのガイド
@@ -388,11 +394,19 @@ SOL-Botは、ECMAScript Modules (ESM)とCommonJSの両方のモジュールシ�
 - **シークレットマネージャー**: 機密情報の安全な管理
   - AWS Parameter Store、GCP Secret Manager対応
   - 開発/本番環境での適切な実装切替
+  - ファクトリーパターンによる実装切替
 - **Gitleaksによる機密情報スキャン**:
   - コミット前と定期実行による自動スキャン
   - プッシュ時、PR時、日次バッチスキャン
   - APIキー、ウォレットキー、AWS認証情報等の検出
   - 誤検知防止のための除外設定
+- **緊急停止機能（Kill Switch）**:
+  - フラグファイルベースの緊急停止メカニズム
+  - 起動時と定期実行時（5分間隔）の停止フラグチェック
+  - 安全なプロセス終了とリソース解放
+  - トレーディングエンジンとの統合によるポジション安全停止
+  - フォールセーフ実装によるエラー発生時の安全停止
+  - 本番環境での systemctl サービス連携
 - **依存関係脆弱性スキャン**:
   - Trivyによる依存パッケージ脆弱性スキャン
   - 重大度別報告（CRITICAL/HIGH優先）

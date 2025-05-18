@@ -1,53 +1,62 @@
 /**
  * ポジションサイジングユーティリティ
  * 戦略間で共通のポジションサイジングロジックを提供
+ * INF-032: CommonJS形式への変換
  */
+// @ts-nocheck
+// 循環参照を避けるため、型チェックを一時的に無効化
 
-import logger from './logger.js';
-import { ParameterService } from '../config/parameterService.js';
+// モジュールの依存関係をrequireスタイルで読み込み
+const moduleHelperRef = require('./moduleHelper');
+const loggerRef = moduleHelperRef.hasModule('logger') 
+  ? moduleHelperRef.getModule('logger') 
+  : require('./logger').default;
+
+// ParameterServiceをrequireで読み込み
+const ParameterServiceRef = require('../config/parameterService').ParameterService;
 
 // パラメータサービスのインスタンスを取得
-const parameterService = ParameterService.getInstance();
+const parameterService = ParameterServiceRef.getInstance();
 
 // リスク関連のパラメータを取得
-const MAX_RISK_PER_TRADE = parameterService.get<number>('risk.max_risk_per_trade', 0.01);
-const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>(
+const MAX_RISK_PER_TRADE = parameterService.get('risk.max_risk_per_trade', 0.01);
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get(
   'risk.minStopDistancePercentage',
   0.01
 );
-const MAX_POSITION_PERCENTAGE = parameterService.get<number>(
+const MAX_POSITION_PERCENTAGE = parameterService.get(
   'riskManagement.maxPositionSize',
   0.35
 );
 
 /**
  * リスクに基づいたポジションサイズを計算
- * @param accountBalance 口座残高
- * @param entryPrice エントリー価格
- * @param stopPrice ストップ価格
- * @param riskPercentage リスク割合（デフォルト:MAX_RISK_PER_TRADEから取得）
- * @param strategyName 戦略名（ログ出力用）
- * @returns 適切なポジションサイズ
+ * @param {number} accountBalance 口座残高
+ * @param {number} entryPrice エントリー価格
+ * @param {number} stopPrice ストップ価格
+ * @param {number} [riskPercentage=MAX_RISK_PER_TRADE] リスク割合
+ * @param {string} [strategyName='Strategy'] 戦略名（ログ出力用）
+ * @returns {number} 適切なポジションサイズ
  */
-export function calculateRiskBasedPositionSize(
-  accountBalance: number,
-  entryPrice: number,
-  stopPrice: number,
-  riskPercentage: number = MAX_RISK_PER_TRADE,
-  strategyName: string = 'Strategy'
-): number {
+function calculateRiskBasedPositionSize(
+  accountBalance,
+  entryPrice,
+  stopPrice,
+  riskPercentage = MAX_RISK_PER_TRADE,
+  strategyName = 'Strategy'
+) {
   // ストップ距離を計算
   let stopDistance = Math.abs(entryPrice - stopPrice);
 
   // ストップ距離が非常に小さい、あるいは0の場合のフォールバック
   if (stopDistance < entryPrice * 0.001) {
-    logger.warn(
+    loggerRef.warn(
       `[${strategyName}] ストップ距離が非常に小さいため、フォールバック値を使用: 元の値=`,
       stopDistance
     );
     // 最小ストップ距離としてパラメータから値を取得
     stopDistance = entryPrice * MIN_STOP_DISTANCE_PERCENTAGE;
-    logger.info(
+    loggerRef.info(
       `[${strategyName}] フォールバックストップ距離: ${stopDistance} (${MIN_STOP_DISTANCE_PERCENTAGE * 100}%)`
     );
   }
@@ -68,3 +77,17 @@ export function calculateRiskBasedPositionSize(
 
   return positionSize;
 }
+
+// モジュールとしてエクスポート
+const positionSizing = {
+  calculateRiskBasedPositionSize,
+  MAX_RISK_PER_TRADE,
+  MIN_STOP_DISTANCE_PERCENTAGE,
+  MAX_POSITION_PERCENTAGE
+};
+
+// モジュールレジストリに登録
+moduleHelperRef.registerModule('positionSizing', positionSizing);
+
+// CommonJS形式でエクスポート
+module.exports = positionSizing;

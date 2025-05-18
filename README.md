@@ -150,6 +150,24 @@ npm run test:esm
 
 # カバレッジレポート生成
 npm run test:coverage
+
+# 統合テスト実行（CommonJS/ESMの両方を実行）
+npm run test:unified
+
+# テストグループ別実行（高速/中速/低速/重いテスト）
+npm run test:unified --group fast
+npm run test:unified --group medium
+npm run test:unified --group slow
+npm run test:unified --group heavy
+
+# 前回のテスト実行レポート表示
+npm run test:unified:report
+
+# CommonJSテストのみ実行
+npm run test:unified:cjs
+
+# ESMテストのみ実行
+npm run test:unified:esm
 ```
 
 詳細なセットアップ手順やシステムの使用方法については、[ユーザーマニュアル](docs/UserManual.md)を参照してください。また、[ドキュメント索引](docs/index.md)からその他のガイドにもアクセスできます。
@@ -216,6 +234,10 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 - ✅ **TODO-CLI**: todo-lintの機能強化。front-matterブロックスキップ機能や空文字チェック、タスク行とフィールドの検出精度向上、統計情報表示機能などを追加。
 
 - ✅ **OMS-018**: UnifiedOrderManagerの配分アルゴリズム単体テスト実装。PRIORITY、ROUND_ROBIN、SPLIT_EQUAL、CUSTOMなど各種配分方式のエッジケース対応を検証済み。
+
+- ✅ **TST-055**: モジュールモックの一貫性向上。ESM/CJSデュアルフォーマット対応のモックファクトリーライブラリを実装。戦略・サービス・データモジュール用のモックファクトリー関数と、一括モック化機能を提供。テスト間でのモック実装の統一とコード重複削減を実現。
+
+- ✅ **TST-084**: 統合テスト実行スクリプトの実装。CommonJSとESMのテストを一括実行し、テストグループ別（fast/medium/slow/heavy/core/esm）の実行とパフォーマンス計測機能を提供。詳細なテスト統計の収集、レポート生成、実行履歴の保存など高度な機能を実装。CIパイプラインとの連携も強化。
 
 - 🔄 **REF-020/021/022/023**: テスト環境のESM完全対応プロジェクト（進行中）。Jest設定ファイルのESM対応、型アノテーション除去の強化、テスト変換スクリプトの改良中。
 
@@ -337,6 +359,14 @@ SOL-Botは複数のセキュリティ対策を実装しています：
   - コミット前チェック
   - PRマージ前チェック
   - 定期的な全リポジトリスキャン
+
+### 緊急停止機能
+
+- **Kill Switch**: 異常時の迅速な取引停止メカニズム
+  - フラグファイル検出による安全な停止
+  - 5分ごとの定期的なフラグチェック
+  - アプリケーションとサービスの両レベルでの停止対応
+  - 詳細は[緊急停止ガイド](docs/EmergencyStopGuide.md)を参照
 
 ### データセキュリティ
 

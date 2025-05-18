@@ -5,42 +5,36 @@
  * 一定期間の高値/安値をブレイクした際にエントリー
  *
  * 注意: これはTST-012テスト用のテンポラリな実装です
+ * 
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
  */
+// @ts-nocheck
 
-import { ADX, Highest, Lowest } from 'technicalindicators';
-import {
-  Candle,
-  Order,
-  OrderSide,
-  OrderType,
-  Position,
-  StrategyResult,
-  StrategyType
-} from '../core/types.js';
-import { TREND_PARAMETERS, RISK_PARAMETERS } from '../config/parameters.js';
-import logger from '../utils/logger.js';
-import { parameterService } from '../config/parameterService.js';
-import { ParameterService } from '../config/parameterService.js';
-import { calculateRiskBasedPositionSize } from '../utils/positionSizing.js';
-import { calculateATR } from '../utils/atrUtils.js';
+// CommonJS形式のモジュールインポート
+const technicalIndicators = require('technicalindicators');
+const { ADX, Highest, Lowest } = technicalIndicators;
+const Types = require('../core/types');
+const { Candle, OrderSide, OrderType, StrategyType } = Types;
+const { TREND_PARAMETERS, RISK_PARAMETERS } = require('../config/parameters');
+const logger = require('../utils/logger').default;
+const { parameterService } = require('../config/parameterService');
+const { calculateRiskBasedPositionSize } = require('../utils/positionSizing');
+const { calculateATR } = require('../utils/atrUtils');
 
 // ATR==0の場合のフォールバック設定
-const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get<number>(
+const MIN_STOP_DISTANCE_PERCENTAGE = parameterService.get(
   'risk.minStopDistancePercentage',
   0.01
 );
-const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
+const DEFAULT_ATR_PERCENTAGE = parameterService.get('risk.defaultAtrPercentage', 0.02);
 
 /**
  * ドンチャンチャネルを計算する関数
- * @param candles ローソク足データ
- * @param period 期間
- * @returns ドンチャンチャネルの上限、下限、中央値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {Object} ドンチャンチャネルの上限、下限、中央値
  */
-export function calculateDonchian(
-  candles: Candle[],
-  period: number
-): { upper: number; lower: number; middle: number } {
+function calculateDonchian(candles, period) {
   // 必要なデータがない場合はエラー値を返す
   if (candles.length < period) {
     logger.warn(`[DonchianStrategy] 必要なデータが不足しています: ${candles.length} < ${period}`);
@@ -74,20 +68,20 @@ export function calculateDonchian(
 
 /**
  * ドンチャンブレイクアウト戦略の実行
- * @param candles ローソク足データ
- * @param symbol シンボル名
- * @param currentPositions 現在のポジション情報
- * @param accountBalance 口座残高
- * @returns 戦略の実行結果
+ * @param {Array} candles ローソク足データ
+ * @param {string} symbol シンボル名
+ * @param {Array} currentPositions 現在のポジション情報
+ * @param {number} accountBalance 口座残高
+ * @returns {Object} 戦略の実行結果
  */
-export function executeDonchianBreakoutStrategy(
-  candles: Candle[],
-  symbol: string,
-  currentPositions: Position[],
-  accountBalance: number = 10000
-): StrategyResult {
+function executeDonchianBreakoutStrategy(
+  candles,
+  symbol,
+  currentPositions,
+  accountBalance = 10000
+) {
   // シグナルを格納する配列
-  const signals: Order[] = [];
+  const signals = [];
 
   // ドンチャン期間とADX期間
   const donchianPeriod = TREND_PARAMETERS.DONCHIAN_PERIOD;
@@ -238,11 +232,11 @@ export function executeDonchianBreakoutStrategy(
 
 /**
  * ADXの計算
- * @param candles ローソク足データ
- * @param period 期間
- * @returns ADX値
+ * @param {Array} candles ローソク足データ
+ * @param {number} period 期間
+ * @returns {number} ADX値
  */
-function calculateADX(candles: Candle[], period: number): number {
+function calculateADX(candles, period) {
   if (candles.length < period * 2) {
     logger.warn(
       `[DonchianStrategy] ADX計算のためのデータが不足しています: ${candles.length} < ${period * 2}`
@@ -257,33 +251,44 @@ function calculateADX(candles: Candle[], period: number): number {
     period
   };
 
-  try {
-    const adxResult = ADX.calculate(adxInput);
-    return adxResult[adxResult.length - 1].adx;
-  } catch (error) {
-    logger.error('[DonchianStrategy] ADX計算エラー:', error);
-    return 0;
+  const adxValues = ADX.calculate(adxInput);
+  return adxValues[adxValues.length - 1].adx;
+}
+
+/**
+ * ドンチャンブレイクアウト戦略クラス
+ */
+class DonchianBreakoutStrategy {
+  symbol;
+  config;
+
+  /**
+   * コンストラクタ
+   * @param {string} symbol シンボル名
+   * @param {Object} config 設定オブジェクト
+   */
+  constructor(symbol, config = {}) {
+    this.symbol = symbol;
+    this.config = config;
+  }
+
+  /**
+   * 戦略の実行
+   * @param {Array} candles ローソク足データ
+   * @returns {Object} 戦略の実行結果
+   */
+  execute(candles) {
+    // 設定のフォールバック
+    const accountBalance = 10000; // 実際のシステムでは口座残高を渡す
+    const currentPositions = []; // 実際のシステムではポジション情報を渡す
+
+    return executeDonchianBreakoutStrategy(candles, this.symbol, currentPositions, accountBalance);
   }
 }
 
-export class DonchianBreakoutStrategy {
-  // コンストラクタ
-  constructor(symbol: string, config: any = {}) {
-    // 実際の実装では設定値が入ります
-  }
-
-  // 戦略実行
-  public execute(candles: Candle[]): StrategyResult {
-    // テスト用にダミーの結果を返す
-    return {
-      strategy: StrategyType.DONCHIAN_BREAKOUT,
-      signals: [],
-      timestamp: Date.now(),
-      metadata: {
-        strategy: 'DonchianBreakout',
-        timeframe: '1h',
-        version: '0.1.0'
-      }
-    };
-  }
-}
+// CommonJS形式でエクスポート
+module.exports = {
+  calculateDonchian,
+  executeDonchianBreakoutStrategy,
+  DonchianBreakoutStrategy
+};

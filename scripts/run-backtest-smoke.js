@@ -33,7 +33,7 @@ require('./core/backtestRunner');
   
   // 実行 - --smoke-test引数を使用
   console.log('スモークテスト実行中...');
-  execSync('node dist/smoke-index.js --smoke-test --days 3', { 
+  execSync('node --experimental-specifier-resolution=node dist/smoke-index.js --smoke-test --days 3', { 
     stdio: 'inherit',
     env: {
       ...process.env,

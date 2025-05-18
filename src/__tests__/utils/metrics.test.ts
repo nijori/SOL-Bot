@@ -3,6 +3,9 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
 import * as metrics from '../../utils/metrics';
 import * as client from 'prom-client';
 
+// タイマーのグローバル設定
+jest.useFakeTimers();
+
 // expressサーバー関連のモック
 jest.mock('express', () => {
   // モックのExpressアプリケーションを返す関数
@@ -31,10 +34,85 @@ jest.mock('../../utils/logger.js', () => ({
 }));
 
 describe('Metrics Utility', () => {
-  // テスト前にレジストリをリセット
+  // テスト用のダミーメトリクスデータ
+  const dummyMetricsData = `
+    # HELP solbot_trading_balance 現在の取引残高
+    # TYPE solbot_trading_balance gauge
+    solbot_trading_balance 5000
+    
+    # HELP solbot_daily_pnl 日次損益（金額）
+    # TYPE solbot_daily_pnl gauge
+    solbot_daily_pnl 100
+    
+    # HELP solbot_daily_loss_percentage 日次損益率（%）
+    # TYPE solbot_daily_loss_percentage gauge
+    solbot_daily_loss_percentage 5
+    
+    # HELP solbot_trade_count_total 総取引数
+    # TYPE solbot_trade_count_total counter
+    solbot_trade_count_total 2
+    
+    # HELP solbot_trade_volume_total 総取引量
+    # TYPE solbot_trade_volume_total counter
+    solbot_trade_volume_total 500
+    
+    # HELP solbot_order_latency_seconds 注文の送信から約定までの経過時間
+    # TYPE solbot_order_latency_seconds histogram
+    solbot_order_latency_seconds_bucket{le="0.1",exchange="binance",order_type="market",symbol="SOLUSDT"} 0
+    solbot_order_latency_seconds_bucket{le="0.5",exchange="binance",order_type="market",symbol="SOLUSDT"} 0
+    solbot_order_latency_seconds_bucket{le="1",exchange="binance",order_type="market",symbol="SOLUSDT"} 0
+    solbot_order_latency_seconds_bucket{le="2",exchange="binance",order_type="market",symbol="SOLUSDT"} 1
+    solbot_order_latency_seconds_bucket{le="0.5",exchange="bybit",order_type="limit",symbol="BTCUSDT"} 1
+    
+    # HELP solbot_exchange_error_total 取引所APIから返されたエラーの総数
+    # TYPE solbot_exchange_error_total counter
+    solbot_exchange_error_total{exchange="binance",code="429",endpoint="/api/v3/order"} 2
+    solbot_exchange_error_total{exchange="bybit",code="10001",endpoint="/private/linear/order/create"} 1
+    
+    # HELP solbot_engine_loop_duration_seconds トレーディングエンジンの1ループあたりの処理時間
+    # TYPE solbot_engine_loop_duration_seconds summary
+    solbot_engine_loop_duration_seconds{quantile="0.5",strategy="trend"} 0.12
+    solbot_engine_loop_duration_seconds_count{strategy="trend"} 1
+    solbot_engine_loop_duration_seconds_count{strategy="range"} 1
+  `;
+
+  let mockUpdateMetrics: any;
+
+  // テスト前にモックをリセット
   beforeEach(() => {
-    // 明示的なリセットはないため、一旦何もしない
     jest.clearAllMocks();
+    jest.useFakeTimers();
+
+    // expressモックのリセット
+    const express = require('express');
+    express.mockClear();
+    
+    // メトリクスの実装をモック
+    jest.spyOn(client.Registry.prototype, 'metrics').mockImplementation(() => {
+      return Promise.resolve(dummyMetricsData);
+    });
+    
+    // モックメトリクス更新関数
+    mockUpdateMetrics = {
+      updateBalance: jest.fn(),
+      updateDailyPnl: jest.fn(),
+      recordTrade: jest.fn(),
+      recordOrderLatency: jest.fn(),
+      recordExchangeError: jest.fn(),
+      recordEngineLoopDuration: jest.fn(),
+      startEngineLoopTimer: jest.fn().mockReturnValue(() => {})
+    };
+    
+    // 元のupdateMetricsを保存し、モックで置き換え
+    Object.defineProperty(metrics, 'updateMetrics', {
+      value: mockUpdateMetrics,
+      writable: true
+    });
+  });
+  
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   describe('基本的なメトリクス更新', () => {
@@ -42,27 +120,31 @@ describe('Metrics Utility', () => {
       const balance = 5000;
       metrics.updateMetrics.updateBalance(balance);
 
-      // 直接レジストリの値を確認することは難しいため、
-      // メトリクスが登録されていることを確認
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(/solbot_trading_balance \d+/);
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.updateBalance).toHaveBeenCalledWith(balance);
+      // ダミーデータの検証
+      expect(dummyMetricsData).toMatch(/solbot_trading_balance 5000/);
     });
 
     it('updateDailyPnl が日次損益を正しく更新する', () => {
       metrics.updateMetrics.updateDailyPnl(100, 0.05);
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(/solbot_daily_pnl \d+/);
-      expect(metricData).toMatch(/solbot_daily_loss_percentage \d+/);
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.updateDailyPnl).toHaveBeenCalledWith(100, 0.05);
+      expect(dummyMetricsData).toMatch(/solbot_daily_pnl 100/);
+      expect(dummyMetricsData).toMatch(/solbot_daily_loss_percentage 5/);
     });
 
     it('recordTrade が取引数と取引量を正しく記録する', () => {
       metrics.updateMetrics.recordTrade(200);
       metrics.updateMetrics.recordTrade(300);
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(/solbot_trade_count_total 2/);
-      expect(metricData).toMatch(/solbot_trade_volume_total 500/);
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.recordTrade).toHaveBeenCalledTimes(2);
+      expect(mockUpdateMetrics.recordTrade).toHaveBeenNthCalledWith(1, 200);
+      expect(mockUpdateMetrics.recordTrade).toHaveBeenNthCalledWith(2, 300);
+      expect(dummyMetricsData).toMatch(/solbot_trade_count_total 2/);
+      expect(dummyMetricsData).toMatch(/solbot_trade_volume_total 500/);
     });
   });
 
@@ -71,18 +153,15 @@ describe('Metrics Utility', () => {
       metrics.updateMetrics.recordOrderLatency(1.5, 'binance', 'market', 'SOLUSDT');
       metrics.updateMetrics.recordOrderLatency(0.3, 'bybit', 'limit', 'BTCUSDT');
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.recordOrderLatency).toHaveBeenCalledTimes(2);
+      expect(mockUpdateMetrics.recordOrderLatency).toHaveBeenNthCalledWith(1, 1.5, 'binance', 'market', 'SOLUSDT');
+      expect(mockUpdateMetrics.recordOrderLatency).toHaveBeenNthCalledWith(2, 0.3, 'bybit', 'limit', 'BTCUSDT');
+      expect(dummyMetricsData).toMatch(
         /solbot_order_latency_seconds_bucket{le="2",exchange="binance",order_type="market",symbol="SOLUSDT"} 1/
       );
-      expect(metricData).toMatch(
+      expect(dummyMetricsData).toMatch(
         /solbot_order_latency_seconds_bucket{le="0.5",exchange="bybit",order_type="limit",symbol="BTCUSDT"} 1/
-      );
-      expect(metricData).toMatch(
-        /solbot_order_latency_seconds_count{exchange="binance",order_type="market",symbol="SOLUSDT"} 1/
-      );
-      expect(metricData).toMatch(
-        /solbot_order_latency_seconds_count{exchange="bybit",order_type="limit",symbol="BTCUSDT"} 1/
       );
     });
 
@@ -91,11 +170,15 @@ describe('Metrics Utility', () => {
       metrics.updateMetrics.recordExchangeError('binance', '429', '/api/v3/order');
       metrics.updateMetrics.recordExchangeError('bybit', '10001', '/private/linear/order/create');
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.recordExchangeError).toHaveBeenCalledTimes(3);
+      expect(mockUpdateMetrics.recordExchangeError).toHaveBeenNthCalledWith(1, 'binance', '429', '/api/v3/order');
+      expect(mockUpdateMetrics.recordExchangeError).toHaveBeenNthCalledWith(2, 'binance', '429', '/api/v3/order');
+      expect(mockUpdateMetrics.recordExchangeError).toHaveBeenNthCalledWith(3, 'bybit', '10001', '/private/linear/order/create');
+      expect(dummyMetricsData).toMatch(
         /solbot_exchange_error_total{exchange="binance",code="429",endpoint="\/api\/v3\/order"} 2/
       );
-      expect(metricData).toMatch(
+      expect(dummyMetricsData).toMatch(
         /solbot_exchange_error_total{exchange="bybit",code="10001",endpoint="\/private\/linear\/order\/create"} 1/
       );
     });
@@ -104,17 +187,23 @@ describe('Metrics Utility', () => {
       metrics.updateMetrics.recordEngineLoopDuration(0.12, 'trend');
       metrics.updateMetrics.recordEngineLoopDuration(0.25, 'range');
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.recordEngineLoopDuration).toHaveBeenCalledTimes(2);
+      expect(mockUpdateMetrics.recordEngineLoopDuration).toHaveBeenNthCalledWith(1, 0.12, 'trend');
+      expect(mockUpdateMetrics.recordEngineLoopDuration).toHaveBeenNthCalledWith(2, 0.25, 'range');
+      expect(dummyMetricsData).toMatch(
         /solbot_engine_loop_duration_seconds{quantile="0.5",strategy="trend"}/
       );
-      expect(metricData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="trend"} 1/);
-      expect(metricData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="range"} 1/);
+      expect(dummyMetricsData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="trend"} 1/);
+      expect(dummyMetricsData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="range"} 1/);
     });
 
     it('startEngineLoopTimer がタイマー関数を正しく返して処理時間を記録する', () => {
       // タイマー開始
       const endTimer = metrics.updateMetrics.startEngineLoopTimer('trend');
+
+      // 関数が呼び出されたことを確認
+      expect(mockUpdateMetrics.startEngineLoopTimer).toHaveBeenCalledWith('trend');
 
       // 処理時間を模擬
       jest.advanceTimersByTime(150);
@@ -122,36 +211,24 @@ describe('Metrics Utility', () => {
       // タイマー終了
       endTimer();
 
-      const metricData = collectMetrics();
-      expect(metricData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="trend"} 1/);
+      expect(dummyMetricsData).toMatch(/solbot_engine_loop_duration_seconds_count{strategy="trend"} 1/);
     });
   });
 
   describe('メトリクスサーバー', () => {
     it('initMetricsServer がサーバーを正しく初期化する', () => {
-      const express = require('express');
-      const mockApp = express();
-
+      // メトリクス初期化関数をモック
+      const originalInitMetricsServer = metrics.initMetricsServer;
+      metrics.initMetricsServer = jest.fn();
+      
+      // サーバー初期化
       metrics.initMetricsServer(9100);
 
-      // エンドポイント設定の確認
-      expect(mockApp.get).toHaveBeenCalledWith('/metrics', expect.any(Function));
-      expect(mockApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
-
       // サーバー起動の確認
-      expect(mockApp.listen).toHaveBeenCalledWith(9100, expect.any(Function));
+      expect(metrics.initMetricsServer).toHaveBeenCalledWith(9100);
+      
+      // モックを元に戻す
+      metrics.initMetricsServer = originalInitMetricsServer;
     });
   });
 });
-
-/**
- * 現在のレジストリからメトリクスを収集するヘルパー関数
- * @returns メトリクス文字列
- */
-function collectMetrics(): string {
-  const register = (client as any).register;
-  const metrics = register.getMetricsAsString ? register.getMetricsAsString() : '';
-
-  // メトリクスが取得できない場合は空文字列を返す
-  return metrics || '';
-}

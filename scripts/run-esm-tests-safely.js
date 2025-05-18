@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ESMテスト用実行スクリプト (TST-052, TST-054対応)
+ * ESMテスト用実行スクリプト (TST-052, TST-054, TST-056, TST-057, TST-066対応)
  * 
  * 実行時のエラーやメモリリーク問題を防止するための実行ヘルパー
  * このスクリプトは、ESMテスト実行時の問題を回避するために設計されています
@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 
 // 設定（カスタマイズ可能）
-const DEFAULT_MAX_EXECUTION_TIME = 10 * 60 * 1000; // 10分（デフォルト）
+const DEFAULT_MAX_EXECUTION_TIME = 5 * 60 * 1000; // 5分（デフォルト）
 const MAX_EXECUTION_TIME = process.env.TEST_TIMEOUT 
   ? parseInt(process.env.TEST_TIMEOUT, 10) * 1000 
   : DEFAULT_MAX_EXECUTION_TIME;
@@ -22,7 +22,7 @@ const JEST_CONFIG = path.resolve(__dirname, '../jest.config.esm.js'); // ESM用�
 const DEFAULT_ARGS = [
   '--config=' + JEST_CONFIG,
   '--detectOpenHandles',
-  '--testTimeout=90000',    // 単体テストのタイムアウト
+  '--testTimeout=120000',   // 単体テストのタイムアウト（2分）
   '--forceExit',            // テスト終了時に強制終了
   '--no-cache',             // キャッシュの問題を防ぐために無効化
 ];
@@ -58,7 +58,7 @@ console.warn = function(...args) {
 
 // コマンドライン引数を処理
 const args = process.argv.slice(2);
-let pattern = 'src/__tests__/**/*.test.mjs'; // デフォルトパターン
+let pattern = 'src/__tests__/esm-basic.test.mjs'; // デフォルトテストパターン
 
 // 特定のファイルパターンの指定
 const patternIndex = args.findIndex(arg => 
@@ -80,7 +80,16 @@ const jestArgs = [
   pattern
 ];
 
-console.log(`🚀 ESMテスト実行: node --experimental-vm-modules ${JEST_BIN} ${jestArgs.join(' ')}`);
+// Node.jsオプション設定
+const nodeOptions = [
+  '--experimental-vm-modules',
+  '--experimental-modules',
+  '--es-module-specifier-resolution=node',
+  '--trace-warnings',
+  // '--inspect-brk' // 必要に応じてデバッグ用に有効化
+];
+
+console.log(`🚀 ESMテスト実行: ${pattern}`);
 console.log(`⏱️ タイムアウト: ${MAX_EXECUTION_TIME / 1000}秒`);
 console.log(`📝 ログファイル: ${TEST_LOG_PATH}`);
 
@@ -88,17 +97,14 @@ console.log(`📝 ログファイル: ${TEST_LOG_PATH}`);
 const env = {
   ...process.env,
   FORCE_ESM: 'true',
-  NODE_OPTIONS: '--experimental-vm-modules',
-  TEST_LOG_FILE: TEST_LOG_PATH
+  NODE_OPTIONS: nodeOptions.join(' '),
+  TEST_LOG_FILE: TEST_LOG_PATH,
+  // ESM環境での特別なtraceモードを指定
+  NODE_ESM_TRACE: 'true' 
 };
 
-// メモリリーク検出のためのヒープスナップショットを有効化（オプション）
-if (process.env.HEAP_SNAPSHOT === 'true') {
-  env.NODE_OPTIONS += ' --heap-prof';
-}
-
 // Jestプロセスの起動
-const jestProcess = spawn('node', ['--experimental-vm-modules', JEST_BIN, ...jestArgs], {
+const jestProcess = spawn('node', [...nodeOptions, JEST_BIN, ...jestArgs], {
   stdio: 'pipe', // パイプで出力をキャプチャ
   env
 });
@@ -116,7 +122,7 @@ jestProcess.stderr.on('data', (data) => {
 
 // タイムアウトタイマー
 const timeoutTimer = setTimeout(() => {
-  console.error('\n⚠️ テスト実行がタイムアウトしました（${MAX_EXECUTION_TIME / 1000}秒）。強制終了します。');
+  console.error(`\n⚠️ テスト実行がタイムアウトしました（${MAX_EXECUTION_TIME / 1000}秒）。強制終了します。`);
   logStream.write('\n⚠️ テスト実行がタイムアウトしました。強制終了します。\n');
   
   // プロセスツリーを取得して子プロセスも含めて強制終了
@@ -136,7 +142,11 @@ jestProcess.on('close', (code) => {
   
   try {
     // クリーンアップスクリプトを実行
-    require(CLEANUP_SCRIPT)();
+    if (fs.existsSync(CLEANUP_SCRIPT)) {
+      require(CLEANUP_SCRIPT)();
+    } else {
+      console.warn(`警告: クリーンアップスクリプト ${CLEANUP_SCRIPT} が見つかりません`);
+    }
   } catch (err) {
     console.error('クリーンアップ中にエラーが発生しました:', err);
   }

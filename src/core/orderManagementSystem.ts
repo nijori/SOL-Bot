@@ -1,39 +1,40 @@
-import { Order, OrderSide, OrderStatus, OrderType, Position, Fill } from './types.js';
-import logger from '../utils/logger.js';
-import { OrderOptions, OcoOrderParams } from '../services/exchangeService.js';
-import { ExchangeService } from '../services/exchangeService.js';
-import { updateOrderStatus, syncFillWithOrder } from '../utils/orderUtils.js';
+const { Order, OrderSide, OrderStatus, OrderType, Position, Fill } = require('./types');
+const logger = require('../utils/logger').default;
+const { OrderOptions, OcoOrderParams } = require('../services/exchangeService');
+const { ExchangeService } = require('../services/exchangeService');
+const { updateOrderStatus, syncFillWithOrder } = require('../utils/orderUtils');
 // node-cronの型定義
 // @ts-ignore - node-cronの型定義が不完全なため
-import * as cron from 'node-cron';
+const cron = require('node-cron');
 
-// node-cronのScheduledTaskインターフェース
-interface ScheduledTask {
-  stop: () => void;
-  start: () => void;
-  destroy?: () => void; // optional: node-cron v3.0.0以降で利用可能
-}
+/**
+ * node-cronのScheduledTaskインターフェース
+ * @typedef {Object} ScheduledTask
+ * @property {function} stop - タスクを停止する関数
+ * @property {function} start - タスクを開始する関数
+ * @property {function} [destroy] - タスクを破棄する関数 (node-cron v3.0.0以降で利用可能)
+ */
 
 /**
  * 注文管理システム（OMS）
  * 注文の作成、管理、追跡を行うクラス
  */
-export class OrderManagementSystem {
-  private orders: Map<string, Order> = new Map();
-  private positions: Map<string, Position> = new Map();
-  private nextOrderId: number = 1;
-  private exchangeService!: ExchangeService; // 初期化は setExchangeService で行うため ! を使用
-  private fillMonitorTask: ScheduledTask | null = null;
-
+class OrderManagementSystem {
   constructor() {
+    this.orders = new Map();
+    this.positions = new Map();
+    this.nextOrderId = 1;
+    this.exchangeService = null;
+    this.fillMonitorTask = null;
+    
     logger.info('[OMS] 注文管理システムを初期化しました');
   }
 
   /**
    * 取引所サービスを設定する
-   * @param service ExchangeServiceのインスタンス
+   * @param {object} service ExchangeServiceのインスタンス
    */
-  public setExchangeService(service: ExchangeService): void {
+  setExchangeService(service) {
     this.exchangeService = service;
     logger.info('[OMS] 取引所サービスが設定されました');
 
@@ -45,7 +46,7 @@ export class OrderManagementSystem {
    * 未決済注文の監視を開始する
    * 1分ごとに未決済注文のステータスを確認する
    */
-  private startOrderMonitoring(): void {
+  startOrderMonitoring() {
     if (this.fillMonitorTask) {
       // 多重起動対策: 既存のタスクを確実に停止
       if (typeof this.fillMonitorTask.destroy === 'function') {
@@ -78,9 +79,9 @@ export class OrderManagementSystem {
 
   /**
    * 未決済注文のステータスを確認する
-   * @param forceCheck 強制的に全注文をチェックするかどうか
+   * @param {boolean} forceCheck 強制的に全注文をチェックするかどうか
    */
-  private async checkPendingOrders(forceCheck: boolean = false): Promise<void> {
+  async checkPendingOrders(forceCheck = false) {
     if (!this.exchangeService) {
       return;
     }
@@ -99,7 +100,7 @@ export class OrderManagementSystem {
     );
 
     // 約定情報のバッチ
-    const fillBatch: Fill[] = [];
+    const fillBatch = [];
 
     for (const order of pendingOrders) {
       if (!order.exchangeOrderId || !order.symbol) {
@@ -174,20 +175,11 @@ export class OrderManagementSystem {
 
   /**
    * WebhookからのFill通知を処理する
-   * @param fill 約定情報
+   * @param {object} fill 約定情報
    */
-  public processFill(fill: Fill): void {
+  processFill(fill) {
     // 注文IDから注文を検索
-    let order: Order | undefined;
-
-    if (fill.orderId) {
-      order = this.orders.get(fill.orderId);
-    } else if (fill.exchangeOrderId) {
-      // exchangeOrderIdから検索
-      order = Array.from(this.orders.values()).find(
-        (o) => o.exchangeOrderId === fill.exchangeOrderId
-      );
-    }
+    let order = this.orders.get(fill.orderId);
 
     if (!order) {
       logger.warn(
@@ -220,16 +212,16 @@ export class OrderManagementSystem {
 
   /**
    * 注文を作成して追跡する
-   * @param order 注文情報
-   * @param options 注文オプション
-   * @returns 生成された注文ID
+   * @param {object} order 注文情報
+   * @param {object} options 注文オプション
+   * @returns {string} 生成された注文ID
    */
-  public createOrder(order: Order, options?: OrderOptions): string {
+  createOrder(order, options) {
     // 注文IDを生成（実際の取引所APIを使用する場合は、APIからのレスポンスでIDを取得）
     const orderId = `order-${Date.now()}-${this.nextOrderId++}`;
 
     // 注文に必要な情報を追加
-    const newOrder: Order = {
+    const newOrder = {
       ...order,
       id: orderId,
       status: OrderStatus.OPEN, // 初期状態はOPEN
@@ -261,7 +253,7 @@ export class OrderManagementSystem {
     if (this.exchangeService) {
       this.exchangeService
         .executeOrder(newOrder, options)
-        .then((exchangeOrderId: string | null) => {
+        .then((exchangeOrderId) => {
           if (exchangeOrderId) {
             // 取引所送信成功時、ステータスをPLACEDに更新
             newOrder.status = OrderStatus.PLACED;
@@ -277,7 +269,7 @@ export class OrderManagementSystem {
             this.orders.set(orderId, newOrder);
           }
         })
-        .catch((error: Error) => {
+        .catch((error) => {
           logger.error(`[OMS] 取引所への注文送信エラー: ${error.message}`);
           newOrder.status = OrderStatus.REJECTED;
           this.orders.set(orderId, newOrder);
@@ -289,12 +281,12 @@ export class OrderManagementSystem {
 
   /**
    * OCO注文（One-Cancels-the-Other）を作成する
-   * @param params OCO注文のパラメータ
-   * @returns OCO注文のID（複数の場合はカンマ区切り）
+   * @param {object} params OCO注文のパラメータ
+   * @returns {string} OCO注文のID（複数の場合はカンマ区切り）
    */
-  public async createOcoOrder(params: OcoOrderParams): Promise<string> {
+  async createOcoOrder(params) {
     // 2つの注文IDを記録するための配列
-    const orderIds: string[] = [];
+    const orderIds = [];
 
     // 取引所サービスが設定されている場合、実際に注文を送信
     if (this.exchangeService) {
@@ -308,7 +300,7 @@ export class OrderManagementSystem {
           const ids = exchangeOrderId.split(',');
           ids.forEach((id, index) => {
             const ocoType = index === 0 ? '利確' : '損切';
-            const ocoOrder: Order = {
+            const ocoOrder = {
               id,
               exchangeOrderId: id, // 取引所の注文IDを保存
               symbol: params.symbol,
@@ -326,7 +318,7 @@ export class OrderManagementSystem {
           });
         } else {
           // 単一IDの場合（取引所側でOCOをサポートしている場合）
-          const ocoOrder: Order = {
+          const ocoOrder = {
             id: exchangeOrderId,
             exchangeOrderId: exchangeOrderId, // 取引所の注文IDを保存
             symbol: params.symbol,
@@ -356,10 +348,10 @@ export class OrderManagementSystem {
 
   /**
    * 注文をキャンセルする
-   * @param orderId 注文ID
-   * @returns キャンセルが成功したかどうか
+   * @param {string} orderId 注文ID
+   * @returns {boolean} キャンセルが成功したかどうか
    */
-  public cancelOrder(orderId: string): boolean {
+  cancelOrder(orderId) {
     const order = this.orders.get(orderId);
 
     if (!order) {
@@ -383,11 +375,11 @@ export class OrderManagementSystem {
 
   /**
    * 注文が約定したことを処理する
-   * @param orderId 注文ID
-   * @param executionPrice 約定価格
-   * @returns 処理が成功したかどうか
+   * @param {string} orderId 注文ID
+   * @param {number} executionPrice 約定価格
+   * @returns {boolean} 処理が成功したかどうか
    */
-  public fillOrder(orderId: string, executionPrice: number): boolean {
+  fillOrder(orderId, executionPrice) {
     const order = this.orders.get(orderId);
 
     if (!order) {
@@ -417,10 +409,10 @@ export class OrderManagementSystem {
 
   /**
    * 取引所の注文IDから内部注文を検索する
-   * @param exchangeOrderId 取引所の注文ID
-   * @returns 注文オブジェクト、見つからない場合はundefined
+   * @param {string} exchangeOrderId 取引所の注文ID
+   * @returns {object} 注文オブジェクト、見つからない場合はundefined
    */
-  public findOrderByExchangeId(exchangeOrderId: string): Order | undefined {
+  findOrderByExchangeId(exchangeOrderId) {
     for (const order of this.orders.values()) {
       if (order.exchangeOrderId === exchangeOrderId) {
         return order;
@@ -431,16 +423,16 @@ export class OrderManagementSystem {
 
   /**
    * Webhookからの約定通知を処理する
-   * @param exchangeOrderId 取引所の注文ID
-   * @param executionPrice 約定価格
-   * @param executionAmount 約定数量（省略可）
-   * @returns 処理が成功したかどうか
+   * @param {string} exchangeOrderId 取引所の注文ID
+   * @param {number} executionPrice 約定価格
+   * @param {number} executionAmount 約定数量（省略可）
+   * @returns {boolean} 処理が成功したかどうか
    */
-  public handleWebhookFill(
-    exchangeOrderId: string,
-    executionPrice: number,
-    executionAmount?: number
-  ): boolean {
+  handleWebhookFill(
+    exchangeOrderId,
+    executionPrice,
+    executionAmount
+  ) {
     if (!exchangeOrderId) {
       logger.error(`[OMS] Webhook約定処理失敗: 取引所注文IDが指定されていません`);
       return false;
@@ -457,7 +449,7 @@ export class OrderManagementSystem {
       }
 
       // 約定情報オブジェクトを作成
-      const fill: Fill = {
+      const fill = {
         orderId: order.id,
         exchangeOrderId,
         symbol: order.symbol,
@@ -485,10 +477,10 @@ export class OrderManagementSystem {
 
   /**
    * 注文履歴を保存する
-   * @param fill 約定情報
+   * @param {object} fill 約定情報
    * @private
    */
-  private saveFillHistory(fill: Fill): void {
+  saveFillHistory(fill) {
     try {
       // 履歴保存のロジックを実装（例：ファイルやデータベースに保存）
       // ここではログに出力するのみ
@@ -507,9 +499,9 @@ export class OrderManagementSystem {
 
   /**
    * 未決済注文の監視間隔を設定する
-   * @param intervalMinutes 監視間隔（分）
+   * @param {number} intervalMinutes 監視間隔（分）
    */
-  public setOrderMonitoringInterval(intervalMinutes: number): void {
+  setOrderMonitoringInterval(intervalMinutes) {
     if (this.fillMonitorTask) {
       // 多重起動対策: 既存のタスクを確実に停止
       if (typeof this.fillMonitorTask.destroy === 'function') {
@@ -549,10 +541,10 @@ export class OrderManagementSystem {
 
   /**
    * ポジションを更新する
-   * @param order 約定した注文
-   * @param executionPrice 約定価格
+   * @param {object} order 約定した注文
+   * @param {number} executionPrice 約定価格
    */
-  private updatePosition(order: Order, executionPrice: number): void {
+  updatePosition(order, executionPrice) {
     const positionKey = `${order.symbol}:${order.side}`;
     const oppositeKey = `${order.symbol}:${order.side === OrderSide.BUY ? OrderSide.SELL : OrderSide.BUY}`;
 
@@ -612,9 +604,9 @@ export class OrderManagementSystem {
 
   /**
    * 未実現損益を計算する
-   * @param position ポジション情報
+   * @param {object} position ポジション情報
    */
-  private calculateUnrealizedPnl(position: Position): void {
+  calculateUnrealizedPnl(position) {
     if (position.side === OrderSide.BUY) {
       // ロングポジションの場合
       position.unrealizedPnl = (position.currentPrice - position.entryPrice) * position.amount;
@@ -626,44 +618,44 @@ export class OrderManagementSystem {
 
   /**
    * 現在のポジションを取得する
-   * @returns ポジションの配列
+   * @returns {array} ポジションの配列
    */
-  public getPositions(): Position[] {
+  getPositions() {
     return Array.from(this.positions.values());
   }
 
   /**
    * 特定のシンボルのポジションを取得する
-   * @param symbol シンボル
-   * @returns ポジションの配列
+   * @param {string} symbol シンボル
+   * @returns {array} ポジションの配列
    */
-  public getPositionsBySymbol(symbol: string): Position[] {
+  getPositionsBySymbol(symbol) {
     return Array.from(this.positions.values()).filter((position) => position.symbol === symbol);
   }
 
   /**
    * 注文リストを取得する
-   * @returns 注文の配列
+   * @returns {array} 注文の配列
    */
-  public getOrders(): Order[] {
+  getOrders() {
     return Array.from(this.orders.values());
   }
 
   /**
    * 特定のステータスの注文を取得する
-   * @param status 注文ステータス
-   * @returns 注文の配列
+   * @param {string} status 注文ステータス
+   * @returns {array} 注文の配列
    */
-  public getOrdersByStatus(status: OrderStatus): Order[] {
+  getOrdersByStatus(status) {
     return Array.from(this.orders.values()).filter((order) => order.status === status);
   }
 
   /**
    * 市場価格の更新に基づいてポジションを更新する
-   * @param symbol シンボル
-   * @param currentPrice 現在の価格
+   * @param {string} symbol シンボル
+   * @param {number} currentPrice 現在の価格
    */
-  public updatePrices(symbol: string, currentPrice: number): void {
+  updatePrices(symbol, currentPrice) {
     // シンボルに関連するすべてのポジションを取得
     const symbolPositions = Array.from(this.positions.values()).filter(
       (position) => position.symbol === symbol
@@ -682,10 +674,10 @@ export class OrderManagementSystem {
 
   /**
    * 特定のシンボルの未実現損益合計を取得する
-   * @param symbol シンボル
-   * @returns 未実現損益
+   * @param {string} symbol シンボル
+   * @returns {number} 未実現損益
    */
-  public getTotalUnrealizedPnl(symbol?: string): number {
+  getTotalUnrealizedPnl(symbol) {
     const positions = symbol
       ? Array.from(this.positions.values()).filter((position) => position.symbol === symbol)
       : Array.from(this.positions.values());
@@ -697,22 +689,22 @@ export class OrderManagementSystem {
    * 全注文のステータスを強制的に確認する
    * 取引所との同期が必要な場合などに使用
    */
-  public async forceCheckAllOrders(): Promise<void> {
+  async forceCheckAllOrders() {
     logger.info(`[OMS] 全注文のステータスを強制確認します`);
     await this.checkPendingOrders(true);
   }
 
   /**
    * ポジションのストップ価格を更新する
-   * @param symbol シンボル
-   * @param positionSide ポジションの方向
-   * @param stopPrice ストップ価格
+   * @param {string} symbol シンボル
+   * @param {string} positionSide ポジションの方向
+   * @param {number} stopPrice ストップ価格
    */
-  private updatePositionStopPrice(
-    symbol: string,
-    positionSide: OrderSide,
-    stopPrice: number
-  ): void {
+  updatePositionStopPrice(
+    symbol,
+    positionSide,
+    stopPrice
+  ) {
     const positionKey = `${symbol}:${positionSide}`;
     const position = this.positions.get(positionKey);
 
@@ -728,10 +720,10 @@ export class OrderManagementSystem {
   /**
    * 取引所から注文情報を同期する
    * オープン/プレイス状態の注文の最新状態を取得して更新
-   * @param symbol 特定のシンボルのみ同期する場合は指定（省略可）
-   * @returns 同期された注文の数
+   * @param {string} symbol 特定のシンボルのみ同期する場合は指定（省略可）
+   * @returns {number} 同期された注文の数
    */
-  public async syncOrders(symbol?: string): Promise<number> {
+  async syncOrders(symbol) {
     if (!this.exchangeService) {
       logger.warn('[OMS] 取引所サービスが設定されていないため、注文を同期できません');
       return 0;
@@ -810,3 +802,5 @@ export class OrderManagementSystem {
     return syncCount;
   }
 }
+
+module.exports = { OrderManagementSystem };

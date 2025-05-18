@@ -1,73 +1,88 @@
 /**
  * メモリ使用量モニタリングユーティリティ
  * バックテストなどの大量のデータを扱う処理でメモリ使用状況を追跡
+ * INF-032: CommonJS形式への変換
  */
-import logger from './logger.js';
+// @ts-nocheck
+// 循環参照を避けるため、型チェックを一時的に無効化
 
+// ====== 型定義 ======
 /**
- * メモリ使用情報
+ * メモリ使用情報の型定義
  */
-export interface MemoryUsageInfo {
-  heapTotal: number; // 合計ヒープサイズ (MB)
-  heapUsed: number; // 使用中ヒープサイズ (MB)
-  external: number; // 外部メモリ (MB)
-  rss: number; // Resident Set Size (MB)
-  arrayBuffers: number; // ArrayBufferのメモリ使用量 (MB)
-  timestamp: number; // タイムスタンプ
+interface MemoryUsageInfo {
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  rss: number;
+  arrayBuffers: number;
+  timestamp: number;
 }
 
 /**
- * メモリピーク情報
+ * メモリピーク情報の型定義
  */
-export interface MemoryPeaks {
-  heapTotal: number; // ピーク時の合計ヒープサイズ (bytes)
-  heapUsed: number; // ピーク時の使用中ヒープサイズ (bytes)
-  external: number; // ピーク時の外部メモリ (bytes)
-  rss: number; // ピーク時のResident Set Size (bytes)
-  timestamp?: number; // ピーク時のタイムスタンプ
+interface MemoryPeaks {
+  heapTotal: number;
+  heapUsed: number;
+  external: number;
+  rss: number;
+  timestamp?: number;
 }
 
+// ====== 依存モジュール ======
+var moduleHelperRef = require('./moduleHelper');
+var loggerRef = moduleHelperRef.hasModule('logger') 
+  ? moduleHelperRef.getModule('logger') 
+  : require('./logger').default;
+
+// ====== 実装 ======
 /**
  * メモリ使用量モニタリングクラス
  */
-export class MemoryMonitor {
-  private snapshots: MemoryUsageInfo[] = [];
-  private maxHeapUsed: number = 0;
-  private enabled: boolean = true;
+class MemoryMonitor {
+  private snapshots: MemoryUsageInfo[];
+  private maxHeapUsed: number;
+  private enabled: boolean;
   private label: string;
-  private intervalId: NodeJS.Timeout | null = null;
-  private startTime: number = 0;
-  private memoryPeaks: MemoryPeaks = {
-    heapTotal: 0,
-    heapUsed: 0,
-    external: 0,
-    rss: 0
-  };
+  private intervalId: NodeJS.Timeout | null;
+  private startTime: number;
+  private memoryPeaks: MemoryPeaks;
 
   /**
    * コンストラクタ
-   * @param label モニタリングラベル
-   * @param enabled 有効かどうか（falseの場合は動作しない）
+   * @param {string} [label='default'] モニタリングラベル
+   * @param {boolean} [enabled=true] 有効かどうか（falseの場合は動作しない）
    */
-  constructor(label: string = 'default', enabled: boolean = true) {
-    this.label = label;
+  constructor(label = 'default', enabled = true) {
+    this.snapshots = [];
+    this.maxHeapUsed = 0;
     this.enabled = enabled;
+    this.label = label;
+    this.intervalId = null;
+    this.startTime = 0;
+    this.memoryPeaks = {
+      heapTotal: 0,
+      heapUsed: 0,
+      external: 0,
+      rss: 0
+    };
   }
 
   /**
    * メモリスナップショットを取得
-   * @returns メモリ使用情報
+   * @returns {MemoryUsageInfo|null} メモリ使用情報
    */
-  public takeSnapshot(): MemoryUsageInfo | null {
+  takeSnapshot() {
     if (!this.enabled) return null;
 
     const memUsage = process.memoryUsage();
-    const snapshot: MemoryUsageInfo = {
+    const snapshot = {
       heapTotal: Math.round((memUsage.heapTotal / 1024 / 1024) * 100) / 100, // MB単位に変換、小数点2桁
       heapUsed: Math.round((memUsage.heapUsed / 1024 / 1024) * 100) / 100,
       external: Math.round((memUsage.external / 1024 / 1024) * 100) / 100,
       rss: Math.round((memUsage.rss / 1024 / 1024) * 100) / 100,
-      arrayBuffers: Math.round(((memUsage as any).arrayBuffers / 1024 / 1024) * 100) / 100,
+      arrayBuffers: Math.round((memUsage.arrayBuffers / 1024 / 1024) * 100) / 100,
       timestamp: Date.now()
     };
 
@@ -86,9 +101,9 @@ export class MemoryMonitor {
 
   /**
    * メモリ使用量のピーク値を更新
-   * @param memUsage 現在のメモリ使用状況
+   * @param {NodeJS.MemoryUsage} memUsage 現在のメモリ使用状況
    */
-  private updateMemoryPeaks(memUsage: NodeJS.MemoryUsage): void {
+  updateMemoryPeaks(memUsage) {
     const now = Date.now();
     let updated = false;
 
@@ -119,17 +134,17 @@ export class MemoryMonitor {
 
   /**
    * メモリ使用量のピーク値を取得
-   * @returns メモリピーク情報
+   * @returns {MemoryPeaks} メモリピーク情報
    */
-  public getMemoryPeaks(): MemoryPeaks {
+  getMemoryPeaks() {
     return { ...this.memoryPeaks };
   }
 
   /**
    * 定期的なメモリ監視を開始
-   * @param intervalMs 監視間隔（ミリ秒）
+   * @param {number} [intervalMs=1000] 監視間隔（ミリ秒）
    */
-  public startMonitoring(intervalMs: number = 1000): void {
+  startMonitoring(intervalMs = 1000) {
     if (!this.enabled) return;
 
     this.startTime = Date.now();
@@ -145,7 +160,7 @@ export class MemoryMonitor {
     this.intervalId = setInterval(() => {
       const snapshot = this.takeSnapshot();
       if (snapshot) {
-        logger.debug(
+        loggerRef.debug(
           `[MemoryMonitor:${this.label}] Heap: ${snapshot.heapUsed}MB / ${snapshot.heapTotal}MB, RSS: ${snapshot.rss}MB`
         );
       }
@@ -155,21 +170,21 @@ export class MemoryMonitor {
   /**
    * 監視を停止
    */
-  public stopMonitoring(): void {
+  stopMonitoring() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
 
       const elapsedSec = (Date.now() - this.startTime) / 1000;
-      logger.info(`[MemoryMonitor:${this.label}] 監視終了 (${elapsedSec.toFixed(1)}秒間)`);
+      loggerRef.info(`[MemoryMonitor:${this.label}] 監視終了 (${elapsedSec.toFixed(1)}秒間)`);
     }
   }
 
   /**
    * メモリ使用状況のサマリーを取得
-   * @returns 使用状況のサマリー文字列
+   * @returns {string} 使用状況のサマリー文字列
    */
-  public getSummary(): string {
+  getSummary() {
     if (!this.enabled || this.snapshots.length === 0) {
       return 'メモリモニタリングは無効または実行されていません';
     }
@@ -200,33 +215,33 @@ RSS増加量: ${(endSnapshot.rss - startSnapshot.rss).toFixed(2)}MB
   /**
    * メモリ使用状況をログに出力
    */
-  public logSummary(): void {
+  logSummary() {
     if (!this.enabled) return;
-    logger.info(this.getSummary());
+    loggerRef.info(this.getSummary());
   }
 
   /**
    * すべてのスナップショットを取得
-   * @returns メモリスナップショットの配列
+   * @returns {MemoryUsageInfo[]} メモリスナップショットの配列
    */
-  public getSnapshots(): MemoryUsageInfo[] {
+  getSnapshots() {
     return [...this.snapshots];
   }
 
   /**
    * 最大ヒープ使用量を取得
-   * @returns 最大ヒープ使用量（MB）
+   * @returns {number} 最大ヒープ使用量（MB）
    */
-  public getMaxHeapUsed(): number {
+  getMaxHeapUsed() {
     return this.maxHeapUsed;
   }
 }
 
 /**
  * 現在のヒープ使用率を取得
- * @returns ヒープ使用率 (0-1の範囲)
+ * @returns {number} ヒープ使用率 (0-1の範囲)
  */
-export function getHeapUsageRatio(): number {
+function getHeapUsageRatio() {
   const memUsage = process.memoryUsage();
   return memUsage.heapUsed / memUsage.heapTotal;
 }
@@ -235,44 +250,46 @@ export function getHeapUsageRatio(): number {
  * メモリ問題のディープ分析
  * リーク疑いのある場合に呼び出す詳細分析
  */
-export function analyzeMemoryIssues(): void {
+function analyzeMemoryIssues() {
   // Node.jsはV8エンジンを使用しているため、V8のヒープスナップショット機能が利用可能
   try {
     // v8-profilerモジュールが必要（事前にインストールしておく必要あり）
     // この部分は実装の例示であり、実際に使用する場合は適切なモジュールのインストールが必要
-    logger.info('メモリ問題の詳細分析を開始します...');
+    loggerRef.info('メモリ問題の詳細分析を開始します...');
 
     // 現在のメモリ使用状況をログ出力
     const memUsage = process.memoryUsage();
-    logger.info(`
+    loggerRef.info(`
 詳細メモリ分析:
 heapTotal: ${(memUsage.heapTotal / 1024 / 1024).toFixed(2)}MB
 heapUsed: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)}MB
 external: ${(memUsage.external / 1024 / 1024).toFixed(2)}MB
 rss: ${(memUsage.rss / 1024 / 1024).toFixed(2)}MB
-arrayBuffers: ${((memUsage as any).arrayBuffers / 1024 / 1024).toFixed(2)}MB
-使用率: ${((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(1)}%
+arrayBuffers: ${(memUsage.arrayBuffers / 1024 / 1024).toFixed(2)}MB
+ヒープ使用率: ${((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(1)}%
     `);
 
-    // ガベージコレクションを強制実行
-    if (global.gc) {
-      logger.info('ガベージコレクションを強制実行...');
-      global.gc();
-
-      // GC後のメモリ使用状況
-      const afterGcMemUsage = process.memoryUsage();
-      logger.info(`
-GC後のメモリ状況:
-heapTotal: ${(afterGcMemUsage.heapTotal / 1024 / 1024).toFixed(2)}MB
-heapUsed: ${(afterGcMemUsage.heapUsed / 1024 / 1024).toFixed(2)}MB
-回収量: ${((memUsage.heapUsed - afterGcMemUsage.heapUsed) / 1024 / 1024).toFixed(2)}MB
-      `);
-    } else {
-      logger.warn(
-        'ガベージコレクションを強制実行できません。--expose-gc オプションでNode.jsを起動してください。'
-      );
-    }
+    // TODO: 将来的にはv8-profilerなどを使ったヒープダンプの実装を検討
   } catch (error) {
-    logger.error(`メモリ分析エラー: ${error instanceof Error ? error.message : String(error)}`);
+    loggerRef.error(`メモリ分析エラー: ${error.message}`);
   }
 }
+
+// メモリモニターインスタンスを作成
+var globalMemoryMonitor = new MemoryMonitor('global');
+// モジュールレジストリに登録
+moduleHelperRef.registerModule('memoryMonitor', globalMemoryMonitor);
+
+// CommonJSエクスポート
+module.exports = {
+  MemoryMonitor,
+  getHeapUsageRatio,
+  analyzeMemoryIssues,
+  globalMemoryMonitor
+};
+
+// TypeScriptの型定義が必要な場合
+// @ts-ignore
+module.exports.MemoryUsageInfo = {};
+// @ts-ignore
+module.exports.MemoryPeaks = {};

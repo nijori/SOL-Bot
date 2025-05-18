@@ -39,38 +39,38 @@ export * from './indicators/volatilityIndicators.js';
 
 // グループ化されたエクスポート
 export const core = {
-  TradingEngine: './core/tradingEngine.js',
-  BacktestRunner: './core/backtestRunner.js',
-  OrderManagementSystem: './core/orderManagementSystem.js',
-  types: './core/types.js'
+  TradingEngine'./core/tradingEngine.js',
+  BacktestRunner'./core/backtestRunner.js',
+  OrderManagementSystem'./core/orderManagementSystem.js',
+  types'./core/types.js'
 };
 
 export const strategies = {
-  TrendFollowStrategy: './strategies/trendFollowStrategy.js',
-  MeanReversionStrategy: './strategies/meanReversionStrategy.js',
-  DonchianBreakoutStrategy: './strategies/donchianBreakoutStrategy.js'
+  TrendFollowStrategy'./strategies/trendFollowStrategy.js',
+  MeanReversionStrategy'./strategies/meanReversionStrategy.js',
+  DonchianBreakoutStrategy'./strategies/donchianBreakoutStrategy.js'
 };
 
 export const services = {
-  ExchangeService: './services/exchangeService.js'
+  ExchangeService'./services/exchangeService.js'
 };
 
 export const utils = {
-  logger: './utils/logger.js',
-  atrUtils: './utils/atrUtils.js',
-  positionSizing: './utils/positionSizing.js',
-  metrics: './utils/metrics.js',
-  cliParser: './utils/cliParser.js'
+  logger'./utils/logger.js',
+  atrUtils'./utils/atrUtils.js',
+  positionSizing'./utils/positionSizing.js',
+  metrics'./utils/metrics.js',
+  cliParser'./utils/cliParser.js'
 };
 
 export const data = {
-  DataService: './data/dataService.js',
-  MultiTimeframeDataFetcher: './data/multiTimeframeDataFetcher.js'
+  DataService'./data/dataService.js',
+  MultiTimeframeDataFetcher'./data/multiTimeframeDataFetcher.js'
 };
 
 export const indicators = {
-  trendIndicators: './indicators/trendIndicators.js',
-  volatilityIndicators: './indicators/volatilityIndicators.js'
+  trendIndicators'./indicators/trendIndicators.js',
+  volatilityIndicators'./indicators/volatilityIndicators.js'
 };
 
 // ESMからCommonJSモジュールをロードするヘルパー

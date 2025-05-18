@@ -1,47 +1,55 @@
-import { EMA, ATR, ADX } from 'technicalindicators';
-import { Candle, MarketEnvironment, MarketAnalysisResult, StrategyType } from '../core/types.js';
-import { MARKET_PARAMETERS } from '../config/parameters.js';
-import { parameterService } from '../config/parameterService.js';
+/**
+ * 市場状態分析モジュール
+ * INF-032-6: インジケーターディレクトリのCommonJS変換
+ */
+// @ts-nocheck
+
+// CommonJS形式でのモジュールインポート
+const technicalIndicators = require('technicalindicators');
+const { EMA, ATR, ADX } = technicalIndicators;
+const Types = require('../core/types');
+const { Candle, MarketEnvironment, MarketAnalysisResult, StrategyType } = Types;
+const { MARKET_PARAMETERS } = require('../config/parameters');
+const { parameterService } = require('../config/parameterService');
 
 // EMA傾き計算のボラティリティ適応閾値をパラメータサービスから取得
-const SLOPE_HIGH_VOL_THRESHOLD = parameterService.get<number>(
+const SLOPE_HIGH_VOL_THRESHOLD = parameterService.get(
   'market.slope_periods_high_vol_threshold',
   8.0
 );
-const SLOPE_LOW_VOL_THRESHOLD = parameterService.get<number>(
+const SLOPE_LOW_VOL_THRESHOLD = parameterService.get(
   'market.slope_periods_low_vol_threshold',
   3.0
 );
-const SLOPE_PERIODS_DEFAULT = parameterService.get<number>('market.slope_periods_default', 5);
-const SLOPE_HIGH_VOL_VALUE = parameterService.get<number>('market.slope_periods_high_vol_value', 3);
-const SLOPE_LOW_VOL_VALUE = parameterService.get<number>('market.slope_periods_low_vol_value', 8);
+const SLOPE_PERIODS_DEFAULT = parameterService.get('market.slope_periods_default', 5);
+const SLOPE_HIGH_VOL_VALUE = parameterService.get('market.slope_periods_high_vol_value', 3);
+const SLOPE_LOW_VOL_VALUE = parameterService.get('market.slope_periods_low_vol_value', 8);
 
 // ATR==0の場合のフォールバック設定
-const DEFAULT_ATR_PERCENTAGE = parameterService.get<number>('risk.defaultAtrPercentage', 0.02);
-const MIN_ATR_VALUE = parameterService.get<number>('risk.minAtrValue', 0.0001);
+const DEFAULT_ATR_PERCENTAGE = parameterService.get('risk.defaultAtrPercentage', 0.02);
+const MIN_ATR_VALUE = parameterService.get('risk.minAtrValue', 0.0001);
 
 /**
  * インクリメンタルEMA計算クラス
  * 全履歴の再計算をせず、増分計算でEMAを更新
  */
 class IncrementalEMA {
-  private emaValue: number | null = null;
-  private alpha: number;
-
   /**
-   * @param period EMA期間
+   * @param {number} period EMA期間
    */
-  constructor(private period: number) {
+  constructor(period) {
+    this.period = period;
+    this.emaValue = null;
     // EMAの平滑化係数α = 2/(period+1)
     this.alpha = 2 / (this.period + 1);
   }
 
   /**
    * EMA値を初期化
-   * @param values 初期化に使用する値の配列
-   * @returns 初期化されたEMA値
+   * @param {number[]} values 初期化に使用する値の配列
+   * @returns {number} 初期化されたEMA値
    */
-  initialize(values: number[]): number {
+  initialize(values) {
     if (!values || values.length === 0) {
       this.emaValue = null;
       return 0;
@@ -69,10 +77,10 @@ class IncrementalEMA {
 
   /**
    * 新しい値でEMAを更新
-   * @param newValue 新しい値
-   * @returns 更新されたEMA値
+   * @param {number} newValue 新しい値
+   * @returns {number} 更新されたEMA値
    */
-  update(newValue: number): number {
+  update(newValue) {
     if (this.emaValue === null) {
       this.emaValue = newValue;
       return this.emaValue;
@@ -85,15 +93,17 @@ class IncrementalEMA {
 
   /**
    * 現在のEMA値を取得
+   * @returns {number} 現在のEMA値
    */
-  getValue(): number {
+  getValue() {
     return this.emaValue || 0;
   }
 
   /**
    * 期間を取得
+   * @returns {number} EMA期間
    */
-  getPeriod(): number {
+  getPeriod() {
     return this.period;
   }
 }
@@ -103,36 +113,37 @@ class IncrementalEMA {
  * 全履歴の再計算をせず、増分計算でATRを更新
  */
 class IncrementalATR {
-  private atrValue: number | null = null;
-  private prevClose: number | null = null;
-  private alpha: number;
-
   /**
-   * @param period ATR期間
+   * @param {number} period ATR期間
    */
-  constructor(private period: number) {
+  constructor(period) {
+    this.period = period;
+    this.atrValue = null;
+    this.prevClose = null;
     // Wilderの平滑化手法: α = 1/period
     this.alpha = 1 / this.period;
+    this.trValues = []; // トゥルーレンジ値の履歴を保持
   }
 
   /**
    * ATR値を初期化
-   * @param candles 初期化に使用するローソク足の配列
-   * @returns 初期化されたATR値
+   * @param {Candle[]} candles 初期化に使用するローソク足の配列
+   * @returns {number} 初期化されたATR値
    */
-  initialize(candles: Candle[]): number {
+  initialize(candles) {
     if (!candles || candles.length === 0) {
       this.atrValue = null;
       this.prevClose = null;
+      this.trValues = [];
       return 0;
     }
 
     // TR値の配列を計算
-    const trValues: number[] = [];
+    this.trValues = [];
 
     for (let i = 0; i < candles.length; i++) {
       const candle = candles[i];
-      let tr: number;
+      let tr;
 
       if (i === 0) {
         // 最初のローソク足はHigh-Lowを使用
@@ -146,23 +157,27 @@ class IncrementalATR {
         tr = Math.max(hl, Math.max(hpc, lpc));
       }
 
-      trValues.push(tr);
+      this.trValues.push(tr);
     }
 
     // 期間未満のデータしかない場合は単純平均を使用
-    if (trValues.length < this.period) {
-      const sum = trValues.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / trValues.length;
+    if (this.trValues.length < this.period) {
+      const sum = this.trValues.reduce((a, b) => a + b, 0);
+      this.atrValue = sum / this.trValues.length;
     } else {
-      // 最初のATRは単純平均
-      const initialTrValues = trValues.slice(0, this.period);
+      // Wilderの平滑化法でATRを計算（より安定した実装）
+      // 最初のATRは直近period分の単純平均
+      const initialTrValues = this.trValues.slice(-this.period);
       const sum = initialTrValues.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / this.period;
-
-      // 残りのデータでATR値を更新（Wilderの平滑化手法）
-      for (let i = this.period; i < trValues.length; i++) {
-        this.atrValue = trValues[i] * this.alpha + this.atrValue * (1 - this.alpha);
+      let tempAtr = sum / this.period;
+      
+      // 直近のperiod個のTR値に対してATRを計算（Wilderの平滑化法を使用）
+      // Wilderの平滑化法： ATRt = ((period-1) * ATRt-1 + TRt) / period
+      for (let i = this.period; i < this.trValues.length; i++) {
+        tempAtr = ((this.period - 1) * tempAtr + this.trValues[i]) / this.period;
       }
+      
+      this.atrValue = tempAtr;
     }
 
     // フォールバックチェック：ATRが0または非常に小さい場合
@@ -183,19 +198,20 @@ class IncrementalATR {
 
   /**
    * 新しいローソク足でATRを更新
-   * @param candle 新しいローソク足
-   * @returns 更新されたATR値
+   * @param {Candle} candle 新しいローソク足
+   * @returns {number} 更新されたATR値
    */
-  update(candle: Candle): number {
+  update(candle) {
     if (this.atrValue === null) {
       this.atrValue = candle.high - candle.low;
       this.prevClose = candle.close;
+      this.trValues = [candle.high - candle.low];
       return this.atrValue;
     }
 
     // True Rangeを計算
     const hl = candle.high - candle.low;
-    let tr: number;
+    let tr;
 
     if (this.prevClose !== null) {
       const hpc = Math.abs(candle.high - this.prevClose);
@@ -205,8 +221,15 @@ class IncrementalATR {
       tr = hl;
     }
 
-    // ATR = α * 現在のTR + (1 - α) * 前回のATR
-    this.atrValue = tr * this.alpha + this.atrValue * (1 - this.alpha);
+    // TR値を配列に追加（最新のperiod+1個を保持）
+    this.trValues.push(tr);
+    if (this.trValues.length > this.period + 1) {
+      this.trValues.shift();
+    }
+
+    // Wilderの平滑化手法（より安定した実装）
+    // ATR = ((前回のATR * (期間-1)) + 現在のTR) / 期間
+    this.atrValue = ((this.period - 1) * this.atrValue + tr) / this.period;
 
     // フォールバックチェック：ATRが0または非常に小さい場合
     if (this.atrValue === 0 || this.atrValue < candle.close * MIN_ATR_VALUE) {
@@ -226,28 +249,30 @@ class IncrementalATR {
 
   /**
    * 現在のATR値を取得
+   * @returns {number} 現在のATR値
    */
-  getValue(): number {
+  getValue() {
     return this.atrValue || 0;
   }
 
   /**
    * 期間を取得
+   * @returns {number} ATR期間
    */
-  getPeriod(): number {
+  getPeriod() {
     return this.period;
   }
 }
 
 // インクリメンタル計算用インスタンスを保持
-let shortTermEmaInstance: IncrementalEMA | null = null;
-let longTermEmaInstance: IncrementalEMA | null = null;
-let atrInstance: IncrementalATR | null = null;
+let shortTermEmaInstance = null;
+let longTermEmaInstance = null;
+let atrInstance = null;
 
 /**
  * インクリメンタル計算用インスタンスをリセット
  */
-export function resetMarketStateCalculators(): void {
+function resetMarketStateCalculators() {
   shortTermEmaInstance = null;
   longTermEmaInstance = null;
   atrInstance = null;
@@ -255,16 +280,16 @@ export function resetMarketStateCalculators(): void {
 
 /**
  * EMAの傾きを計算（線形回帰方式）
- * @param emaValues EMAの値の配列
- * @param periods 傾きを計算する期間
- * @param timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
- * @returns 傾きの値（標準化された値）
+ * @param {number[]} emaValues EMAの値の配列
+ * @param {number} periods 傾きを計算する期間
+ * @param {number} timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
+ * @returns {number} 傾きの値（標準化された値）
  */
 function calculateSlope(
-  emaValues: number[],
-  periods: number = 5,
-  timeframeHours: number = 4
-): number {
+  emaValues,
+  periods = 5,
+  timeframeHours = 4
+) {
   if (emaValues.length < periods) {
     return 0;
   }
@@ -307,10 +332,10 @@ function calculateSlope(
 
 /**
  * 傾きを角度（度数法）に変換
- * @param slope 傾き
- * @returns 角度（度数法）
+ * @param {number} slope 傾き
+ * @returns {number} 角度（度数法）
  */
-function slopeToAngle(slope: number): number {
+function slopeToAngle(slope) {
   // arctan(slope) * (180/π) で角度（度数法）に変換
   return Math.atan(slope) * (180 / Math.PI);
 }
@@ -318,14 +343,14 @@ function slopeToAngle(slope: number): number {
 /**
  * EMAの傾きを確認する期間を動的に調整する関数
  * ボラティリティに応じて期間を変える
- * @param atrPercentage ATRパーセンテージ（ボラティリティ指標）
- * @param defaultPeriods デフォルトの期間
- * @returns 調整された期間
+ * @param {number} atrPercentage ATRパーセンテージ（ボラティリティ指標）
+ * @param {number} defaultPeriods デフォルトの期間
+ * @returns {number} 調整された期間
  */
 function adjustSlopePeriods(
-  atrPercentage: number,
-  defaultPeriods: number = SLOPE_PERIODS_DEFAULT
-): number {
+  atrPercentage,
+  defaultPeriods = SLOPE_PERIODS_DEFAULT
+) {
   // ボラティリティが高い場合、期間を短くする（素早く反応）
   // ボラティリティが低い場合、期間を長くする（フィルタリング効果を高める）
   if (atrPercentage > SLOPE_HIGH_VOL_THRESHOLD) {
@@ -338,11 +363,11 @@ function adjustSlopePeriods(
 
 /**
  * ATRの変化率を計算
- * @param atrValues ATRの値の配列
- * @param periods 変化率を計算する期間
- * @returns 変化率
+ * @param {number[]} atrValues ATRの値の配列
+ * @param {number} periods 変化率を計算する期間
+ * @returns {number} 変化率
  */
-function calculateAtrChange(atrValues: number[], periods: number = 10): number {
+function calculateAtrChange(atrValues, periods = 10) {
   if (!atrValues || atrValues.length === 0) {
     console.warn('[MarketState] ATR配列が空です');
     return 1; // デフォルト値として1を返す（変化なし）
@@ -382,21 +407,21 @@ function calculateAtrChange(atrValues: number[], periods: number = 10): number {
 
 /**
  * ATRパーセンテージを計算（ATR/Close）
- * @param atr ATR値
- * @param closePrice 終値
- * @returns ATRパーセンテージ
+ * @param {number} atr ATR値
+ * @param {number} closePrice 終値
+ * @returns {number} ATRパーセンテージ
  */
-function calculateAtrPercentage(atr: number, closePrice: number): number {
+function calculateAtrPercentage(atr, closePrice) {
   return (atr / closePrice) * 100;
 }
 
 /**
  * VWAP（Volume Weighted Average Price）を計算
- * @param candles ローソク足データ
- * @param period 期間（省略時は全期間）
- * @returns VWAP値
+ * @param {Candle[]} candles ローソク足データ
+ * @param {number} period 期間（省略時は全期間）
+ * @returns {number} VWAP値
  */
-export function calculateVWAP(candles: Candle[], period?: number): number {
+function calculateVWAP(candles, period) {
   if (!candles || candles.length === 0) {
     return 0;
   }
@@ -428,14 +453,14 @@ export function calculateVWAP(candles: Candle[], period?: number): number {
 
 /**
  * 市場環境を分析する
- * @param candles ローソク足データ
- * @param timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
- * @returns 市場分析の結果
+ * @param {Candle[]} candles ローソク足データ
+ * @param {number} timeframeHours タイムフレーム（時間単位、例：1, 4, 24）
+ * @returns {MarketAnalysisResult} 市場分析の結果
  */
-export function analyzeMarketState(
-  candles: Candle[],
-  timeframeHours: number = 4
-): MarketAnalysisResult {
+function analyzeMarketState(
+  candles,
+  timeframeHours = 4
+) {
   // データ不足時のエラーハンドリングを強化
   const minRequiredCandles =
     Math.max(MARKET_PARAMETERS.LONG_TERM_EMA, MARKET_PARAMETERS.ATR_PERIOD) + 10;
@@ -768,13 +793,13 @@ export function analyzeMarketState(
 
 /**
  * 複数シンボルのATRパーセンテージを計算
- * @param symbolCandles 各シンボルのローソク足データのマップ
- * @returns 各シンボルのATRパーセンテージのマップ
+ * @param {Record<string, Candle[]>} symbolCandles 各シンボルのローソク足データのマップ
+ * @returns {Record<string, number>} 各シンボルのATRパーセンテージのマップ
  */
-export function getSymbolsAtrPercentages(
-  symbolCandles: Record<string, Candle[]>
-): Record<string, number> {
-  const result: Record<string, number> = {};
+function getSymbolsAtrPercentages(
+  symbolCandles
+) {
+  const result = {};
 
   Object.entries(symbolCandles).forEach(([symbol, candles]) => {
     try {
@@ -796,15 +821,15 @@ export function getSymbolsAtrPercentages(
  * ボラティリティに基づく資金配分比率を計算
  * ATRパーセンテージの逆数を使用してリスク調整後の配分を算出
  * ボラティリティが高いほど配分を小さく、低いほど配分を大きくする
- * @param symbolCandles 各シンボルのローソク足データのマップ
- * @returns 各シンボルの資金配分比率（合計1.0）
+ * @param {Record<string, Candle[]>} symbolCandles 各シンボルのローソク足データのマップ
+ * @returns {Record<string, number>} 各シンボルの資金配分比率（合計1.0）
  */
-export function volBasedAllocationWeights(
-  symbolCandles: Record<string, Candle[]>
-): Record<string, number> {
+function volBasedAllocationWeights(
+  symbolCandles
+) {
   // 各シンボルのATRパーセンテージを取得
   const atrPercentages = getSymbolsAtrPercentages(symbolCandles);
-  const inverseWeights: Record<string, number> = {};
+  const inverseWeights = {};
   let totalInverseWeight = 0;
 
   // ATRパーセンテージの逆数を計算（ボラティリティが低いほど配分が多くなる）
@@ -822,7 +847,7 @@ export function volBasedAllocationWeights(
   });
 
   // 正規化して合計が1.0になるようにする
-  const normalizedWeights: Record<string, number> = {};
+  const normalizedWeights = {};
 
   Object.entries(inverseWeights).forEach(([symbol, weight]) => {
     normalizedWeights[symbol] = weight / totalInverseWeight;
@@ -832,3 +857,12 @@ export function volBasedAllocationWeights(
 
   return normalizedWeights;
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  resetMarketStateCalculators,
+  calculateVWAP,
+  analyzeMarketState,
+  getSymbolsAtrPercentages,
+  volBasedAllocationWeights
+};

@@ -14,7 +14,7 @@ export { require, __filename, __dirname } from '../utils/esm-compat.mjs';
 
 // デフォルトエクスポート
 export default {
-  TrendFollowStrategy: './trendFollowStrategy.js',
-  MeanReversionStrategy: './meanReversionStrategy.js',
-  DonchianBreakoutStrategy: './donchianBreakoutStrategy.js'
+  TrendFollowStrategy'./trendFollowStrategy.js',
+  MeanReversionStrategy'./meanReversionStrategy.js',
+  DonchianBreakoutStrategy'./donchianBreakoutStrategy.js'
 }; 

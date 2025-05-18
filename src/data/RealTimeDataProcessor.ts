@@ -812,9 +812,13 @@ export class RealTimeDataProcessor extends EventEmitter {
       logger.debug(`シンボル ${symbol} のすべてのバッファをクリアしました`);
     } else if (dataType) {
       // すべてのシンボルの特定のデータタイプのバッファをクリア
-      for (const sym of this.symbols) {
-        const key = this.getBufferKey(sym, dataType);
-        if (this.buffers.has(key)) {
+      
+      // バッファエントリとキーのリストを取得
+      const bufferEntries = Array.from(this.buffers.entries());
+
+      // 各バッファをスキャンして、指定されたデータタイプのもののみをクリア
+      for (const [key, _] of bufferEntries) {
+        if (key.endsWith(`_${dataType}`)) {
           this.buffers.set(key, []);
           // LRUキャッシュも同様にクリア
           if (this.enableLRUCache && this.lruCaches.has(key)) {

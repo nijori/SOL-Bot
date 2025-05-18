@@ -1,0 +1,472 @@
+{
+  "runs": [
+    {
+      "timestamp": 1747404390438,
+      "stats": {
+        "startTime": 1747404390438,
+        "endTime": 1747404399067,
+        "cjs": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "esm": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 8628,
+            "exitCode": 0
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          }
+        },
+        "total": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 8629
+        }
+      },
+      "environment": {
+        "node": "v22.15.0",
+        "os": "Windows_NT 10.0.26100",
+        "cpus": 20,
+        "memory": 16,
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": 1747404430038,
+      "stats": {
+        "startTime": 1747404430038,
+        "endTime": 1747404438580,
+        "cjs": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "esm": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "groups": {
+          "fast": {
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 8541,
+            "exitCode": 0
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          }
+        },
+        "total": {
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 8542
+        }
+      },
+      "environment": {
+        "node": "v22.15.0",
+        "os": "Windows_NT 10.0.26100",
+        "cpus": 20,
+        "memory": 16,
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": 1747404445943,
+      "stats": {
+        "startTime": 1747404445943,
+        "endTime": 1747404451104,
+        "cjs": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "esm": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 5160,
+          "exitCode": 0
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 5160,
+            "exitCode": 0
+          }
+        },
+        "total": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 5161
+        }
+      },
+      "environment": {
+        "node": "v22.15.0",
+        "os": "Windows_NT 10.0.26100",
+        "cpus": 20,
+        "memory": 16,
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": 1747404463093,
+      "stats": {
+        "startTime": 1747404463093,
+        "endTime": 1747404488271,
+        "cjs": {
+          "passed": 26,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 19916,
+          "exitCode": 0
+        },
+        "esm": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 5260,
+          "exitCode": 0
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 5260,
+            "exitCode": 0
+          }
+        },
+        "total": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 25178
+        }
+      },
+      "environment": {
+        "node": "v22.15.0",
+        "os": "Windows_NT 10.0.26100",
+        "cpus": 20,
+        "memory": 16,
+        "version": "1.0.0"
+      }
+    },
+    {
+      "timestamp": 1747405146023,
+      "stats": {
+        "startTime": 1747405146023,
+        "endTime": 1747405170493,
+        "cjs": {
+          "passed": 26,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 19321,
+          "exitCode": 0
+        },
+        "esm": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 5147,
+          "exitCode": 0
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 3,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 5147,
+            "exitCode": 0
+          }
+        },
+        "total": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 24470
+        }
+      },
+      "environment": {
+        "node": "v22.15.0",
+        "os": "Windows_NT 10.0.26100",
+        "cpus": 20,
+        "memory": 16,
+        "version": "1.0.0"
+      }
+    }
+  ],
+  "lastRun": {
+    "timestamp": 1747405146023,
+    "stats": {
+      "startTime": 1747405146023,
+      "endTime": 1747405170493,
+      "cjs": {
+        "passed": 26,
+        "failed": 0,
+        "skipped": 0,
+        "duration": 19321,
+        "exitCode": 0
+      },
+      "esm": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "duration": 5147,
+        "exitCode": 0
+      },
+      "groups": {
+        "fast": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "medium": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "slow": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "heavy": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "core": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 0,
+          "exitCode": null
+        },
+        "esm": {
+          "passed": 3,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 5147,
+          "exitCode": 0
+        }
+      },
+      "total": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+        "duration": 24470
+      }
+    },
+    "environment": {
+      "node": "v22.15.0",
+      "os": "Windows_NT 10.0.26100",
+      "cpus": 20,
+      "memory": 16,
+      "version": "1.0.0"
+    }
+  }
+}

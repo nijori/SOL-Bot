@@ -1,6 +1,8 @@
 /**
  * テストクリーンアップユーティリティ
  * REF-034: テスト実行環境の最終安定化
+ * TST-058: リソーストラッカーの無限ループ問題修正
+ * TST-060: Jest実行タイムアウトとクリーンアップ処理の最適化
  *
  * テスト実行中のリソースを適切にクリーンアップするためのユーティリティ関数群。
  * beforeEach/afterEach/afterAllフックで使用することで、テスト完了後に「Jest did not exit」
@@ -11,6 +13,17 @@ const ResourceTracker = require('./resource-tracker');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+// TST-060: expectエラー修正のためにjestグローバルを直接参照
+let globalExpect;
+try {
+  // @jest/globalsからexpectを取得する試み
+  const jestGlobals = require('@jest/globals');
+  globalExpect = jestGlobals.expect;
+} catch (err) {
+  // フォールバック: グローバルスコープからexpectを使用
+  globalExpect = global.expect;
+}
 
 /**
  * グローバルリソーストラッカーインスタンス
@@ -31,39 +44,50 @@ function getResourceTracker() {
 
 /**
  * 非同期処理のクリーンアップを実行
- * @param {number} [timeout=200] - クリーンアップ後の待機時間（ミリ秒）
+ * @param {number} [timeout=100] - クリーンアップ後の待機時間（ミリ秒）
  * @returns {Promise<void>}
  */
-async function cleanupAsyncOperations(timeout = 200) {
+async function cleanupAsyncOperations(timeout = 100) {
+  // オリジナルのsetTimeoutを保持（トラッキングされないタイマー用）
+  const originalSetTimeout = globalTracker ? 
+    globalTracker.originalSetTimeout : 
+    global.setTimeout;
+
   // すべてのモックをリセット
   if (global.jest) {
-    jest.clearAllMocks();
-    jest.clearAllTimers();
-    jest.useRealTimers();
-  }
-
-  // グローバルタイマーをクリア
-  if (global.setInterval && global.setInterval.mockClear) {
-    global.setInterval.mockClear();
-  }
-
-  if (global.clearInterval && global.clearInterval.mockClear) {
-    global.clearInterval.mockClear();
+    try {
+      jest.clearAllMocks();
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    } catch (err) {
+      console.warn('Jest関数実行中にエラーが発生しました:', err.message);
+    }
   }
 
   // イベントリスナーを削除して潜在的なメモリリークを防止
-  process.removeAllListeners('unhandledRejection');
-  process.removeAllListeners('uncaughtException');
+  try {
+    process.removeAllListeners('unhandledRejection');
+    process.removeAllListeners('uncaughtException');
+  } catch (err) {
+    console.warn('イベントリスナー削除中にエラーが発生しました:', err.message);
+  }
 
-  // リソーストラッカーのクリーンアップ
+  // リソーストラッカーのクリーンアップ（グローバル関数を元に戻す）
   if (globalTracker) {
-    await globalTracker.cleanup();
+    try {
+      await globalTracker.cleanup(true);
+    } catch (err) {
+      console.warn('リソーストラッカーのクリーンアップ中にエラーが発生しました:', err.message);
+    }
   }
 
   // 未解決のプロミスやタイマーを終了させるための遅延
-  return new Promise((resolve) => {
-    setTimeout(resolve, timeout);
-  });
+  // より短い待機時間を使用
+  if (timeout > 0) {
+    return new Promise((resolve) => {
+      originalSetTimeout(resolve, timeout);
+    });
+  }
 }
 
 /**
@@ -151,7 +175,20 @@ const testStatus = (() => {
  */
 function standardBeforeEach() {
   // テスト名を設定
-  testStatus.setCurrentTest(expect.getState().currentTestName);
+  // TST-060: expectへの参照を安全に取得
+  try {
+    if (globalExpect && typeof globalExpect.getState === 'function') {
+      testStatus.setCurrentTest(globalExpect.getState().currentTestName);
+    } else if (global.expect && typeof global.expect.getState === 'function') {
+      testStatus.setCurrentTest(global.expect.getState().currentTestName);
+    } else {
+      // フォールバック: テスト名が取得できない場合
+      testStatus.setCurrentTest('Unknown Test');
+    }
+  } catch (err) {
+    console.warn('テスト名の取得に失敗しました:', err.message);
+    testStatus.setCurrentTest('Unknown Test');
+  }
   
   // 前のテストの残存リソースをクリーンアップ
   if (globalTracker) {
@@ -160,7 +197,9 @@ function standardBeforeEach() {
     
     if (total > 0) {
       console.warn(`⚠️ 前のテストで残存したリソースを検出: ${JSON.stringify(stats)}`);
-      globalTracker.cleanup(true);
+      globalTracker.cleanup(true).catch(err => {
+        console.warn('クリーンアップ中にエラーが発生しました:', err.message);
+      });
     }
   }
 }
@@ -172,16 +211,20 @@ function standardBeforeEach() {
 async function standardAfterEach() {
   // モックをクリア
   if (global.jest) {
-    jest.clearAllMocks();
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
+    try {
+      jest.clearAllMocks();
+      jest.resetAllMocks();
+      jest.restoreAllMocks();
+    } catch (err) {
+      console.warn('Jestモッククリア中にエラーが発生しました:', err.message);
+    }
   }
   
   // テスト完了を記録
   testStatus.completeTest(true);
   
-  // 非同期処理をクリーンアップ
-  await cleanupAsyncOperations();
+  // 非同期処理をクリーンアップ（短めのタイムアウト）
+  await cleanupAsyncOperations(50);
 }
 
 /**
@@ -191,12 +234,16 @@ async function standardAfterEach() {
 async function standardAfterAll() {
   // リソーストラッカーのクリーンアップ
   if (globalTracker) {
-    await globalTracker.cleanup(true);
-    globalTracker = null;
+    try {
+      await globalTracker.cleanup(true);
+      globalTracker = null;
+    } catch (err) {
+      console.warn('最終クリーンアップ中にエラーが発生しました:', err.message);
+    }
   }
   
-  // 非同期処理の完全クリーンアップ
-  await cleanupAsyncOperations(500);
+  // 非同期処理の完全クリーンアップ（短めのタイムアウト）
+  await cleanupAsyncOperations(100);
 }
 
 /**

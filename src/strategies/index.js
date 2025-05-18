@@ -1,41 +1,30 @@
 /**
  * strategiesモジュールのCommonJSエントリポイント
  * 
- * REF-033: ESMとCommonJSの共存基盤構築
+ * INF-032-2: 戦略ディレクトリのCommonJS変換
  */
 
-const { createESMProxy } = require('../utils/cjs-wrapper');
-
-// 戦略モジュールをプロキシでエクスポート
-const trendFollowStrategy = createESMProxy('./trendFollowStrategy.js');
-const meanReversionStrategy = createESMProxy('./meanReversionStrategy.js');
-const donchianBreakoutStrategy = createESMProxy('./donchianBreakoutStrategy.js');
+// 戦略モジュールを直接インポート
+const TrendStrategy = require('./trendStrategy');
+const TrendFollowStrategy = require('./trendFollowStrategy');
+const MeanReversionStrategy = require('./meanReversionStrategy');
+const MeanRevertStrategy = require('./meanRevertStrategy');
+const RangeStrategy = require('./rangeStrategy');
+const DonchianBreakoutStrategy = require('./DonchianBreakoutStrategy');
 
 /**
- * 戦略モジュールを初期化する
- * @returns {Promise<Object>} 初期化された戦略モジュール
+ * すべての戦略モジュールをエクスポート
  */
-async function initStrategyModules() {
-  const [
-    trendFollowStrategyModule,
-    meanReversionStrategyModule,
-    donchianBreakoutStrategyModule
-  ] = await Promise.all([
-    trendFollowStrategy(),
-    meanReversionStrategy(),
-    donchianBreakoutStrategy()
-  ]);
-
-  return {
-    trendFollowStrategy: trendFollowStrategyModule,
-    meanReversionStrategy: meanReversionStrategyModule,
-    donchianBreakoutStrategy: donchianBreakoutStrategyModule
-  };
-}
-
 module.exports = {
-  initStrategyModules,
-  trendFollowStrategy,
-  meanReversionStrategy,
-  donchianBreakoutStrategy
+  TrendStrategy,
+  TrendFollowStrategy,
+  MeanReversionStrategy,
+  MeanRevertStrategy,
+  RangeStrategy,
+  DonchianBreakoutStrategy,
+  
+  // 後方互換性のために従来の命名も維持
+  trendFollowStrategy: TrendFollowStrategy,
+  meanReversionStrategy: MeanReversionStrategy,
+  donchianBreakoutStrategy: DonchianBreakoutStrategy
 }; 
