@@ -3,14 +3,15 @@
  * このスクリプトは、バックテストで使用するためのSOLUSDTのサンプルローソク足データを生成します
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import { Candle } from '../core/types.js';
-import { ParquetDataStore } from './parquetDataStore.js';
-import logger from '../utils/logger.js';
+// @ts-nocheck
+const fs = require('fs');
+const path = require('path');
+const { Candle } = require('../core/types');
+const { ParquetDataStore } = require('./parquetDataStore');
+const logger = require('../utils/logger');
 
 // 乱数生成用関数
-function randomBetween(min: number, max: number): number {
+function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
@@ -18,18 +19,10 @@ function randomBetween(min: number, max: number): number {
  * ランダムなローソク足データを生成
  * 実際の市場のような動きを模倣するために、いくつかのトレンドとボラティリティを含む
  */
-function generateCandleData(options: {
-  symbol: string;
-  startDate: Date;
-  endDate: Date;
-  timeframeHours: number;
-  initialPrice: number;
-  volatility: number;
-  trendStrength: number;
-}): Candle[] {
+function generateCandleData(options) {
   const { startDate, endDate, timeframeHours, initialPrice, volatility, trendStrength } = options;
 
-  const candles: Candle[] = [];
+  const candles = [];
   const timeframeMs = timeframeHours * 60 * 60 * 1000;
 
   // 開始時間をタイムフレームの境界に合わせる
@@ -68,7 +61,7 @@ function generateCandleData(options: {
     const low = Math.min(currentPrice, newPrice) - randomBetween(0, highLowRange);
 
     // ローソク足の作成
-    const candle: Candle = {
+    const candle = {
       timestamp: currentTime,
       open: currentPrice,
       high: high,
@@ -90,7 +83,7 @@ function generateCandleData(options: {
 /**
  * サンプルデータを生成して保存
  */
-export async function generateAndSaveSampleData() {
+async function generateAndSaveSampleData() {
   try {
     const symbol = 'SOLUSDT';
     const timeframeHours = 1; // 1時間足
@@ -163,3 +156,5 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
+module.exports = { generateAndSaveSampleData };
