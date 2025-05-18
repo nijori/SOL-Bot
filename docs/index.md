@@ -10,6 +10,7 @@
 
 - [AWS S3/Glacier設定ガイド](./AWS-S3-SETUP.md) - データライフサイクル管理用のAWS設定方法
 - [Gitleaks設定ガイド](./gitleaks-setup.md) - セキュリティスキャン設定方法
+- [緊急停止ガイド](./EmergencyStopGuide.md) - 異常時のシステム緊急停止方法
 
 ## 開発者向けリソース
 

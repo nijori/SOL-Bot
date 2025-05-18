@@ -315,16 +315,49 @@ describe('RealTimeDataProcessor', () => {
     });
 
     it('特定のデータタイプのバッファをクリアできること', () => {
-      // データを追加
-      processor.processData(createMockTradeData('BTC/USDT', 40000, 0.1));
-      processor.processData(createMockTickerData('BTC/USDT', 40000, 1000));
+      // テスト前にプロセッサを再設定
+      processor.stop();
+      processor = new RealTimeDataProcessor({
+        symbols: ['BTC/USDT'],
+        bufferSize: 100,
+        throttleMs: 100,
+        batchSize: 5,
+        dataTypes: [RealTimeDataType.TRADE, RealTimeDataType.TICKER],
+        backPressureThreshold: 0.99, // バックプレッシャーの閾値を高く設定
+        priorityDataTypes: [RealTimeDataType.TRADE, RealTimeDataType.TICKER], // TICKERを優先データに設定
+        maxMemoryMB: 1024 // 十分な最大メモリを設定
+      });
+      processor.start();
+
+      // バッファをクリア（念のため）
+      processor.clearBuffers();
+
+      // データを追加 - TradeとTickerの両方を処理
+      const tradeData = createMockTradeData('BTC/USDT', 40000, 0.1);
+      const tickerData = createMockTickerData('BTC/USDT', 40000, 1000);
+      
+      // 各データを個別に処理し、成功を確認
+      processor.processData(tradeData);
+      
+      // Tradeデータの処理を確認
+      let stats = processor.getStats();
+      expect(stats.bufferSizes['BTC/USDT_trade']).toBe(1);
+      
+      // 次にTickerデータを処理
+      processor.processData(tickerData);
+      
+      // 両方のタイプのデータが正しく追加されていることを確認
+      stats = processor.getStats();
+      expect(stats.bufferSizes['BTC/USDT_trade']).toBe(1);
+      expect(stats.bufferSizes['BTC/USDT_ticker']).toBe(1);
 
       // トレードタイプのバッファをクリア
       processor.clearBuffers(undefined, RealTimeDataType.TRADE);
 
       // トレードバッファがクリアされ、ティッカーバッファは残っていることを確認
-      expect(processor.getStats().bufferSizes['BTC/USDT_trade']).toBe(0);
-      expect(processor.getStats().bufferSizes['BTC/USDT_ticker']).toBe(1);
+      const statsAfterClear = processor.getStats();
+      expect(statsAfterClear.bufferSizes['BTC/USDT_trade']).toBe(0);
+      expect(statsAfterClear.bufferSizes['BTC/USDT_ticker']).toBe(1);
     });
 
     it('監視シンボルを追加・削除できること', () => {

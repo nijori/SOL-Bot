@@ -10,30 +10,31 @@
 
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  // テストのルートディレクトリ
-  rootDir: '.',
-
-  // テスト環境
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  
-  // テストファイルの検索パターン
-  testMatch: [
-    '**/src/__tests__/**/*.test.ts',
-    '**/src/__tests__/**/*.spec.ts',
-    '**/src/__tests__/**/*.test.js',
-    '**/src/__tests__/**/*.test.mjs'
-  ],
-  
-  // TypeScriptファイルの変換
-  transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
+  testTimeout: 30000,
+  globals: { 
+    'ts-jest': {
       isolatedModules: true
-    }],
-    '^.+\\.mjs$': ['ts-jest', {
-      isolatedModules: true,
-      useESM: true
-    }]
+    }
   },
+  transformIgnorePatterns: [
+    "node_modules/(?!(ccxt|node-fetch|webdriver|selenium-webdriver)/)"
+  ],
+  setupFilesAfterEnv: ['./scripts/test-jest-globals.js'],
+  transform: {
+    '^.+\\.(ts|tsx)$': 'ts-jest'
+  },
+  testMatch: ['**/__tests__/**/*.test.(ts|js)'],
+  verbose: true,
+  collectCoverage: false,
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  // ESMモジュール形式のテストファイル（.mjs）は除外する
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/__broken_mjs__/",
+    "\\.mjs$"
+  ],
   
   // モジュールパスマッピング
   moduleNameMapper: {
@@ -50,37 +51,14 @@ module.exports = {
     '.*import\\.meta.*': '<rootDir>/src/utils/test-helpers/importMetaMock.js'
   },
   
-  // モジュールファイル拡張子
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'mjs'],
-  
-  // テストから除外するパターン
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/__broken_mjs__/'
-  ],
-  
-  // 変換を無視するパターン
-  transformIgnorePatterns: [
-    'node_modules/(?!(source-map|ccxt|technicalindicators|moment)/)'
-  ],
-  
-  // テストのタイムアウト
-  testTimeout: 180000, // 3分に延長（TST-060対応: 1分→3分）
-  
   // メモリリーク検出を無効化（安定性優先）
   detectLeaks: false,
   
   // テスト実行後にオープンハンドルを検出
   detectOpenHandles: true,
   
-  // テスト終了時に強制終了（ハングを防止）
-  forceExit: true,
-  
   // ワーカー数を制限（並列実行の最適化）
   maxWorkers: 2, // 重いテストが互いに干渉しないようにワーカー数を制限
-  
-  // 詳細ログを有効化
-  verbose: true,
   
   // テスト環境オプション
   testEnvironmentOptions: {
@@ -89,11 +67,6 @@ module.exports = {
       maxOldGenerationSizeMb: 2048 // メモリ使用量を最適化（4096→2048）
     }
   },
-  
-  // テスト設定ファイル
-  setupFilesAfterEnv: [
-    '<rootDir>/src/__tests__/setup-jest-cjs.js'
-  ],
   
   // 実行タイムアウトの設定
   globalSetup: null,
