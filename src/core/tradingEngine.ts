@@ -1,3 +1,11 @@
+/**
+ * トレーディングエンジン
+ * INF-032: CommonJS形式への変換
+ * 
+ * @fileoverview このファイルはトレーディングロジックの中核となるエンジンを実装しています
+ * @author SOL-Bot Team
+ */
+
 const { 
   Candle,
   MarketAnalysisResult,
@@ -36,28 +44,28 @@ const { checkKillSwitch } = require('../utils/killSwitchChecker');
 
 /**
  * TradingEngine用のオプションインターフェース
+ * @typedef {Object} TradingEngineOptions
+ * @property {string} symbol - 取引通貨ペア
+ * @property {number} [timeframeHours] - 時間枠（時間単位）
+ * @property {number} [initialBalance] - 初期残高
+ * @property {boolean} [isBacktest] - バックテストモードフラグ
+ * @property {number} [slippage] - スリッページ
+ * @property {number} [commissionRate] - 手数料率
+ * @property {boolean} [isSmokeTest] - スモークテストフラグ
+ * @property {boolean} [quiet] - ログ出力抑制フラグ
+ * @property {OrderManagementSystem} [oms] - 注文管理システム
+ * @property {ExchangeService} [exchangeService] - 取引所サービス
+ * @property {OrderSizingService} [orderSizingService] - 注文サイズ計算サービス
  */
-// export interface TradingEngineOptions {
-//   // 基本設定
-//   symbol: string;
-//   timeframeHours?: number;
-//   initialBalance?: number;
-//   isBacktest?: boolean;
-//   slippage?: number;
-//   commissionRate?: number;
-//   isSmokeTest?: boolean;
-//   quiet?: boolean; // ログ出力を抑制するモード
-
-//   // 依存サービス
-//   oms?: OrderManagementSystem;
-//   exchangeService?: ExchangeService;
-//   orderSizingService?: OrderSizingService;
-// }
 
 /**
  * トレーディングエンジンのメインクラス
  */
 class TradingEngine {
+  /**
+   * トレーディングエンジンを初期化
+   * @param {TradingEngineOptions} options - 設定オプション
+   */
   constructor(options) {
     this.symbol = options.symbol;
     this.timeframeHours = options.timeframeHours || 4;
@@ -1437,7 +1445,5 @@ class TradingEngine {
   }
 }
 
-// Commonjs export
-module.exports = {
-  TradingEngine
-};
+// CommonJS形式でエクスポート
+module.exports = { TradingEngine };

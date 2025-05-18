@@ -7,12 +7,13 @@ const { updateOrderStatus, syncFillWithOrder } = require('../utils/orderUtils');
 // @ts-ignore - node-cronの型定義が不完全なため
 const cron = require('node-cron');
 
-// node-cronのScheduledTaskインターフェース
-interface ScheduledTask {
-  stop: () => void;
-  start: () => void;
-  destroy?: () => void; // optional: node-cron v3.0.0以降で利用可能
-}
+/**
+ * node-cronのScheduledTaskインターフェース
+ * @typedef {Object} ScheduledTask
+ * @property {function} stop - タスクを停止する関数
+ * @property {function} start - タスクを開始する関数
+ * @property {function} [destroy] - タスクを破棄する関数 (node-cron v3.0.0以降で利用可能)
+ */
 
 /**
  * 注文管理システム（OMS）
@@ -802,7 +803,4 @@ class OrderManagementSystem {
   }
 }
 
-// CommonJS export
-module.exports = {
-  OrderManagementSystem
-};
+module.exports = { OrderManagementSystem };

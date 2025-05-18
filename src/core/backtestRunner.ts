@@ -35,56 +35,52 @@ try {
 
 /**
  * バックテスト設定インターフェース
+ * @typedef {Object} BacktestConfig
+ * @property {string} symbol - トレード対象通貨ペア
+ * @property {number} timeframeHours - 時間枠（時間単位）
+ * @property {string} startDate - バックテスト開始日
+ * @property {string} endDate - バックテスト終了日 
+ * @property {number} initialBalance - 初期残高
+ * @property {Object} [parameters] - カスタムパラメータ
+ * @property {boolean} [isSmokeTest] - スモークテストフラグ
+ * @property {number} [slippage] - スリッページ
+ * @property {number} [commissionRate] - 取引手数料率
+ * @property {boolean} [quiet] - ログ出力を抑制するモード
+ * @property {number} [batchSize] - データ処理バッチサイズ
+ * @property {boolean} [memoryMonitoring] - メモリ監視を有効にするか
+ * @property {number} [gcInterval] - ガベージコレクション実行間隔（キャンドル数）
  */
-interface BacktestConfig {
-  symbol: string;
-  timeframeHours: number;
-  startDate: string;
-  endDate: string;
-  initialBalance: number;
-  parameters?: Record<string, any>;
-  isSmokeTest?: boolean;
-  slippage?: number; // スリッページ
-  commissionRate?: number; // 取引手数料率
-  quiet?: boolean; // ログ出力を抑制するモード
-  batchSize?: number; // データ処理バッチサイズ
-  memoryMonitoring?: boolean; // メモリ監視を有効にするか
-  gcInterval?: number; // ガベージコレクション実行間隔（キャンドル数）
-}
 
 /**
  * バックテスト結果インターフェース
+ * @typedef {Object} BacktestResult
+ * @property {Object} metrics - パフォーマンスメトリクス
+ * @property {number} metrics.totalReturn - 総リターン
+ * @property {number} metrics.sharpeRatio - シャープレシオ
+ * @property {number} metrics.maxDrawdown - 最大ドローダウン
+ * @property {number} metrics.winRate - 勝率
+ * @property {number} metrics.profitFactor - 損益率
+ * @property {number} metrics.calmarRatio - カルマールレシオ
+ * @property {number} metrics.sortinoRatio - ソルティノレシオ
+ * @property {number} metrics.averageWin - 平均利益
+ * @property {number} metrics.averageLoss - 平均損失
+ * @property {number} metrics.maxConsecutiveWins - 最大連勝数
+ * @property {number} metrics.maxConsecutiveLosses - 最大連敗数
+ * @property {number} [metrics.peakMemoryUsageMB] - 最大メモリ使用量
+ * @property {number} [metrics.processingTimeMS] - 処理時間
+ * @property {Array} trades - 完了した取引
+ * @property {Array} equity - 資産推移
+ * @property {Object} parameters - 使用したパラメータ
  */
-interface BacktestResult {
-  metrics: {
-    totalReturn: number;
-    sharpeRatio: number;
-    maxDrawdown: number;
-    winRate: number;
-    profitFactor: number;
-    calmarRatio: number;
-    sortinoRatio: number;
-    averageWin: number;
-    averageLoss: number;
-    maxConsecutiveWins: number;
-    maxConsecutiveLosses: number;
-    peakMemoryUsageMB?: number; // 最大メモリ使用量
-    processingTimeMS?: number; // 処理時間
-  };
-  trades: any[];
-  equity: {
-    timestamp: string;
-    equity: number;
-  }[];
-  parameters: Record<string, any>;
-}
 
+/**
+ * バックテスト実行クラス
+ */
 class BacktestRunner {
-  private config: BacktestConfig;
-  private dataStore: any;
-  private memoryMonitor: any | null = null;
-
-  constructor(config: BacktestConfig) {
+  /**
+   * @param {BacktestConfig} config バックテスト設定
+   */
+  constructor(config) {
     // デフォルト値の設定
     this.config = {
       ...config,
@@ -99,13 +95,16 @@ class BacktestRunner {
     // メモリモニターの初期化
     if (this.config.memoryMonitoring) {
       this.memoryMonitor = new MemoryMonitor('backtest', !config.quiet);
+    } else {
+      this.memoryMonitor = null;
     }
   }
 
   /**
    * バックテストを実行
+   * @returns {Promise<BacktestResult>} バックテスト結果
    */
-  async run(): Promise<BacktestResult> {
+  async run() {
     // 処理時間計測開始
     const startTime = Date.now();
 
@@ -170,13 +169,13 @@ GC間隔: ${this.config.gcInterval}キャンドルごと
       }
 
       // すべてのローソク足でシミュレーション実行
-      const equityHistory: { timestamp: string; equity: number }[] = [];
-      const allTrades: any[] = [];
+      const equityHistory = [];
+      const allTrades = [];
 
       // 取引の重複を防ぐために最後のトレードのインデックスを追跡
       let lastTradeIndex = 0;
       // トレードIDのセットを使用して重複チェック（安全策）
-      const processedTradeIds = new Set<string>();
+      const processedTradeIds = new Set();
 
       if (!this.config.quiet) {
         logger.debug(`[BacktestRunner] キャンドル処理開始: 合計${candles.length}本`);
@@ -1011,11 +1010,7 @@ if (isMainModuleFn()) {
 }
 
 // CommonJS形式でエクスポート
-module.exports = {
-  BacktestRunner,
-  parseCommandLineArgs,
-  main
-};
+module.exports = { BacktestRunner, BacktestConfig: {}, BacktestResult: {} };
 
 // 型定義のためのTypeScriptエクスポート
 export type { BacktestRunner, BacktestConfig, BacktestResult };

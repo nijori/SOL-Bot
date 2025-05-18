@@ -85,9 +85,9 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 90%
-      - ✎ Notes      : index.tsとcore/tradingEngine.tsをCommonJS形式に変換。主要ファイル(core/types.ts, core/index.ts, core/backtestRunner.ts, utils/logger.ts, utils/importMetaHelper.ts, utils/memoryMonitor.ts)も変換完了。ビルド時の型エラーがまだ残っており、最終的なテストとビルド検証作業が必要。一部のTypeScript関連の型定義を修正し、import/exportのpathも確認する必要あり。
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 95%
+      - ✎ Notes      : 主要ファイル(tradingEngine.ts, orderManagementSystem.ts, backtestRunner.ts, importMetaHelper.ts, memoryMonitor.ts)をCommonJS形式に変換し、TypeScript型注釈をJSDocに置き換え。変換したコードのビルドに問題が残っており、型定義関連のエラーを解決する必要がある。index.tsファイルの重複変数宣言エラーも解決が必要。CI/CD環境での検証も残っている。
 
 3.3 [ ] INF-033: Docker実行環境のCommonJS対応
       - 📅 Due        : 2026-07-06
@@ -285,6 +285,9 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
+
 
 
 

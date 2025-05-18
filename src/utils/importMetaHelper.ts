@@ -10,8 +10,11 @@
 const path = require('path');
 const url = require('url');
 
-// グローバル変数で実行環境を判定
-const isEsmEnvironment = (): boolean => {
+/**
+ * 実行環境がESMかどうかを判定
+ * @returns {boolean} ESM環境の場合はtrue、CommonJS環境の場合はfalse
+ */
+const isEsmEnvironment = () => {
   // 環境変数による強制設定
   if (process.env.FORCE_ESM === 'true') return true;
   if (process.env.FORCE_CJS === 'true') return false;
@@ -23,8 +26,8 @@ const isEsmEnvironment = (): boolean => {
   }
 
   // __esModuleフラグによる判定
-  if (typeof (global as any).__ESM_ENVIRONMENT !== 'undefined') {
-    return !!(global as any).__ESM_ENVIRONMENT;
+  if (typeof global.__ESM_ENVIRONMENT !== 'undefined') {
+    return !!global.__ESM_ENVIRONMENT;
   }
 
   // requireの存在チェック
@@ -36,13 +39,12 @@ const isEsmEnvironment = (): boolean => {
  * CommonJS環境ではファイルパスから構築、ESM環境ではimport.meta.urlから取得
  * @returns {string} 現在のスクリプトのURL
  */
-function getCurrentFileUrl(): string {
+function getCurrentFileUrl() {
   // ESM環境では直接import.meta.urlを返す 
   if (isEsmEnvironment()) {
     try {
       // Dynamic import.meta access to avoid static parse errors in CommonJS
       // Use Function constructor to avoid direct parsing of import.meta
-      // @ts-ignore: ESM環境でのみ有効
       return new Function('return import.meta.url')();
     } catch (e) {
       // フォールバック: process.argv[1]からURLを構築
@@ -56,9 +58,7 @@ function getCurrentFileUrl(): string {
   // __filenameがCommonJSで利用可能な場合
   try {
     // TypeScript+ESLintではエラーになるためtry-catchで回避
-    // @ts-ignore
     if (typeof __filename !== 'undefined') {
-      // @ts-ignore
       filename = __filename;
     }
   } catch (e) {
@@ -78,7 +78,7 @@ function getCurrentFileUrl(): string {
  * node scriptname.js として実行されているか、importされているかを区別
  * @returns {boolean} 直接実行の場合はtrue、importされている場合はfalse
  */
-function isMainModule(): boolean {
+function isMainModule() {
   // CommonJS環境での検出
   try {
     if (typeof require !== 'undefined' && typeof module !== 'undefined') {
@@ -114,7 +114,7 @@ function isMainModule(): boolean {
  * @param {string} relativePath 現在のファイルからの相対パス
  * @returns {string} 絶対パス
  */
-function resolvePathFromCurrent(relativePath: string): string {
+function resolvePathFromCurrent(relativePath) {
   const currentUrl = getCurrentFileUrl();
   const currentDir = path.dirname(url.fileURLToPath(currentUrl));
   return path.resolve(currentDir, relativePath);
@@ -125,7 +125,7 @@ function resolvePathFromCurrent(relativePath: string): string {
  * @param {string} fileUrl ファイルURL
  * @returns {string} 絶対パス
  */
-function fileUrlToPath(fileUrl: string): string {
+function fileUrlToPath(fileUrl) {
   return url.fileURLToPath(fileUrl);
 }
 
@@ -134,22 +134,13 @@ function fileUrlToPath(fileUrl: string): string {
  * @param {string} filePath ファイルパス
  * @returns {string} ファイルURL
  */
-function pathToFileUrl(filePath: string): string {
+function pathToFileUrl(filePath) {
   return url.pathToFileURL(filePath).toString();
 }
 
 // CommonJS形式でエクスポート
 module.exports = {
   isEsmEnvironment,
-  getCurrentFileUrl,
-  isMainModule,
-  resolvePathFromCurrent,
-  fileUrlToPath,
-  pathToFileUrl
-};
-
-// TypeScriptの型定義のためのエクスポート
-export {
   getCurrentFileUrl,
   isMainModule,
   resolvePathFromCurrent,
