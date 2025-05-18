@@ -68,7 +68,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-025
       - 🏷️  Label      : infra
       - 🩺 Health     : 🚑
-      - 📊 Progress   : 25%
+      - 📊 Progress   : 0%
       - ✎ Notes      : ESM互換性問題を解決するために、より安定したCommonJSに戻す方針へ変更。これまでの修正を破棄し、CommonJS形式でパッケージ設定と実行環境を整える。ブランチ：fix/revert-to-commonjs
 
 3.1 [x] INF-031: package.jsonのCommonJS設定への移行
@@ -80,15 +80,15 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。ESM関連の設定と不要なスクリプトを削除。tsconfig.jsonもCommonJS設定に更新。
 
-3.2 [x] INF-032: コードベースをCommonJS形式に変換
+3.2 [ ] INF-032: コードベースをCommonJS形式に変換
       - 📅 Due        : 2026-07-06
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-031
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 60%
       - ✎ Notes      : moduleHelper実装で循環参照問題一部解決。logger, memoryMonitor, killSwitchChecker, orderUtilsなど重要クラスをリファクタリング。TypeScript型エラーは@ts-nocheck指定でビルド可能だが、今後最適化を継続。子タスクを作成し、より詳細に進捗を管理。変換完了までの残作業：
-        1. 戦略ファイル（strategies/）: 6ファイル中2ファイル変換済み（残り4ファイル、優先度:高）
+        1. 戦略ファイル（strategies/）: 6ファイル中全ファイル変換完了（INF-032-2完了）
         2. インジケーター（indicators/）: 推定10ファイル、未着手（優先度:高）
         3. データ処理モジュール（data/）: 推定8ファイル、未着手（優先度:中）
         4. サービス（services/）: 推定12ファイル、未着手（優先度:中）
@@ -327,6 +327,8 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
+
 
 
 
