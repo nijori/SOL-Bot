@@ -67,9 +67,9 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-025
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 50%
-      - ✎ Notes      : package.jsonに"type": "module"を追加し、ESM/CJSの互換性問題を解決。Docker環境のHealthcheckテストが失敗している原因。ビルドスクリプトと依存関係の修正が必要。
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 75%
+      - ✎ Notes      : package.jsonに"type": "module"を追加済み。index.tsのグローバル宣言とccxtインポート修正、devスクリプト更新、DockerfileのCMD修正を実施。コンテナ起動時にTypeScriptとESM互換性の問題が残り、詳細な調査が必要。ブランチ：fix/esm-configuration
 
 4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
@@ -258,6 +258,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
