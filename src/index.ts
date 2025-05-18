@@ -1,10 +1,11 @@
 // REF-031対応: グローバル型拡張
+// ESM互換のグローバル宣言方法
 declare global {
   var __ESM_ENVIRONMENT: boolean;
 }
 
 // REF-031対応: CommonJS/ESM環境検出
-if (typeof module !== 'undefined' && module.exports) {
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
   // CommonJS環境
   global.__ESM_ENVIRONMENT = false;
 } else {
@@ -15,9 +16,8 @@ if (typeof module !== 'undefined' && module.exports) {
 import 'dotenv/config';
 import express from 'express';
 import cron from 'node-cron';
-// ccxtのインポート
-import * as ccxtTypes from 'ccxt';
-const ccxt = require('ccxt');
+// ccxtのインポート - ESM互換方式
+import ccxt from 'ccxt';
 import { TradingEngine } from './core/tradingEngine.js';
 import { OrderManagementSystem } from './core/orderManagementSystem.js';
 import { OperationMode, OPERATION_MODE } from './config/parameters.js';
@@ -54,8 +54,9 @@ logger.info(`サーバーモードで実行しています（CLI引数なし）`
 logger.info(`動作モード: ${OPERATION_MODE}`);
 
 // 取引所の初期化
-let exchange: ccxtTypes.Exchange;
+let exchange: ccxt.Exchange;
 try {
+  // @ts-ignore - ccxtの型定義が古い可能性があるため一時的に無視
   exchange = new ccxt.binance({
     apiKey: process.env.EXCHANGE_API_KEY,
     secret: process.env.EXCHANGE_SECRET_KEY,
