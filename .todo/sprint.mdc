@@ -158,14 +158,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : 残りのテストファイル（.ts形式）をCommonJS形式（.js）に変換完了。mathUtils.test.ts、metrics.test.ts、atrCalibrator.test.ts、killSwitchChecker.test.ts、todoValidator.test.ts、parameterService.test.tsなど19のテストケースを保持したテストファイルの変換に成功。Jestのモック関数の問題はINF-032-CommonJS-Test-Fixドキュメントのパターンを使用して解決。marketDataFactory.test.jsについては、不足していた機能（createVolatilityCandles）をcreateVolatilitySpikeで代替するように修正し、テスト通過を確認。UnifiedOrderManager.test.jsはいくつかのテストが失敗しているため、INF-032-10「UnifiedOrderManager.test.jsの修正」として新タスクを作成し対応する。
 
-3.2.10 [ ] INF-032-10: CommonJS変換後のテストエラー修正
+3.2.10 [x] INF-032-10: CommonJS変換後のテストエラー修正
       - 📅 Due        : 2026-07-10
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : INF-032-9
       - 🏷️  Label      : bugfix
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 25%
-      - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。進捗状況：1) UnifiedOrderManager.test.js - 修正完了。UnifiedOrderManager.tsに不足していたメソッド(getPositionsBySymbol, getConsolidatedPositions, getExchangePositions, getOrders, getAllOrders)を追加し、テストが正常に通過するようになりました。Jest.mockの問題やモック設定不足も解決。残りの修正対象：2) atrCalibrator.test.js - キャッシュ機能のテストでモックが正しく呼ばれていない、3) DataRepository.e2e.test.js - データ保存/読み込みテストの失敗、4) parameterService.test.ts - モックサービステストの失敗、5) rangeStrategy.test.js/ts - 戦略タイプやシグナル生成の問題、6) meanRevertStrategy.test.js/ts - シグナル生成の問題、7) trendFollowStrategy.test.js - 関数が見つからないエラー、8) orderUtils.test.js - ESMインポート構文の問題、9) duckdbに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。進捗状況：1) UnifiedOrderManager.test.js - 修正完了。UnifiedOrderManager.tsに不足していたメソッド(getPositionsBySymbol, getConsolidatedPositions, getExchangePositions, getOrders, getAllOrders)を追加し、テストが正常に通過するようになりました。Jest.mockの問題やモック設定不足も解決。2) atrCalibrator.test.js - 修正完了、3) DataRepository.e2e.test.js - 修正完了、4) parameterService.test.ts - 修正完了、5) rangeStrategy.test.js/ts- 修正完了、6) meanRevertStrategy.test.js/ts - 修正完了、7) trendFollowStrategy.test.js - モック関数の問題を修正完了、calculateParabolicSAR.mockReturnValueが機能しない問題をjest.fn().mockReturnValueの使用で解決、8) orderUtils.test.js - ESMインポート構文の問題を修正完了。すべてのインポートをrequire()に変換し、型アノテーションを削除、9) DuckDBに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）が正常に動作することを確認。テストは19ケース全て成功し、コード機能に影響なく修正。Jestの警告（timers, fakeTimers）は残っているが、テスト実行には影響なし。
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05

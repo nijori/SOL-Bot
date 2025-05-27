@@ -1,15 +1,13 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @ts-nocheck
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
-import {
-  syncOrderForSimulateFill,
-  syncFillWithOrder,
-  updateOrderStatus
-} from '../../utils/orderUtils';
-import { Order, OrderStatus, OrderSide, OrderType, Fill } from '../../core/types';
+const orderUtils = require('../../utils/orderUtils');
+const { syncOrderForSimulateFill, syncFillWithOrder, updateOrderStatus } = orderUtils;
+const Types = require('../../core/types');
+const { Order, OrderStatus, OrderSide, OrderType } = Types;
 
 // ロガーをモック化
-jest.mock('../../utils/logger.js', () => ({
-  __esModule: true,
+jest.mock('../../utils/logger', () => ({
   default: {
     debug: jest.fn(),
     warn: jest.fn(),
@@ -26,7 +24,7 @@ describe('OrderUtils', () => {
 
   describe('syncOrderForSimulateFill', () => {
     test('両方の注文から適切にフィールドをマージする', () => {
-      const originalOrder: Order = {
+      const originalOrder = {
         id: 'original-123',
         symbol: 'BTC/USDT',
         side: OrderSide.BUY,
@@ -37,7 +35,7 @@ describe('OrderUtils', () => {
         timestamp: Date.now() - 1000
       };
 
-      const updatedOrder: Order = {
+      const updatedOrder = {
         id: 'exchange-456',
         exchangeOrderId: 'ex-789',
         symbol: 'BTC/USDT',
@@ -59,7 +57,7 @@ describe('OrderUtils', () => {
     });
 
     test('updatedOrderに一部のフィールドが欠けている場合はoriginalOrderから補完する', () => {
-      const originalOrder: Order = {
+      const originalOrder = {
         id: 'original-123',
         exchangeOrderId: 'old-ex-123',
         symbol: 'ETH/USDT',
@@ -70,7 +68,7 @@ describe('OrderUtils', () => {
         timestamp: Date.now() - 1000
       };
 
-      const updatedOrder: Order = {
+      const updatedOrder = {
         id: 'exchange-456',
         exchangeOrderId: 'ex-789',
         // symbolが欠けている
@@ -79,7 +77,7 @@ describe('OrderUtils', () => {
         // amountが欠けている
         status: OrderStatus.PLACED,
         timestamp: Date.now()
-      } as Order;
+      };
 
       const result = syncOrderForSimulateFill(originalOrder, updatedOrder);
 
@@ -96,7 +94,7 @@ describe('OrderUtils', () => {
 
   describe('syncFillWithOrder', () => {
     test('注文情報と約定情報を正しく同期する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         exchangeOrderId: 'ex-456',
         symbol: 'SOL/USDT',
@@ -108,7 +106,7 @@ describe('OrderUtils', () => {
         timestamp: Date.now() - 1000
       };
 
-      const fill: Partial<Fill> = {
+      const fill = {
         amount: 10,
         price: 99.5, // 若干良い価格で約定
         timestamp: Date.now()
@@ -127,7 +125,7 @@ describe('OrderUtils', () => {
     });
 
     test('fillにフィールドが欠けている場合はorderから補完する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         exchangeOrderId: 'ex-456',
         symbol: 'XRP/USDT',
@@ -139,7 +137,7 @@ describe('OrderUtils', () => {
         timestamp: Date.now() - 1000
       };
 
-      const fill: Partial<Fill> = {
+      const fill = {
         // amountが欠けている
         // priceが欠けている
         // timestampが欠けている
@@ -158,7 +156,7 @@ describe('OrderUtils', () => {
     });
 
     test('marketオーダーでprice=undefinedの場合も適切に処理する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         exchangeOrderId: 'ex-456',
         symbol: 'BTC/USDT',
@@ -170,7 +168,7 @@ describe('OrderUtils', () => {
         timestamp: Date.now() - 1000
       };
 
-      const fill: Partial<Fill> = {
+      const fill = {
         amount: 0.1,
         price: 50000, // 約定価格だけ提供
         timestamp: Date.now()
@@ -186,7 +184,7 @@ describe('OrderUtils', () => {
 
   describe('updateOrderStatus', () => {
     test('filled状態を正しく処理する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'BTC/USDT',
         side: OrderSide.BUY,
@@ -201,7 +199,7 @@ describe('OrderUtils', () => {
     });
 
     test('canceled状態を正しく処理する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'ETH/USDT',
         side: OrderSide.SELL,
@@ -216,7 +214,7 @@ describe('OrderUtils', () => {
     });
 
     test('cancelled（英国式スペル）状態も正しく処理する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'ETH/USDT',
         side: OrderSide.SELL,
@@ -234,7 +232,7 @@ describe('OrderUtils', () => {
       const testCases = ['active', 'open', 'new', 'partially_filled'];
 
       testCases.forEach((status) => {
-        const order: Order = {
+        const order = {
           id: 'order-123',
           symbol: 'SOL/USDT',
           side: OrderSide.BUY,
@@ -250,7 +248,7 @@ describe('OrderUtils', () => {
     });
 
     test('rejected状態を正しく処理する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'XRP/USDT',
         side: OrderSide.BUY,
@@ -265,7 +263,7 @@ describe('OrderUtils', () => {
     });
 
     test('不明な状態には警告を出力し、ステータスを変更しない', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'BTC/USDT',
         side: OrderSide.BUY,
@@ -280,7 +278,7 @@ describe('OrderUtils', () => {
     });
 
     test('exchangeStatusがundefinedまたはnullの場合は現在の状態を維持する', () => {
-      const order: Order = {
+      const order = {
         id: 'order-123',
         symbol: 'BTC/USDT',
         side: OrderSide.BUY,
