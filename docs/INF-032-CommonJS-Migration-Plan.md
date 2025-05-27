@@ -33,7 +33,7 @@ ES Module形式で実装されていたSOL-botのコードベースをCommonJS�
     - 主要テストファイルの「Types is not defined」エラー解決
     - core/types.tsモジュールを修正し、CommonJS環境での実行時Typesオブジェクト参照問題を解決
     - parameterService.test.tsの変換（元の19テストケースすべてを保持）
-    - exchangeService.test.ts、marketState.test.ts、RealTimeDataProcessor.test.ts、orderSizingService.test.ts、trendStrategy.test.tsの変換完了
+    - exchangeService.test.ts、marketState.test.ts、RealTimeDataProcessor.test.ts、orderSizingService.test.ts、trendStrategy.test.tsなどの変換完了
   - **進行中のもの**:
     - 残りのテストファイルのCommonJS形式への変換作業（INF-032-9）
     - モック関数の正しい設定パターンを確立

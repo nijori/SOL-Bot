@@ -1,0 +1,45 @@
+[Unit]
+Description=SOL Bot Trading Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=solbot
+Group=solbot
+WorkingDirectory=/opt/solbot
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/opt/solbot/.env
+
+# メインプロセス
+ExecStart=/usr/bin/npm run live
+
+# 緊急停止ファイルのチェック (Pre-start)
+ExecStartPre=/bin/bash -c '[ ! -f "/opt/solbot/KILL_SWITCH" ] || (echo "Kill switch is active" && exit 1)'
+
+# 正常な再起動
+Restart=always
+RestartSec=10
+
+# リソース制限
+CPUQuota=80%
+MemoryLimit=2G
+LimitNOFILE=65535
+
+# セキュリティ設定
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# ログ設定
+StandardOutput=append:/var/log/solbot/solbot.log
+StandardError=append:/var/log/solbot/error.log
+
+[Install]
+WantedBy=multi-user.target 

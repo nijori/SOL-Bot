@@ -1,5 +1,7 @@
-import fs from 'fs';
-import path from 'path';
+// @ts-nocheck
+const fs = require('fs');
+const path = require('path');
+const { jest, describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 
 // 直接関数を定義してテスト
 describe('killSwitchChecker', () => {
@@ -8,15 +10,15 @@ describe('killSwitchChecker', () => {
   const originalConsoleError = console.error;
   
   // モック関数
-  let mockExistsSync: jest.Mock;
-  let mockProcessExit: jest.Mock;
-  let mockConsoleError: jest.Mock;
+  let mockExistsSync;
+  let mockProcessExit;
+  let mockConsoleError;
   
   // キルスイッチのパス
   const KILL_SWITCH_FLAG_PATH = path.resolve(process.cwd(), 'data', 'kill-switch.flag');
   
   // テスト対象の関数を直接定義
-  function checkKillSwitch(): boolean {
+  function checkKillSwitch() {
     try {
       const exists = fs.existsSync(KILL_SWITCH_FLAG_PATH);
       if (exists) {
@@ -30,7 +32,7 @@ describe('killSwitchChecker', () => {
     }
   }
   
-  function executeKillSwitch(exitCode: number = 1): void {
+  function executeKillSwitch(exitCode = 1) {
     console.error('緊急停止処理を実行します。プロセスを終了します。');
     setTimeout(() => {
       process.exit(exitCode);
@@ -44,7 +46,7 @@ describe('killSwitchChecker', () => {
     
     // process.exitをモック化
     mockProcessExit = jest.fn();
-    process.exit = mockProcessExit as unknown as typeof process.exit;
+    process.exit = mockProcessExit;
     
     // console.errorをモック化
     mockConsoleError = jest.fn();

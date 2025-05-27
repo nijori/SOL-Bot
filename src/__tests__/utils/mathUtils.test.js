@@ -1,4 +1,5 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @ts-nocheck
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
 /**
  * 数学ユーティリティ関数のテスト
@@ -6,7 +7,7 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * CORE-005: backtestRunnerとtradingEngineのマルチシンボル対応拡張
  */
 
-import {
+const {
   calculatePearsonCorrelation,
   calculateVariance,
   calculateStandardDeviation,
@@ -17,7 +18,7 @@ import {
   calculateSharpeRatio,
   calculateSortinoRatio,
   calculateDrawdowns
-} from '../../utils/mathUtils';
+} = require('../../utils/mathUtils');
 
 describe('mathUtils', () => {
   test('ピアソン相関係数が正しく計算される', () => {
@@ -167,4 +168,4 @@ describe('mathUtils', () => {
     expect(calculateDrawdowns([]).maxDrawdown).toBe(0);
     expect(calculateDrawdowns([10000]).maxDrawdown).toBe(0);
   });
-});
+}); 

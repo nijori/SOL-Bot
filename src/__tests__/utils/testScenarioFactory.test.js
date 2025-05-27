@@ -1,4 +1,5 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @ts-nocheck
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
 /**
  * REF-029: TestScenarioFactoryのテスト
@@ -6,9 +7,9 @@ import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, aft
  * テスト用シナリオを生成するファクトリークラスのテスト
  */
 
-import { TestScenarioFactory } from '../../utils/test-helpers/testsScenarioFactory';
-import { MarketStatus } from '../../utils/test-helpers/marketDataFactory';
-import { OrderSide, OrderType, StrategyType } from '../../core/types';
+const { TestScenarioFactory } = require('../../utils/test-helpers/testsScenarioFactory');
+const { MarketStatus } = require('../../utils/test-helpers/marketDataFactory');
+const { OrderSide, OrderType, StrategyType } = require('../../core/types');
 
 describe('TestScenarioFactory Tests', () => {
   describe('createTrendFollowingScenario', () => {
@@ -187,4 +188,4 @@ describe('TestScenarioFactory Tests', () => {
       expect(hasNegativePrice).toBe(true);
     });
   });
-});
+}); 
