@@ -51,6 +51,9 @@ describe('UnifiedOrderManager', () => {
     mockExchangeService1.getExchangeName = jest.fn().mockReturnValue('Binance');
     mockExchangeService2.getExchangeName = jest.fn().mockReturnValue('Bybit');
 
+    // OrderManagementSystemのsetExchangeServiceメソッドをモック
+    OrderManagementSystem.prototype.setExchangeService = jest.fn();
+
     // OrderManagementSystemのcreateOrderメソッドをモック
     OrderManagementSystem.prototype.createOrder = jest.fn().mockImplementation((order) => {
       return `mock-order-id-${Math.random()}`;

@@ -164,8 +164,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : INF-032-9
       - 🏷️  Label      : bugfix
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。失敗しているテスト：1) UnifiedOrderManager.test.js - モック設定が不足、メソッド未実装（getPositionsBySymbol/getConsolidatedPositions/getExchangePositions/getOrders/getAllOrdersなど）、2) atrCalibrator.test.js - キャッシュ機能のテストでモックが正しく呼ばれていない、3) DataRepository.e2e.test.js - データ保存/読み込みテストの失敗、4) parameterService.test.ts - モックサービステストの失敗、5) rangeStrategy.test.js/ts - 戦略タイプやシグナル生成の問題、6) meanRevertStrategy.test.js/ts - シグナル生成の問題、7) trendFollowStrategy.test.js - 関数が見つからないエラー、8) orderUtils.test.js - ESMインポート構文の問題、9) duckdbに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）。共通する根本原因：1) ES Module/CommonJS変換での関数エクスポート構造の変化、2) モック設定の方法がCommonJSに対応していない、3) TypeScript型情報の欠落による実行時エラー。修正方針：マップされていない関数のエクスポート修正、テスト用モックの正しい設定方法の統一、CommonJS形式でのインポート/エクスポート構造の調整。
+      - 📊 Progress   : 25%
+      - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。進捗状況：1) UnifiedOrderManager.test.js - 修正完了。UnifiedOrderManager.tsに不足していたメソッド(getPositionsBySymbol, getConsolidatedPositions, getExchangePositions, getOrders, getAllOrders)を追加し、テストが正常に通過するようになりました。Jest.mockの問題やモック設定不足も解決。残りの修正対象：2) atrCalibrator.test.js - キャッシュ機能のテストでモックが正しく呼ばれていない、3) DataRepository.e2e.test.js - データ保存/読み込みテストの失敗、4) parameterService.test.ts - モックサービステストの失敗、5) rangeStrategy.test.js/ts - 戦略タイプやシグナル生成の問題、6) meanRevertStrategy.test.js/ts - シグナル生成の問題、7) trendFollowStrategy.test.js - 関数が見つからないエラー、8) orderUtils.test.js - ESMインポート構文の問題、9) duckdbに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）。
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
