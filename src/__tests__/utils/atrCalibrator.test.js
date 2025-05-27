@@ -1,16 +1,23 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @jest-environment node
+// @ts-nocheck
+/**
+ * ATRCalibrator のテスト - CommonJS 版
+ */
 
-import { ATRCalibrator, CalibrationResult, atrCalibrator } from '../../utils/atrCalibrator';
-import { Candle } from '../../core/types';
-import { parameterService } from '../../config/parameterService';
-import { calculateATR } from '../../utils/atrUtils';
+// Jest のグローバル関数をインポート
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
+
+// テスト対象のモジュールをインポート
+const { ATRCalibrator, CalibrationResult, atrCalibrator } = require('../../utils/atrCalibrator');
+const { calculateATR } = require('../../utils/atrUtils');
+const { parameterService } = require('../../config/parameterService');
 
 // パラメータサービスをモック
-jest.mock('../../config/parameterService.js', () => ({
+jest.mock('../../config/parameterService', () => ({
   parameterService: {
-    get: jest.fn((key: string, defaultValue: any) => {
+    get: jest.fn((key, defaultValue) => {
       // テスト用のパラメータマッピング
-      const params: Record<string, any> = {
+      const params = {
         'risk.minLookbackCandles': 30,
         'market.atr_period': 14,
         'risk.maxCalibrationLookback': 90,
@@ -25,13 +32,13 @@ jest.mock('../../config/parameterService.js', () => ({
 }));
 
 // atrUtilsモジュールをモック
-jest.mock('../../utils/atrUtils.js', () => ({
-  calculateATR: jest.fn((candles: Candle[], period: number, callerContext?: string) => {
+jest.mock('../../utils/atrUtils', () => ({
+  calculateATR: jest.fn((candles, period, callerContext) => {
     // モック実装：最終価格の3%をATRとして返す
     if (!candles || candles.length === 0) return 0;
     
     // 特殊テストケース向けのATR値マップ
-    const atrTestCases: Record<string, number> = {
+    const atrTestCases = {
       'USDC/USDT': 0.5, // 低ボラティリティ (1%)
       'BTC/USDT': 1.5,  // 中ボラティリティ (3%)
       'DOGE/USDT': 3.5, // 高ボラティリティ (7%)
@@ -55,13 +62,13 @@ jest.mock('../../utils/atrUtils.js', () => ({
 
 // モックローソク足生成用ヘルパー関数
 function createMockCandles(
-  count: number,
-  basePrice: number = 100,
-  volatility: number = 0.05,
-  timeframeHours: number = 1,
-  symbol: string = 'BTC/USDT'
-): Candle[] {
-  const candles: Candle[] = [];
+  count,
+  basePrice = 100,
+  volatility = 0.05,
+  timeframeHours = 1,
+  symbol = 'BTC/USDT'
+) {
+  const candles = [];
   let currentPrice = basePrice;
 
   const now = Date.now();
@@ -79,7 +86,7 @@ function createMockCandles(
     const low = currentPrice * (1 - Math.random() * volatility);
 
     // ローソク足のメタデータに通貨ペア情報を追加
-    const candle: Candle = {
+    const candle = {
       timestamp: now - (count - i) * timeframeMs,
       open: currentPrice - change,
       high: high,
@@ -88,7 +95,7 @@ function createMockCandles(
       volume: Math.random() * 1000
     };
     
-    // @ts-ignore - テスト用にメタデータを追加
+    // テスト用にメタデータを追加
     candle._symbol = symbol;
 
     candles.push(candle);
@@ -98,7 +105,7 @@ function createMockCandles(
 }
 
 // テスト用のモック関数
-function getMockCalibrationResult(symbol: string, atrPercentage: number, volatilityProfile: string, candles: Candle[], timeframeHours: number = 1) {
+function getMockCalibrationResult(symbol, atrPercentage, volatilityProfile, candles, timeframeHours = 1) {
   const avgPrice = symbol === 'BTC/USDT' ? 50000 : 
                   symbol === 'ETH/USDT' ? 3000 : 
                   symbol === 'USDC/USDT' ? 1 : 
@@ -107,9 +114,9 @@ function getMockCalibrationResult(symbol: string, atrPercentage: number, volatil
   
   const atrValue = avgPrice * atrPercentage / 100;
   
-  let trailingStopFactor: number;
-  let gridAtrMultiplier: number;
-  let stopDistanceMultiplier: number;
+  let trailingStopFactor;
+  let gridAtrMultiplier;
+  let stopDistanceMultiplier;
   
   switch (volatilityProfile) {
     case 'LOW':
@@ -155,8 +162,8 @@ function getMockCalibrationResult(symbol: string, atrPercentage: number, volatil
 }
 
 describe('ATRCalibrator', () => {
-  let calibrator: ATRCalibrator;
-  let originalCalibrateATR: any;
+  let calibrator;
+  let originalCalibrateATR;
   
   // テスト前後のフック
   beforeEach(() => {
@@ -169,10 +176,10 @@ describe('ATRCalibrator', () => {
     
     // テスト用に実装をモック化
     ATRCalibrator.prototype.calibrateATR = jest.fn().mockImplementation(function(
-      symbol: string,
-      candles: Candle[],
-      timeframeHours: number = 1,
-      useCache: boolean = true
+      symbol,
+      candles,
+      timeframeHours = 1,
+      useCache = true
     ) {
       // キャッシュ機能のテストの場合は、元のメソッドを使用
       if (symbol === 'XRP/USDT' || symbol === 'LINK/USDT') {
@@ -333,17 +340,17 @@ describe('ATRCalibrator', () => {
       const candles = createMockCandles(50, 0.5, 0.05, 1, symbol);
 
       // spyOnをカスタマイズする
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils.js'), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
       calculateATRSpy.mockReturnValue(0.015); // 0.5の3%
       
       // calculateAveragePriceもモック
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateAveragePrice').mockReturnValue(0.5);
       
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'classifyVolatility').mockReturnValue('MEDIUM');
       
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateOptimalParameters').mockReturnValue({
         atrPercentageThreshold: 3.3,
         trailingStopFactor: 1.5,
@@ -388,17 +395,17 @@ describe('ATRCalibrator', () => {
       const symbol = 'LINK/USDT';
       const candles = createMockCandles(50, 20, 0.05, 1, symbol);
 
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils.js'), 'calculateATR');
+      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
       calculateATRSpy.mockReturnValue(0.6); // 20の3%
       
       // calculateAveragePriceもモック
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateAveragePrice').mockReturnValue(20);
       
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'classifyVolatility').mockReturnValue('MEDIUM');
       
-      // @ts-ignore - プライベートメソッドにアクセス
+      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateOptimalParameters').mockReturnValue({
         atrPercentageThreshold: 3.3,
         trailingStopFactor: 1.5,
@@ -426,7 +433,7 @@ describe('ATRCalibrator', () => {
 
   describe('マルチシンボル機能', () => {
     test('複数シンボルのキャリブレーションが機能する', () => {
-      const symbolsCandles = new Map<string, Candle[]>();
+      const symbolsCandles = new Map();
       symbolsCandles.set('BTC/USDT', createMockCandles(50, 40000, 0.05, 1, 'BTC/USDT'));
       symbolsCandles.set('ETH/USDT', createMockCandles(50, 3000, 0.05, 1, 'ETH/USDT'));
       symbolsCandles.set('SOL/USDT', createMockCandles(50, 100, 0.05, 1, 'SOL/USDT'));
@@ -449,4 +456,4 @@ describe('ATRCalibrator', () => {
       }
     });
   });
-});
+}); 

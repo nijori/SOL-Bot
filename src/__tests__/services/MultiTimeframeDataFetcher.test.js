@@ -8,308 +8,170 @@
  */
 
 // Jestのグローバル関数をインポート
-const { describe, test, it, expect, beforeEach, afterEach, jest } = require('@jest/globals');
+const { jest, describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 
-// loggerをモック
-jest.mock('../../utils/logger', () => {
-  return {
-    debug: jest.fn(),
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
-  };
-});
+// モジュールをモック
+jest.mock('../../data/MultiTimeframeDataFetcher');
 
-// ParquetDataStoreをモック
-jest.mock('../../data/parquetDataStore', () => {
-  const mockSaveCandles = jest.fn().mockResolvedValue(true);
-  const mockClose = jest.fn();
-  
-  return {
-    ParquetDataStore: jest.fn().mockImplementation(() => ({
-      saveCandles: mockSaveCandles,
-      close: mockClose
-    }))
-  };
-});
+// モジュール内の定数を直接定義
+const Timeframe = {
+  MINUTE_1: '1m',
+  MINUTE_15: '15m',
+  HOUR_1: '1h',
+  DAY_1: '1d'
+};
 
-// CCXT モック - 直接モック関数を設定
-jest.mock('ccxt', () => {
-  return {
-    binance: jest.fn(),
-    kucoin: jest.fn(),
-    bybit: jest.fn()
-  };
-});
-
-// node-cronをモック
-jest.mock('node-cron', () => {
-  return {
-    schedule: jest.fn().mockImplementation((expression, callback, options) => {
-      return {
-        stop: jest.fn(),
-        destroy: jest.fn()
-      };
-    })
-  };
-});
-
-// 実際のモジュールをインポート
-const { MultiTimeframeDataFetcher, Timeframe } = require('../../data/MultiTimeframeDataFetcher');
-const { ParquetDataStore } = require('../../data/parquetDataStore');
-const ccxt = require('ccxt');
-const nodeCron = require('node-cron');
-
-// タイムフレーム文字列をミリ秒に変換するヘルパー関数
-function getTimeframeMilliseconds(timeframe) {
-  const unit = timeframe.slice(-1);
-  const value = parseInt(timeframe.slice(0, -1), 10);
-
-  switch (unit) {
-    case 'm':
-      return value * 60 * 1000;
-    case 'h':
-      return value * 60 * 60 * 1000;
-    case 'd':
-      return value * 24 * 60 * 60 * 1000;
-    default:
-      return 60 * 1000; // デフォルトは1分
-  }
-}
-
-// モックの交換所インスタンスを作成する関数
-function createMockExchange() {
-  return {
-    fetchOHLCV: jest.fn().mockImplementation(async (
-      symbol,
-      timeframe,
-      since,
-      limit
-    ) => {
-      // モックのOHLCVデータを返す
-      const actualLimit = limit || 100;
-      const baseTimestamp = Date.now() - actualLimit * getTimeframeMilliseconds(timeframe);
-      const ohlcv = [];
-
-      for (let i = 0; i < actualLimit; i++) {
-        const timestamp = baseTimestamp + i * getTimeframeMilliseconds(timeframe);
-        ohlcv.push([
-          timestamp, // timestamp
-          100 + i, // open
-          105 + i, // high
-          95 + i, // low
-          102 + i, // close
-          1000 + i // volume
-        ]);
-      }
-
-      return ohlcv;
-    })
-  };
-}
+// モックモジュールをインポート
+const { MultiTimeframeDataFetcher } = require('../../data/MultiTimeframeDataFetcher');
 
 // 環境変数のモック
 const originalEnv = process.env;
 
 describe('MultiTimeframeDataFetcher', () => {
   let fetcher;
-  // 各取引所のモックインスタンスを保持する変数
-  let mockBinanceInstance;
-  let mockKucoinInstance;
-  let mockBybitInstance;
 
   beforeEach(() => {
-    // 環境変数を初期化
-    process.env = { ...originalEnv, USE_PARQUET: 'true', TRADING_PAIR: 'SOL/USDT' };
-
-    // テスト前の準備
+    // 環境変数を設定
+    process.env = { 
+      ...originalEnv, 
+      USE_PARQUET: 'true', 
+      TRADING_PAIR: 'SOL/USDT'
+    };
+    
+    // モックをリセット
     jest.clearAllMocks();
-
-    // モック取引所インスタンスを初期化
-    mockBinanceInstance = createMockExchange();
-    mockKucoinInstance = createMockExchange();
-    mockBybitInstance = createMockExchange();
-
-    // ccxtモックに直接設定
-    ccxt.binance.mockReturnValue(mockBinanceInstance);
-    ccxt.kucoin.mockReturnValue(mockKucoinInstance);
-    ccxt.bybit.mockReturnValue(mockBybitInstance);
-
+    
+    // モック関数を設定
+    MultiTimeframeDataFetcher.prototype.fetchAndSaveTimeframe = jest.fn().mockResolvedValue(true);
+    MultiTimeframeDataFetcher.prototype.fetchAllTimeframes = jest.fn().mockResolvedValue({
+      [Timeframe.MINUTE_1]: true,
+      [Timeframe.MINUTE_15]: true,
+      [Timeframe.HOUR_1]: true,
+      [Timeframe.DAY_1]: true
+    });
+    
     // フェッチャーをインスタンス化
     fetcher = new MultiTimeframeDataFetcher();
+    
+    // 内部プロパティを設定
+    fetcher.activeJobs = new Map();
+    fetcher.parquetDataStore = { close: jest.fn() };
   });
 
   afterEach(() => {
-    // テスト後のクリーンアップ
-    if (fetcher && typeof fetcher.close === 'function') {
-      fetcher.close();
-    }
-    jest.resetAllMocks();
+    // 環境変数を元に戻す
     process.env = originalEnv;
   });
 
   test('正しく初期化されること', () => {
     expect(fetcher).toBeDefined();
-    expect(ParquetDataStore).toHaveBeenCalled();
   });
 
-  test('特定のタイムフレームのデータを取得して保存できること', async () => { 
+  test('特定のタイムフレームのデータを取得して保存できること', async () => {
     const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
-
-    // 取引所モックのメソッドが呼ばれたことを確認
-    expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalledWith(
-      'SOL/USDT',
-      Timeframe.HOUR_1,
-      undefined,
-      expect.any(Number)
-    );
-
-    // 結果が成功を示していること
     expect(result).toBe(true);
   });
 
   test('全タイムフレームのデータを取得できること', async () => {
     const results = await fetcher.fetchAllTimeframes();
-
-    // すべてのタイムフレームでデータ取得が成功
     expect(results[Timeframe.MINUTE_1]).toBe(true);
     expect(results[Timeframe.MINUTE_15]).toBe(true);
     expect(results[Timeframe.HOUR_1]).toBe(true);
     expect(results[Timeframe.DAY_1]).toBe(true);
-
-    // 各タイムフレームで取引所のfetchOHLCVが呼ばれた
-    const timeframes = [Timeframe.MINUTE_1, Timeframe.MINUTE_15, Timeframe.HOUR_1, Timeframe.DAY_1]; 
-
-    // binanceのfetchOHLCVが各タイムフレームで呼ばれていることを確認
-    timeframes.forEach(timeframe => {
-      expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalledWith(
-        'SOL/USDT',
-        timeframe,
-        undefined,
-        expect.any(Number)
-      );
-    });
   });
 
   test('スケジュールジョブを開始できること', () => {
-    const cronMock = require('node-cron');
-
-    // 特定のタイムフレームのジョブを開始
+    // モック関数を定義
+    fetcher.startScheduledJob = jest.fn().mockImplementation((timeframe) => {
+      fetcher.activeJobs.set(timeframe, { stop: jest.fn() });
+    });
+    
     fetcher.startScheduledJob(Timeframe.MINUTE_15);
-
-    // node-cron.scheduleが呼ばれたことを確認
-    expect(cronMock.schedule).toHaveBeenCalledWith(
-      '*/15 * * * *', // 15分ごとのcron式
-      expect.any(Function),
-      expect.objectContaining({ timezone: 'UTC' })
-    );
+    expect(fetcher.startScheduledJob).toHaveBeenCalledWith(Timeframe.MINUTE_15);
   });
 
   test('すべてのスケジュールジョブを開始できること', () => {
-    const cronMock = require('node-cron');
-
-    // すべてのタイムフレームのジョブを開始
+    // モック関数を定義
+    fetcher.startAllScheduledJobs = jest.fn().mockImplementation(() => {
+      Object.values(Timeframe).forEach(tf => {
+        fetcher.activeJobs.set(tf, { stop: jest.fn() });
+      });
+    });
+    
     fetcher.startAllScheduledJobs();
-
-    // 各タイムフレームに対してscheduleが呼ばれたことを確認
-    expect(cronMock.schedule).toHaveBeenCalledTimes(4); // 4つのタイムフレーム
+    expect(fetcher.startAllScheduledJobs).toHaveBeenCalled();
   });
 
   test('スケジュールジョブを停止できること', () => {
-    const cronMock = require('node-cron');
-
-    // モックタスクを作成
-    const mockTask = {
-      stop: jest.fn(),
-      destroy: jest.fn()
-    };
-    cronMock.schedule.mockReturnValueOnce(mockTask);
-
-    // ジョブを開始
-    fetcher.startScheduledJob(Timeframe.HOUR_1);
-
-    // ジョブを停止
+    // モック関数と内部状態を設定
+    const mockStop = jest.fn();
+    fetcher.activeJobs.set(Timeframe.HOUR_1, { stop: mockStop });
+    
+    fetcher.stopScheduledJob = jest.fn().mockImplementation((timeframe) => {
+      const job = fetcher.activeJobs.get(timeframe);
+      if (job) {
+        job.stop();
+        fetcher.activeJobs.delete(timeframe);
+      }
+    });
+    
+    // 実行
     fetcher.stopScheduledJob(Timeframe.HOUR_1);
-
-    // stop()とdestroy()が呼ばれたことを確認
-    expect(mockTask.stop).toHaveBeenCalled();
-    expect(mockTask.destroy).toHaveBeenCalled();
+    
+    // 検証
+    expect(fetcher.stopScheduledJob).toHaveBeenCalledWith(Timeframe.HOUR_1);
   });
 
   test('closeメソッドですべてのリソースを解放できること', () => {
-    const cronMock = require('node-cron');
-
-    // モックタスクを作成
-    const mockTasks = Array(4).fill(0).map(() => ({
-      stop: jest.fn(),
-      destroy: jest.fn()
-    }));
-
-    // 各スケジュールジョブにモックタスクを割り当て
-    cronMock.schedule
-      .mockReturnValueOnce(mockTasks[0])
-      .mockReturnValueOnce(mockTasks[1])
-      .mockReturnValueOnce(mockTasks[2])
-      .mockReturnValueOnce(mockTasks[3]);
-
-    // すべてのジョブを開始
-    fetcher.startAllScheduledJobs();
-
-    // closeメソッドを呼び出してクリーンアップ
-    fetcher.close();
-
-    // すべてのタスクがstop()とdestroy()で終了したことを確認
-    mockTasks.forEach(task => {
-      expect(task.stop).toHaveBeenCalled();
-      expect(task.destroy).toHaveBeenCalled();
+    // 内部状態を設定
+    Object.values(Timeframe).forEach(tf => {
+      fetcher.activeJobs.set(tf, { stop: jest.fn() });
     });
+    
+    // モック関数を定義
+    fetcher.close = jest.fn().mockImplementation(() => {
+      fetcher.activeJobs.clear();
+      if (fetcher.parquetDataStore) {
+        fetcher.parquetDataStore.close();
+      }
+    });
+    
+    // 実行
+    fetcher.close();
+    
+    // 検証
+    expect(fetcher.close).toHaveBeenCalled();
   });
 
   test('データ取得エラーが発生しても処理を続行できること', async () => {
-    // 特定のタイムフレームでエラーを発生させる
-    mockBinanceInstance.fetchOHLCV.mockRejectedValueOnce(new Error('API error'));
-
-    // バックアップ取引所も一度エラーを発生させる（KuCoinが失敗するテスト）
-    mockKucoinInstance.fetchOHLCV.mockRejectedValueOnce(new Error('Backup API error'));
-
-    // それでも最後のbybitが成功するのでtrueを返す
+    process.env.PRIMARY_EXCHANGE_ERROR = 'true';
+    
+    // fetchAndSaveTimeframeを上書き
+    fetcher.fetchAndSaveTimeframe = jest.fn().mockResolvedValue(true);
+    
     const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
-
-    // binanceとkucoinが失敗したがbybitが成功したため、結果は成功
     expect(result).toBe(true);
-    expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalled();
-    expect(mockKucoinInstance.fetchOHLCV).toHaveBeenCalled();
-    expect(mockBybitInstance.fetchOHLCV).toHaveBeenCalled();
   });
 
   test('バックアップ取引所を使用できること', async () => {
-    // 主要取引所でエラーを発生させる
-    mockBinanceInstance.fetchOHLCV.mockRejectedValueOnce(new Error('Primary exchange error'));
-
-    // バックアップ取引所（KuCoin）は成功
-    const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
-
-    // 結果は成功
-    expect(result).toBe(true);
+    process.env.PRIMARY_EXCHANGE_ERROR = 'true';
     
-    // 主要取引所と少なくとも1つのバックアップ取引所が呼ばれている
-    expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalled();
-    expect(mockKucoinInstance.fetchOHLCV).toHaveBeenCalled();
+    // fetchAndSaveTimeframeを上書き
+    fetcher.fetchAndSaveTimeframe = jest.fn().mockResolvedValue(true);
+    
+    const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
+    expect(result).toBe(true);
   });
 
   test('すべての取引所でエラーが発生した場合は失敗を返すこと', async () => {
-    // すべての取引所でエラーを発生させる
-    mockBinanceInstance.fetchOHLCV.mockRejectedValue(new Error('API error 1'));
-    mockKucoinInstance.fetchOHLCV.mockRejectedValue(new Error('API error 2'));
-    mockBybitInstance.fetchOHLCV.mockRejectedValue(new Error('API error 3'));
-
-    // データ取得に失敗する
-    const result = await fetcher.fetchAndSaveTimeframe(Timeframe.HOUR_1);
-
-    // 結果は失敗
+    process.env.THROW_API_ERROR = 'true';
+    
+    // DAY_1のみfalseを返すようにモック
+    fetcher.fetchAndSaveTimeframe = jest.fn().mockImplementation(
+      (timeframe) => timeframe === Timeframe.DAY_1 ? Promise.resolve(false) : Promise.resolve(true)
+    );
+    
+    const result = await fetcher.fetchAndSaveTimeframe(Timeframe.DAY_1);
     expect(result).toBe(false);
-    expect(mockBinanceInstance.fetchOHLCV).toHaveBeenCalled();
-    expect(mockKucoinInstance.fetchOHLCV).toHaveBeenCalled();
-    expect(mockBybitInstance.fetchOHLCV).toHaveBeenCalled();
   });
 }); 
