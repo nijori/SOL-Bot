@@ -27,6 +27,7 @@ const AllocationStrategy = {
   PRIORITY: 'PRIORITY', // 優先度の高い取引所から順に
   ROUND_ROBIN: 'ROUND_ROBIN', // ラウンドロビン方式
   SPLIT_EQUAL: 'SPLIT_EQUAL', // 均等分割
+  WEIGHTED: 'WEIGHTED', // 重み付き配分
   CUSTOM: 'CUSTOM' // カスタム配分（getAllocationRatioで定義）
 };
 
@@ -166,6 +167,47 @@ class UnifiedOrderManager {
         });
         break;
 
+      case AllocationStrategy.WEIGHTED:
+        // 重み付き配分
+        if (!this.allocationConfig.weights || Object.keys(this.allocationConfig.weights).length === 0) {
+          logger.error('[UnifiedOrderManager] 重み付き配分の設定が不正です');
+          // フォールバック：優先度の最も高い取引所に全量配分
+          allocatedOrders.set(activeExchanges[0].id, { ...order });
+        } else {
+          // 有効な取引所IDのリスト
+          const activeExchangeIds = activeExchanges.map(ex => ex.id);
+          
+          // 合計の重み（有効な取引所の分のみ）
+          let totalWeight = 0;
+          for (const exchangeId of activeExchangeIds) {
+            if (this.allocationConfig.weights[exchangeId]) {
+              totalWeight += this.allocationConfig.weights[exchangeId];
+            }
+          }
+          
+          if (totalWeight <= 0) {
+            logger.error('[UnifiedOrderManager] 有効な取引所の重みが設定されていません');
+            allocatedOrders.set(activeExchanges[0].id, { ...order });
+          } else {
+            // 正規化係数（重みの合計を1にするため）
+            const normalizationFactor = 1 / totalWeight;
+            
+            // 各取引所に配分
+            for (const exchange of activeExchanges) {
+              if (this.allocationConfig.weights[exchange.id]) {
+                const weight = this.allocationConfig.weights[exchange.id];
+                const normalizedWeight = weight * normalizationFactor;
+                const amount = Math.round(order.amount * normalizedWeight * 100) / 100; // 小数点2桁に丸める
+                
+                if (amount > 0) {
+                  allocatedOrders.set(exchange.id, { ...order, amount });
+                }
+              }
+            }
+          }
+        }
+        break;
+
       case AllocationStrategy.CUSTOM:
         // カスタム配分率
         if (!this.allocationConfig.customRatios || this.allocationConfig.customRatios.size === 0) {
@@ -265,29 +307,44 @@ class UnifiedOrderManager {
 
   /**
    * 全ての注文をキャンセル
+   * @param exchangeId 取引所ID
    * @param symbol 特定のシンボルのみキャンセルする場合に指定
    * @returns キャンセルされた注文の総数
    */
-  cancelAllOrders(symbol) {
-    let cancelledCount = 0;
-
-    for (const exchange of this.exchanges.values()) {
-      if (!exchange.active) continue;
-
-      try {
-        const count = exchange.oms.cancelAllOrders(symbol);
-        cancelledCount += count;
-        logger.info(
-          `[UnifiedOrderManager] 取引所 ${exchange.id} で${symbol ? `${symbol}の` : '全'}注文をキャンセル: ${count}件`
-        );
-      } catch (error) {
-        logger.error(
-          `[UnifiedOrderManager] 取引所 ${exchange.id} での注文一括キャンセルエラー: ${error instanceof Error ? error.message : String(error)}`
-        );
-      }
+  cancelAllOrders(exchangeId, symbol) {
+    const exchange = this.exchanges.get(exchangeId);
+    if (!exchange || !exchange.active) {
+      logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていないか無効です`);
+      return false;
     }
 
-    return cancelledCount;
+    try {
+      const orders = exchange.oms.getOrders();
+      let cancelledCount = 0;
+
+      // シンボルが指定されている場合はフィルタリング
+      const targetOrders = symbol 
+        ? orders.filter(order => order.symbol === symbol)
+        : orders;
+
+      // 全ての注文をキャンセル
+      for (const order of targetOrders) {
+        const result = exchange.oms.cancelOrder(order.id);
+        if (result) {
+          cancelledCount++;
+        }
+      }
+
+      logger.info(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} で${symbol ? `${symbol}の` : '全'}注文をキャンセル: ${cancelledCount}件`
+      );
+      return cancelledCount > 0;
+    } catch (error) {
+      logger.error(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} での注文一括キャンセルエラー: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return false;
+    }
   }
 
   /**
@@ -315,6 +372,163 @@ class UnifiedOrderManager {
     }
 
     return positionsMap;
+  }
+
+  /**
+   * 特定シンボルのポジションを全取引所から取得
+   * @param symbol シンボル
+   * @returns ポジションの配列
+   */
+  getPositionsBySymbol(symbol) {
+    if (!symbol) {
+      logger.error('[UnifiedOrderManager] シンボルが指定されていません');
+      return [];
+    }
+
+    const result = [];
+    for (const exchange of this.exchanges.values()) {
+      if (!exchange.active) continue;
+
+      try {
+        const positions = exchange.oms.getPositionsBySymbol(symbol);
+        if (positions && positions.length > 0) {
+          result.push(...positions);
+        }
+      } catch (error) {
+        logger.error(
+          `[UnifiedOrderManager] 取引所 ${exchange.id} のポジション取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 特定取引所のポジションを取得
+   * @param exchangeId 取引所ID
+   * @returns ポジションの配列
+   */
+  getExchangePositions(exchangeId) {
+    const exchange = this.exchanges.get(exchangeId);
+    if (!exchange || !exchange.active) {
+      logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていないか無効です`);
+      return [];
+    }
+
+    try {
+      return exchange.oms.getPositions();
+    } catch (error) {
+      logger.error(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} のポジション取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return [];
+    }
+  }
+
+  /**
+   * 全取引所の統合ポジションを取得
+   * @returns 統合されたポジションの配列
+   */
+  getConsolidatedPositions() {
+    // シンボルごとのポジションを集計
+    const positionsBySymbol = new Map();
+    const allPositionsMap = this.getAllPositions();
+
+    // 全取引所のポジションを集計
+    for (const positions of allPositionsMap.values()) {
+      for (const position of positions) {
+        const symbol = position.symbol;
+        if (!positionsBySymbol.has(symbol)) {
+          positionsBySymbol.set(symbol, {
+            symbol,
+            amount: 0,
+            entryPrice: 0,
+            cost: 0,
+            unrealizedPnl: 0,
+            count: 0
+          });
+        }
+
+        const consolidatedPosition = positionsBySymbol.get(symbol);
+        consolidatedPosition.amount += position.amount;
+        consolidatedPosition.cost += position.cost || position.amount * position.entryPrice;
+        consolidatedPosition.unrealizedPnl += position.unrealizedPnl || 0;
+        consolidatedPosition.count += 1;
+      }
+    }
+
+    // 集計結果を配列に変換
+    const result = [];
+    for (const [symbol, data] of positionsBySymbol.entries()) {
+      if (Math.abs(data.amount) < 0.000001) continue; // 実質ゼロポジションは除外
+
+      // 平均エントリー価格を計算
+      let entryPrice = 0;
+      if (data.amount !== 0) {
+        entryPrice = data.cost / Math.abs(data.amount);
+      }
+
+      result.push({
+        symbol,
+        side: data.amount > 0 ? OrderSide.BUY : OrderSide.SELL,
+        amount: data.amount,
+        entryPrice,
+        cost: data.cost,
+        unrealizedPnl: data.unrealizedPnl,
+        timestamp: Date.now()
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * 特定取引所の注文を取得
+   * @param exchangeId 取引所ID
+   * @returns 注文の配列
+   */
+  getOrders(exchangeId) {
+    const exchange = this.exchanges.get(exchangeId);
+    if (!exchange || !exchange.active) {
+      logger.warn(`[UnifiedOrderManager] 取引所 ${exchangeId} は登録されていないか無効です`);
+      return [];
+    }
+
+    try {
+      return exchange.oms.getOrders();
+    } catch (error) {
+      logger.error(
+        `[UnifiedOrderManager] 取引所 ${exchangeId} の注文取得エラー: ${error instanceof Error ? error.message : String(error)}`
+      );
+      return [];
+    }
+  }
+
+  /**
+   * 全取引所の注文を取得
+   * @returns 取引所ごとの注文マップ
+   */
+  getAllOrders() {
+    const ordersMap = new Map();
+
+    for (const exchange of this.exchanges.values()) {
+      if (!exchange.active) continue;
+
+      try {
+        const orders = exchange.oms.getOrders();
+        // 空でない場合のみマップに追加
+        if (orders.length > 0) {
+          ordersMap.set(exchange.id, orders);
+        }
+      } catch (error) {
+        logger.error(
+          `[UnifiedOrderManager] 取引所 ${exchange.id} の注文取得エラー: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return ordersMap;
   }
 
   /**
@@ -376,6 +590,39 @@ class UnifiedOrderManager {
    * @param config 配分設定
    */
   setAllocationStrategy(config) {
+    // 有効な戦略かどうかを検証
+    if (!Object.values(AllocationStrategy).includes(config.strategy)) {
+      throw new Error(`[UnifiedOrderManager] 無効な配分戦略: ${config.strategy}`);
+    }
+
+    // 重み付き配分の場合、全ての取引所の重みが設定されているか確認
+    if (config.strategy === AllocationStrategy.WEIGHTED) {
+      if (!config.weights || Object.keys(config.weights).length === 0) {
+        throw new Error('[UnifiedOrderManager] 重み付き配分の重みが設定されていません');
+      }
+
+      const activeExchanges = this.getActiveExchanges();
+      for (const exchange of activeExchanges) {
+        if (!config.weights[exchange.id]) {
+          throw new Error(`[UnifiedOrderManager] 取引所 ${exchange.id} の重みが設定されていません`);
+        }
+      }
+    }
+    
+    // カスタム配分の場合、全ての取引所の配分率が設定されているか確認
+    if (config.strategy === AllocationStrategy.CUSTOM) {
+      if (!config.customRatios || config.customRatios.size === 0) {
+        throw new Error('[UnifiedOrderManager] カスタム配分率が設定されていません');
+      }
+
+      const activeExchanges = this.getActiveExchanges();
+      for (const exchange of activeExchanges) {
+        if (!config.customRatios.has(exchange.id)) {
+          throw new Error(`[UnifiedOrderManager] 取引所 ${exchange.id} の配分率が設定されていません`);
+        }
+      }
+    }
+
     this.allocationConfig = config;
     logger.info(`[UnifiedOrderManager] 注文配分戦略を変更: ${config.strategy}`);
   }
