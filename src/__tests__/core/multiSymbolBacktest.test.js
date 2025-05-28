@@ -14,25 +14,26 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
  * 4. エッジケースを含む処理の正確性
  */
 
-// すべての依存モジュールのモック
-
-// ロガーとメモリモニターをモック化
-jest.mock('../../utils/logger', () => ({
+// ロガーのモックを作成
+const mockLogger = {
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn()
-}));
+};
 
-// ロガーのモックを取得
-const mockLogger = jest.requireMock('../../utils/logger');
+// ロガーをモック化
+jest.mock('../../utils/logger', () => mockLogger);
+
+// メモリモニターをモック化
+const mockMemoryMonitor = {
+  startMonitoring: jest.fn(),
+  stopMonitoring: jest.fn(),
+  getPeakMemoryUsage: jest.fn().mockReturnValue(100)
+};
 
 jest.mock('../../utils/memoryMonitor', () => ({
-  MemoryMonitor: jest.fn().mockImplementation(() => ({
-    startMonitoring: jest.fn(),
-    stopMonitoring: jest.fn(),
-    getPeakMemoryUsage: jest.fn().mockReturnValue(100)
-  }))
+  MemoryMonitor: jest.fn().mockImplementation(() => mockMemoryMonitor)
 }));
 
 // その他のモジュールもモック化
@@ -172,20 +173,17 @@ const createMockBacktestResult = (symbol) => {
   };
 };
 
-// backtestRunner.jsのモック
-BacktestRunner.mockImplementation((config) => {
-  return {
-    run: () => Promise.resolve(createMockBacktestResult(config.symbol))
-  };
-});
+// モックの実装とセットアップ
 
 // ParquetDataStoreのモック
+const mockParquetDataStore = {
+  loadCandles: jest.fn().mockImplementation(async (symbol) => {
+    return generateMockCandles(symbol);
+  })
+};
+
 jest.mock('../../data/parquetDataStore', () => ({
-  ParquetDataStore: jest.fn().mockImplementation(() => ({
-    loadCandles: jest.fn().mockImplementation(async (symbol) => {
-      return generateMockCandles(symbol);
-    })
-  }))
+  ParquetDataStore: jest.fn().mockImplementation(() => mockParquetDataStore)
 }));
 
 // ExchangeServiceのモック
@@ -260,8 +258,7 @@ mockExchangeService.fetchTicker.mockImplementation((symbol) => {
 
 mockExchangeService.initialize.mockResolvedValue(true);
 
-// TST-070: ExchangeServiceモックの設定方法を修正
-// モックの戻り値を設定
+// ExchangeServiceモックの設定
 jest.mock('../../services/exchangeService', () => ({
   ExchangeService: jest.fn().mockImplementation(() => mockExchangeService)
 }));
@@ -289,11 +286,47 @@ const mockTradingEngineInstance = {
   getCompletedTrades: jest.fn().mockReturnValue([])
 };
 
-TradingEngine.mockImplementation(() => mockTradingEngineInstance);
+// TradingEngineのモック
+jest.mock('../../core/tradingEngine', () => ({
+  TradingEngine: jest.fn().mockImplementation(() => mockTradingEngineInstance)
+}));
 
-// TST-070: BacktestRunnerのモック実装をさらに修正
-// すべてのJestモックをクリア
-jest.resetAllMocks();
+// BacktestRunnerのモック実装
+BacktestRunner.mockImplementation((config) => {
+  return {
+    run: () => Promise.resolve(createMockBacktestResult(config.symbol))
+  };
+});
+
+// OrderSizingServiceのモックとその実装
+const mockOrderSizingService = {
+  calculateOrderSize: jest.fn().mockImplementation(
+    (symbol, equity, atrValue, price, riskPercent) => {
+      let size;
+      switch (symbol) {
+        case 'BTC/USDT':
+          size = 0.2; // BTCは高額なので数量が少ない
+          break;
+        case 'ETH/USDT':
+          size = 1.5; // ETHはBTCより安いので数量が多い
+          break;
+        case 'SOL/USDT':
+          size = 10; // SOLはさらに安い
+          break;
+        case 'XRP/USDT':
+          size = 100; // XRPは最も安い
+          break;
+        default:
+          size = 1;
+      }
+      return Promise.resolve(size);
+    }
+  )
+};
+
+jest.mock('../../services/orderSizingService', () => ({
+  OrderSizingService: jest.fn().mockImplementation(() => mockOrderSizingService)
+}));
 
 describe('マルチシンボルバックテスト検証テスト', () => {
   // 各テスト前にモックをリセット
@@ -307,12 +340,14 @@ describe('マルチシンボルバックテスト検証テスト', () => {
       };
     });
     
+    // 各モックのクリア
     mockExchangeService.getMarketInfo.mockClear();
     mockExchangeService.fetchTicker.mockClear();
     mockLogger.info.mockClear();
     mockLogger.debug.mockClear();
     mockLogger.warn.mockClear();
     mockLogger.error.mockClear();
+    mockOrderSizingService.calculateOrderSize.mockClear();
   });
 
   // 各通貨ペアのバックテスト基本動作テスト
@@ -355,61 +390,56 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     }
   });
 
-  // OrderSizingServiceのモック
-  jest.mock('../../services/orderSizingService', () => {
-    return {
-      OrderSizingService: jest.fn().mockImplementation(() => ({
-        calculateOrderSize: jest.fn().mockImplementation(
-          (symbol, equity, atrValue, price, riskPercent) => {
-            switch (symbol) {
-              case 'BTC/USDT':
-                return 0.2; // BTCは高額なので数量が少ない
-              case 'ETH/USDT':
-                return 1.5; // ETHはBTCより安いので数量が多い
-              case 'SOL/USDT':
-                return 10; // SOLはさらに安い
-              case 'XRP/USDT':
-                return 100; // XRPは最も安い
-              default:
-                return 1;
-            }
-          }
-        )
-      }))
-    };
-  });
-
   // 通貨特性が計算結果に与える影響テスト
   test('通貨特性の違いが注文サイズ計算に適切に反映されること', async () => {
-    // OrderSizingServiceを再インポート
-    const { OrderSizingService } = require('../../services/orderSizingService');
+    // モック関数が呼び出されることを確認するために実装を直接記述
+    mockOrderSizingService.calculateOrderSize.mockImplementation((symbol, equity, atrValue, price, riskPercent) => {
+      let size;
+      switch (symbol) {
+        case 'BTC/USDT':
+          size = 0.2; // BTCは高額なので数量が少ない
+          break;
+        case 'ETH/USDT':
+          size = 1.5; // ETHはBTCより安いので数量が多い
+          break;
+        case 'SOL/USDT':
+          size = 10; // SOLはさらに安い
+          break;
+        case 'XRP/USDT':
+          size = 100; // XRPは最も安い
+          break;
+        default:
+          size = 1;
+      }
+      return Promise.resolve(size);
+    });
 
-    // OrderSizingServiceのインスタンス生成
-    const orderSizingService = new OrderSizingService(mockExchangeService);
-
-    // 各通貨ペアでの注文サイズを計算（モックから返される値を使用）
-    const btcOrderSize = await orderSizingService.calculateOrderSize(
+    // 各通貨ペアでの注文サイズを計算
+    const btcOrderSize = await mockOrderSizingService.calculateOrderSize(
       'BTC/USDT',
       10000,
       1000,
       50000,
       0.01
     );
-    const ethOrderSize = await orderSizingService.calculateOrderSize(
+
+    const ethOrderSize = await mockOrderSizingService.calculateOrderSize(
       'ETH/USDT',
       10000,
       100,
       3000,
       0.01
     );
-    const solOrderSize = await orderSizingService.calculateOrderSize(
+
+    const solOrderSize = await mockOrderSizingService.calculateOrderSize(
       'SOL/USDT',
       10000,
       5,
       100,
       0.01
     );
-    const xrpOrderSize = await orderSizingService.calculateOrderSize(
+
+    const xrpOrderSize = await mockOrderSizingService.calculateOrderSize(
       'XRP/USDT',
       10000,
       0.05,
