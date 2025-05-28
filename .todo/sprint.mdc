@@ -167,6 +167,15 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。進捗状況：1) UnifiedOrderManager.test.js - 修正完了。UnifiedOrderManager.tsに不足していたメソッド(getPositionsBySymbol, getConsolidatedPositions, getExchangePositions, getOrders, getAllOrders)を追加し、テストが正常に通過するようになりました。Jest.mockの問題やモック設定不足も解決。2) atrCalibrator.test.js - 修正完了、3) DataRepository.e2e.test.js - 修正完了、4) parameterService.test.ts - 修正完了、5) rangeStrategy.test.js/ts- 修正完了、6) meanRevertStrategy.test.js/ts - 修正完了、7) trendFollowStrategy.test.js - モック関数の問題を修正完了、calculateParabolicSAR.mockReturnValueが機能しない問題をjest.fn().mockReturnValueの使用で解決、8) orderUtils.test.js - ESMインポート構文の問題を修正完了。すべてのインポートをrequire()に変換し、型アノテーションを削除、9) DuckDBに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）が正常に動作することを確認。テストは19ケース全て成功し、コード機能に影響なく修正。Jestの警告（timers, fakeTimers）は残っているが、テスト実行には影響なし。
 
+3.2.11 [x] INF-032-11: 残存テストエラーの修正
+      - 📅 Due        : 2026-07-15
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-032-10
+      - 🏷️  Label      : bugfix
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : npm testおよびnpm run test:stableJestで発生している残りのテストエラーを修正。主な問題：1) MultiTimeframeDataFetcher.test修正完了 - モックオブジェクトの適切な実装で解決、2) multiSymbolBacktest.test修正完了 - モック関数のPromise返却問題を解決し、テストが成功するように修正。INF-032-CommonJS-Test-Fixドキュメントのパターンを適用してモック設定の修正を行い、すべてのテストが正常に通過することを確認。モック関数がPromiseを返すようにcalculateOrderSizeの実装を修正し、テスト項目はすべて元の機能を保持しながら修正完了。
+
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
