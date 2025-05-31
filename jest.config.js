@@ -15,7 +15,7 @@ module.exports = {
   testTimeout: 30000,
   globals: { 
     'ts-jest': {
-      isolatedModules: true
+      // tsconfig.jsonにisolatedModules: trueが設定されているため、ここでの設定は不要
     }
   },
   transformIgnorePatterns: [
