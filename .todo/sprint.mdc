@@ -174,7 +174,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : bugfix
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : npm testおよびnpm run test:stableJestで発生している残りのテストエラーを修正。主な問題：1) MultiTimeframeDataFetcher.test修正完了 - モックオブジェクトの適切な実装で解決、2) multiSymbolBacktest.test修正完了 - モック関数のPromise返却問題を解決し、テストが成功するように修正。INF-032-CommonJS-Test-Fixドキュメントのパターンを適用してモック設定の修正を行い、すべてのテストが正常に通過することを確認。モック関数がPromiseを返すようにcalculateOrderSizeの実装を修正し、テスト項目はすべて元の機能を保持しながら修正完了。
+      - ✎ Notes      : npm testおよびnpm run test:stableJestで発生していた残りのテストエラーを修正。主な解決内容：1) DuckDB依存エラー - MultiTimeframeDataFetcher.testとmultiSymbolBacktest.testでDuckDBモジュールが見つからない問題 -修正完了、2) DataRepository.e2e.testのファイル永続化エラー -修正完了、3) 戦略テスト（rangeStrategy.test, meanRevertStrategy.test）のTypeScript互換性問題 -修正完了、4) Jest警告（timers, fakeTimers）の解消 -修正完了。具体的に、metrics.test.js、killSwitchChecker.test.js、symbolInfoService.test.js、RealTimeDataProcessor.test.jsで発生していたJestタイマー警告を修正し、Jest設定ファイル（jest.config.js）の非推奨オプション（timers→fakeTimers）と非推奨のts-jest設定も修正しました。すべてのテストが正常に通過し、警告メッセージもなくなりました。
+
 
 3.2.4 [ ] INF-032-4: 型定義と循環参照問題の解決
       - 📅 Due        : 2026-07-05
