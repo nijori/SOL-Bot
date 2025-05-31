@@ -13,18 +13,13 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testTimeout: 30000,
-  globals: { 
-    'ts-jest': {
-      // tsconfig.jsonにisolatedModules: trueが設定されているため、ここでの設定は不要
-    }
+  setupFilesAfterEnv: ['./scripts/test-jest-globals.js'],
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {}] // ts-jestの設定はここに移動
   },
   transformIgnorePatterns: [
     "node_modules/(?!(ccxt|node-fetch|webdriver|selenium-webdriver)/)"
   ],
-  setupFilesAfterEnv: ['./scripts/test-jest-globals.js'],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest'
-  },
   testMatch: ['**/__tests__/**/*.test.(ts|js)'],
   verbose: true,
   collectCoverage: false,
