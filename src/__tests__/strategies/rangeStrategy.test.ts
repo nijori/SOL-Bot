@@ -1,8 +1,9 @@
-import { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+// @ts-nocheck
+const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
-import { executeRangeStrategy } from '../../strategies/rangeStrategy';
-import { Candle, OrderSide, OrderType, Position, StrategyType } from '../../core/types';
-import * as rangeStrategyModule from '../../strategies/rangeStrategy';
+const { executeRangeStrategy } = require('../../strategies/rangeStrategy');
+const { OrderSide, OrderType, StrategyType } = require('../../core/types');
+const rangeStrategyModule = require('../../strategies/rangeStrategy');
 
 // リソーストラッカーとテストクリーンアップ関連のインポート (CommonJS形式)
 const ResourceTracker = require('../../utils/test-helpers/resource-tracker');
@@ -35,7 +36,7 @@ jest.mock('technicalindicators', () => ({
 }));
 
 // モックロガーを作成して警告を抑制
-jest.mock('../../utils/logger.js', () => ({
+jest.mock('../../utils/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -43,11 +44,11 @@ jest.mock('../../utils/logger.js', () => ({
 }));
 
 // パラメータサービスをモック
-jest.mock('../../config/parameterService.js', () => ({
+jest.mock('../../config/parameterService', () => ({
   parameterService: {
-    get: jest.fn().mockImplementation((key: string, defaultValue: any) => {
+    get: jest.fn().mockImplementation((key, defaultValue) => {
       // テスト用のデフォルト値を返す
-      const params: Record<string, any> = {
+      const params = {
         'rangeStrategy.gridAtrMultiplier': 0.6,
         'rangeStrategy.rangeMultiplier': 0.9,
         'rangeStrategy.minSpreadPercentage': 0.3,
@@ -79,7 +80,7 @@ jest.mock('../../config/parameterService.js', () => ({
 }));
 
 // RANGE_PARAMETERS と MARKET_PARAMETERS のモック
-jest.mock('../../config/parameters.js', () => ({
+jest.mock('../../config/parameters', () => ({
   RANGE_PARAMETERS: {
     RANGE_PERIOD: 30,
     GRID_LEVELS_MIN: 3,
@@ -126,11 +127,11 @@ describe('executeRangeStrategy', () => {
 
   // テスト用のモックデータを作成する関数
   function createMockCandles(
-    length: number,
-    startPrice: number,
-    pattern: 'range' | 'breakout-up' | 'breakout-down'
-  ): Candle[] {
-    const candles: Candle[] = [];
+    length,
+    startPrice,
+    pattern
+  ) {
+    const candles = [];
     let price = startPrice;
     const timestamp = Date.now() - length * 60 * 60 * 1000; // 1時間ごと
 
@@ -295,7 +296,7 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex].close = rangeHigh + 20; // レンジ上限を突破
 
     // 既存の売りポジションを用意
-    const existingPosition: Position = {
+    const existingPosition = {
       symbol: 'SOL/USDT',
       side: OrderSide.SELL,
       amount: 1.0,
@@ -329,7 +330,7 @@ describe('executeRangeStrategy', () => {
     candles[lastIndex].close = rangeLow - 20; // レンジ下限を割り込み
 
     // 既存の買いポジションを用意
-    const existingPosition: Position = {
+    const existingPosition = {
       symbol: 'SOL/USDT',
       side: OrderSide.BUY,
       amount: 1.0,
