@@ -82,6 +82,8 @@ module.exports = {
   cache: true,
   cacheDirectory: '<rootDir>/node_modules/.cache/jest',
   
-  // タイマーのモック化を制御
-  timers: 'real'  // リアルタイマーを使用（テスト中にタイマーをモック化しない）
+  // タイマーのモック化を制御（'timers'から'fakeTimers'に更新）
+  fakeTimers: {
+    enableGlobally: false // リアルタイマーを使用（テスト中にタイマーをモック化しない）
+  }
 };
