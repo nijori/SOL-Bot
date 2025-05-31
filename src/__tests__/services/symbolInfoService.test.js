@@ -133,10 +133,11 @@ describe('SymbolInfoService - Cache Behavior', () => {
     symbolInfoService = new SymbolInfoService(exchangeService);
     
     // タイマーをモック
-    jest.useFakeTimers();
+    jest.useFakeTimers({ doNotFake: [] });
   });
 
   afterEach(async () => {
+    jest.resetAllMocks();
     jest.useRealTimers();
     await standardAfterEach();
   });
@@ -163,6 +164,7 @@ describe('SymbolInfoService - Cache Behavior', () => {
     exchangeService.getMarketInfo.mockClear();
 
     // キャッシュTTLを経過させる
+    jest.runAllTimers();
     jest.advanceTimersByTime(200);
 
     // 2回目のリクエスト（TTL切れのため再取得されるはず）
@@ -248,7 +250,7 @@ describe('SymbolInfoService - Concurrent Requests', () => {
     // 両方のプロミスを解決
     const [result1, result2] = await Promise.all([promise1, promise2]);
 
-    // 検証
+    // 検証（同じリクエストなので1回だけAPI呼び出しが行われるべき）
     expect(exchangeService.getMarketInfo).toHaveBeenCalledTimes(1);
     expect(result1).toEqual(result2);
   });
