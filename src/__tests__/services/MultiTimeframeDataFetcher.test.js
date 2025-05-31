@@ -10,20 +10,34 @@
 // Jestのグローバル関数をインポート
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
-// ParquetDataStoreをモック
-jest.mock('../../data/parquetDataStore', () => {
-  // モック関数を作成
-  const mockSaveCandles = jest.fn().mockResolvedValue(true);
-  const mockClose = jest.fn().mockResolvedValue(undefined);
-  
-  // モッククラスを返す
-  return {
-    ParquetDataStore: jest.fn().mockImplementation(() => ({
-      saveCandles: mockSaveCandles,
-      close: mockClose
+// duckdbのモックを作成
+const mockDuckDB = {
+  Database: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockImplementation(() => ({
+      exec: jest.fn(),
+      prepare: jest.fn().mockImplementation(() => ({
+        run: jest.fn()
+      })),
+      all: jest.fn().mockReturnValue([])
     }))
-  };
-});
+  }))
+};
+
+// duckdbモジュールをモック化
+jest.mock('duckdb', () => mockDuckDB);
+
+// ParquetDataStoreをモック
+const mockSaveCandles = jest.fn().mockResolvedValue(true);
+const mockClose = jest.fn().mockResolvedValue(undefined);
+const mockParquetDataStoreInstance = {
+  saveCandles: mockSaveCandles,
+  close: mockClose
+};
+
+// モッククラスとインスタンスを定義
+jest.mock('../../data/parquetDataStore', () => ({
+  ParquetDataStore: jest.fn().mockImplementation(() => mockParquetDataStoreInstance)
+}));
 
 // CCXT モック - 直接モック関数を設定
 jest.mock('ccxt', () => {
