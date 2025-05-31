@@ -4,9 +4,6 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
 const metrics = require('../../utils/metrics');
 const client = require('prom-client');
 
-// タイマーのグローバル設定
-jest.useFakeTimers();
-
 // expressサーバー関連のモック
 jest.mock('express', () => {
   // モックのExpressアプリケーションを返す関数
@@ -82,7 +79,8 @@ describe('Metrics Utility', () => {
   // テスト前にモックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
+    // タイマーをここで設定
+    jest.useFakeTimers({ doNotFake: [] });
 
     // expressモックのリセット
     const express = require('express');
@@ -112,8 +110,10 @@ describe('Metrics Utility', () => {
   });
   
   afterEach(() => {
-    jest.restoreAllMocks();
+    // モックとタイマーをリセット
+    jest.resetAllMocks();
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   describe('基本的なメトリクス更新', () => {
@@ -206,6 +206,8 @@ describe('Metrics Utility', () => {
       // 関数が呼び出されたことを確認
       expect(mockUpdateMetrics.startEngineLoopTimer).toHaveBeenCalledWith('trend');
 
+      // まずrunAllTimersを実行してから時間を進める
+      jest.runAllTimers();
       // 処理時間を模擬
       jest.advanceTimersByTime(150);
 
