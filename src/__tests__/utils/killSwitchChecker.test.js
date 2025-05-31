@@ -53,7 +53,7 @@ describe('killSwitchChecker', () => {
     console.error = mockConsoleError;
     
     // setTimeout をモック化して即時実行
-    jest.useFakeTimers();
+    jest.useFakeTimers({ doNotFake: [] });
   });
 
   afterEach(() => {
@@ -63,6 +63,7 @@ describe('killSwitchChecker', () => {
     console.error = originalConsoleError;
     
     // タイマーをリセット
+    jest.resetAllMocks();
     jest.useRealTimers();
   });
 
@@ -93,6 +94,8 @@ describe('killSwitchChecker', () => {
     expect(mockProcessExit).not.toHaveBeenCalled();
     expect(mockConsoleError).toHaveBeenCalled();
     
+    // タイマーを実行
+    jest.runAllTimers();
     // 500ms進める
     jest.advanceTimersByTime(500);
     expect(mockProcessExit).toHaveBeenCalledWith(99);
