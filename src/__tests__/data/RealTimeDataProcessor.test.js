@@ -58,7 +58,7 @@ describe('RealTimeDataProcessor', () => {
   // テスト前の準備
   beforeEach(() => {
     // タイマーをモック化
-    jest.useFakeTimers();
+    jest.useFakeTimers({ doNotFake: [] });
 
     // 新しいプロセッサーを作成
     processor = new RealTimeDataProcessor({
@@ -77,6 +77,7 @@ describe('RealTimeDataProcessor', () => {
     processor.stop();
     // クリーンアップ前にイベントリスナーを削除（メモリリーク防止）
     processor.removeAllListeners();
+    jest.resetAllMocks();
     jest.useRealTimers();
   });
 
