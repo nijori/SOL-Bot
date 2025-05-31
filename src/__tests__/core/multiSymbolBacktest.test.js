@@ -14,6 +14,22 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
  * 4. エッジケースを含む処理の正確性
  */
 
+// duckdbのモックを作成
+const mockDuckDB = {
+  Database: jest.fn().mockImplementation(() => ({
+    connect: jest.fn().mockImplementation(() => ({
+      exec: jest.fn(),
+      prepare: jest.fn().mockImplementation(() => ({
+        run: jest.fn()
+      })),
+      all: jest.fn().mockReturnValue([])
+    }))
+  }))
+};
+
+// duckdbモジュールをモック化
+jest.mock('duckdb', () => mockDuckDB);
+
 // ロガーのモックを作成
 const mockLogger = {
   debug: jest.fn(),
