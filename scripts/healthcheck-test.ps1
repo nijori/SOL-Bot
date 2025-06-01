@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 # SOL-Bot Healthcheck Test Script for PowerShell
 # docker-composeサービスのヘルスステータスをチェックします
 
@@ -14,6 +15,23 @@ function Write-Log {
     $logMessage = "[$timestamp] $Message"
     Write-Host $logMessage
     Add-Content -Path $LogFile -Value $logMessage
+}
+
+# Docker Desktopの実行状態を確認する関数
+function Test-DockerRunning {
+    try {
+        $result = docker info 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Log "エラー: Docker Desktopが実行されていません。Docker Desktopを起動してください。"
+            Write-Log "エラー詳細: $result"
+            return $false
+        }
+        return $true
+    }
+    catch {
+        Write-Log "エラー: Docker Desktopの状態確認中に例外が発生しました: $_"
+        return $false
+    }
 }
 
 # ヘルスチェック関数
@@ -71,6 +89,40 @@ function Test-ContainerHealth {
     return $false
 }
 
+# 簡易的なヘルスチェックテスト関数
+function Test-SimpleHealthcheck {
+    Write-Log "簡易的なヘルスチェックテストを実行します..."
+    
+    # test.ymlファイルを使用してnginxコンテナを起動
+    Write-Log "docker-compose.test.yml を使用してテスト環境を起動します..."
+    docker-compose -f docker-compose.test.yml up -d
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "エラー: テスト環境の起動に失敗しました"
+        return $false
+    }
+    
+    # nginx-testコンテナのヘルスチェック
+    if (Test-ContainerHealth -ContainerName "nginx-test" -Timeout 60) {
+        Write-Log "✅ nginx-test ヘルスチェックに成功しました"
+        
+        # テスト完了後にコンテナを停止
+        Write-Log "テスト環境を停止しています..."
+        docker-compose -f docker-compose.test.yml down
+        
+        return $true
+    }
+    else {
+        Write-Log "❌ nginx-test ヘルスチェックに失敗しました"
+        
+        # 失敗時もコンテナを停止
+        Write-Log "テスト環境を停止しています..."
+        docker-compose -f docker-compose.test.yml down
+        
+        return $false
+    }
+}
+
 # メイン処理
 function Start-HealthcheckTest {
     Write-Log "SOL-Bot ヘルスチェックテストを開始します"
@@ -78,6 +130,18 @@ function Start-HealthcheckTest {
     # 現在のディレクトリがプロジェクトルートか確認
     if (-not (Test-Path "docker-compose.yml")) {
         Write-Log "エラー: スクリプトはプロジェクトルートディレクトリから実行してください"
+        exit 1
+    }
+    
+    # Docker Desktopの実行状態を確認
+    if (-not (Test-DockerRunning)) {
+        Write-Log "Docker Desktopが実行されていません。Docker Desktopを起動してからスクリプトを再実行してください。"
+        exit 1
+    }
+    
+    # まず簡易的なヘルスチェックテストを実行
+    if (-not (Test-SimpleHealthcheck)) {
+        Write-Log "簡易的なヘルスチェックテストに失敗しました。Docker環境を確認してください。"
         exit 1
     }
     
