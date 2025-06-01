@@ -54,12 +54,12 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。アプリケーション起動時と定期実行時(5分ごと)にフラグをチェック。TradingEngineにも緊急停止機能を追加。テスト実装とドキュメント作成も完了。
 
-2. [x] INF-025: docker-compose Healthcheck 整備
+2. [ ] INF-025: docker-compose Healthcheck 整備
       - 📅 Due        : 2026-06-28
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
+      - 🩺 Health     : 🚑
+      - 📊 Progress   : 90%
       - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。Docker実行状態確認機能を追加したヘルスチェックテストスクリプトを実装。詳細な実装内容とテスト手順はREADME_INF_025.mdに記載済み。Docker環境での完全な動作確認はDockerが起動している環境で実施する必要あり。
 
 3. [x] INF-030: モジュール設定の修正 (CommonJS採用)
@@ -194,9 +194,9 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📅 Due        : 2026-06-29
       - 👤 Owner      : @operator
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : Terraform (or AWS CLI script) で AMI + security-group + EIP + user-data(docker install) を自動化。タグ `Env=stg` を付与。
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 75%
+      - ✎ Notes      : Terraform コードを作成（main.tf, variables.tf, outputs.tf, terraform.tfvars.example, README.md）。AMI + security-group + EIP + user-data(docker install) を自動化し、タグ `Env=stg` を付与。実際のAWSアカウント情報（VPC ID、サブネットID、アカウントID）をterraform.tfvarsに設定してterraform applyを実行する必要あり。
 
 5. [ ] SEC-007: GitHub OIDC AssumeRole 作成
       - 📅 Due        : 2026-06-29
