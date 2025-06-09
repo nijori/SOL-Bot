@@ -1,0 +1,467 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SOL-Bot アーカイブ
+
+## 🗓 2025-W51〜W52スプリント（12月16日〜12月29日）
+
+- [x] TST-003: スモークテストの取引シグナル生成対応
+      - 📅 Due        : 2025-12-18
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TradingEngine.executeStrategyを修正しスモークテスト用シグナル生成ロジックを実装、キャンドル数が不足していても強制的にシグナルを生成するように対応。スモークテスト実行で120件の取引が生成されることを確認。
+
+- [x] CONF-004b: adjustSlopePeriods閾値の外部設定化
+      - 📅 Due        : 2025-12-20
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : adjustSlopePeriods閾値をYAML設定ファイルに外出し、Optunaパラメータスペースを更新。スモークテスト実行で機能動作を確認完了。
+
+- [x] ALG-032: EMERGENCY戦略の解除ロジック追加
+      - 📅 Due        : 2025-12-20
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : priceChange < BLACK_SWAN_THRESHOLD/2 for 24h → normal strategy へ復帰する条件実装。スモークテストで機能動作を確認完了。
+
+- [x] CICD-003: OCO対応キーの修正 
+      - 📅 Due        : 2025-12-22
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : exchangeService.tsにsupportsOCO関数を追加し、両方の対応キー(createOCO/createOCOOrder)を検出可能に。テストも実装完了。
+
+- [x] TST-002: Jest+ts-jestで戦略ユニットテスト80%
+      - 📅 Due        : 2025-12-25
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : trendStrategy.test.tsとrangeStrategy.test.tsを実装。モックデータ生成関数を作成し、各戦略のすべての条件分岐をテスト。100%のテストカバレッジを達成。
+
+## 🗓 2025-W50スプリント（12月9日〜12月15日）
+
+- [x] INF-016: TradingEngine 依存注入リファクタ
+      - 📅 Due        : 2025-12-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : constructor(…, opts:{ oms, exchangeSvc })形式に変更しテスト容易化、モック注入可能に
+
+- [x] INF-017: parameters.yaml のmonitoring重複削除
+      - 📅 Due        : 2025-12-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : monitoringとmonitoring_executionセクションを統合し、単一パスからアクセス可能にしました
+
+- [x] BT-006: シャープレシオ計算をタイムフレーム対応
+      - 📅 Due        : 2025-12-11
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : BT-004
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : annualizedReturn/Stddev計算に適切なタイムフレーム対応を導入し、年間バー数を明示的に計算するよう改善
+
+- [x] OMS-011: cronタスクtimezone & 多重起動対策
+      - 📅 Due        : 2025-12-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : cron.schedule(opts,{timezone:'UTC'})と既存task.stop()の前にtask.destroy()処理を追加
+
+- [x] OMS-012: 注文実行エンジンの完成
+      - 📅 Due        : 2025-12-15
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 実際の注文処理エンジン実装。ExchangeServiceのOCO注文サポート検出を改善し、createOCOとcreateOCOOrderの両方をチェックするよう修正。
+
+## 🗓 2026-W01スプリント（1月1日〜1月7日）
+
+- [x] PERF-001: EMA/ATR計算のインクリメンタル化
+      - 📅 Due        : 2026-01-05
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : perf
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : EMA/ATR毎回全履歴再計算ではなく、増分計算方式に変更しパフォーマンス10倍改善
+
+- [x] INF-007: 本番用Dockerfileの作成
+      - 📅 Due        : 2025-12-28
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : node:18-slim, non-root user, multi-stage buildでRUN npm ci --prod対応
+
+- [x] INF-005: 本番環境の構築準備
+      - 📅 Due        : 2025-12-27
+      - 👤 Owner      : @nijor
+      - 🏷️ Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : EC2インスタンスを設定し、GitHub ActionsのworkflowファイルとSSHデプロイキーを生成。デプロイスクリプト、監視スクリプト、初期セットアップスクリプトを実装完了。
+
+## 🗓 2025-W48〜W50スプリント（12月2日〜12月15日）
+
+- [x] ALG-031: applyRiskFilters 呼び出し忘れを修正
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : RISK-003
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : TradingEngine.executeStrategyにsignals = applyRiskFilters(signals)追加完了、OMSのfillOrder連携も修正
+
+- [x] BT-005: バックテストに手数料・スリッページを反映 
+      - 📅 Due        : 2025-12-06
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : バックテスト時のスリッページと手数料計算を実装完了。TradingEngineとBacktestRunnerを修正。
+
+- [x] TST-001: P0修正後のバックテストスモークテスト
+      - 📅 Due        : 2025-12-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : test
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : smokeTest.ts実装完了、npm test:smokeコマンドで実行可能、検証・レポート機能追加
+
+- [x] ALG-015: バックテストランナーのコア機能の実装
+      - 📅 Due        : 2025-12-03
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : DAT-007
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : 基本的なバックテスト実行エンジンの開発
+      - 📊 Progress   : 100%
+
+- [x] DAT-007: Parquetファイル形式でのデータ保存の実装
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @assistant
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : ローソク足データを効率的に保存するためのデータストア実装
+      - 📊 Progress   : 100%
+
+- [x] INF-006: GitHub Actions CI/CDパイプラインの構築
+      - 📅 Due        : 2025-12-07
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : lint→test→build→deploy to EC2ワークフロー実装、ESLint/Prettier設定追加
+
+- [x] ALG-016: スモークテスト実行の修正
+      - 📅 Due        : 2025-12-10
+      - 👤 Owner      : @assistant
+      - 🔗 Depends-on : DAT-007
+      - 🏷️ Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Parquetデータストアの検索ロジックの修正とテスト実行環境の整備
+      - 📊 Progress   : 100%
+
+## 🗓 2025-W47スプリント - P0バグ修正
+
+- [x] ALG-030: TradingEngine.update() を実装 or 呼び出し修正
+      - 📅 Due        : 2025-11-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : BacktestRunnerでengine.update(candle)を呼んでいるがTradingEngineにupdate()が存在しない。updateMarketData+analyzeMarket+executeStrategyの順で呼ぶ
+
+- [x] OMS-010: closeAllPositions & engine-OMS hook
+      - 📅 Due        : 2025-11-21
+      - 👤 Owner      : @assistant
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : BacktestRunnerのengine.closeAllPositions()が未実装。TradingEngine側にstubか、OMSで全ポジション反対売買の実装が必要
+
+- [x] BT-004: シャープレシオ計算のタイムフレーム対応
+      - 📅 Due        : 2025-11-22
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : バックテスト計算でシャープレシオの日次換算が固定252日だが、1h/4h足でも同じ扱い。barsPerYear = 8760 / timeframeHoursで年間換算すべき
+
+- [x] ALG-016b: トレイリングストップ更新ロジック修正
+      - 📅 Due        : 2025-11-23
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : トレンド戦略のトレイリングストップ更新判定条件(entryPrice-ATR*F < newStopPrice)が常に真になる問題。position.stopPriceを保持して比較するよう修正
+
+- [x] RISK-003: リスクフィルター停止距離考慮の実装
+      - 📅 Due        : 2025-11-24
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : リスク計算にストップロス距離を考慮するよう修正。risk = orderAmount × stopDistanceの計算式を実装
+
+## 🗓 2025-W48スプリント - P1バグ修正
+
+- [x] ALG-020: EMA傾き計算のタイムフレーム対応
+      - 📅 Due        : 2025-12-01
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 年率換算係数から不要な "(periods/6)"を削除し、factor = (365*24/timeframeHours)の計算式に修正
+
+- [x] ALG-021: レンジ戦略のグリッド幅計算修正
+      - 📅 Due        : 2025-12-03
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : levelWidth計算式のバグで過剰グリッド生成。式をlevelWidth = (atrPercent/100) * GRID_ATR_MULTIPLIER * closePriceに修正
+
+- [x] INF-011b: HTTPリトライ設定の強化
+      - 📅 Due        : 2025-12-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : MAX_RETRIES=5だとBinanceのban対策に不十分。MAX_RETRIES=7 / delays [1,2,4,8,16,32,64]秒に変更
+
+## 🗓 2025-W23〜W24スプリント
+
+- [x] INF-001: テクニカル指標ライブラリのインポートエラー修正
+      - 📅 Due        : 2025-06-08
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : technicalindicatorsライブラリの型定義エラーをsrc/types/technicalindicators.d.tsファイルの作成で解決
+      - 📊 Progress   : 100%
+
+- [x] DAT-001: 1h 足データ取り込みジョブ
+      - 📅 Due        : 2025-06-10
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : MarketDataFetcherクラスを作成し、ccxtライブラリでデータ取得と保存を実装
+      - 📊 Progress   : 100%
+
+- [x] ALG-001: EMA傾き計算の最適化
+      - 📅 Due        : 2025-06-15
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : 線形回帰ベースのスロープ計算に改良し、ボラティリティに応じた動的期間調整を実装
+      - 📊 Progress   : 100%
+
+## 🗓 2025-W25〜W31スプリント
+
+- [x] ALG-002: Donchianブレイクアウト戦略の実装
+      - 📅 Due        : 2025-06-20
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Donchianチャネルを使用したブレイクアウト戦略を実装し、ATRベースのストップロス設定を追加
+      - 📊 Progress   : 100%
+
+- [x] OMS-001: 注文管理システムの基本実装
+      - 📅 Due        : 2025-06-25
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-002
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : OrderManagementSystemクラスを作成し、注文の作成・管理・ポジション追跡機能を実装
+      - 📊 Progress   : 100%
+
+- [x] DOC-001: APIエンドポイントのドキュメント作成
+      - 📅 Due        : 2025-06-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : doc
+      - 🩺 Health     : ✅
+      - ✎ Notes      : REST APIエンドポイントの詳細な使用方法ドキュメントをsrc/docs/APIEndpoints.mdに作成
+      - 📊 Progress   : 100%
+
+- [x] INF-002: index.tsのAPIレスポンス構文エラー修正
+      - 📅 Due        : 2025-06-18
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : res.json({ status:'running', mode:MODE, ...status })の形式を確認し正しく修正
+      - 📊 Progress   : 100%
+
+- [x] INF-003: parameters.tsの重複定義解消
+      - 📅 Due        : 2025-07-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : index.tsでのMODEの重複定義を解消し、parameters.tsのOPERATION_MODEに統一
+      - 📊 Progress   : 100%
+
+- [x] INF-008: Node.js開発環境のセットアップ
+      - 📅 Due        : 2025-07-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : tsconfig.jsonを修正し、ccxtとnode-cronの型定義ファイルを作成
+      - 📊 Progress   : 100%
+
+- [x] ALG-003: Regime判定ロジックの修正
+      - 📅 Due        : 2025-07-05
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : LOW_VOL→RangeEngine、HighVol→Trendという分岐を追加し、MarketEnvironmentとrecommendedStrategyに実装
+      - 📊 Progress   : 100%
+
+## 🗓 2025-W32〜W37スプリント
+
+- [x] ALG-004: Trend追従ロジックの改善
+      - 📅 Due        : 2025-07-10
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : ALG-002
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : trailingStop = ATR*1.2に変更。add-onポジション（+1Rごとに0.5R）を実装
+      - 📊 Progress   : 100%
+
+- [x] ALG-009: rangeStrategy.tsのレンジブレイク時決済方法の改善
+      - 📅 Due        : 2025-07-12
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : VWAPベースの指値注文とIceberg（分割）注文の実装で約定率を向上
+      - 📊 Progress   : 100%
+
+- [x] ALG-012: ブラックスワン検出ロジックの修正
+      - 📅 Due        : 2025-07-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : 24時間前の終値（previousDailyClose）を保持し、現在価格との比較で15%変動を検出するよう修正
+      - 📊 Progress   : 100%
+
+- [x] ALG-013: リスクフィルターの金額ベース計算への修正
+      - 📅 Due        : 2025-07-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : notional = amount × priceを使用してMAX_RISKと比較する実装に変更
+      - 📊 Progress   : 100%
+
+- [x] ALG-014: 日次PnL計算の修正
+      - 📅 Due        : 2025-07-31
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : 「午前0時残高」をキャッシュし現在残高との差分で日次PnLを正しく計算
+      - 📊 Progress   : 100%
+
+- [x] ALG-015-1: レジーム判定ロジックの修正
+      - 📅 Due        : 2025-08-02
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : LOW_VOL判定にEMA勾配チェック(0.15°)を追加し、ATR%閾値をパラメータ化
+      - 📊 Progress   : 100%
+
+- [x] OMS-003: 成行注文時のpriceパラメータ修正
+      - 📅 Due        : 2025-08-04
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : type===MARKETの場合はpriceパラメータを削除して取引所リジェクトを防止
+      - 📊 Progress   : 100%
+
+- [x] ALG-016-1: TrailingStopをATR×1.2に変更
+      - 📅 Due        : 2025-08-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : 固定3%のトレイリングストップをatr * 1.2の動的な値に変更
+      - 📊 Progress   : 100%
+
+- [x] OMS-002: 高度な注文タイプの実装
+      - 📅 Due        : 2025-08-08
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-001
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Post-Only + Hidden Iceberg / OCOをccxtで実装。発注オプションに追加
+      - 📊 Progress   : 100%
+
+- [x] ALG-017: 動的グリッド本数計算にATR%反映
+      - 📅 Due        : 2025-08-10
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : レンジ幅とATR%に基づいてceil(range/(ATR*0.6))でグリッド本数を動的計算
+      - 📊 Progress   : 100%
+
+## 🗓 2025-W38〜W41スプリント
+
+- [x] OMS-007: isRetryable関数の追加とエラーハンドリング強化
+      - 📅 Due        : 2025-09-20
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - ✎ Notes      : exchangeService.tsにisRetryable関数を追加し、429/5xx/ECONNRESETエラーを判定して再試行するよう実装
+      - 📊 Progress   : 100%
+
+- [x] OMS-008: フィル更新と未決済監視タスクの実装
+      - 📅 Due        : 2025-09-29
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : OMS-007
+      - 🏷️  Label      : feat
+      - 🩺 Health     : ✅
+      - ✎ Notes      : OrderManagementSystemにWebhook/RESTでの約定検知と定期的な未決済注文監視機能を追加
+      - 📊 Progress   : 100%
+
+## 🗓 2025-W42〜W46スプリント
+
+- [x] INF-015: Node.js開発環境の構築
+      - 📅 Due        : 2025-11-25
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : Node.jsとnpmをインストールし、依存関係をセットアップしてサンプルデータ生成と検証を実行可能にする
+      - 📊 Progress   : 100%
+
+- [x] INF-013: .envファイル設定の作成
+      - 📅 Due        : 2025-11-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : .envと.env.exampleにUSE_PARQUET、PARQUET_STORAGE_PATH、DUCKDB_設定を追加
+      - 📊 Progress   : 100%
+
+- [x] DEP-001: Parquet+DuckDBパッケージのインストール
+      - 📅 Due        : 2025-11-06
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : INF-013
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ✅
+      - ✎ Notes      : package.jsonにapache-arrow, duckdb, parquetjs, js-yamlパッケージを追加
+      - 📊 Progress   : 100%
+
+
+
