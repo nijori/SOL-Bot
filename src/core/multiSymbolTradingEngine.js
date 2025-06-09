@@ -17,48 +17,39 @@ const logger = require('../utils/logger').default;
 const { OrderManagementSystem } = require('./orderManagementSystem');
 const { calculatePearsonCorrelation } = require('../utils/mathUtils');
 const { volBasedAllocationWeights } = require('../indicators/marketState');
-const { AllocationStrategy } = require('../types/multiSymbolTypes');
-const { SystemMode } = require('../types/tradingEngineTypes');
+const { AllocationStrategy } = require('../types/multiSymbolTypes.js');
+const { SystemMode } = require('../types/tradingEngineTypes.js');
 const { OrderSide } = require('./types');
 
 /**
  * マルチシンボルトレーディングエンジン
  */
 class MultiSymbolTradingEngine {
-  private engines: Map<string, TradingEngine> = new Map();
-  private config: MultiSymbolEngineConfig;
-  private allocationWeights: Record<string, number> = {};
-  private portfolioEquity: number = 0;
-  private symbolsPnL: Record<string, number> = {};
-  private symbolsPositions: Record<string, Position[]> = {};
-  private correlationMatrix: Record<string, Record<string, number>> = {};
-  private lastCorrelationUpdate: number = 0;
-  private correlationUpdateInterval: number = 24 * 60 * 60 * 1000; // 24時間ごとに更新
-  private unifiedOrderManager: UnifiedOrderManager | null = null;
-  private isBacktest: boolean = false;
-  private quietMode: boolean = false;
-  private systemMode: SystemMode = SystemMode.NORMAL;
-  private previousCandles: Record<string, Candle[]> = {};
-  private equityHistory: { timestamp: number; total: number; bySymbol: Record<string, number> }[] =
-    [];
-
   /**
    * コンストラクタ
    * @param config マルチシンボルエンジン設定
    * @param options 共通オプション
    */
   constructor(
-    config: MultiSymbolEngineConfig,
-    options: {
-      isBacktest?: boolean;
-      unifiedOrderManager?: UnifiedOrderManager;
-      quiet?: boolean;
-    } = {}
+    config,
+    options = {}
   ) {
+    // プロパティ初期化
+    this.engines = new Map();
     this.config = config;
+    this.allocationWeights = {};
+    this.portfolioEquity = 0;
+    this.symbolsPnL = {};
+    this.symbolsPositions = {};
+    this.correlationMatrix = {};
+    this.lastCorrelationUpdate = 0;
+    this.correlationUpdateInterval = 24 * 60 * 60 * 1000; // 24時間ごとに更新
+    this.unifiedOrderManager = options.unifiedOrderManager || null;
     this.isBacktest = options.isBacktest || false;
     this.quietMode = options.quiet || false;
-    this.unifiedOrderManager = options.unifiedOrderManager || null;
+    this.systemMode = SystemMode.NORMAL;
+    this.previousCandles = {};
+    this.equityHistory = [];
 
     // 資金配分比率を計算
     this.calculateAllocationWeights();
@@ -79,7 +70,7 @@ class MultiSymbolTradingEngine {
   /**
    * 資金配分比率を計算
    */
-  private calculateAllocationWeights(): void {
+  calculateAllocationWeights() {
     const strategy = this.config.allocationStrategy || AllocationStrategy.EQUAL;
     const symbols = this.config.symbols;
 
@@ -94,11 +85,12 @@ class MultiSymbolTradingEngine {
 
       case AllocationStrategy.CUSTOM:
         // カスタム配分（symbolParamsから取得）
-        const customWeights: Record<string, number> = {};
+        const customWeights = {};
         let totalWeight = 0;
 
         symbols.forEach((symbol) => {
-          const weight = (this.config.symbolParams?.[symbol] as any)?.weight || 1;
+          const symbolParams = this.config.symbolParams && this.config.symbolParams[symbol];
+          const weight = (symbolParams && symbolParams.weight) || 1;
           customWeights[symbol] = weight;
           totalWeight += weight;
         });
@@ -171,7 +163,7 @@ class MultiSymbolTradingEngine {
   /**
    * 各シンボル用のトレーディングエンジンを初期化
    */
-  private initializeEngines(): void {
+  initializeEngines() {
     // UnifiedOrderManagerが指定されていない場合は作成
     if (!this.unifiedOrderManager && !this.isBacktest) {
       this.unifiedOrderManager = new UnifiedOrderManager();
@@ -180,14 +172,16 @@ class MultiSymbolTradingEngine {
       this.config.symbols.forEach((symbol, index) => {
         const exchangeService = new ExchangeService();
         // 実際の実装では取引所との接続設定を行う
-        this.unifiedOrderManager?.addExchange(symbol, exchangeService, index + 1);
+        if (this.unifiedOrderManager) {
+          this.unifiedOrderManager.addExchange(symbol, exchangeService, index + 1);
+        }
       });
     }
 
     // シンボルごとのトレーディングエンジンを作成
     this.config.symbols.forEach((symbol) => {
       // シンボル固有のパラメータ設定
-      const symbolParams = this.config.symbolParams?.[symbol] || {};
+      const symbolParams = (this.config.symbolParams && this.config.symbolParams[symbol]) || {};
 
       // バックテストの場合は残高を配分比率に合わせて調整
       const initialBalance = this.isBacktest
@@ -198,7 +192,7 @@ class MultiSymbolTradingEngine {
       const oms = new OrderManagementSystem();
 
       // トレーディングエンジンのオプション
-      const engineOptions: TradingEngineOptions = {
+      const engineOptions = {
         symbol: symbol,
         timeframeHours: Array.isArray(this.config.timeframeHours)
           ? this.config.timeframeHours[0]
@@ -233,13 +227,14 @@ class MultiSymbolTradingEngine {
    * キャンドルデータでエンジンを更新
    * @param candles シンボルごとのキャンドルデータ
    */
-  public async update(candles: Record<string, Candle>): Promise<void> {
+      async update(candles) {
     // メインのタイムスタンプを取得（最初のキャンドルから）
-    const timestamp = Object.values(candles)[0]?.timestamp || Date.now();
+    const firstCandle = Object.values(candles)[0];
+    const timestamp = (firstCandle && firstCandle.timestamp) || Date.now();
 
     // 各シンボルのエンジンを更新
-    const updatePromises: Promise<void>[] = [];
-    const signalsBySymbol: Record<string, Order[]> = {};
+    const updatePromises = [];
+    const signalsBySymbol = {};
 
     // エンジン更新とシグナル取得
     for (const [symbol, engine] of this.engines.entries()) {
@@ -261,7 +256,7 @@ class MultiSymbolTradingEngine {
         this.symbolsPositions[symbol] = engine.getPositions();
 
         // シグナルを収集
-        const signals = engine.getRecentSignals?.() || [];
+        const signals = (engine.getRecentSignals && engine.getRecentSignals()) || [];
         if (signals.length > 0) {
           signalsBySymbol[symbol] = signals;
         }
@@ -316,9 +311,9 @@ class MultiSymbolTradingEngine {
   /**
    * ポートフォリオのリスク分析を実行
    */
-  private analyzePortfolioRisk(): PortfolioRiskAnalysis {
+  analyzePortfolioRisk() {
     // 各シンボルのポジションと価値を取得
-    const positionsBySymbol: Record<string, { long: number; short: number; value: number }> = {};
+    const positionsBySymbol = {};
     let totalPositionValue = 0;
     let maxPositionRatio = 0;
 
@@ -415,16 +410,16 @@ class MultiSymbolTradingEngine {
   /**
    * リスク分析に基づいてシグナルをフィルタリング
    */
-  private filterSignalsByRisk(
-    signalsBySymbol: Record<string, Order[]>,
-    riskAnalysis: PortfolioRiskAnalysis
-  ): Record<string, Order[]> {
-    const filteredSignals: Record<string, Order[]> = {};
+  filterSignalsByRisk(
+    signalsBySymbol,
+    riskAnalysis
+  ) {
+          const filteredSignals = {};
     const portfolioRiskLimit = this.config.portfolioRiskLimit || 0.2; // デフォルト20%
 
     // シグナルをフィルタリング
     for (const [symbol, signals] of Object.entries(signalsBySymbol)) {
-      const filteredSymbolSignals: Order[] = [];
+              const filteredSymbolSignals = [];
 
       for (const signal of signals) {
         // 各シグナルのリスク評価
@@ -489,12 +484,12 @@ class MultiSymbolTradingEngine {
   /**
    * シグナルの予想価値を見積もる
    */
-  private estimateSignalValue(signal: Order): number {
+  estimateSignalValue(signal) {
     // 簡易的な実装: 注文金額（量 * 価格）を返す
     const engine = this.engines.get(signal.symbol);
     if (!engine) return 0;
 
-    const currentPrice = engine.getCurrentPrice?.() || 0;
+    const currentPrice = (engine.getCurrentPrice && engine.getCurrentPrice()) || 0;
     const price = signal.price || currentPrice;
 
     return signal.amount * price;
@@ -503,7 +498,7 @@ class MultiSymbolTradingEngine {
   /**
    * 特定シンボルの現在のリスク比率を取得
    */
-  private getCurrentSymbolRisk(symbol: string): number {
+  getCurrentSymbolRisk(symbol) {
     // 簡易的な実装: 現在のポジション価値 / ポートフォリオ資産
     const positions = this.symbolsPositions[symbol] || [];
     let positionValue = 0;
@@ -518,8 +513,8 @@ class MultiSymbolTradingEngine {
   /**
    * 高相関ペアのリストを取得
    */
-  private getHighlyCorrelatedPairs(threshold: number): [string, string][] {
-    const pairs: [string, string][] = [];
+  getHighlyCorrelatedPairs(threshold) {
+          const pairs = [];
     const symbols = Object.keys(this.correlationMatrix);
 
     for (let i = 0; i < symbols.length; i++) {
@@ -543,9 +538,9 @@ class MultiSymbolTradingEngine {
   /**
    * 2つのシグナル配列が同方向かチェック
    */
-  private areSameDirectionSignals(signalsA: Order[], signalsB: Order[]): boolean {
+  areSameDirectionSignals(signalsA, signalsB) {
     // シグナル配列内での優勢な方向を判断
-    const getNetDirection = (signals: Order[]): OrderSide | null => {
+    const getNetDirection = (signals) => {
       let buyCount = 0;
       let sellCount = 0;
 
@@ -571,9 +566,9 @@ class MultiSymbolTradingEngine {
   /**
    * 相関行列を更新
    */
-  private updateCorrelationMatrix(): void {
+  updateCorrelationMatrix() {
     const symbols = this.config.symbols;
-    const returns: Record<string, number[]> = {};
+          const returns = {};
 
     // 各シンボルのリターン系列を計算
     for (const symbol of symbols) {
@@ -633,13 +628,13 @@ class MultiSymbolTradingEngine {
   /**
    * エクイティ履歴を更新
    */
-  private updateEquityHistory(timestamp: number | string): void {
+  updateEquityHistory(timestamp) {
     // タイムスタンプを数値に変換
     const numericTimestamp = typeof timestamp === 'string' 
       ? new Date(timestamp).getTime() 
       : timestamp;
     
-    const equityBySymbol: Record<string, number> = {};
+    const equityBySymbol = {};
     let totalEquity = 0;
 
     // 各シンボルのエクイティを取得
@@ -667,46 +662,42 @@ class MultiSymbolTradingEngine {
   /**
    * 現在のポートフォリオエクイティを取得
    */
-  public getPortfolioEquity(): number {
+  getPortfolioEquity() {
     return this.portfolioEquity;
   }
 
   /**
    * エクイティ履歴を取得
    */
-  public getEquityHistory(): {
-    timestamp: number;
-    total: number;
-    bySymbol: Record<string, number>;
-  }[] {
+  getEquityHistory() {
     return this.equityHistory;
   }
 
   /**
    * 各シンボルのポジションを取得
    */
-  public getAllPositions(): Record<string, Position[]> {
+  getAllPositions() {
     return this.symbolsPositions;
   }
 
   /**
    * 特定シンボルのエンジンを取得
    */
-  public getEngine(symbol: string): TradingEngine | undefined {
+  getEngine(symbol) {
     return this.engines.get(symbol);
   }
 
   /**
    * 全体システムモードを取得
    */
-  public getSystemMode(): SystemMode {
+  getSystemMode() {
     return this.systemMode;
   }
 
   /**
    * システムモードを設定
    */
-  public setSystemMode(mode: SystemMode): void {
+  setSystemMode(mode) {
     this.systemMode = mode;
     
     // 各エンジンにもモードを伝播
@@ -723,14 +714,14 @@ class MultiSymbolTradingEngine {
   /**
    * 最近のポートフォリオリスク分析を取得
    */
-  public getPortfolioRiskAnalysis(): PortfolioRiskAnalysis {
+  getPortfolioRiskAnalysis() {
     return this.analyzePortfolioRisk();
   }
 
   /**
    * シンボル間の相関行列を取得
    */
-  public getCorrelationMatrix(): Record<string, Record<string, number>> {
+  getCorrelationMatrix() {
     return this.correlationMatrix;
   }
 
@@ -738,13 +729,13 @@ class MultiSymbolTradingEngine {
    * 全シンボルのシグナルを処理
    * 注: テスト用に追加されたメソッド
    */
-  public async processAllSignals(): Promise<void> {
-    // 各シンボルからシグナルを収集
-    const signalsBySymbol: Record<string, Order[]> = {};
+  async processAllSignals() {
+          // 各シンボルからシグナルを収集
+      const signalsBySymbol = {};
     
     for (const [symbol, engine] of this.engines.entries()) {
       // シグナルを収集
-      const signals = engine.getRecentSignals?.() || [];
+              const signals = (engine.getRecentSignals && engine.getRecentSignals()) || [];
       if (signals.length > 0) {
         signalsBySymbol[symbol] = signals;
       }
@@ -784,6 +775,3 @@ class MultiSymbolTradingEngine {
 
 // CommonJS エクスポート
 module.exports = { MultiSymbolTradingEngine };
-
-// TypeScript用のESモジュールエクスポート（互換性のため）
-export { MultiSymbolTradingEngine };

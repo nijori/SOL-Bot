@@ -206,9 +206,9 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : REF-035
       - 🏷️  Label      : refactor
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : multiSymbol系ファイルのネイティブスタックトレースエラー修正。無効化ファイル：UnifiedOrderManager.test.js, multiSymbolTradingEngine.test.js, multiExchangeIntegration.test.js, multiSymbolBacktest.test.js, multiSymbolBacktestRunner.test.js。CommonJSローダーでのNode.jsレベルエラー解決が必要。
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 75%
+      - ✎ Notes      : multiSymbolTradingEngine.ts→.js変換完了、multiSymbolTypes.ts→.js変換完了、DuckDBモック実装完了。ネイティブスタックトレースエラーは@jest/transformの_convertSourceMapで発生、根本原因未解決。一時的にmultiSymbolTradingEngineテストを除外し、他の全テスト（23 suites, 209 tests）は正常通過。
 
 11. [ ] REF-037: TypeScript/Jest統合エラー修正 - utils/types系ファイル修正
       - 📅 Due        : 2026-07-15
