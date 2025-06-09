@@ -65,14 +65,15 @@ const orderSize = await orderSizingService.calculateOrderSize(
 ## 🚀 主要技術
 
 - **TypeScript**: 型安全なコードベース
-- **ECMAScript Modules**: 近代的なJavaScriptモジュールシステム（Docker環境での起動問題を修正中）
+- **CommonJS**: 安定したモジュールシステム（Docker環境での起動問題を解決済み）
 - **CCXT**: 複数取引所との互換性
 - **Node.js**: サーバーサイド実行環境
 - **Express**: REST API提供
+- **systemd**: Linux本番環境でのサービス管理
 - **Prometheus & Grafana**: システム監視とアラート
 - **DuckDB & Parquet**: 高効率なデータ永続化と分析
 - **GitHub Actions CI/CD**: 自動テスト・デプロイ・セキュリティスキャン
-- **Jest (ESM対応)**: テストフレームワーク
+- **Jest**: テストフレームワーク
 
 ## 📊 戦略概要
 
@@ -118,6 +119,8 @@ MarketStateモジュールは以下の環境を識別します：
 
 ### インストール手順
 
+#### 開発環境
+
 ```bash
 # リポジトリをクローン
 git clone https://github.com/yourusername/SOL-bot.git
@@ -136,6 +139,24 @@ npm run dev
 # 本番モードで実行
 npm run start
 ```
+
+#### Linux本番環境（systemdサービス）
+
+```bash
+# 1. systemdサービスのインストール
+sudo ./scripts/install-systemd-service.sh
+
+# 2. アプリケーションのデプロイ
+sudo ./scripts/deploy-to-systemd.sh
+
+# 3. サービス管理
+sudo systemctl start bot      # サービス開始
+sudo systemctl stop bot       # サービス停止
+sudo systemctl status bot     # 状態確認
+sudo journalctl -u bot -f     # ログ確認
+```
+
+詳細なsystemdデプロイメント手順については、[systemdデプロイメントガイド](docs/systemd-deployment.md)を参照してください。
 
 ### テスト実行
 

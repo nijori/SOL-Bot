@@ -49,8 +49,11 @@ SOL-Bot/
 │   ├── index.md                # ドキュメント索引
 │   ├── Docker-Setup.md         # Docker環境構築ガイド
 │   ├── AWS-S3-SETUP.md         # AWS S3/Glacier設定ガイド
+│   ├── systemd-deployment.md   # systemdサービスデプロイメントガイド
 │   └── gitleaks-setup.md       # Gitleaksセキュリティスキャン設定ガイド
 ├── infra/                      # インフラストラクチャ
+│   ├── systemd/                # systemdサービス設定
+│   │   └── bot.service         # systemdサービスファイル（TimeoutStopSec=30、セキュリティ強化設定）
 │   └── terraform/              # Terraform IaC定義
 │       └── staging/            # ステージング環境
 │           ├── main.tf         # 主要リソース定義（EC2、セキュリティグループ、IAM）
@@ -67,7 +70,9 @@ SOL-Bot/
 ├── scripts/                    # 運用スクリプト
 │   ├── deploy.sh               # デプロイ自動化スクリプト
 │   ├── monitor.sh              # システム監視スクリプト
-│   └── ec2-setup.sh            # EC2初期セットアップスクリプト
+│   ├── ec2-setup.sh            # EC2初期セットアップスクリプト
+│   ├── install-systemd-service.sh # systemdサービスインストールスクリプト
+│   └── deploy-to-systemd.sh    # systemd環境へのデプロイスクリプト
 ├── src/                        # ソースコード
 │   ├── __tests__/              # テストコード
 │   ├── config/                 # 設定ファイル、パラメータ定義
@@ -480,6 +485,41 @@ EC2インスタンス起動時に以下が自動インストール・設定さ�
 - **停止/開始**: 使用しない時間帯の停止によるコスト削減
 - **Terraformステート**: terraform.tfstateファイルの適切な管理
 - **機密情報**: terraform.tfvarsファイルのGit除外
+
+### systemdサービス管理
+
+**INF-027タスクで実装済み** ✅
+
+- **systemdサービスファイル** (`infra/systemd/bot.service`):
+  - TimeoutStopSec=30による適切なプロセス終了
+  - KillMode=mixedによる安全なプロセス管理
+  - セキュリティ強化設定（NoNewPrivileges, PrivateTmp等）
+  - 自動再起動とリソース制限設定
+  - systemd journalとの統合ログ管理
+
+- **インストールスクリプト** (`scripts/install-systemd-service.sh`):
+  - solbotシステムユーザーの自動作成
+  - /opt/solbot/ディレクトリ構造の設定
+  - systemdサービスの有効化と設定
+
+- **デプロイスクリプト** (`scripts/deploy-to-systemd.sh`):
+  - アプリケーションファイルの安全なデプロイ
+  - 依存関係の自動インストール
+  - サービスの起動確認とヘルスチェック
+  - バックアップ機能付きの無停止デプロイ
+
+- **運用管理**:
+  ```bash
+  # サービス管理
+  sudo systemctl start bot
+  sudo systemctl stop bot
+  sudo systemctl restart bot
+  sudo systemctl status bot
+  
+  # ログ確認
+  sudo journalctl -u bot -f
+  sudo journalctl -u bot -n 50
+  ```
 
 ### 今後の拡張計画
 
