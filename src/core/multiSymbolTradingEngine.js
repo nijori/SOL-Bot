@@ -15,9 +15,8 @@ const { OrderSizingService } = require('../services/orderSizingService');
 const { SymbolInfoService } = require('../services/symbolInfoService');
 const logger = require('../utils/logger').default;
 const { OrderManagementSystem } = require('./orderManagementSystem');
-const { calculatePearsonCorrelation } = require('../utils/mathUtils');
-const { volBasedAllocationWeights } = require('../indicators/marketState');
-const { AllocationStrategy } = require('../types/multiSymbolTypes.js');
+const { AllocationManager } = require('./AllocationManager');
+const { PortfolioRiskAnalyzer } = require('./PortfolioRiskAnalyzer');
 const { SystemMode } = require('../types/tradingEngineTypes.js');
 const { OrderSide } = require('./types');
 
@@ -37,13 +36,9 @@ class MultiSymbolTradingEngine {
     // プロパティ初期化
     this.engines = new Map();
     this.config = config;
-    this.allocationWeights = {};
     this.portfolioEquity = 0;
     this.symbolsPnL = {};
     this.symbolsPositions = {};
-    this.correlationMatrix = {};
-    this.lastCorrelationUpdate = 0;
-    this.correlationUpdateInterval = 24 * 60 * 60 * 1000; // 24時間ごとに更新
     this.unifiedOrderManager = options.unifiedOrderManager || null;
     this.isBacktest = options.isBacktest || false;
     this.quietMode = options.quiet || false;
@@ -51,8 +46,9 @@ class MultiSymbolTradingEngine {
     this.previousCandles = {};
     this.equityHistory = [];
 
-    // 資金配分比率を計算
-    this.calculateAllocationWeights();
+    // 分離したモジュールを初期化
+    this.allocationManager = new AllocationManager(config, options);
+    this.riskAnalyzer = new PortfolioRiskAnalyzer(options);
 
     // エンジンの初期化
     this.initializeEngines();
@@ -61,103 +57,14 @@ class MultiSymbolTradingEngine {
       logger.info(
         `[MultiSymbolTradingEngine] ${config.symbols.length}個のシンボルで初期化しました`
       );
-      logger.info(
-        `[MultiSymbolTradingEngine] 資金配分戦略: ${config.allocationStrategy || AllocationStrategy.EQUAL}`
-      );
     }
   }
 
   /**
-   * 資金配分比率を計算
+   * 資金配分比率を取得（AllocationManagerから）
    */
-  calculateAllocationWeights() {
-    const strategy = this.config.allocationStrategy || AllocationStrategy.EQUAL;
-    const symbols = this.config.symbols;
-
-    switch (strategy) {
-      case AllocationStrategy.EQUAL:
-        // 均等配分
-        const equalWeight = 1 / symbols.length;
-        symbols.forEach((symbol) => {
-          this.allocationWeights[symbol] = equalWeight;
-        });
-        break;
-
-      case AllocationStrategy.CUSTOM:
-        // カスタム配分（symbolParamsから取得）
-        const customWeights = {};
-        let totalWeight = 0;
-
-        symbols.forEach((symbol) => {
-          const symbolParams = this.config.symbolParams && this.config.symbolParams[symbol];
-          const weight = (symbolParams && symbolParams.weight) || 1;
-          customWeights[symbol] = weight;
-          totalWeight += weight;
-        });
-
-        // 合計が1になるように正規化
-        symbols.forEach((symbol) => {
-          this.allocationWeights[symbol] = customWeights[symbol] / totalWeight;
-        });
-        break;
-
-      case AllocationStrategy.VOLATILITY:
-        // ATRなどのボラティリティ指標を使用して逆比例配分
-        if (this.previousCandles && Object.keys(this.previousCandles).length > 0) {
-          try {
-            // 十分なデータがある場合はボラティリティベースの配分を計算
-            this.allocationWeights = volBasedAllocationWeights(this.previousCandles);
-          } catch (error) {
-            // エラー時は均等配分にフォールバック
-            symbols.forEach((symbol) => {
-              this.allocationWeights[symbol] = 1 / symbols.length;
-            });
-            if (!this.quietMode) {
-              logger.error(
-                `[MultiSymbolTradingEngine] ボラティリティ配分計算エラー: ${error instanceof Error ? error.message : String(error)}`
-              );
-              logger.warn(
-                `[MultiSymbolTradingEngine] ボラティリティ配分計算に失敗したため均等配分を使用します`
-              );
-            }
-          }
-        } else {
-          // データ不足の場合は均等配分を使用
-          symbols.forEach((symbol) => {
-            this.allocationWeights[symbol] = 1 / symbols.length;
-          });
-          if (!this.quietMode) {
-            logger.warn(
-              `[MultiSymbolTradingEngine] キャンドルデータ不足のため均等配分を使用します`
-            );
-          }
-        }
-        break;
-
-      case AllocationStrategy.MARKET_CAP:
-        // 実装時は時価総額データを使用
-        // 現時点では簡易的に均等配分
-        symbols.forEach((symbol) => {
-          this.allocationWeights[symbol] = 1 / symbols.length;
-        });
-        if (!this.quietMode) {
-          logger.warn(`[MultiSymbolTradingEngine] 時価総額配分は未実装のため均等配分を使用します`);
-        }
-        break;
-
-      default:
-        // デフォルトは均等配分
-        symbols.forEach((symbol) => {
-          this.allocationWeights[symbol] = 1 / symbols.length;
-        });
-    }
-
-    if (!this.quietMode) {
-      logger.info(`[MultiSymbolTradingEngine] 資金配分比率:`);
-      Object.entries(this.allocationWeights).forEach(([symbol, weight]) => {
-        logger.info(`  ${symbol}: ${(weight * 100).toFixed(2)}%`);
-      });
-    }
+  getAllocationWeights() {
+    return this.allocationManager.getAllocationWeights();
   }
 
   /**
@@ -184,9 +91,10 @@ class MultiSymbolTradingEngine {
       const symbolParams = (this.config.symbolParams && this.config.symbolParams[symbol]) || {};
 
       // バックテストの場合は残高を配分比率に合わせて調整
+      const baseBalance = symbolParams.initialBalance || 10000;
       const initialBalance = this.isBacktest
-        ? (symbolParams.initialBalance || 10000) * this.allocationWeights[symbol]
-        : symbolParams.initialBalance || 10000;
+        ? this.allocationManager.calculateInitialBalance(symbol, baseBalance)
+        : baseBalance;
 
       // 各シンボル用のOrderManagementSystemを作成
       const oms = new OrderManagementSystem();
