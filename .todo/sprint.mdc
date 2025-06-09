@@ -86,13 +86,13 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : 完了！TradingEngineでrangeStrategy/meanRevertStrategy/DonchianBreakoutStrategyのrequire文から.js拡張子を削除。「Cannot find module '../strategies/rangeStrategy.js'」エラーを解消し、レンジ戦略が正常実行されることを確認。CommonJS環境での戦略モジュール読み込み問題を完全解決。
 
-5. [ ] SEC-007: GitHub OIDC AssumeRole 作成
+5. [x] SEC-007: GitHub OIDC AssumeRole 作成
       - 📅 Due        : 2026-06-29
       - 👤 Owner      : @assistant
       - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : IAM Role `solbot-ci` を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:sol-bot/*` を許可。最小権限ポリシーは EC2:start/stop, SSM:GetParameter, ECR:GetAuth 等。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 完了！IAM Role `solbot-ci` (arn:aws:iam::475538532274:role/solbot-ci) を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:nijor/SOL_bot:*` を許可。最小権限ポリシー（EC2:start/stop, SSM:GetParameter, ECR:GetAuth, S3:GetObject/PutObject）を設定。GitHub ActionsからAWS OIDCを使用したロールベース認証が利用可能。AWS設定情報はaws-oidc-setup.mdに記載
 
 6. [ ] INF-027: bot.service (systemd) ユニット実装
       - 📅 Due        : 2026-06-30
