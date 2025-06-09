@@ -9,7 +9,7 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
 
 // テスト対象のモジュールをインポート
 const { ATRCalibrator, CalibrationResult, atrCalibrator } = require('../../utils/atrCalibrator');
-const { calculateATR } = require('../../utils/atrUtils');
+const atrUtils = require('../../utils/atrUtils');
 const { parameterService } = require('../../config/parameterService');
 
 // パラメータサービスをモック
@@ -334,23 +334,18 @@ describe('ATRCalibrator', () => {
   describe('キャッシュ機能', () => {
     test('キャッシュが正しく機能する', () => {
       // このテストではオリジナルのcalibrateATRを使用するように戻す
-      jest.restoreAllMocks();
+      ATRCalibrator.prototype.calibrateATR = originalCalibrateATR;
       
       const symbol = 'XRP/USDT';
       const candles = createMockCandles(50, 0.5, 0.05, 1, symbol);
 
-      // spyOnをカスタマイズする
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
-      calculateATRSpy.mockReturnValue(0.015); // 0.5の3%
+      // calculateATRをモック
+      const calculateATRMock = jest.fn().mockReturnValue(0.015); // 0.5の3%
+      atrUtils.calculateATR = calculateATRMock;
       
-      // calculateAveragePriceもモック
-      // プライベートメソッドにアクセス
+      // プライベートメソッドをモック
       jest.spyOn(ATRCalibrator.prototype, 'calculateAveragePrice').mockReturnValue(0.5);
-      
-      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'classifyVolatility').mockReturnValue('MEDIUM');
-      
-      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateOptimalParameters').mockReturnValue({
         atrPercentageThreshold: 3.3,
         trailingStopFactor: 1.5,
@@ -361,33 +356,33 @@ describe('ATRCalibrator', () => {
       // 1回目のキャリブレーション
       const result1 = calibrator.calibrateATR(symbol, candles);
 
-      // スパイ呼び出し回数を確認
-      expect(calculateATRSpy).toHaveBeenCalled();
-      calculateATRSpy.mockClear(); // スパイをリセット
+      // モック呼び出し回数を確認
+      expect(calculateATRMock).toHaveBeenCalled();
+      calculateATRMock.mockClear(); // モックをリセット
 
       // 2回目のキャリブレーション（キャッシュを使用する）
       const result2 = calibrator.calibrateATR(symbol, candles);
 
       // calculateATRが呼ばれていないことを確認（キャッシュが使われた）
-      expect(calculateATRSpy).not.toHaveBeenCalled();
+      expect(calculateATRMock).not.toHaveBeenCalled();
 
       // 結果が同じであることを確認
       expect(result2).toEqual(result1);
 
       // キャッシュを無効化
       calibrator.invalidateCache(symbol);
-      calculateATRSpy.mockClear(); // スパイをリセット
+      calculateATRMock.mockClear(); // モックをリセット
 
       // 3回目のキャリブレーション（キャッシュが無効化されたので再計算）
       const result3 = calibrator.calibrateATR(symbol, candles);
 
       // calculateATRが呼ばれたことを確認（再計算された）
-      expect(calculateATRSpy).toHaveBeenCalled();
+      expect(calculateATRMock).toHaveBeenCalled();
     });
 
     test('キャッシュのTTLが正しく機能する', (done) => {
       // このテストではオリジナルのcalibrateATRを使用するように戻す
-      jest.restoreAllMocks();
+      ATRCalibrator.prototype.calibrateATR = originalCalibrateATR;
       
       // TTLを短く設定
       calibrator.setCacheTTL(0.001); // 0.001時間 = 3.6秒
@@ -395,17 +390,13 @@ describe('ATRCalibrator', () => {
       const symbol = 'LINK/USDT';
       const candles = createMockCandles(50, 20, 0.05, 1, symbol);
 
-      const calculateATRSpy = jest.spyOn(require('../../utils/atrUtils'), 'calculateATR');
-      calculateATRSpy.mockReturnValue(0.6); // 20の3%
+      // calculateATRをモック
+      const calculateATRMock = jest.fn().mockReturnValue(0.6); // 20の3%
+      atrUtils.calculateATR = calculateATRMock;
       
-      // calculateAveragePriceもモック
-      // プライベートメソッドにアクセス
+      // プライベートメソッドをモック
       jest.spyOn(ATRCalibrator.prototype, 'calculateAveragePrice').mockReturnValue(20);
-      
-      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'classifyVolatility').mockReturnValue('MEDIUM');
-      
-      // プライベートメソッドにアクセス
       jest.spyOn(ATRCalibrator.prototype, 'calculateOptimalParameters').mockReturnValue({
         atrPercentageThreshold: 3.3,
         trailingStopFactor: 1.5,
@@ -417,15 +408,15 @@ describe('ATRCalibrator', () => {
       calibrator.calibrateATR(symbol, candles);
 
       // キャッシュが生きていることを確認
-      calculateATRSpy.mockClear();
+      calculateATRMock.mockClear();
       calibrator.calibrateATR(symbol, candles);
-      expect(calculateATRSpy).not.toHaveBeenCalled();
+      expect(calculateATRMock).not.toHaveBeenCalled();
 
       // 4秒後にもう一度試行（キャッシュが期限切れになるはず）
       setTimeout(() => {
-        calculateATRSpy.mockClear();
+        calculateATRMock.mockClear();
         calibrator.calibrateATR(symbol, candles);
-        expect(calculateATRSpy).toHaveBeenCalled();
+        expect(calculateATRMock).toHaveBeenCalled();
         done();
       }, 4000);
     }, 5000);

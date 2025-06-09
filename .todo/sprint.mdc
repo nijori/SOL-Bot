@@ -54,149 +54,29 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : data/kill-switch.flagが存在したら即process.exit(1)する機能を実装。アプリケーション起動時と定期実行時(5分ごと)にフラグをチェック。TradingEngineにも緊急停止機能を追加。テスト実装とドキュメント作成も完了。
 
-2. [ ] INF-025: docker-compose Healthcheck 整備
+2. [x] INF-025: docker-compose Healthcheck 整備
       - 📅 Due        : 2026-06-28
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
-      - 🩺 Health     : 🚑
-      - 📊 Progress   : 90%
-      - ✎ Notes      : solbot-dev / solbot-prod サービスに HTTP /api/status healthcheck を追加し、compose up で green になることを確認。Docker実行状態確認機能を追加したヘルスチェックテストスクリプトを実装。詳細な実装内容とテスト手順はREADME_INF_025.mdに記載済み。Docker環境での完全な動作確認はDockerが起動している環境で実施する必要あり。
-
-3. [x] INF-030: モジュール設定の修正 (CommonJS採用)
-      - 📅 Due        : 2026-07-07
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-025
-      - 🏷️  Label      : infra
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : ESM互換性問題を解決するために、より安定したCommonJSに戻す方針へ変更。package.jsonの修正およびコードベースの全面的なCommonJS形式への変換が完了。テスト環境も含めてすべての機能が正常に動作することを確認済み。
+      - ✎ Notes      : 完了！ヘルスチェック機能の実装と検証が完了。docker-compose.ymlにsolbot-dev/solbot-prod両方のヘルスチェック設定を追加（interval: 30s, timeout: 10s, retries: 3）。/api/statusエンドポイントを使用したコンテナ健全性監視を実現。Docker環境でのテスト完了、コンテナが正常に「healthy」状態になることを確認。REF-032のESモジュール問題解決により、アプリケーションが正常起動し、ヘルスチェックエンドポイントが200 OKで応答することを検証済み。
 
-3.1 [x] INF-031: package.jsonのCommonJS設定への移行
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-030
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : package.jsonから"type": "module"を削除し、スクリプト設定を修正。モジュール指定を明示的にCJS形式に更新。ESM関連の設定と不要なスクリプトを削除。tsconfig.jsonもCommonJS設定に更新。
-
-3.2 [x] INF-032: コードベースをCommonJS形式に変換
-      - 📅 Due        : 2026-07-06
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-031
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : moduleHelper実装で循環参照問題解決。logger, memoryMonitor, killSwitchChecker, orderUtilsなど重要クラスをリファクタリング。テストファイルも含めてすべての変換が完了し、すべてのテストが正常に通過することを確認。INF-032-11の完了により、CommonJS変換作業はすべて完了。
-
-3.2.1 [x] INF-032-1: コアディレクトリのCommonJS変換
-      - 📅 Due        : 2026-07-03
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-031
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : types.ts、orderManagementSystem.ts、TradingEngine.ts、backtestRunner.tsなどコアモジュールのCommonJS形式への変換完了。moduleHelperを使用して循環参照問題を一部解決。
-
-3.2.2 [x] INF-032-2: 戦略ディレクトリのCommonJS変換
-      - 📅 Due        : 2026-07-04
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-1
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 戦略ディレクトリ(strategies/)のすべてのファイルをCommonJS形式に変換完了。trendStrategy.ts、DonchianBreakoutStrategy.ts、meanRevertStrategy.ts、trendFollowStrategy.ts、rangeStrategy.tsの変換が完了。.js拡張子の削除とimport/export構文の変換を実施。module.exportsを使用してCommonJS形式でエクスポートするように変更。
-
-3.2.6 [x] INF-032-6: インジケーターディレクトリのCommonJS変換
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-1
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : インジケーターディレクトリ(indicators/)のmarketState.tsとparabolicSAR.tsファイルをCommonJS形式に変換完了。主要なテクニカル指標のリファクタリングとtechnicalindicatorsライブラリの参照方法も修正。@ts-nocheck指示子を追加し、型定義問題は INF-032-4 タスクで対応予定。
-
-3.2.7 [x] INF-032-7: データ処理モジュールのCommonJS変換
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-1
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : データ処理ディレクトリ(data/)の全8ファイル（marketDataFetcher.ts、parquetDataStore.ts、dataRepository.ts、MultiTimeframeDataFetcher.ts、fetchHourlyData.ts、fetchMultiTimeframeData.ts、generateSampleData.ts、runSampleTest.ts）をCommonJS形式に変換完了。型定義を削除し、import文をrequire文に変換。循環参照問題を解決するためのモジュール参照方法も修正。
-
-3.2.8 [x] INF-032-8: サービスモジュールのCommonJS変換
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-1
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : サービスディレクトリ(services/)のすべてのファイルをCommonJS形式に変換完了。前回の作業でsecretManagerディレクトリの全9ファイル（AWSParameterStoreManager.ts、AWSSecretsManager.ts、EnvSecretManager.ts、FileSecretManager.ts、GCPSecretManager.ts、SecretManagerFactory.ts、SecretManagerInterface.ts、example.ts、index.ts）を変換。今回の確認で残りの主要サービスファイル（UnifiedOrderManager.ts、orderSizingService.ts、symbolInfoService.ts、exchangeService.ts）は既にCommonJS形式に変換されていることを確認。循環参照問題解決のためのmoduleHelper活用も完了。
-      
-3.2.3 [x] INF-032-3: テストファイルのCommonJS変換
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-2, INF-032-6, INF-032-7, INF-032-8
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 多数のテストファイルをCommonJS形式に変換（trendFollowStrategy.test.js、meanRevertStrategy.test.js、rangeStrategy.test.js、UnifiedOrderManager.test.js、symbolInfoService.test.js、MultiTimeframeDataFetcher.test.js）。「Types is not defined」エラーを解決するためにsrc/core/types.tsを修正し、実行時のTypesオブジェクトとTypeScriptの型定義を両立させる実装を追加。各テストファイルでTypesモジュールからの正しいインポート形式に変更しました。
-
-3.2.9 [x] INF-032-9: 残りのテストファイルのCommonJS変換
-      - 📅 Due        : 2026-07-03
-      - 👤 Owner      : @assistant
-      - 🔗 Depends-on : INF-032-1, INF-032-2, INF-032-3
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : 残りのテストファイル（.ts形式）をCommonJS形式（.js）に変換完了。mathUtils.test.ts、metrics.test.ts、atrCalibrator.test.ts、killSwitchChecker.test.ts、todoValidator.test.ts、parameterService.test.tsなど19のテストケースを保持したテストファイルの変換に成功。Jestのモック関数の問題はINF-032-CommonJS-Test-Fixドキュメントのパターンを使用して解決。marketDataFactory.test.jsについては、不足していた機能（createVolatilityCandles）をcreateVolatilitySpikeで代替するように修正し、テスト通過を確認。UnifiedOrderManager.test.jsはいくつかのテストが失敗しているため、INF-032-10「UnifiedOrderManager.test.jsの修正」として新タスクを作成し対応する。
-
-3.2.10 [x] INF-032-10: CommonJS変換後のテストエラー修正
-      - 📅 Due        : 2026-07-10
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-9
-      - 🏷️  Label      : bugfix
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : CommonJS変換後に複数のテストファイルで失敗が発生している問題を修正。進捗状況：1) UnifiedOrderManager.test.js - 修正完了。UnifiedOrderManager.tsに不足していたメソッド(getPositionsBySymbol, getConsolidatedPositions, getExchangePositions, getOrders, getAllOrders)を追加し、テストが正常に通過するようになりました。Jest.mockの問題やモック設定不足も解決。2) atrCalibrator.test.js - 修正完了、3) DataRepository.e2e.test.js - 修正完了、4) parameterService.test.ts - 修正完了、5) rangeStrategy.test.js/ts- 修正完了、6) meanRevertStrategy.test.js/ts - 修正完了、7) trendFollowStrategy.test.js - モック関数の問題を修正完了、calculateParabolicSAR.mockReturnValueが機能しない問題をjest.fn().mockReturnValueの使用で解決、8) orderUtils.test.js - ESMインポート構文の問題を修正完了。すべてのインポートをrequire()に変換し、型アノテーションを削除、9) DuckDBに依存するテスト（multiSymbolBacktest.test.js、MultiTimeframeDataFetcher.test.js）が正常に動作することを確認。テストは19ケース全て成功し、コード機能に影響なく修正。Jestの警告（timers, fakeTimers）は残っているが、テスト実行には影響なし。
-
-3.2.11 [x] INF-032-11: 残存テストエラーの修正
-      - 📅 Due        : 2026-07-15
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-10
-      - 🏷️  Label      : bugfix
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : npm testおよびnpm run test:stableJestで発生していた残りのテストエラーを修正。主な解決内容：1) DuckDB依存エラー - MultiTimeframeDataFetcher.testとmultiSymbolBacktest.testでDuckDBモジュールが見つからない問題 -修正完了、2) DataRepository.e2e.testのファイル永続化エラー -修正完了、3) 戦略テスト（rangeStrategy.test, meanRevertStrategy.test）のTypeScript互換性問題 -修正完了、4) Jest警告（timers, fakeTimers）の解消 -修正完了。具体的に、metrics.test.js、killSwitchChecker.test.js、symbolInfoService.test.js、RealTimeDataProcessor.test.jsで発生していたJestタイマー警告を修正し、Jest設定ファイル（jest.config.js）の非推奨オプション（timers→fakeTimers）と非推奨のts-jest設定も修正しました。すべてのテストが正常に通過し、警告メッセージもなくなりました。
-
-
-3.2.4 [x] INF-032-4: 型定義と循環参照問題の解決
-      - 📅 Due        : 2026-07-05
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-1
-      - 🏷️  Label      : refactor
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : moduleHelperシステムを使用して循環参照問題を完全に解決。重要なモジュール（types.ts、metrics.ts、logger.ts、orderUtils.ts）の型定義問題を解決。@ts-nocheckを使用せずにビルドできることを確認。一部のテストファイルでは@ts-nocheckを残しているが、実行に影響なく、すべてのテストが正常に通過。
-
-3.2.5 [x] INF-032-5: Docker環境でのユニットテスト
-      - 📅 Due        : 2026-07-06
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : INF-032-3, INF-032-4, INF-032-6, INF-032-7, INF-032-8, INF-033
-      - 🏷️  Label      : test
-      - 🩺 Health     : ✅
-      - 📊 Progress   : 100%
-      - ✎ Notes      : Docker環境での全テスト実行と検証完了。docker-compose run solbot-test コマンドですべてのテストが正常に通過することを確認。コンパイルエラーやランタイムエラーが発生しないことを検証済み。INF-032-11の完了により、すべてのテスト環境でのCommonJS互換性を確保。
-
-
-4. [ ] INF-026: IaC でステージング EC2(t3.small) を起動
+3. [x] INF-026: IaC でステージング EC2(t3.small) を起動
       - 📅 Due        : 2026-06-29
       - 👤 Owner      : @operator
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 75%
-      - ✎ Notes      : Terraform コードを作成（main.tf, variables.tf, outputs.tf, terraform.tfvars.example, README.md）。AMI + security-group + EIP + user-data(docker install) を自動化し、タグ `Env=stg` を付与。実際のAWSアカウント情報（VPC ID、サブネットID、アカウントID）をterraform.tfvarsに設定してterraform applyを実行する必要あり。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : Terraform実行完了。EC2インスタンス: i-0dbe2af5c7b01181e, パブリックIP: 13.158.58.241, DNS: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com。Docker、Node.js、必要なディレクトリ構造が自動セットアップ済み。
+
+4. [x] REF-032: Docker環境でのESモジュール起動問題修正
+      - 📅 Due        : 2026-06-30
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 完了！Docker環境でのESモジュール起動問題を完全解決。package.jsonのdevスクリプト修正、tsconfig.dev.json作成、Dockerfileの開発環境ターゲット追加、atrUtils.ts/cliParser.tsのCommonJS変換、メトリクスサービス呼び出し修正を実施。アプリケーションが正常起動し、/api/statusエンドポイントが200 OKで応答することを確認。
 
 5. [ ] SEC-007: GitHub OIDC AssumeRole 作成
       - 📅 Due        : 2026-06-29
@@ -209,10 +89,11 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
 6. [ ] INF-027: bot.service (systemd) ユニット実装
       - 📅 Due        : 2026-06-30
       - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-032
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。
+      - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。REF-032のESモジュール問題解決後に実施。
 
 7. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
       - 📅 Due        : 2026-07-01

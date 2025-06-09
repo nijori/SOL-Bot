@@ -46,7 +46,7 @@
     "build": "npm run build:cjs",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "dev": "ts-node --project tsconfig.dev.json src/index.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",

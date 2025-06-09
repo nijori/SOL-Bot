@@ -2,30 +2,7 @@ provider "aws" {
   region = var.region
 }
 
-# Variables
-variable "instance_type" {
-  description = "EC2インスタンスタイプ"
-  type        = string
-  default     = "t3.small"
-}
-
-variable "key_name" {
-  description = "EC2インスタンスへのSSHアクセスに使用するキーペア名"
-  type        = string
-  default     = "solbot-stg-key"
-}
-
-variable "vpc_id" {
-  description = "VPC ID"
-  type        = string
-  default     = "vpc-0123456789abcdef0"  # 実際のVPC IDに置き換えてください
-}
-
-variable "subnet_id" {
-  description = "サブネットID"
-  type        = string
-  default     = "subnet-0123456789abcdef0"  # 実際のサブネットIDに置き換えてください
-}
+# 変数定義は variables.tf ファイルを参照
 
 # Latest Amazon Linux 2 AMIを検索
 data "aws_ami" "amazon_linux_2" {
@@ -46,7 +23,7 @@ data "aws_ami" "amazon_linux_2" {
 # セキュリティグループの作成
 resource "aws_security_group" "solbot_stg_sg" {
   name        = "${var.app_name}-${var.environment}-sg"
-  description = "SOL-Bot ステージング環境のセキュリティグループ"
+  description = "Security group for SOL-Bot staging environment"
   vpc_id      = var.vpc_id
 
   # SSH接続用
@@ -55,7 +32,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]  # 本番環境では特定のIPに制限することを推奨
-    description = "SSH接続"
+    description = "SSH access"
   }
 
   # HTTP接続用
@@ -64,7 +41,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTP接続"
+    description = "HTTP access"
   }
 
   # HTTPS接続用
@@ -73,7 +50,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "HTTPS接続"
+    description = "HTTPS access"
   }
 
   # API用ポート
@@ -82,7 +59,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "APIエンドポイント"
+    description = "API endpoint"
   }
 
   # Prometheusエクスポーター用ポート
@@ -91,7 +68,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 9090
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "Prometheusメトリクス"
+    description = "Prometheus metrics"
   }
 
   # 全てのアウトバウンドトラフィックを許可
@@ -100,7 +77,7 @@ resource "aws_security_group" "solbot_stg_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "全てのアウトバウンドトラフィック"
+    description = "All outbound traffic"
   }
 
   tags = {

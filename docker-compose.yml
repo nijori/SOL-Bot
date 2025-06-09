@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder
+      target: development
     container_name: solbot-dev
     volumes:
       # ソースコードをボリュームマウントして、コード変更を即時反映
@@ -20,7 +20,6 @@ services:
     environment:
       - NODE_ENV=development
       - TZ=UTC
-    command: npm run dev
     ports:
       - '3000:3000'
     restart: unless-stopped

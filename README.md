@@ -65,7 +65,7 @@ const orderSize = await orderSizingService.calculateOrderSize(
 ## 🚀 主要技術
 
 - **TypeScript**: 型安全なコードベース
-- **ECMAScript Modules**: 近代的なJavaScriptモジュールシステム
+- **ECMAScript Modules**: 近代的なJavaScriptモジュールシステム（Docker環境での起動問題を修正中）
 - **CCXT**: 複数取引所との互換性
 - **Node.js**: サーバーサイド実行環境
 - **Express**: REST API提供
@@ -226,6 +226,8 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 ## 🔍 現在の開発状況
 
 ### 最新スプリント進捗（W10: 追加機能開発・ユーザビリティ向上スプリント）
+
+- ✅ **INF-026**: ステージングEC2セットアップ完了。TerraformによるIaCでAWS EC2インスタンス（t3.small）、セキュリティグループ、IAMロール、Elastic IPを作成。Docker、Node.js、必要なディレクトリ構造が自動セットアップ済み。パブリックIP: 13.158.58.241で稼働中。
 
 - ✅ **ALG-018**: 市場環境に応じた動的パラメータ調整機能の追加。市場の状態（トレンド/レンジ）を検出し、それに応じてEMA期間、ATR乗数、エントリー閾値などの主要パラメータを自動調整する機能を実装。ボラティリティベースの資金配分戦略も実装。
 

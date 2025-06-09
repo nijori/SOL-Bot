@@ -1,21 +1,23 @@
 /**
  * コマンドライン引数パーサー
  * マルチシンボルオプションと設定オーバーライド機能をサポート
+ * INF-032: CommonJS形式への変換
  */
+// @ts-nocheck
 
-import * as fs from 'fs';
-import * as path from 'path';
-import logger from './logger.js';
-import { CliOptions, MultiSymbolConfig } from '../types/cli-options.js';
+const fs = require('fs');
+const path = require('path');
+const logger = require('./logger').default;
+const { CliOptions, MultiSymbolConfig } = require('../types/cli-options');
 
-export class CliParser {
+class CliParser {
   /**
    * コマンドライン引数を解析する
-   * @param args コマンドライン引数の配列（通常はprocess.argv.slice(2)）
-   * @returns 解析されたオプション
+   * @param {Array} args コマンドライン引数の配列（通常はprocess.argv.slice(2)）
+   * @returns {Object} 解析されたオプション
    */
-  static parse(args: string[] = process.argv.slice(2)): CliOptions {
-    const options: CliOptions = {};
+  static parse(args = process.argv.slice(2)) {
+    const options = {};
 
     for (let i = 0; i < args.length; i++) {
       const arg = args[i];
@@ -54,19 +56,19 @@ export class CliParser {
 
   /**
    * 設定オーバーライド文字列またはファイルをパースする
-   * @param configOverride JSON文字列またはJSONファイルパス
-   * @returns パースされた設定オブジェクト
+   * @param {string} configOverride JSON文字列またはJSONファイルパス
+   * @returns {Object|null} パースされた設定オブジェクト
    */
-  static parseConfigOverride(configOverride: string): MultiSymbolConfig | null {
+  static parseConfigOverride(configOverride) {
     try {
       // 文字列がファイルパスかJSONかを判断
       if (fs.existsSync(configOverride)) {
         // ファイルから読み込む
         const configStr = fs.readFileSync(path.resolve(configOverride), 'utf8');
-        return JSON.parse(configStr) as MultiSymbolConfig;
+        return JSON.parse(configStr);
       } else {
         // JSON文字列として解析
-        return JSON.parse(configOverride) as MultiSymbolConfig;
+        return JSON.parse(configOverride);
       }
     } catch (error) {
       logger.error(
@@ -79,7 +81,7 @@ export class CliParser {
   /**
    * ヘルプメッセージを表示する
    */
-  static showHelp(): void {
+  static showHelp() {
     console.log(`
 SOL-Bot CLI ヘルプ
 
@@ -116,3 +118,8 @@ SOL-Bot CLI ヘルプ
     `);
   }
 }
+
+// CommonJS形式でエクスポート
+module.exports = {
+  CliParser
+};

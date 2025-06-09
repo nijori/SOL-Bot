@@ -9,9 +9,9 @@ services:
       - "8081:80"
     volumes:
       - ./monitoring:/usr/share/nginx/html
-    # ヘルスチェックを追加
+    # ヘルスチェックを追加（nginx:alpineにはwgetが含まれている）
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
       interval: 10s
       timeout: 5s
       retries: 3

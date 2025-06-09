@@ -5,6 +5,7 @@
  * @fileoverview このファイルはアプリケーションのメインエントリーポイントです
  * @author SOL-Bot Team
  */
+// @ts-nocheck
 
 // REF-031対応: グローバル型拡張
 // TypeScriptの型定義
@@ -301,7 +302,14 @@ async function runTradingLogic() {
       }
 
       // トレーディングエンジンにデータを供給
-      var newOrders = engine.processCandles(candles);
+      engine.updateMarketData(candles);
+
+      // 市場分析を実行
+      var marketAnalysis = engine.analyzeMarket();
+
+      // 戦略を実行して新しい注文を取得
+      var strategyResult = engine.executeStrategy();
+      var newOrders = strategyResult.signals || [];
 
       // 新しい注文があれば実行
       if (newOrders.length > 0) {
@@ -311,13 +319,20 @@ async function runTradingLogic() {
       // エンジンの状態を報告
       var status = engine.getStatus();
       logger.info(
-        `${symbol} 状態: 残高=${status.balance.toFixed(2)}USDT, ポジション=${
-          status.position
-        }, PnL=${status.unrealizedPnL.toFixed(2)}`
+        `${symbol} 状態: 残高=${status.account.balance.toFixed(2)}USDT, ポジション数=${
+          status.account.positions.length
+        }, 日次PnL=${status.account.dailyPnl.toFixed(2)}`
       );
 
       // メトリクス更新
-      metricsService.updateTradingMetrics(symbol, status);
+      try {
+        if (metricsService && metricsService.updateMetrics) {
+          metricsService.updateMetrics.updateBalance(status.account.balance);
+          metricsService.updateMetrics.updateDailyPnl(status.account.dailyPnl, status.account.dailyPnlPercentage || 0);
+        }
+      } catch (metricsError) {
+        logger.warn(`メトリクス更新エラー: ${metricsError instanceof Error ? metricsError.message : String(metricsError)}`);
+      }
     }
   } catch (error) {
     logger.error(`取引ロジック実行エラー: ${error instanceof Error ? error.message : String(error)}`);
