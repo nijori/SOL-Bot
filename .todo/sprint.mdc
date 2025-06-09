@@ -109,8 +109,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : SEC-007, INF-027
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : `main` → `deploy-stg` ワークフロー。OIDC → scp env_runtime → systemctl reload。E2Eで healthcheck OK をアサート。
+      - 📊 Progress   : 25%
+      - ✎ Notes      : 着手。`main` → `deploy-stg` ワークフロー。OIDC → scp env_runtime → systemctl reload。E2Eで healthcheck OK をアサート。
 
 8. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
       - 📅 Due        : 2026-07-02

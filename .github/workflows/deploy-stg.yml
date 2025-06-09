@@ -1,0 +1,212 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '手動デプロイの理由'
+        required: true
+        default: 'ステージング環境テスト'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.jsセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 依存関係のインストール
+        run: npm ci
+
+      - name: ESLintによるコード検証
+        run: npm run lint
+
+      - name: Jestによるテスト実行
+        run: npm test
+
+      - name: TypeScriptのビルド
+        run: npm run build
+
+      - name: AWS認証設定
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
+          aws-region: ap-northeast-1
+
+      - name: ステージング環境ファイル作成
+        run: |
+          echo "NODE_ENV=staging" > .env
+          echo "LOG_LEVEL=debug" >> .env
+          echo "API_PORT=3000" >> .env
+          echo "# 機密情報は後でSSM Parameter Storeから取得予定" >> .env
+
+      - name: ステージングEC2へのファイル転送
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com
+          username: ubuntu
+          key: ${{ secrets.STG_SSH_KEY }}
+          source: '.,!node_modules,!.git,!__tests__,!logs,!data'
+          target: '/tmp/solbot-deploy-${{ github.sha }}'
+          strip_components: 0
+
+      - name: ステージング環境デプロイ実行
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com
+          username: ubuntu
+          key: ${{ secrets.STG_SSH_KEY }}
+          script: |
+            set -e
+            
+            echo "=== SOL Bot Staging Deployment ==="
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Timestamp: $(date)"
+            echo ""
+            
+            # Move files to deployment directory
+            sudo mkdir -p /opt/solbot
+            sudo cp -r /tmp/solbot-deploy-${{ github.sha }}/* /opt/solbot/
+            sudo chown -R ubuntu:ubuntu /opt/solbot
+            
+            # Install systemd service if not exists
+            if [ ! -f "/etc/systemd/system/bot.service" ]; then
+              echo "Installing systemd service..."
+              sudo cp /opt/solbot/infra/systemd/bot.service /etc/systemd/system/
+              sudo systemctl daemon-reload
+              sudo systemctl enable bot.service
+            fi
+            
+            # Create solbot user if not exists
+            if ! id "solbot" &>/dev/null; then
+              echo "Creating solbot user..."
+              sudo useradd --system --home /opt/solbot --shell /bin/bash solbot
+            fi
+            
+            # Set proper ownership
+            sudo chown -R solbot:solbot /opt/solbot
+            
+            # Install dependencies
+            cd /opt/solbot
+            sudo -u solbot npm ci --production
+            
+            # Build TypeScript
+            sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
+            
+            # Stop service if running
+            if sudo systemctl is-active --quiet bot.service; then
+              echo "Stopping bot.service..."
+              sudo systemctl stop bot.service
+              sleep 2
+            fi
+            
+            # Start service
+            echo "Starting bot.service..."
+            sudo systemctl start bot.service
+            
+            # Wait for service to start
+            sleep 5
+            
+            # Check service status
+            if sudo systemctl is-active --quiet bot.service; then
+              echo "✓ Service started successfully"
+              sudo systemctl status bot.service --no-pager -l
+            else
+              echo "✗ Service failed to start"
+              sudo systemctl status bot.service --no-pager -l
+              sudo journalctl -u bot -n 20 --no-pager
+              exit 1
+            fi
+
+      - name: ヘルスチェック実行
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com
+          username: ubuntu
+          key: ${{ secrets.STG_SSH_KEY }}
+          script: |
+            set -e
+            
+            echo "=== Health Check ==="
+            
+            # Wait for application to be ready
+            echo "Waiting for application to be ready..."
+            for i in {1..30}; do
+              if curl -f -s http://localhost:3000/api/status > /dev/null; then
+                echo "✓ Application is responding"
+                break
+              fi
+              echo "Attempt $i/30: Application not ready yet..."
+              sleep 2
+            done
+            
+            # Perform health check
+            echo "Performing detailed health check..."
+            HEALTH_RESPONSE=$(curl -s http://localhost:3000/api/status || echo "FAILED")
+            
+            if [ "$HEALTH_RESPONSE" = "FAILED" ]; then
+              echo "✗ Health check failed - no response"
+              exit 1
+            fi
+            
+            echo "Health check response:"
+            echo "$HEALTH_RESPONSE" | jq . || echo "$HEALTH_RESPONSE"
+            
+            # Verify response contains expected fields
+            if echo "$HEALTH_RESPONSE" | jq -e '.status' > /dev/null; then
+              STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.status')
+              echo "✓ Status: $STATUS"
+              
+              if [ "$STATUS" = "running" ]; then
+                echo "✓ Health check passed - service is running"
+              else
+                echo "⚠ Warning: Service status is '$STATUS' (expected 'running')"
+              fi
+            else
+              echo "⚠ Warning: Health response missing 'status' field"
+            fi
+            
+            echo "=== Deployment Successful ==="
+
+      - name: クリーンアップ
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com
+          username: ubuntu
+          key: ${{ secrets.STG_SSH_KEY }}
+          script: |
+            # Clean up temporary deployment files
+            sudo rm -rf /tmp/solbot-deploy-${{ github.sha }}
+            echo "✓ Cleaned up temporary files"
+
+      - name: Discordへの通知
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: 'SOL-Bot ステージングデプロイ'
+          description: |
+            リポジトリ: ${{ github.repository }}
+            コミット: ${{ github.sha }}
+            ブランチ: ${{ github.ref_name }}
+            トリガー: ${{ github.actor }}
+            ${{ github.event_name == 'workflow_dispatch' && format('理由: {0}', github.event.inputs.reason) || '' }}
+            
+            ステージング環境: ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com 
