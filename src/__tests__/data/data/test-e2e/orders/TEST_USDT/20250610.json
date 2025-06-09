@@ -1,32 +1,32 @@
 [
   {
-    "id": "order-parallel-1749481537716-2074-1-0-1749481537717",
-    "symbol": "TEST/USDT",
-    "type": "limit",
-    "side": "buy",
-    "price": 1030.4876417569933,
-    "amount": 0.25405035725084946,
-    "timestamp": 1749481537717,
-    "status": "open"
-  },
-  {
-    "id": "order-parallel-1749481537716-2074-1-1-1749481537717",
-    "symbol": "TEST/USDT",
-    "type": "limit",
-    "side": "buy",
-    "price": 1080.0602477536506,
-    "amount": 0.4555021670223389,
-    "timestamp": 1749481538717,
-    "status": "open"
-  },
-  {
-    "id": "order-parallel-1749481537716-2074-1-2-1749481537718",
+    "id": "order-parallel-1749482602945-8004-0-0-1749482602945",
     "symbol": "TEST/USDT",
     "type": "limit",
     "side": "sell",
-    "price": 1058.9089545169566,
-    "amount": 0.16032849211878797,
-    "timestamp": 1749481539718,
+    "price": 1014.3538140485662,
+    "amount": 0.457303434495304,
+    "timestamp": 1749482602945,
+    "status": "open"
+  },
+  {
+    "id": "order-parallel-1749482602945-8004-0-1-1749482602945",
+    "symbol": "TEST/USDT",
+    "type": "limit",
+    "side": "sell",
+    "price": 1091.3912528442488,
+    "amount": 0.09125101222172383,
+    "timestamp": 1749482603945,
+    "status": "open"
+  },
+  {
+    "id": "order-parallel-1749482602945-8004-0-2-1749482602945",
+    "symbol": "TEST/USDT",
+    "type": "limit",
+    "side": "sell",
+    "price": 1016.8939021572072,
+    "amount": 0.44113057072781725,
+    "timestamp": 1749482604945,
     "status": "open"
   }
 ]
