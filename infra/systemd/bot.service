@@ -1,0 +1,42 @@
+[Unit]
+Description=SOL Trading Bot Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=solbot
+Group=solbot
+WorkingDirectory=/opt/solbot
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/node src/index.js
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/solbot/data /opt/solbot/logs
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=solbot
+
+[Install]
+WantedBy=multi-user.target 
