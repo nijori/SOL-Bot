@@ -58,7 +58,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           source: '.,!node_modules,!.git,!__tests__,!logs,!data'
           target: '/tmp/solbot-deploy-${{ github.sha }}'
@@ -68,7 +68,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
             set -e
@@ -82,7 +82,7 @@ jobs:
             # Move files to deployment directory
             sudo mkdir -p /opt/solbot
             sudo cp -r /tmp/solbot-deploy-${{ github.sha }}/* /opt/solbot/
-            sudo chown -R ubuntu:ubuntu /opt/solbot
+            sudo chown -R ec2-user:ec2-user /opt/solbot
             
             # Install systemd service if not exists
             if [ ! -f "/etc/systemd/system/bot.service" ]; then
@@ -100,6 +100,15 @@ jobs:
             
             # Set proper ownership
             sudo chown -R solbot:solbot /opt/solbot
+            
+            # Install Node.js if not exists
+            if ! command -v node &> /dev/null; then
+              echo "Installing Node.js..."
+              curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+              sudo yum install -y nodejs
+              echo "Node.js version: $(node --version)"
+              echo "npm version: $(npm --version)"
+            fi
             
             # Install dependencies
             cd /opt/solbot
@@ -137,7 +146,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
             set -e
@@ -188,7 +197,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-          username: ubuntu
+          username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
             # Clean up temporary deployment files
