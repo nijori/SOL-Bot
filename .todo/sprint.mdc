@@ -94,14 +94,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : 完了！IAM Role `solbot-ci` (arn:aws:iam::475538532274:role/solbot-ci) を作成し、OIDC provider `token.actions.githubusercontent.com` からの `repo:nijor/SOL_bot:*` を許可。最小権限ポリシー（EC2:start/stop, SSM:GetParameter, ECR:GetAuth, S3:GetObject/PutObject）を設定。GitHub ActionsからAWS OIDCを使用したロールベース認証が利用可能。AWS設定情報はaws-oidc-setup.mdに記載
 
-6. [ ] INF-027: bot.service (systemd) ユニット実装
+6. [x] INF-027: bot.service (systemd) ユニット実装
       - 📅 Due        : 2026-06-30
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : REF-032
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : TimeoutStopSec=30/KillMode=mixed 設定を含むユニットを `/etc/systemd/system/bot.service` に配置し、手動 `sudo systemctl start bot` で起動確認。REF-032のESモジュール問題解決後に実施。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 完了！systemdサービスファイル (infra/systemd/bot.service) 作成。TimeoutStopSec=30/KillMode=mixed設定、セキュリティ強化設定 (NoNewPrivileges, PrivateTmp等) 実装。インストールスクリプト (scripts/install-systemd-service.sh) とデプロイスクリプト (scripts/deploy-to-systemd.sh) 作成。systemdデプロイメントドキュメント (docs/systemd-deployment.md) 作成。本番環境での手動テストが必要。
 
 7. [ ] CICD-005: deploy-stg.yml 作成 (GH Actions)
       - 📅 Due        : 2026-07-01
