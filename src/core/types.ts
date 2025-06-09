@@ -121,6 +121,43 @@ namespace Types {
     stopLoss?: number;
     takeProfit?: number;
   }
+
+  /**
+   * バックテスト設定
+   */
+  export interface BacktestConfig {
+    symbol: string;
+    startDate: string;
+    endDate: string;
+    timeframeHours: number;
+    initialBalance: number;
+    slippage?: number;
+    commissionRate?: number;
+    isSmokeTest?: boolean;
+    quiet?: boolean;
+    batchSize?: number;
+    memoryMonitoring?: boolean;
+    gcInterval?: number;
+    parameters?: Record<string, any>;
+  }
+
+  /**
+   * バックテスト結果
+   */
+  export interface BacktestResult {
+    symbol: string;
+    startDate: string;
+    endDate: string;
+    initialBalance: number;
+    finalBalance: number;
+    totalReturn: number;
+    totalReturnPercentage: number;
+    trades: any[];
+    equityHistory: any[];
+    metrics: PerformanceMetrics;
+    executionTime: number;
+    memoryUsage?: any;
+  }
 }
 
 // 市場環境の種類を表す定数オブジェクト

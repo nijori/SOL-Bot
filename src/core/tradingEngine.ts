@@ -5,6 +5,8 @@
  * @fileoverview このファイルはトレーディングロジックの中核となるエンジンを実装しています
  * @author SOL-Bot Team
  */
+// @ts-nocheck
+// CommonJS移行中のため一時的にTypeScriptチェックを無効化
 
 const { 
   Candle,
