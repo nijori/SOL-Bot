@@ -188,8 +188,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 10%
-      - ✎ Notes      : multiSymbolBacktestRunner.ts, multiSymbolTradingEngine.tsを完全修正。Jest用：AllocationStrategy/エクスポート修正。TypeScript用：プロパティ定義、型定義追加。ファイル単位で完全修正アプローチ。作業開始、ブランチ作成済み。詳細はtypescript-jest-integration-plan.mdを参照。
+      - 📊 Progress   : 50%
+      - ✎ Notes      : multiSymbolBacktestRunner.ts, multiSymbolTradingEngine.tsを完全修正。Jest用：AllocationStrategy/エクスポート修正。TypeScript用：プロパティ定義、型定義追加。ファイル単位で完全修正アプローチ。Jest修正完了、TypeScriptビルドエラー修正中。詳細はtypescript-jest-integration-plan.mdを参照。
 
 9. [ ] REF-035: TypeScript/Jest統合エラー修正 - core系ファイル
       - 📅 Due        : 2026-07-13

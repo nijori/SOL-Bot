@@ -134,3 +134,6 @@ export interface PortfolioRiskAnalysis {
 module.exports = {
   AllocationStrategy
 };
+
+// TypeScript用のESモジュールエクスポート（互換性のため）
+export { AllocationStrategy };

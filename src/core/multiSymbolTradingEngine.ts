@@ -784,3 +784,6 @@ class MultiSymbolTradingEngine {
 
 // CommonJS エクスポート
 module.exports = { MultiSymbolTradingEngine };
+
+// TypeScript用のESモジュールエクスポート（互換性のため）
+export { MultiSymbolTradingEngine };

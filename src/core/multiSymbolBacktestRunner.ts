@@ -790,3 +790,6 @@ class MultiSymbolBacktestRunner {
 
 // CommonJS エクスポート
 module.exports = { MultiSymbolBacktestRunner };
+
+// TypeScript用のESモジュールエクスポート（互換性のため）
+export { MultiSymbolBacktestRunner };
