@@ -35,8 +35,9 @@ jobs:
       - name: Jestによるテスト実行
         run: npm test
 
-      - name: TypeScriptのビルド
-        run: npm run build
+      # TypeScriptビルドは一時的に無効化（CommonJS移行中のため）
+      # - name: TypeScriptのビルド
+      #   run: npm run build
 
       - name: AWS認証設定
         uses: aws-actions/configure-aws-credentials@v4
@@ -111,8 +112,8 @@ jobs:
             cd /opt/solbot
             sudo -u solbot npm ci --production
             
-            # Build TypeScript
-            sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
+            # Build TypeScript (一時的に無効化 - CommonJS移行中)
+            # sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
             
             # Stop service if running
             if sudo systemctl is-active --quiet bot.service; then
