@@ -217,9 +217,18 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : types/*, utils/*, scripts/*の残存ESモジュール文をCommonJS化。重複宣言エラー解消。型定義の統一。optimizer/*も含む。暗黙的any型エラー修正、@ts-nocheckの段階的削除。npm run test && npm run buildの両方が成功することを確認。詳細はtypescript-jest-integration-plan.mdを参照。
+      - ✎ Notes      : types/*, utils/*, scripts/*の残存ESモジュール文をCommonJS化。重複宣言エラー解消。型定義の統一。optimizer/*も含む。詳細はtypescript-jest-integration-plan.mdを参照。
 
-12. [ ] INF-030: S3 Remote Backend for Terraform State
+12. [ ] REF-038: TypeScript/Jest統合エラー修正 - 最終調整と@ts-nocheck削除
+      - 📅 Due        : 2026-07-16
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : REF-037
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 暗黙的any型エラー修正、@ts-nocheckの段階的削除。npm run test && npm run buildの両方が成功することを確認。933エラー→0エラーを達成。詳細はtypescript-jest-integration-plan.mdを参照。
+
+13. [ ] INF-030: S3 Remote Backend for Terraform State
       - 📅 Due        : 2026-07-15
       - 👤 Owner      : @nijor
       - 🏷️  Label      : infra
