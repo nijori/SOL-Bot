@@ -544,7 +544,7 @@ class TradingEngine {
         case StrategyType.RANGE_TRADING:
           // レンジ相場用の戦略を実行
           try {
-            const { executeRangeStrategy } = require('../strategies/rangeStrategy.js');
+            const { executeRangeStrategy } = require('../strategies/rangeStrategy');
             result = executeRangeStrategy(this.latestCandles, this.symbol, positions);
             logger.info(
               `[TradingEngine] レンジ戦略を実行: ${result.signals.length}件のシグナル生成`
@@ -565,7 +565,7 @@ class TradingEngine {
         case StrategyType.MEAN_REVERT:
           // ミーンリバース戦略を実行
           try {
-            const { executeMeanRevertStrategy } = require('../strategies/meanRevertStrategy.js');
+            const { executeMeanRevertStrategy } = require('../strategies/meanRevertStrategy');
             result = executeMeanRevertStrategy(
               this.latestCandles,
               this.symbol,
@@ -593,7 +593,7 @@ class TradingEngine {
           try {
             const {
               executeDonchianBreakoutStrategy
-            } = require('../strategies/DonchianBreakoutStrategy.js');
+            } = require('../strategies/DonchianBreakoutStrategy');
             result = executeDonchianBreakoutStrategy(
               this.latestCandles,
               this.symbol,
