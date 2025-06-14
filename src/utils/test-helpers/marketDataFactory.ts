@@ -7,7 +7,8 @@
  * データ生成機能を持ちます。
  */
 
-import { Candle, Order, Position, OrderSide, OrderType, OrderStatus } from '../../core/types.js';
+import type { Candle, Order, Position } from '../../core/interfaces.js';
+import { OrderSide, OrderType, OrderStatus } from '../../core/types.js';
 
 // マーケットステータスの列挙型
 export enum MarketStatus {
@@ -19,8 +20,14 @@ export enum MarketStatus {
 }
 
 // テスト用に拡張したローソク足の型（シンボル情報を含む）
-interface TestCandle extends Candle {
+interface TestCandle {
   symbol: string;
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 /**

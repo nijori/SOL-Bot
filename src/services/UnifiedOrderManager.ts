@@ -640,9 +640,6 @@ class UnifiedOrderManager {
   }
 }
 
-// ESM形式でエクスポート
-export { UnifiedOrderManager, AllocationStrategy };
-
 // CommonJS形式でエクスポート
 module.exports = {
   UnifiedOrderManager,

@@ -5,7 +5,7 @@
  * ALG-040: ATR%自動キャリブレーション
  */
 
-import { Candle } from '../core/types.js';
+import type { Candle } from '../core/interfaces.js';
 import { calculateATR } from './atrUtils.js';
 import { parameterService } from '../config/parameterService.js';
 import logger from './logger.js';

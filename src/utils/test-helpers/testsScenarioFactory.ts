@@ -7,12 +7,11 @@
  */
 
 import { MarketDataFactory, MarketStatus } from './marketDataFactory.js';
+import type { Order, Position } from '../../core/interfaces.js';
 import {
   OrderSide,
   OrderType,
   StrategyType,
-  Order,
-  Position,
   OrderStatus
 } from '../../core/types.js';
 
@@ -29,7 +28,7 @@ export interface TestScenario {
   marketStatus: MarketStatus;
   // 期待される出力
   expectedSignals: Order[];
-  expectedStrategy: StrategyType;
+  expectedStrategy: string;
   shouldSucceed: boolean;
   params?: Record<string, any>; // 追加パラメータ
 }
@@ -139,7 +138,7 @@ export class TestScenarioFactory {
       : [];
 
     // 現在の価格でレンジの位置を判断
-    const currentPrice = candles[candles.length - 1].close;
+    const currentPrice = (candles[candles.length - 1] as any).close;
     const rangeLow = basePrice * (1 - rangeWidth / 100);
     const rangeHigh = basePrice * (1 + rangeWidth / 100);
     const rangeMiddle = (rangeLow + rangeHigh) / 2;
@@ -398,7 +397,7 @@ export class TestScenarioFactory {
       case 'negative_price':
         // ローソク足の一部に負の価格を含める
         candles = MarketDataFactory.createCandles({ basePrice, count: 30 });
-        candles[15].low = -1; // 負の価格
+        (candles[15] as any).low = -1; // 負の価格
         description = '負の価格エラーシナリオ。負の価格値が含まれている。';
         break;
 

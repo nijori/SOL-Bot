@@ -8,9 +8,9 @@
  * npm run multi-exchange -- --config=config/multiExchangeConfig.example.json
  */
 
-import { UnifiedOrderManager, AllocationStrategy } from '../services/UnifiedOrderManager.js';
+const { UnifiedOrderManager, AllocationStrategy } = require('../services/UnifiedOrderManager.js');
 import { ExchangeService } from '../services/exchangeService.js';
-import type { Order } from '../core/types';
+import type { Order } from '../core/interfaces';
 import { OrderSide, OrderType } from '../core/types';
 import { SymbolInfoService } from '../services/symbolInfoService.js';
 import fs from 'fs';

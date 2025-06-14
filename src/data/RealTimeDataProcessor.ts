@@ -9,7 +9,7 @@
  */
 
 import EventEmitter from 'events';
-import type { Candle } from '../core/types';
+import type { Candle } from '../core/interfaces';
 import logger from '../utils/logger';
 import { LRUCache } from 'lru-cache';
 

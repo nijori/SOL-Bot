@@ -14,7 +14,7 @@ import { parameterService } from '../config/parameterService.js';
 import logger from '../utils/logger.js';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import type { Candle } from '../core/types';
+import type { Candle } from '../core/interfaces';
 import fs from 'fs';
 import path from 'path';
 
