@@ -121,6 +121,43 @@ namespace Types {
     stopLoss?: number;
     takeProfit?: number;
   }
+
+  /**
+   * バックテスト設定
+   */
+  export interface BacktestConfig {
+    symbol: string;
+    startDate: string;
+    endDate: string;
+    timeframeHours: number;
+    initialBalance: number;
+    slippage?: number;
+    commissionRate?: number;
+    isSmokeTest?: boolean;
+    quiet?: boolean;
+    batchSize?: number;
+    memoryMonitoring?: boolean;
+    gcInterval?: number;
+    parameters?: Record<string, any>;
+  }
+
+  /**
+   * バックテスト結果
+   */
+  export interface BacktestResult {
+    symbol: string;
+    startDate: string;
+    endDate: string;
+    initialBalance: number;
+    finalBalance: number;
+    totalReturn: number;
+    totalReturnPercentage: number;
+    trades: any[];
+    equityHistory: any[];
+    metrics: PerformanceMetrics;
+    executionTime: number;
+    memoryUsage?: any;
+  }
 }
 
 // 市場環境の種類を表す定数オブジェクト
@@ -188,6 +225,15 @@ const TimeFrame = Object.freeze({
   ONE_WEEK: '1w'
 });
 
+// 注文配分方法を表す定数オブジェクト
+const AllocationStrategy = Object.freeze({
+  PRIORITY: 'PRIORITY', // 優先度の高い取引所から順に
+  ROUND_ROBIN: 'ROUND_ROBIN', // ラウンドロビン方式
+  SPLIT_EQUAL: 'SPLIT_EQUAL', // 均等分割
+  WEIGHTED: 'WEIGHTED', // 重み付き配分
+  CUSTOM: 'CUSTOM' // カスタム配分（getAllocationRatioで定義）
+});
+
 // システムモードを表す定数オブジェクト
 const SystemMode = Object.freeze({
   NORMAL: 'normal',
@@ -238,7 +284,8 @@ const Types = {
   SystemMode,
   RiskLevel,
   AccountState,
-  TimeFrame
+  TimeFrame,
+  AllocationStrategy
 };
 
 // TypeScriptの型定義をエクスポート
@@ -257,7 +304,46 @@ const TypesExport = {
   SystemMode,
   RiskLevel,
   AccountState,
-  TimeFrame
+  TimeFrame,
+  AllocationStrategy,
+  // 個別の型定義（型として使用される際にアクセス可能）
+  Candle: null, // 型定義なので実行時は null
+  Order: null,
+  Signal: null,
+  Position: null,
+  Account: null,
+  Fill: null,
+  MarketAnalysisResult: null,
+  StrategyResult: null
+};
+
+// ESM形式でエクスポート（型定義は実行時に削除されるため、値のみエクスポート）
+export {
+  OrderType,
+  OrderSide,
+  OrderStatus,
+  SystemMode,
+  RiskLevel,
+  MarketEnvironment,
+  StrategyType,
+  AllocationStrategy,
+  TimeFrame,
+  AccountState,
+  Types,
+  isNumericTimestamp,
+  normalizeTimestamp
+};
+
+// 型定義のre-export（ESM環境では型として使用可能）
+export type { 
+  Candle, 
+  Order, 
+  Signal, 
+  Position, 
+  Account, 
+  Fill, 
+  MarketAnalysisResult,
+  StrategyResult 
 };
 
 // CommonJS形式でエクスポート

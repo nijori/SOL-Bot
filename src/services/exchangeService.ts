@@ -776,6 +776,9 @@ class ExchangeService {
   }
 }
 
+// ESM形式でエクスポート
+export { ExchangeService };
+
 // CommonJS形式でエクスポート
 module.exports = {
   ExchangeService

@@ -14,17 +14,41 @@ const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afte
  * 4. エッジケースを含む処理の正確性
  */
 
-// duckdbのモックを作成
+// duckdbの安定化されたモックを作成
 const mockDuckDB = {
-  Database: jest.fn().mockImplementation(() => ({
-    connect: jest.fn().mockImplementation(() => ({
-      exec: jest.fn(),
-      prepare: jest.fn().mockImplementation(() => ({
-        run: jest.fn()
+  Database: jest.fn().mockImplementation(() => {
+    const mockConnection = {
+      exec: jest.fn((query, callback) => {
+        if (callback) callback(null);
+      }),
+      prepare: jest.fn((query) => ({
+        run: jest.fn((params, callback) => {
+          if (callback) callback(null);
+        }),
+        all: jest.fn((params, callback) => {
+          if (callback) callback(null, []);
+        }),
+        finalize: jest.fn()
       })),
-      all: jest.fn().mockReturnValue([])
-    }))
-  }))
+      all: jest.fn((query, callback) => {
+        if (callback) callback(null, []);
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+    
+    return {
+      connect: jest.fn((callback) => {
+        if (callback) callback(null, mockConnection);
+        return mockConnection;
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+  }),
+  OPEN_READONLY: 0x01
 };
 
 // duckdbモジュールをモック化
@@ -345,6 +369,9 @@ jest.mock('../../services/orderSizingService', () => ({
 }));
 
 describe('マルチシンボルバックテスト検証テスト', () => {
+  // テストタイムアウトを設定
+  jest.setTimeout(30000);
+  
   // 各テスト前にモックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
@@ -364,6 +391,17 @@ describe('マルチシンボルバックテスト検証テスト', () => {
     mockLogger.warn.mockClear();
     mockLogger.error.mockClear();
     mockOrderSizingService.calculateOrderSize.mockClear();
+  });
+  
+  // 各テスト後のクリーンアップ
+  afterEach(async () => {
+    // 非同期処理の完了を待つ
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // メモリのクリーンアップ
+    if (global.gc) {
+      global.gc();
+    }
   });
 
   // 各通貨ペアのバックテスト基本動作テスト

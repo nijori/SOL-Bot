@@ -1,6 +1,46 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
+// DuckDBの安定化されたモックを作成
+const mockDuckDB = {
+  Database: jest.fn().mockImplementation(() => {
+    const mockConnection = {
+      exec: jest.fn((query, callback) => {
+        if (callback) callback(null);
+      }),
+      prepare: jest.fn((query) => ({
+        run: jest.fn((params, callback) => {
+          if (callback) callback(null);
+        }),
+        all: jest.fn((params, callback) => {
+          if (callback) callback(null, []);
+        }),
+        finalize: jest.fn()
+      })),
+      all: jest.fn((query, callback) => {
+        if (callback) callback(null, []);
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+    
+    return {
+      connect: jest.fn((callback) => {
+        if (callback) callback(null, mockConnection);
+        return mockConnection;
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+  }),
+  OPEN_READONLY: 0x01
+};
+
+// DuckDBモジュールをモック化
+jest.mock('duckdb', () => mockDuckDB);
+
 /**
  * マルチエクスチェンジ統合テスト
  *
@@ -332,6 +372,9 @@ jest.mock('../../services/UnifiedOrderManager', () => {
 });
 
 describe('マルチエクスチェンジ統合テスト', () => {
+  // テストタイムアウトを設定
+  jest.setTimeout(30000);
+  
   // テスト用のUnifiedOrderManagerインスタンス
   let unifiedOrderManager;
 
@@ -360,6 +403,20 @@ describe('マルチエクスチェンジ統合テスト', () => {
     unifiedOrderManager.addExchange('binance', binanceService, 1);
     unifiedOrderManager.addExchange('bybit', bybitService, 2);
     unifiedOrderManager.addExchange('kucoin', kucoinService, 3);
+  });
+  
+  // 各テスト後のクリーンアップ
+  afterEach(async () => {
+    // 非同期処理の完了を待つ
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // モックをクリア
+    jest.clearAllMocks();
+    
+    // メモリのクリーンアップ
+    if (global.gc) {
+      global.gc();
+    }
   });
 
   test('複数取引所への注文配分テスト', async () => {

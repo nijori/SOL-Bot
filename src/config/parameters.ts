@@ -5,36 +5,51 @@
  * 実際のパラメータ設定はparameters.yamlとparameterService.tsで管理されています。
  */
 
-import 'dotenv/config';
-import { parameterService } from './parameterService';
+// @ts-nocheck
+// CommonJS対応
+require('dotenv/config');
+const { parameterService } = require('./parameterService');
 
 // 相場環境判定用パラメータ
-export const MARKET_PARAMETERS = parameterService.getMarketParameters();
+const MARKET_PARAMETERS = parameterService.getMarketParameters();
 
 // トレンド戦略用パラメータ
-export const TREND_PARAMETERS = parameterService.getTrendParameters();
+const TREND_PARAMETERS = parameterService.getTrendParameters();
 
 // レンジ戦略用パラメータ
-export const RANGE_PARAMETERS = parameterService.getRangeParameters();
+const RANGE_PARAMETERS = parameterService.getRangeParameters();
 
 // リスク管理パラメータ
-export const RISK_PARAMETERS = parameterService.getRiskParameters();
+const RISK_PARAMETERS = parameterService.getRiskParameters();
 
 // ログと監視パラメータ
-export const MONITORING_PARAMETERS = parameterService.getMonitoringParameters();
+const MONITORING_PARAMETERS = parameterService.getMonitoringParameters();
 
 // バックテストパラメータ
-export const BACKTEST_PARAMETERS = parameterService.getBacktestParameters();
+const BACKTEST_PARAMETERS = parameterService.getBacktestParameters();
 
 // モード設定
-export enum OperationMode {
-  LIVE = 'live',
-  SIMULATION = 'simulation',
-  BACKTEST = 'backtest'
-}
+const OperationMode = {
+  LIVE: 'live',
+  SIMULATION: 'simulation',
+  BACKTEST: 'backtest'
+};
 
-export const OPERATION_MODE =
-  (parameterService.getOperationMode() as OperationMode) || OperationMode.SIMULATION;
+const OPERATION_MODE =
+  parameterService.getOperationMode() || OperationMode.SIMULATION;
 
 // すべてのパラメータを1つのオブジェクトとして取得するヘルパー関数
-export const getAllParameters = () => parameterService.getAllParameters();
+const getAllParameters = () => parameterService.getAllParameters();
+
+// CommonJS形式でエクスポート
+module.exports = {
+  MARKET_PARAMETERS,
+  TREND_PARAMETERS,
+  RANGE_PARAMETERS,
+  RISK_PARAMETERS,
+  MONITORING_PARAMETERS,
+  BACKTEST_PARAMETERS,
+  OperationMode,
+  OPERATION_MODE,
+  getAllParameters
+};

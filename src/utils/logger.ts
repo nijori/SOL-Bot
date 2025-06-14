@@ -17,7 +17,7 @@ if (moduleHelper.hasModule('logger')) {
   const logLevel = process.env.LOG_LEVEL || 'info';
 
   // スモークテストモードを検出
-  const isSmokeTest = process.argv.some((arg) => arg.includes('smoke-test'));
+  const isSmokeTest = process.argv.some((arg: any) => arg.includes('smoke-test'));
 
   /**
    * ロギング用のウィンストン・ロガーを設定
@@ -73,9 +73,22 @@ if (moduleHelper.hasModule('logger')) {
 
   // モジュールレジストリに登録
   moduleHelper.registerModule('logger', logger);
-
+  
   // CommonJS形式でエクスポート
   module.exports = logger;
   // 後方互換性のために.defaultもサポート
   module.exports.default = logger;
 }
+
+// ファイルレベルのlogger変数を定義
+let loggerInstance: any;
+
+// CommonJSでエクスポートされたloggerを取得
+if (typeof module !== 'undefined' && module.exports) {
+  loggerInstance = module.exports;
+} else {
+  loggerInstance = moduleHelper.getModule('logger');
+}
+
+// ESM形式でエクスポート
+export default loggerInstance;

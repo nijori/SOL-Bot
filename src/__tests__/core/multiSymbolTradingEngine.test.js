@@ -17,10 +17,10 @@ jest.mock('../../services/UnifiedOrderManager', () => ({
 }));
 
 // モジュールをインポート
-const { MultiSymbolTradingEngine } = require('../../core/multiSymbolTradingEngine');
+const { MultiSymbolTradingEngine } = require('../../core/multiSymbolTradingEngine.js');
 const { TradingEngine } = require('../../core/tradingEngine');
 const { UnifiedOrderManager } = require('../../services/UnifiedOrderManager');
-const { AllocationStrategy } = require('../../types/multiSymbolTypes');
+const { AllocationStrategy } = require('../../types/multiSymbolTypes.js');
 const { Types, OrderSide, OrderType, SystemMode } = require('../../core/types');
 
 // モックデータを提供するユーティリティ関数

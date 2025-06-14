@@ -14,7 +14,7 @@ const moduleRegistry = new Map();
  * @param {string} name モジュール名
  * @param {any} instance モジュールインスタンス
  */
-function registerModule(name, instance) {
+function registerModule(name: any, instance: any) {
   moduleRegistry.set(name, instance);
 }
 
@@ -23,7 +23,7 @@ function registerModule(name, instance) {
  * @param {string} name モジュール名
  * @returns {any} モジュールインスタンス
  */
-function getModule(name) {
+function getModule(name: any) {
   return moduleRegistry.get(name);
 }
 
@@ -32,7 +32,7 @@ function getModule(name) {
  * @param {string} name モジュール名
  * @returns {boolean} 登録されている場合はtrue
  */
-function hasModule(name) {
+function hasModule(name: any) {
   return moduleRegistry.has(name);
 }
 
@@ -42,7 +42,7 @@ function hasModule(name) {
  * @param {Function} factory モジュール生成関数
  * @returns {any} モジュールインスタンス
  */
-function getOrCreateModule(name, factory) {
+function getOrCreateModule(name: any, factory: any) {
   if (!moduleRegistry.has(name)) {
     moduleRegistry.set(name, factory());
   }
@@ -56,7 +56,7 @@ let isTestEnvironment = false;
  * テスト環境かどうかを設定
  * @param {boolean} isTest テスト環境の場合はtrue
  */
-function setTestEnvironment(isTest) {
+function setTestEnvironment(isTest: any) {
   isTestEnvironment = isTest;
 }
 

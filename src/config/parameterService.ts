@@ -496,6 +496,9 @@ function applyParameters(params, service = parameterService) {
 // シングルトンインスタンスの作成
 const parameterService = ParameterService.getInstance();
 
+// ESM形式でエクスポート
+export { ParameterService, parameterService, createMockParameterService, applyParameters };
+
 // CommonJS形式でエクスポート
 module.exports = {
   ParameterService,

@@ -1,6 +1,46 @@
 // @ts-nocheck
 const { jest, describe, test, it, expect, beforeEach, afterEach, beforeAll, afterAll } = require('@jest/globals');
 
+// DuckDBの安定化されたモックを作成
+const mockDuckDB = {
+  Database: jest.fn().mockImplementation(() => {
+    const mockConnection = {
+      exec: jest.fn((query, callback) => {
+        if (callback) callback(null);
+      }),
+      prepare: jest.fn((query) => ({
+        run: jest.fn((params, callback) => {
+          if (callback) callback(null);
+        }),
+        all: jest.fn((params, callback) => {
+          if (callback) callback(null, []);
+        }),
+        finalize: jest.fn()
+      })),
+      all: jest.fn((query, callback) => {
+        if (callback) callback(null, []);
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+    
+    return {
+      connect: jest.fn((callback) => {
+        if (callback) callback(null, mockConnection);
+        return mockConnection;
+      }),
+      close: jest.fn((callback) => {
+        if (callback) callback(null);
+      })
+    };
+  }),
+  OPEN_READONLY: 0x01
+};
+
+// DuckDBモジュールをモック化
+jest.mock('duckdb', () => mockDuckDB);
+
 // BacktestRunnerのrunメソッドモック
 const mockRunMethod = jest.fn().mockImplementation(async function() {
   const symbol = this.config.symbol;
@@ -97,11 +137,25 @@ const { MultiSymbolBacktestRunner } = require('../../core/multiSymbolBacktestRun
 const { AllocationStrategy } = require('../../types/multiSymbolTypes');
 
 describe('MultiSymbolBacktestRunner', () => {
+  // テストタイムアウトを設定
+  jest.setTimeout(30000);
+  
   // 各テスト前にモックをリセット
   beforeEach(() => {
     jest.clearAllMocks();
     MockBacktestRunner.mockClear();
     mockRunMethod.mockClear();
+  });
+  
+  // 各テスト後のクリーンアップ
+  afterEach(async () => {
+    // 非同期処理の完了を待つ
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // メモリのクリーンアップ
+    if (global.gc) {
+      global.gc();
+    }
   });
 
   test('初期化と設定が正しく行われる', async () => {

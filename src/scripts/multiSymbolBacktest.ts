@@ -9,7 +9,7 @@
  */
 
 import { MultiSymbolBacktestRunner } from '../core/multiSymbolBacktestRunner.js';
-import { AllocationStrategy } from '../types/multiSymbolTypes.js';
+import { AllocationStrategy } from '../types/multiSymbolTypes';
 import * as fs from 'fs';
 import * as path from 'path';
 import logger from '../utils/logger.js';
