@@ -22,14 +22,8 @@ const logger = require('../utils/logger');
 //   priority: number; // 優先度（低いほど優先）
 // }
 
-// 注文配分方法
-const AllocationStrategy = {
-  PRIORITY: 'PRIORITY', // 優先度の高い取引所から順に
-  ROUND_ROBIN: 'ROUND_ROBIN', // ラウンドロビン方式
-  SPLIT_EQUAL: 'SPLIT_EQUAL', // 均等分割
-  WEIGHTED: 'WEIGHTED', // 重み付き配分
-  CUSTOM: 'CUSTOM' // カスタム配分（getAllocationRatioで定義）
-};
+// 注文配分方法は core/types.ts からインポート
+const { AllocationStrategy } = Types;
 
 // 注文配分設定
 // export interface AllocationConfig {
@@ -645,6 +639,9 @@ class UnifiedOrderManager {
     }
   }
 }
+
+// ESM形式でエクスポート
+export { UnifiedOrderManager, AllocationStrategy };
 
 // CommonJS形式でエクスポート
 module.exports = {

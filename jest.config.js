@@ -41,9 +41,9 @@ module.exports = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "/__broken_mjs__/",
-    "\\.mjs$",
-    // REF-036: ネイティブスタックトレースエラーが発生するテストを一時的に除外
-    "multiSymbolTradingEngine\\.test\\.js$"
+    "\\.mjs$"
+    // REF-036: multiSymbol系テストファイルのネイティブスタックトレースエラーを修正済み
+    // "multiSymbolTradingEngine\\.test\\.js$"
   ],
   
   // モジュールパスマッピング

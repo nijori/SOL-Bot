@@ -169,7 +169,7 @@ class TradingEngine {
   /**
    * 24時間ごとに日次終値を更新
    */
-  private updateDailyClose(): void {
+  updateDailyClose() {
     const now = Date.now();
     const oneDayMs = 24 * 60 * 60 * 1000; // 24時間（ミリ秒）
 
@@ -187,7 +187,7 @@ class TradingEngine {
   /**
    * ブラックスワンイベント（急激な価格変動）を検出
    */
-  private detectBlackSwanEvent(): void {
+  detectBlackSwanEvent() {
     if (!this.previousDailyClose || this.latestCandles.length === 0) {
       return;
     }
@@ -230,7 +230,7 @@ class TradingEngine {
   /**
    * EMERGENCYモードからの回復条件をチェック
    */
-  private checkEmergencyRecovery(): void {
+  checkEmergencyRecovery() {
     // EMERGENCYモード開始からの経過時間をチェック
     const now = Date.now();
     const recoveryHours = parameterService.get<number>('risk.emergency_recovery_hours', 24);
@@ -276,7 +276,7 @@ class TradingEngine {
    * アカウント情報を更新
    * @param account 更新されたアカウント情報
    */
-  public updateAccount(account: Account): void {
+  updateAccount(account) {
     this.account = account;
 
     // デイリーPnLを計算（午前0時の残高との差分）
@@ -298,7 +298,7 @@ class TradingEngine {
   /**
    * 日次リセット処理
    */
-  public resetDailyTracking(): void {
+  resetDailyTracking() {
     // 現在の残高を新しい日次開始残高として記録
     this.dailyStartingBalance = this.account.balance;
 
@@ -315,7 +315,7 @@ class TradingEngine {
    * 市場状態を分析
    * @returns 市場分析結果
    */
-  public analyzeMarket(): MarketAnalysisResult {
+  analyzeMarket() {
     if (this.latestCandles.length === 0) {
       logger.warn('[TradingEngine] 分析するキャンドルデータがありません');
       return {
@@ -337,7 +337,7 @@ class TradingEngine {
   /**
    * 戦略を実行し、シグナルを生成
    */
-  public executeStrategy(): StrategyResult {
+  executeStrategy() {
     // 緊急停止フラグをチェック
     if (checkKillSwitch()) {
       logger.error(`[TradingEngine] 緊急停止フラグが検出されました。戦略実行を中断します。`);
@@ -366,7 +366,7 @@ class TradingEngine {
       logger.info('[TradingEngine] スモークテストモード: 簡易的なバックテスト実行');
 
       // スモークテスト用のシグナル生成を強化
-      const signals: Order[] = [];
+      const signals = [];
 
       // 現在のキャンドル番号を取得（モジュロ演算用）
       const candleIndex = this.latestCandles.length;
@@ -509,7 +509,7 @@ class TradingEngine {
     const hedgeOrders = this.checkAndCreateHedgeOrders(positions);
 
     // 戦略実行結果
-    let result: StrategyResult = {
+    let result = {
       strategy: this.activeStrategy,
       signals: [], // シグナル（注文）の配列
       timestamp: Date.now()
@@ -680,7 +680,7 @@ class TradingEngine {
    * @param positions 現在のポジション
    * @returns ヘッジ注文の配列
    */
-  private checkAndCreateHedgeOrders(positions: Position[]): Order[] {
+  checkAndCreateHedgeOrders(positions) {
     // シンボルに関連するポジションのみをフィルタリング
     const symbolPositions = positions.filter((p) => p.symbol === this.symbol);
 
@@ -755,7 +755,7 @@ class TradingEngine {
    * 注文処理（バックテスト時はスリッページと手数料を適用）
    * @param signals 処理する注文シグナル
    */
-  private processSignals(signals: Order[]): void {
+  processSignals(signals) {
     if (signals.length === 0) {
       return;
     }
@@ -798,7 +798,7 @@ class TradingEngine {
    * スリッページと手数料を注文に適用（バックテスト用）
    * @param order 注文
    */
-  private applySlippageAndCommission(order: Order): void {
+  applySlippageAndCommission(order) {
     // 成行注文など価格がない場合は、最新の価格を使用
     if (order.price === undefined && this.latestCandles.length > 0) {
       order.price = this.latestCandles[this.latestCandles.length - 1].close;
@@ -824,9 +824,9 @@ class TradingEngine {
    * 注文の即時約定をシミュレート（バックテスト用）
    * @param order 約定させる注文
    */
-  private simulateFill(order: Order): void {
+  simulateFill(order) {
     // 注文に価格がない場合（成行注文など）、最新の価格を設定
-    let fillPrice: number;
+    let fillPrice;
 
     if (order.price === undefined && this.latestCandles.length > 0) {
       fillPrice = this.latestCandles[this.latestCandles.length - 1].close;
@@ -891,14 +891,14 @@ class TradingEngine {
   /**
    * 完了した取引履歴を取得（バックテスト評価用）
    */
-  public getCompletedTrades(): any[] {
+  getCompletedTrades() {
     return this.completedTrades;
   }
 
   /**
    * 現在の口座残高を取得（バックテスト評価用）
    */
-  public getEquity(): number {
+  getEquity() {
     return this.account.balance;
   }
 
@@ -906,7 +906,7 @@ class TradingEngine {
    * 価格更新イベントを処理
    * @param price 最新価格
    */
-  public updatePrice(price: number): void {
+  updatePrice(price) {
     if (!this.previousClose) {
       this.previousClose = price;
     }
@@ -923,7 +923,7 @@ class TradingEngine {
   /**
    * アカウント情報を更新
    */
-  private updateAccountInfo(): void {
+  updateAccountInfo() {
     // ポジションを更新
     this.account.positions = this.oms.getPositions();
 
@@ -942,7 +942,7 @@ class TradingEngine {
    * 使用中の証拠金を計算
    * @returns 使用中の証拠金額
    */
-  private calculateMarginUsed(): number {
+  calculateMarginUsed() {
     // 単純化のため、ポジション合計額の一定割合を証拠金として計算
     const totalPositionValue = this.account.positions.reduce((total, position) => {
       return total + position.amount * position.currentPrice;
@@ -956,12 +956,12 @@ class TradingEngine {
    * 緊急戦略を実行（急激な価格変動時）
    * @returns 戦略実行結果
    */
-  private executeEmergencyStrategy(): StrategyResult {
+  executeEmergencyStrategy() {
     logger.warn('[TradingEngine] 緊急戦略を実行します');
 
     // 現在のポジションを取得
     const currentPositions = this.oms.getPositions();
-    const signals: Order[] = [];
+    const signals = [];
 
     // すべてのポジションの半分をクローズ
     for (const position of currentPositions) {
@@ -992,9 +992,9 @@ class TradingEngine {
    * @param signals 生のシグナル
    * @returns フィルター適用後のシグナル
    */
-  private applyRiskFilters(signals: Order[]): Order[] {
+  applyRiskFilters(signals) {
     // リスクフィルターを適用したシグナル
-    const filteredSignals: Order[] = [];
+    const filteredSignals = [];
 
     // 利用可能資金に基づくフィルター
     const maxRiskAmount = this.account.balance * RISK_PARAMETERS.MAX_RISK_PER_TRADE;
@@ -1103,12 +1103,7 @@ class TradingEngine {
    * エンジンの状態情報を取得
    * @returns エンジンの状態情報
    */
-  public getStatus(): {
-    symbol: string;
-    account: Account;
-    marketAnalysis: MarketAnalysisResult | null;
-    activeStrategy: StrategyType;
-  } {
+  getStatus() {
     return {
       symbol: this.symbol,
       account: this.account,
@@ -1122,7 +1117,7 @@ class TradingEngine {
    * @param candle 現在のキャンドル
    * @returns Promiseを返す
    */
-  public async update(candle: Candle): Promise<void> {
+  async update(candle) {
     try {
       // 緊急停止フラグをチェック
       if (checkKillSwitch()) {
@@ -1160,12 +1155,12 @@ class TradingEngine {
    * すべてのポジションをクローズする（バックテスト終了時などに使用）
    * @returns Promiseを返す
    */
-  public async closeAllPositions(): Promise<void> {
+  async closeAllPositions() {
     logger.info('[TradingEngine] すべてのポジションをクローズします');
 
     // 現在のポジションを取得
     const positions = this.oms.getPositions();
-    const signals: Order[] = [];
+    const signals = [];
 
     // 各ポジションに対して反対注文を作成
     for (const position of positions) {
@@ -1191,7 +1186,7 @@ class TradingEngine {
    * @param order 約定した注文
    * @param fill 約定情報
    */
-  private updatePositionAndBalance(order: Order, fill: Fill): void {
+  updatePositionAndBalance(order, fill) {
     // 既存のコード...
     // ... existing code ...
 
@@ -1214,7 +1209,7 @@ class TradingEngine {
   /**
    * 日次パフォーマンスの計算と更新
    */
-  private updateDailyPerformance(): void {
+  updateDailyPerformance() {
     if (!this.dailyStartingBalance || !this.account) {
       return;
     }
@@ -1246,7 +1241,7 @@ class TradingEngine {
    * @param error エラーオブジェクト
    * @param errorType エラーの種類
    */
-  private logErrorAndUpdateMetrics(error: Error, errorType: string): void {
+  logErrorAndUpdateMetrics(error, errorType) {
     logger.error(`[TradingEngine] ${errorType}エラー: ${error.message}`);
     metricsService.updateMetrics.recordError(errorType);
   }
@@ -1261,11 +1256,11 @@ class TradingEngine {
    * @param riskPercent リスク割合（オプション、デフォルトは1%）
    * @returns 適切な注文サイズ
    */
-  private async getOrderSize(
-    entryPrice: number,
-    stopPrice: number,
-    riskPercent: number = 0.01
-  ): Promise<number> {
+  async getOrderSize(
+    entryPrice,
+    stopPrice,
+    riskPercent = 0.01
+  ) {
     // OrderSizingServiceが設定されている場合はそちらを使用
     if (this.orderSizingService) {
       try {
@@ -1306,14 +1301,14 @@ class TradingEngine {
   /**
    * ポジション一覧を取得
    */
-  public getPositions(): Position[] {
+  getPositions() {
     return this.account.positions;
   }
 
   /**
    * 最新の取引シグナルを取得
    */
-  public getRecentSignals(): Order[] {
+  getRecentSignals() {
     // 実装例：直近の戦略実行結果からシグナルを返す
     const result = this.executeStrategy();
     return result.signals;
@@ -1322,7 +1317,7 @@ class TradingEngine {
   /**
    * 現在の価格を取得
    */
-  public getCurrentPrice(): number {
+  getCurrentPrice() {
     if (this.latestCandles.length === 0) {
       return 0;
     }
@@ -1332,8 +1327,8 @@ class TradingEngine {
   /**
    * システムモードを設定
    */
-  public setSystemMode(mode: SystemMode): void {
-    this.systemMode = mode as any; // 型変換
+  setSystemMode(mode) {
+    this.systemMode = mode;
     
     // ログ出力（quietモードでない場合のみ）
     if (!this.quiet) {
@@ -1347,7 +1342,7 @@ class TradingEngine {
   /**
    * システムモード変更時の処理
    */
-  private onSystemModeChange(): void {
+  onSystemModeChange() {
     // モードに応じた処理を実装
     switch (this.systemMode) {
       case SystemMode.RISK_REDUCTION:
@@ -1376,7 +1371,7 @@ class TradingEngine {
   /**
    * リスク削減処理
    */
-  private reduceRisk(): void {
+  reduceRisk() {
     // 実装例：ポジションサイズの削減など
     const currentPositions = this.getPositions();
     if (currentPositions.length > 0 && !this.quiet) {
@@ -1390,7 +1385,7 @@ class TradingEngine {
   /**
    * 取引一時停止
    */
-  private pauseTrading(): void {
+  pauseTrading() {
     this.tradingEnabled = false;
     if (!this.quiet) {
       logger.info(`[TradingEngine] 取引を一時停止しました`);
@@ -1400,7 +1395,7 @@ class TradingEngine {
   /**
    * 取引再開
    */
-  private resumeTrading(): void {
+  resumeTrading() {
     this.tradingEnabled = true;
     if (!this.quiet) {
       logger.info(`[TradingEngine] 取引を再開しました`);
@@ -1410,7 +1405,7 @@ class TradingEngine {
   /**
    * メトリクスを初期化
    */
-  public initializeMetrics(): void {
+  initializeMetrics() {
     this.performanceStats = {
       totalTrades: 0,
       winningTrades: 0,
@@ -1432,7 +1427,7 @@ class TradingEngine {
   /**
    * エンジンを停止
    */
-  public stop(): void {
+  stop() {
     // 実装例：リソースのクリーンアップや取引の終了処理など
     if (!this.quiet) {
       logger.info(`[TradingEngine] エンジンを停止しています...`);

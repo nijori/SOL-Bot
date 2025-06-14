@@ -3,7 +3,7 @@
  * 戦略からの返り値の標準形式
  */
 
-import { Signal } from '../core/types.js';
+const { Signal } = require('../core/types');
 
 export interface StrategyResult {
   signals: Signal[];
@@ -14,3 +14,6 @@ export interface StrategyResult {
     [key: string]: any;
   };
 }
+
+// CommonJS互換エクスポート
+module.exports = { StrategyResult };

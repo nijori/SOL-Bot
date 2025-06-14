@@ -4,9 +4,9 @@
  * INF-032: CommonJS形式への変換
  */
 
-const client = require('prom-client');
-const express = require('express');
-const logger = require('./logger').default;
+import * as client from 'prom-client';
+import * as express from 'express';
+import logger from './logger';
 
 // デフォルトのレジストリを初期化
 const register = new client.Registry();
@@ -113,7 +113,7 @@ const updateMetrics = {
    * 残高メトリクスを更新
    * @param {number} balance 現在の残高
    */
-  updateBalance: (balance) => {
+  updateBalance: (balance: any) => {
     tradingBalance.set(balance);
   },
 
@@ -123,7 +123,7 @@ const updateMetrics = {
    * @param {number} pnl 日次損益金額
    * @param {number} pnlPercentage 日次損益率
    */
-  updateDailyPnl: (pnl, pnlPercentage) => {
+  updateDailyPnl: (pnl: any, pnlPercentage: any) => {
     dailyPnl.set(pnl);
     dailyPnlPercentage.set(Math.abs(pnlPercentage) * 100); // 絶対値に変換して%表示
   },
@@ -136,9 +136,9 @@ const updateMetrics = {
    * @param {number} sharpeRatioValue シャープレシオ
    */
   updatePerformanceMetrics: (
-    winRateValue,
-    maxDrawdownValue,
-    sharpeRatioValue
+    winRateValue: any,
+    maxDrawdownValue: any,
+    sharpeRatioValue: any
   ) => {
     winRate.set(winRateValue);
     maxDrawdown.set(maxDrawdownValue);
@@ -150,7 +150,7 @@ const updateMetrics = {
    * 取引を記録
    * @param {number} volume 取引量
    */
-  recordTrade: (volume) => {
+  recordTrade: (volume: any) => {
     tradeCount.inc(1);
     tradeVolume.inc(volume);
   },
@@ -160,7 +160,7 @@ const updateMetrics = {
    * エラーを記録
    * @param {string} type エラータイプ
    */
-  recordError: (type) => {
+  recordError: (type: any) => {
     errorCount.inc({ type });
   },
 
@@ -173,10 +173,10 @@ const updateMetrics = {
    * @param {string} symbol 通貨ペア
    */
   recordOrderLatency: (
-    latencySeconds,
-    exchange,
-    orderType,
-    symbol
+    latencySeconds: any,
+    exchange: any,
+    orderType: any,
+    symbol: any
   ) => {
     orderLatency.observe({ exchange, order_type: orderType, symbol }, latencySeconds);
   },
@@ -188,7 +188,7 @@ const updateMetrics = {
    * @param {string} errorCode エラーコード
    * @param {string} endpoint エンドポイント
    */
-  recordExchangeError: (exchange, errorCode, endpoint) => {
+  recordExchangeError: (exchange: any, errorCode: any, endpoint: any) => {
     exchangeErrorCount.inc({ exchange, code: errorCode, endpoint });
   },
 
@@ -198,7 +198,7 @@ const updateMetrics = {
    * @param {number} durationSeconds 処理時間（秒）
    * @param {string} strategy 戦略名
    */
-  recordEngineLoopDuration: (durationSeconds, strategy) => {
+  recordEngineLoopDuration: (durationSeconds: any, strategy: any) => {
     engineLoopDuration.observe({ strategy }, durationSeconds);
   },
 
@@ -208,7 +208,7 @@ const updateMetrics = {
    * @param {string} strategy 戦略名
    * @returns {Function} タイマー終了関数
    */
-  startEngineLoopTimer: (strategy) => {
+  startEngineLoopTimer: (strategy: any) => {
     const end = engineLoopDuration.startTimer({ strategy });
     return end; // 終了時に呼び出す関数を返す
   }
@@ -219,10 +219,10 @@ const updateMetrics = {
  * @param {number} [port=9100] サーバーポート（デフォルト：9100）
  */
 const initMetricsServer = (port = 9100) => {
-  const app = express();
+  const app = (express as any)();
 
   // メトリクスエンドポイントを設定
-  app.get('/metrics', async (req, res) => {
+  app.get('/metrics', async (req: any, res: any) => {
     try {
       res.set('Content-Type', register.contentType);
       res.end(await register.metrics());
@@ -235,7 +235,7 @@ const initMetricsServer = (port = 9100) => {
   });
 
   // ヘルスチェックエンドポイント
-  app.get('/health', (req, res) => {
+  app.get('/health', (req: any, res: any) => {
     res.status(200).send('OK');
   });
 
@@ -259,13 +259,19 @@ const resetRegistry = () => {
   // 既存のメトリクス定義をコピー（実装省略、必要に応じて実装）
 };
 
+// ESM形式でエクスポート
+const metricsService = {
+  initMetricsServer,
+  updateMetrics,
+  resetRegistry
+};
+
+export default metricsService;
+export { initMetricsServer, updateMetrics, resetRegistry };
+
 // CommonJS形式でエクスポート
 module.exports = {
-  default: {
-    initMetricsServer,
-    updateMetrics,
-    resetRegistry
-  },
+  default: metricsService,
   initMetricsServer,
   updateMetrics,
   resetRegistry

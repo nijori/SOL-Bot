@@ -376,3 +376,9 @@ export class ATRCalibrator {
 
 // シングルトンインスタンスをエクスポート
 export const atrCalibrator = ATRCalibrator.getInstance();
+
+// CommonJS形式でエクスポート
+module.exports = {
+  ATRCalibrator,
+  atrCalibrator: ATRCalibrator.getInstance()
+};

@@ -21,6 +21,34 @@ const { SystemMode } = require('../types/tradingEngineTypes.js');
 const { OrderSide } = require('./types');
 
 /**
+ * ピアソン相関係数を計算
+ * @param {number[]} x 第1データ系列
+ * @param {number[]} y 第2データ系列
+ * @returns {number} 相関係数 (-1 to 1)
+ */
+function calculatePearsonCorrelation(x, y) {
+  if (x.length !== y.length || x.length === 0) {
+    return 0;
+  }
+
+  const n = x.length;
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+  const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  if (denominator === 0) {
+    return 0;
+  }
+
+  return numerator / denominator;
+}
+
+/**
  * マルチシンボルトレーディングエンジン
  */
 class MultiSymbolTradingEngine {
@@ -49,6 +77,9 @@ class MultiSymbolTradingEngine {
     // 分離したモジュールを初期化
     this.allocationManager = new AllocationManager(config, options);
     this.riskAnalyzer = new PortfolioRiskAnalyzer(options);
+    
+    // 相関行列を初期化
+    this.correlationMatrix = {};
 
     // エンジンの初期化
     this.initializeEngines();

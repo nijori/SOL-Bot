@@ -203,6 +203,17 @@ function calculateATRStopLoss(price, atr, multiplier = 2.0, side) {
   }
 }
 
+// ESM形式でエクスポート
+export {
+  calculateATR,
+  getFallbackATR,
+  isATRTooSmall,
+  getValidStopDistance,
+  checkSignificantPriceChange,
+  calculateVolatility,
+  calculateATRStopLoss
+};
+
 // CommonJS形式でエクスポート
 module.exports = {
   calculateATR,

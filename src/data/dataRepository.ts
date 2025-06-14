@@ -632,4 +632,10 @@ class DataRepository {
   }
 }
 
-module.exports = { DataRepository };
+// シングルトンインスタンスを作成
+const dataRepository = new DataRepository();
+
+// ESM形式でエクスポート
+export { DataRepository, dataRepository };
+
+module.exports = { DataRepository, dataRepository };

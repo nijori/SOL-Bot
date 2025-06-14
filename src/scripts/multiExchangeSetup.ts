@@ -10,7 +10,8 @@
 
 import { UnifiedOrderManager, AllocationStrategy } from '../services/UnifiedOrderManager.js';
 import { ExchangeService } from '../services/exchangeService.js';
-import { Order, OrderSide, OrderType } from '../core/types.js';
+import type { Order } from '../core/types';
+import { OrderSide, OrderType } from '../core/types';
 import { SymbolInfoService } from '../services/symbolInfoService.js';
 import fs from 'fs';
 import path from 'path';
@@ -229,7 +230,7 @@ async function main() {
       const totalPosition = unifiedManager.getTotalPosition(symbol);
       if (totalPosition) {
         logger.info(
-          `統合ポジション: ${totalPosition.side} ${totalPosition.amount} @ ${totalPosition.entryPrice}, PnL: ${totalPosition.unrealizedPnl}`
+          `統合ポジション: ${totalPosition.side} ${totalPosition.size} @ ${totalPosition.entryPrice}, PnL: ${totalPosition.unrealizedPnl}`
         );
       }
     }

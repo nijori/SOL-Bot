@@ -9,8 +9,8 @@
  */
 
 import EventEmitter from 'events';
-import { Candle } from '../core/types.js';
-import logger from '../utils/logger.js';
+import type { Candle } from '../core/types';
+import logger from '../utils/logger';
 import { LRUCache } from 'lru-cache';
 
 // デフォルト設定

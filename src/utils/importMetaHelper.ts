@@ -7,8 +7,8 @@
  * INF-032: CommonJS形式への変換
  */
 
-const path = require('path');
-const url = require('url');
+import * as path from 'path';
+import * as url from 'url';
 
 /**
  * 実行環境がESMかどうかを判定
@@ -26,8 +26,8 @@ const isEsmEnvironment = () => {
   }
 
   // __esModuleフラグによる判定
-  if (typeof global.__ESM_ENVIRONMENT !== 'undefined') {
-    return !!global.__ESM_ENVIRONMENT;
+  if (typeof (global as any).__ESM_ENVIRONMENT !== 'undefined') {
+    return !!(global as any).__ESM_ENVIRONMENT;
   }
 
   // requireの存在チェック
@@ -78,7 +78,7 @@ function getCurrentFileUrl() {
  * node scriptname.js として実行されているか、importされているかを区別
  * @returns {boolean} 直接実行の場合はtrue、importされている場合はfalse
  */
-function isMainModule() {
+function checkIfMainModule() {
   // CommonJS環境での検出
   try {
     if (typeof require !== 'undefined' && typeof module !== 'undefined') {
@@ -114,7 +114,7 @@ function isMainModule() {
  * @param {string} relativePath 現在のファイルからの相対パス
  * @returns {string} 絶対パス
  */
-function resolvePathFromCurrent(relativePath) {
+function resolvePathFromCurrent(relativePath: any) {
   const currentUrl = getCurrentFileUrl();
   const currentDir = path.dirname(url.fileURLToPath(currentUrl));
   return path.resolve(currentDir, relativePath);
@@ -125,7 +125,7 @@ function resolvePathFromCurrent(relativePath) {
  * @param {string} fileUrl ファイルURL
  * @returns {string} 絶対パス
  */
-function fileUrlToPath(fileUrl) {
+function fileUrlToPath(fileUrl: any) {
   return url.fileURLToPath(fileUrl);
 }
 
@@ -134,15 +134,25 @@ function fileUrlToPath(fileUrl) {
  * @param {string} filePath ファイルパス
  * @returns {string} ファイルURL
  */
-function pathToFileUrl(filePath) {
+function pathToFileUrl(filePath: any) {
   return url.pathToFileURL(filePath).toString();
 }
+
+// Named exports (ESM)
+export {
+  isEsmEnvironment,
+  getCurrentFileUrl,
+  checkIfMainModule as isMainModule,
+  resolvePathFromCurrent,
+  fileUrlToPath,
+  pathToFileUrl
+};
 
 // CommonJS形式でエクスポート
 module.exports = {
   isEsmEnvironment,
   getCurrentFileUrl,
-  isMainModule,
+  isMainModule: checkIfMainModule,
   resolvePathFromCurrent,
   fileUrlToPath,
   pathToFileUrl

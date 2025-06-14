@@ -358,6 +358,9 @@ class SymbolInfoService {
   }
 }
 
+// ESM形式でエクスポート
+export { SymbolInfoService };
+
 // CommonJS形式でエクスポート
 module.exports = {
   SymbolInfoService
