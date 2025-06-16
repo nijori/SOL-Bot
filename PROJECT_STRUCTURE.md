@@ -469,7 +469,7 @@ SOL-Botのインフラストラクチャは、Infrastructure as Code（IaC）の
 |----------|-----|------|
 | **EC2インスタンス** | `i-0dbe2af5c7b01181e` | ステージング環境のメインサーバー |
 | **パブリックIP** | `13.158.58.241` | 固定IPアドレス（Elastic IP） |
-| **パブリックDNS** | `ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com` | DNS名 |
+| **パブリックDNS** | `ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com` | DNS名 |
 | **セキュリティグループ** | `sg-090defb21d10228f6` | ファイアウォール設定 |
 | **IAMロール** | `arn:aws:iam::475538532274:role/solbot-stg-role` | 権限管理 |
 

@@ -22,7 +22,7 @@
 |----------|-----|------|
 | **EC2インスタンス** | `i-0dbe2af5c7b01181e` | ステージング環境のメインサーバー |
 | **パブリックIP** | `13.158.58.241` | 固定IPアドレス（Elastic IP） |
-| **パブリックDNS** | `ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com` | DNS名 |
+| **パブリックDNS** | `ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com` | DNS名 |
 | **セキュリティグループ** | `sg-090defb21d10228f6` | ファイアウォール設定 |
 | **IAMロール** | `arn:aws:iam::475538532274:role/solbot-stg-role` | 権限管理 |
 | **IAMインスタンスプロファイル** | `solbot-stg-profile` | EC2インスタンス用権限 |
@@ -96,7 +96,7 @@ Outputs:
 iam_role_arn = "arn:aws:iam::475538532274:role/solbot-stg-role"
 instance_id = "i-0dbe2af5c7b01181e"
 instance_profile_name = "solbot-stg-profile"
-public_dns = "ec2-35-78-71-59.ap-northeast-1.compute.amazonaws.com"
+public_dns = "ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com"
 public_ip = "13.158.58.241"
 security_group_id = "sg-090defb21d10228f6"
 ```
