@@ -143,35 +143,48 @@ jobs:
             else
               echo "No Node.js topics found in Amazon Linux Extras, trying alternative methods..."
               
-              # Method 1: Try EPEL repository for older Node.js version
-              if sudo amazon-linux-extras list | grep -q "epel"; then
-                echo "Installing EPEL repository via Amazon Linux Extras..."
-                sudo amazon-linux-extras install epel -y
+              # Method 1: Direct binary installation for maximum compatibility
+              echo "Installing Node.js 14 binary (compatible with Amazon Linux 2 glibc 2.26)..."
+              cd /tmp
+              
+              # Remove any existing Node.js packages that might cause conflicts
+              sudo yum remove -y nodejs npm nodesource-release nsolid* 2>/dev/null || true
+              
+              # Download and install Node.js 14.21.3 binary
+              echo "Downloading Node.js 14.21.3 binary..."
+              wget -q https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.xz
+              
+              echo "Installing Node.js binary to /usr/local..."
+              sudo tar -C /usr/local --strip-components 1 -xJf node-v14.21.3-linux-x64.tar.xz
+              
+              # Create symlinks
+              sudo ln -sf /usr/local/bin/node /usr/bin/node
+              sudo ln -sf /usr/local/bin/npm /usr/bin/npm
+              sudo ln -sf /usr/local/bin/npx /usr/bin/npx
+              
+              # Verify binary compatibility
+              echo "Verifying Node.js installation compatibility..."
+              ldd /usr/local/bin/node | grep GLIBC || echo "No GLIBC dependencies shown"
+              
+              cd -
+              
+              # If binary installation fails, try alternative methods
+              if ! command -v node &> /dev/null; then
+                echo "Binary installation failed, trying EPEL with older Node.js..."
                 
-                # Install specific older Node.js version compatible with glibc 2.26
-                echo "Installing Node.js 14 from EPEL (compatible with Amazon Linux 2)..."
-                sudo yum install -y nodejs npm --enablerepo=epel
-                
-                # If EPEL nodejs installation fails, try direct install
-                if ! command -v node &> /dev/null; then
-                  echo "EPEL Node.js installation failed, trying direct package install..."
-                  # Try to install older NodeJS version that's compatible with glibc 2.26
-                  sudo yum install -y https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/n/nodejs-6.17.1-1.el7.x86_64.rpm || true
-                  sudo yum install -y https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/n/npm-3.10.10-1.6.17.1.1.el7.x86_64.rpm || true
+                # Install EPEL if not already installed
+                if ! sudo amazon-linux-extras list | grep -q "epel.*enabled"; then
+                  sudo amazon-linux-extras install epel -y
                 fi
-              else
-                # Method 2: Try Amazon Linux 2 compatible Node.js setup script
-                echo "Installing Node.js 14 via Amazon Linux 2 compatible method..."
-                curl -fsSL https://rpm.nodesource.com/setup_14.x | sudo bash -
-                sudo yum install -y nodejs || {
-                  echo "NodeSource installation failed, trying manual binary installation..."
-                  # Download and install Node.js 14 binary (compatible with glibc 2.26)
-                  cd /tmp
-                  wget https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.xz
-                  sudo tar -C /usr/local --strip-components 1 -xJf node-v14.21.3-linux-x64.tar.xz
-                  sudo ln -sf /usr/local/bin/node /usr/bin/node
-                  sudo ln -sf /usr/local/bin/npm /usr/bin/npm
-                  cd -
+                
+                # Try to find and install compatible Node.js version from EPEL
+                echo "Searching for compatible Node.js in EPEL..."
+                sudo yum search nodejs --enablerepo=epel | head -20
+                
+                # Try installing specific older version if available
+                sudo yum install -y nodejs-6* npm-3* --enablerepo=epel 2>/dev/null || {
+                  echo "No compatible Node.js found in EPEL, using latest available..."
+                  sudo yum install -y nodejs npm --enablerepo=epel --skip-broken || true
                 }
               fi
             fi
