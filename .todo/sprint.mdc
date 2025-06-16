@@ -112,14 +112,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : ✅完了！GitHub Actionsワークフロー作成・デプロイ・ヘルスチェック全て成功。Amazon Linux 2023 + Node.js 18環境、TypeScriptビルド・systemdサービス起動・ヘルスチェックエンドポイント(/api/status)確認完了。here-document構文エラー修正、systemdサービスファイル強制更新、ExecStartパス(dist/index.js)修正を実施。Discord通知設定済み。ステージング環境での完全なCI/CDパイプライン確立完了。
 
-8. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
+8. [x] TST-085: "30 s Stop" CI インテグレーションテスト
       - 📅 Due        : 2026-07-02
       - 👤 Owner      : @assistant
       - 🔗 Depends-on : CICD-005
       - 🏷️  Label      : test
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 90%
-      - ✎ Notes      : 実装完了、実行テスト待ち。deploy-stg.ymlに30秒停止統合テストジョブ「thirty-second-stop-test」を追加実装済み。systemctl stop bot.serviceが30秒以内に完了することを検証、サービス復旧テスト、ヘルスチェック(/api/status)による動作確認を実装。タイムアウト保護、エラーハンドリング、Discord通知も完備。GitHubにプッシュ済み。【残作業】GitHub Actionsでワークフロー実行し、30秒停止テストが実際に成功することを確認してからタスク完了とする。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！deploy-stg.ymlに30秒停止統合テストジョブ「thirty-second-stop-test」を追加実装完了。systemctl stop bot.serviceが30秒以内に完了することを検証、サービス復旧テスト、ヘルスチェック(/api/status)による動作確認が成功。タイムアウト保護、エラーハンドリング、Discord通知完備。GitHub Actions構文エラー修正（secrets→env参照）も実施。全ジョブが成功してCI/CDパイプラインでの30秒停止テスト完全動作確認済み。
 
 9. [ ] CICD-007: deploy-prod.ymlの更新・SSM対応
       - 📅 Due        : 2026-07-03
@@ -128,7 +128,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : 本番デプロイワークフローをステージング版と同様の構成に更新。SSM Parameter Store対応、新しいssh-action使用、systemdサービス管理への変更。Blue/Green切り替え準備も含む。
+      - ✎ Notes      : 本番デプロイワークフローをステージング版と同様の構成に更新。SSM Parameter Store対応、新しいssh-action使用、systemdサービス管理への変更。Blue/Green切り替え準備も含む。実際にワークフローが成功することを確認してからタスク完了とする。
 
 10. [ ] CICD-008: ci.ymlワークフローの整理・重複排除
       - 📅 Due        : 2026-07-04
@@ -137,7 +137,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : ci.ymlとdeploy-stg.ymlの機能重複を整理。ci.ymlはテスト・ビルドのみ、デプロイは専用ワークフローに分離。古いPM2/SSH設定削除。
+      - ✎ Notes      : ci.ymlとdeploy-stg.ymlの機能重複を整理。ci.ymlはテスト・ビルドのみ、デプロイは専用ワークフローに分離。古いPM2/SSH設定削除。実際にワークフローが成功することを確認してからタスク完了とする。
 
 11. [ ] CICD-009: 重複ワークフローの削除・統合
       - 📅 Due        : 2026-07-05
@@ -145,7 +145,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
       - 📊 Progress   : 0%
-      - ✎ Notes      : trivy-dependency-scan.ymlをsecurity-scan.ymlに統合済みのため削除。不要なワークフローファイルの整理とREADME更新。
+      - ✎ Notes      : trivy-dependency-scan.ymlをsecurity-scan.ymlに統合済みのため削除。不要なワークフローファイルの整理とREADME更新。実際にワークフローが成功することを確認してからタスク完了とする。
 
 ### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
 目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
