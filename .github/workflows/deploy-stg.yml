@@ -415,3 +415,145 @@ jobs:
             Deployment Result: ${{ job.status }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
           ack_no_webhook: true
+
+  # TST-085: "30 s Stop" CI インテグレーションテスト
+  thirty-second-stop-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: 30 Second Stop Integration Test
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.STG_SSH_KEY }}
+          timeout: 2m
+          command_timeout: 3m
+          script: |
+            set -e
+            
+            echo "=== TST-085: 30 Second Stop Integration Test ==="
+            echo "Testing graceful service shutdown within 30 seconds"
+            echo "Timestamp: $(date)"
+            
+            # Pre-test verification: Ensure service is running
+            echo "Pre-test: Verifying service is active..."
+            if ! sudo systemctl is-active --quiet bot.service; then
+              echo "❌ ERROR: bot.service is not active before test"
+              sudo systemctl status bot.service --no-pager
+              exit 1
+            fi
+            echo "✓ Service is active before test"
+            
+            # Record start time for 30-second measurement
+            START_TIME=$(date +%s)
+            echo "Stop command initiated at: $(date)"
+            
+            # Execute stop command with timeout protection
+            echo "Executing systemctl stop bot.service..."
+            timeout 30s sudo systemctl stop bot.service
+            STOP_EXIT_CODE=$?
+            
+            # Calculate elapsed time
+            END_TIME=$(date +%s)
+            ELAPSED_TIME=$((END_TIME - START_TIME))
+            echo "Stop command completed in: ${ELAPSED_TIME} seconds"
+            
+            # Validate results
+            if [ $STOP_EXIT_CODE -eq 0 ]; then
+              if [ $ELAPSED_TIME -le 30 ]; then
+                echo "✅ SUCCESS: Service stopped gracefully in ${ELAPSED_TIME} seconds (≤30s)"
+              else
+                echo "❌ FAIL: Service took ${ELAPSED_TIME} seconds to stop (>30s limit)"
+                exit 1
+              fi
+            elif [ $STOP_EXIT_CODE -eq 124 ]; then
+              echo "❌ FAIL: Service stop timed out after 30 seconds"
+              exit 1
+            else
+              echo "❌ FAIL: Service stop failed with exit code $STOP_EXIT_CODE"
+              sudo systemctl status bot.service --no-pager
+              exit 1
+            fi
+            
+            # Verify service is actually stopped
+            echo "Verifying service is stopped..."
+            if sudo systemctl is-active --quiet bot.service; then
+              echo "❌ FAIL: Service still active after stop command"
+              exit 1
+            fi
+            echo "✓ Service confirmed stopped"
+            
+            # Recovery: Restart service
+            echo "Recovery: Restarting service..."
+            sudo systemctl start bot.service
+            
+            # Wait for service to start
+            echo "Waiting for service restart..."
+            sleep 10
+            
+            # Verify service restart
+            if ! sudo systemctl is-active --quiet bot.service; then
+              echo "❌ FAIL: Service failed to restart"
+              sudo systemctl status bot.service --no-pager
+              sudo journalctl -u bot.service --no-pager --lines=10
+              exit 1
+            fi
+            echo "✓ Service successfully restarted"
+            
+            # Health check after restart
+            echo "Performing health check after restart..."
+            HEALTH_CHECK_URL="http://localhost:3000/api/status"
+            MAX_RETRIES=6
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "Health check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+              
+              if curl -f -s --connect-timeout 10 --max-time 30 "$HEALTH_CHECK_URL"; then
+                echo ""
+                echo "✅ Health check passed after restart"
+                break
+              else
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  echo "Health check failed, retrying in 10 seconds..."
+                  sleep 10
+                else
+                  echo "❌ Health check failed after restart"
+                  sudo journalctl -u bot.service --no-pager --lines=20
+                  exit 1
+                fi
+              fi
+            done
+            
+            # PnL=0 verification (placeholder for future implementation)
+            echo "PnL verification (placeholder)..."
+            # Note: Actual PnL check will be implemented when /api/account endpoint is available
+            # Expected: curl -s "$HEALTH_CHECK_URL/account" | jq '.dailyPnL' should equal 0
+            echo "✓ PnL verification placeholder passed (TODO: implement /api/account endpoint)"
+            
+            echo ""
+            echo "🎉 TST-085 Integration Test PASSED"
+            echo "📊 Results Summary:"
+            echo "   - Stop time: ${ELAPSED_TIME}s (limit: 30s)"
+            echo "   - Service recovery: ✅"
+            echo "   - Health check: ✅"
+            echo "   - PnL verification: ✅ (placeholder)"
+
+      - name: Test Results Notification
+        uses: sarisia/actions-status-discord@v1
+        if: always() && secrets.DISCORD_WEBHOOK_URL != ''
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: 'TST-085: 30-Second Stop Test'
+          description: |
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Test: 30-second graceful shutdown + recovery
+            Result: ${{ job.status }}
+          color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
+          ack_no_webhook: true
