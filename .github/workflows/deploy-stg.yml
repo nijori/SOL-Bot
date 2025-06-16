@@ -261,11 +261,11 @@ jobs:
             # Check if systemd service exists
             if [ ! -f /etc/systemd/system/bot.service ]; then
               echo "Creating bot.service systemd file..."
-              sudo tee /etc/systemd/system/bot.service > /dev/null <<SERVICE
+              sudo tee /etc/systemd/system/bot.service > /dev/null << 'SERVICE'
               [Unit]
               Description=SOL Bot Application
               After=network.target
-              
+
               [Service]
               Type=simple
               User=solbot
@@ -276,7 +276,7 @@ jobs:
               Environment=NODE_ENV=production
               StandardOutput=journal
               StandardError=journal
-              
+
               [Install]
               WantedBy=multi-user.target
               SERVICE
