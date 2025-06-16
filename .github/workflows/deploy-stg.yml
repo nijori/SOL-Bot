@@ -50,7 +50,7 @@ jobs:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: スチE�Eジング環墁E��アプリケーションをデプロイ
+      - name: Deploy Application to Staging Environment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
@@ -152,6 +152,12 @@ jobs:
               echo "Application directory structure created"
             fi
             
+            # Install git if not present
+            if ! command -v git &> /dev/null; then
+              echo "Installing git..."
+              sudo dnf install -y git
+            fi
+            
             # Clone application code
             echo "Deploying application code..."
             if [ -d /opt/solbot/.git ]; then
@@ -235,12 +241,12 @@ jobs:
             fi
             
             # For now, just verify the setup is complete
-            echo "✁ESOL Bot user and service configuration complete"
-            echo "✁ENode.js $(node --version) installed"
-            echo "✁EDirectory structure: $(ls -la /opt/solbot/)"
-            echo "✁EService file: $(ls -la /etc/systemd/system/bot.service)"
+            echo "✓ SOL Bot user and service configuration complete"
+            echo "✓ Node.js $(node --version) installed"
+            echo "✓ Directory structure: $(ls -la /opt/solbot/)"
+            echo "✓ Service file: $(ls -la /etc/systemd/system/bot.service)"
 
-      - name: サービス起動とヘルスチェチE��
+      - name: Start Service and Health Check
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
@@ -287,8 +293,8 @@ jobs:
               
               if curl -f -s --connect-timeout 10 --max-time 30 "$HEALTH_CHECK_URL"; then
                 echo ""
-                echo "✁EHealth check passed!"
-                echo "✁ESOL Bot is running successfully"
+                echo "✅ Health check passed!"
+                echo "✅ SOL Bot is running successfully"
                 break
               else
                 RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -296,7 +302,7 @@ jobs:
                   echo "Health check failed, retrying in 10 seconds..."
                   sleep 10
                 else
-                  echo "❁EHealth check failed after $MAX_RETRIES attempts"
+                  echo "❌ Health check failed after $MAX_RETRIES attempts"
                   echo "Service logs:"
                   sudo journalctl -u bot.service --no-pager --lines=20
                   echo "Port check:"
@@ -315,7 +321,7 @@ jobs:
             echo "🎉 Deployment completed successfully!"
             echo "🚀 SOL Bot is now running on staging environment"
 
-      - name: クリーンアチE�E
+      - name: Cleanup
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -327,19 +333,19 @@ jobs:
           script: |
             # Clean up temporary deployment files
             sudo rm -rf /tmp/solbot-deploy-${{ github.sha }}
-            echo "✁ECleaned up temporary files"
+            echo "✓ Cleaned up temporary files"
 
-      - name: Discordへの通知
+      - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
         if: always()
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
-          title: 'SOL-Bot スチE�EジングチE�Eロイ'
+          title: 'SOL-Bot Staging Deployment'
           description: |
-            リポジトリ: ${{ github.repository }}
-            コミッチE ${{ github.sha }}
-            スチE�Eジング環墁E ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-            チE�Eロイ結果: ${{ job.status }}
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Staging Environment: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+            Deployment Result: ${{ job.status }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
           ack_no_webhook: true
