@@ -50,7 +50,7 @@ jobs:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ステージング環境にアプリケーションをデプロイ
+      - name: スチE�Eジング環墁E��アプリケーションをデプロイ
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
@@ -192,9 +192,9 @@ jobs:
                 cat > .env << "ENV_EOF"
                 # Placeholder environment file
                 # In production, this will be managed by AWS SSM Parameter Store
-                NODE_ENV=production
-                PORT=3000
-                LOG_LEVEL=info
+                                NODE_ENV=production
+                                PORT=3000
+                                LOG_LEVEL=info
                 ENV_EOF
               fi
               
@@ -205,20 +205,20 @@ jobs:
             if [ ! -f /etc/systemd/system/bot.service ]; then
               echo "Creating bot.service systemd file..."
               sudo tee /etc/systemd/system/bot.service > /dev/null <<SERVICE
-              [Unit]
-              Description=SOL Bot Application
-              After=network.target
-              
-              [Service]
-              Type=simple
-              User=solbot
-              WorkingDirectory=/opt/solbot
-              ExecStart=/usr/bin/node index.js
-              Restart=always
-              RestartSec=10
-              Environment=NODE_ENV=production
-              StandardOutput=journal
-              StandardError=journal
+                              [Unit]
+                              Description=SOL Bot Application
+                              After=network.target
+                              
+                              [Service]
+                              Type=simple
+                              User=solbot
+                              WorkingDirectory=/opt/solbot
+                              ExecStart=/usr/bin/node index.js
+                              Restart=always
+                              RestartSec=10
+                              Environment=NODE_ENV=production
+                              StandardOutput=journal
+                              StandardError=journal
               
               [Install]
               WantedBy=multi-user.target
@@ -235,12 +235,12 @@ jobs:
             fi
             
             # For now, just verify the setup is complete
-            echo "✓ SOL Bot user and service configuration complete"
-            echo "✓ Node.js $(node --version) installed"
-            echo "✓ Directory structure: $(ls -la /opt/solbot/)"
-            echo "✓ Service file: $(ls -la /etc/systemd/system/bot.service)"
+            echo "✁ESOL Bot user and service configuration complete"
+            echo "✁ENode.js $(node --version) installed"
+            echo "✁EDirectory structure: $(ls -la /opt/solbot/)"
+            echo "✁EService file: $(ls -la /etc/systemd/system/bot.service)"
 
-      - name: サービス起動とヘルスチェック
+      - name: サービス起動とヘルスチェチE��
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
@@ -287,8 +287,8 @@ jobs:
               
               if curl -f -s --connect-timeout 10 --max-time 30 "$HEALTH_CHECK_URL"; then
                 echo ""
-                echo "✅ Health check passed!"
-                echo "✅ SOL Bot is running successfully"
+                echo "✁EHealth check passed!"
+                echo "✁ESOL Bot is running successfully"
                 break
               else
                 RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -296,7 +296,7 @@ jobs:
                   echo "Health check failed, retrying in 10 seconds..."
                   sleep 10
                 else
-                  echo "❌ Health check failed after $MAX_RETRIES attempts"
+                  echo "❁EHealth check failed after $MAX_RETRIES attempts"
                   echo "Service logs:"
                   sudo journalctl -u bot.service --no-pager --lines=20
                   echo "Port check:"
@@ -315,7 +315,7 @@ jobs:
             echo "🎉 Deployment completed successfully!"
             echo "🚀 SOL Bot is now running on staging environment"
 
-      - name: クリーンアップ
+      - name: クリーンアチE�E
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -327,7 +327,7 @@ jobs:
           script: |
             # Clean up temporary deployment files
             sudo rm -rf /tmp/solbot-deploy-${{ github.sha }}
-            echo "✓ Cleaned up temporary files"
+            echo "✁ECleaned up temporary files"
 
       - name: Discordへの通知
         uses: sarisia/actions-status-discord@v1
@@ -335,11 +335,11 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
-          title: 'SOL-Bot ステージングデプロイ'
+          title: 'SOL-Bot スチE�EジングチE�Eロイ'
           description: |
             リポジトリ: ${{ github.repository }}
-            コミット: ${{ github.sha }}
-            ステージング環境: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-            デプロイ結果: ${{ job.status }}
+            コミッチE ${{ github.sha }}
+            スチE�Eジング環墁E ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+            チE�Eロイ結果: ${{ job.status }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
           ack_no_webhook: true
