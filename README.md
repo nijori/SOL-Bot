@@ -209,6 +209,20 @@ git push origin master
 - Discord通知でデプロイ結果を確認
 - ステージング環境: `http://13.158.58.241:3000/api/status`
 
+### GitHub Actions ワークフロー
+
+SOL-Botでは以下のワークフローで完全なCI/CDパイプラインを構築しています：
+
+| ワークフロー | 用途 | トリガー | 状況 |
+|-------------|------|----------|------|
+| **Deploy to Staging** | ステージング環境自動デプロイ | master push | ✅ 稼働中 |
+| **Security Scan** | セキュリティチェック（gitleaks + Trivy） | push/PR/日次 | ✅ 保持 |
+| **CI/CD Pipeline** | テスト・ビルド・品質管理 | push/PR | ⚠️ 整理予定 |
+| **Deploy to Production** | 本番環境デプロイ | master push + 手動 | ❌ 要修正 |
+| **ESM Tests** | ES Modules環境テスト | push/PR | ✅ 保持 |
+
+詳細な設定・用途・トラブルシューティングについては、[GitHub Actions ワークフロー詳細ガイド](docs/github-actions-workflows.md)を参照してください。
+
 ### テスト実行
 
 SOL-BotはESM環境に完全対応したテストフレームワークを提供しています：
