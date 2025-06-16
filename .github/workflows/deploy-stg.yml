@@ -136,11 +136,19 @@ jobs:
               echo "Installing Node.js 14 via Amazon Linux Extras..."
               sudo amazon-linux-extras install nodejs14 -y
             else
-              echo "No Node.js topics found in Amazon Linux Extras, trying EPEL repository..."
-              # Install EPEL repository
-              sudo yum install -y epel-release
-              # Install Node.js and npm from EPEL
-              sudo yum install -y nodejs npm
+              echo "No Node.js topics found in Amazon Linux Extras, trying alternative methods..."
+              
+              # Method 1: Try EPEL repository
+              if sudo amazon-linux-extras list | grep -q "epel"; then
+                echo "Installing EPEL repository via Amazon Linux Extras..."
+                sudo amazon-linux-extras install epel -y
+                sudo yum install -y nodejs npm
+              else
+                # Method 2: Try NodeSource repository (for Node.js 16)
+                echo "Installing Node.js 16 from NodeSource repository..."
+                curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
+                sudo yum install -y nodejs
+              fi
             fi
             
             # Ensure npm is installed
