@@ -121,6 +121,32 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : ワークフロー後段で `ssh systemctl stop bot.service` → 終了コードチェック、30 s 超過で fail させる。成功時は systemctl start で復旧し PnL=0 を確認。
 
+9. [ ] CICD-007: deploy-prod.ymlの更新・SSM対応
+      - 📅 Due        : 2026-07-03
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : SEC-008
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 本番デプロイワークフローをステージング版と同様の構成に更新。SSM Parameter Store対応、新しいssh-action使用、systemdサービス管理への変更。Blue/Green切り替え準備も含む。
+
+10. [ ] CICD-008: ci.ymlワークフローの整理・重複排除
+      - 📅 Due        : 2026-07-04
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : CICD-007
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : ci.ymlとdeploy-stg.ymlの機能重複を整理。ci.ymlはテスト・ビルドのみ、デプロイは専用ワークフローに分離。古いPM2/SSH設定削除。
+
+11. [ ] CICD-009: 重複ワークフローの削除・統合
+      - 📅 Due        : 2026-07-05
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : cicd
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : trivy-dependency-scan.ymlをsecurity-scan.ymlに統合済みのため削除。不要なワークフローファイルの整理とREADME更新。
+
 ### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
 目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
 
