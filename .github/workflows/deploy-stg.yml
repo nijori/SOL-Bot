@@ -2,77 +2,58 @@ name: Deploy to Staging
 
 on:
   push:
-    branches: [main, master]
+    branches: [ master ]
   workflow_dispatch:
     inputs:
-      reason:
-        description: '手動デプロイの理由'
-        required: true
-        default: 'ステージング環境テスト'
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
 
-permissions:
-  id-token: write
-  contents: read
+env:
+  AWS_REGION: ap-northeast-1
 
 jobs:
-  test-and-deploy:
+  test:
     runs-on: ubuntu-latest
-    environment: staging
-
     steps:
-      - name: チェックアウト
-        uses: actions/checkout@v4
-
-      - name: Node.jsセットアップ
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: 依存関係のインストール
+          
+      - name: Install dependencies
         run: npm ci
-
-      - name: Jestによるテスト実行
+        
+      - name: Run tests
         run: npm test
+        continue-on-error: ${{ github.event.inputs.force_deploy == 'true' }}
 
-      # TypeScriptビルドは一時的に無効化（CommonJS移行中のため）
-      # - name: TypeScriptのビルド
-      #   run: npm run build
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success() || github.event.inputs.force_deploy == 'true'
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: GitHub Context Debug
-        run: |
-          echo "Repository: ${{ github.repository }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Actor: ${{ github.actor }}"
-          echo "Expected sub: repo:${{ github.repository }}:ref:${{ github.ref }}"
-
-      - name: AWS認証設定
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
-          aws-region: ap-northeast-1
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: ステージング環境ファイル作成
-        run: |
-          echo "NODE_ENV=staging" > .env
-          echo "LOG_LEVEL=debug" >> .env
-          echo "API_PORT=3000" >> .env
-          echo "# 機密情報は後でSSM Parameter Storeから取得予定" >> .env
-
-      - name: ステージングEC2へのファイル転送
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
-          username: ec2-user
-          key: ${{ secrets.STG_SSH_KEY }}
-          source: '.,!node_modules,!.git,!__tests__,!logs,!data'
-          target: '/tmp/solbot-deploy-${{ github.sha }}'
-          strip_components: 0
-
-      - name: ステージング環境デプロイ実行
+      - name: ステージング環境にアプリケーションをデプロイ
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
@@ -82,29 +63,6 @@ jobs:
             echo "Commit: ${{ github.sha }}"
             echo "Triggered by: ${{ github.actor }}"
             echo "Timestamp: $(date)"
-            echo ""
-            
-            # Move files to deployment directory
-            sudo mkdir -p /opt/solbot
-            sudo cp -r /tmp/solbot-deploy-${{ github.sha }}/* /opt/solbot/
-            sudo chown -R ec2-user:ec2-user /opt/solbot
-            
-            # Install systemd service if not exists
-            if [ ! -f "/etc/systemd/system/bot.service" ]; then
-              echo "Installing systemd service..."
-              sudo cp /opt/solbot/infra/systemd/bot.service /etc/systemd/system/
-              sudo systemctl daemon-reload
-              sudo systemctl enable bot.service
-            fi
-            
-            # Create solbot user if not exists
-            if ! id "solbot" &>/dev/null; then
-              echo "Creating solbot user..."
-              sudo useradd --system --home /opt/solbot --shell /bin/bash solbot
-            fi
-            
-            # Set proper ownership
-            sudo chown -R solbot:solbot /opt/solbot
             
             # Clean up any existing Node.js installations and install fresh
             echo "Cleaning up existing Node.js installations..."
@@ -221,7 +179,7 @@ jobs:
       - name: ヘルスチェック実行
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
@@ -272,7 +230,7 @@ jobs:
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           script: |
@@ -290,8 +248,6 @@ jobs:
           description: |
             リポジトリ: ${{ github.repository }}
             コミット: ${{ github.sha }}
-            ブランチ: ${{ github.ref_name }}
-            トリガー: ${{ github.actor }}
-            ${{ github.event_name == 'workflow_dispatch' && format('理由: {0}', github.event.inputs.reason) || '' }}
-            
-            ステージング環境: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com 
+            ステージング環境: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
+            デプロイ結果: ${{ job.status }}
+          color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
