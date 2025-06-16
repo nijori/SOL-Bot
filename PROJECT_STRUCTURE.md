@@ -112,6 +112,20 @@ SOL-Bot/
 - **orderManagementSystem.ts**: 注文管理と取引所連携
   - 未決済注文の自動チェック
   - 注文状態の同期と更新
+- **multiSymbolTradingEngine.js**: マルチシンボル取引エンジン（REF-036で最適化済み）
+  - 複数通貨ペアの同時取引管理
+  - シンボル間の相関分析とリスク管理
+  - 統合されたポートフォリオ管理
+  - AllocationManagerとPortfolioRiskAnalyzerを活用
+- **AllocationManager.js**: 資金配分管理モジュール（REF-036で分離）
+  - 均等配分、カスタム配分、ボラティリティベース配分
+  - 時価総額ベース配分（将来実装予定）
+  - 動的配分比率の再計算機能
+- **PortfolioRiskAnalyzer.js**: ポートフォリオリスク分析モジュール（REF-036で分離）
+  - VaR（Value at Risk）計算
+  - 集中リスクと相関リスクの分析
+  - 相関行列の自動更新
+  - ストレステスト結果の提供
 
 ### インジケーター (src/indicators/)
 

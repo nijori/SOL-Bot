@@ -13,7 +13,7 @@ import {
   MetricType
 } from '../types/optimizer.js';
 import { parameterSpace } from './parameterSpace.js';
-import { BacktestRunner } from '../core/backtestRunner.js';
+import type { BacktestRunner } from '../core/backtestRunner.js';
 
 export class OptunaOptimizer {
   private config: OptimizerConfig;
@@ -86,7 +86,8 @@ export class OptunaOptimizer {
     
     try {
       // バックテストを実行して評価指標を取得
-      const backtestRunner = new BacktestRunner({
+      const { BacktestRunner: BacktestRunnerClass } = require('../core/backtestRunner.js');
+      const backtestRunner = new BacktestRunnerClass({
         symbol: this.config.symbol,
         timeframeHours: this.config.timeframeHours,
         startDate: this.config.startDate,

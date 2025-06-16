@@ -51,6 +51,30 @@ const orderSize = await orderSizingService.calculateOrderSize(
 - **一元的な注文管理**: 複数取引所にまたがる注文の作成・追跡・キャンセルを統合管理
 - **エラー耐性**: 特定取引所の障害時に自動的に代替取引所を使用
 
+### MultiSymbolTradingEngine
+
+マルチシンボル取引エンジン（REF-036で最適化済み）：
+
+- **複数通貨ペア同時取引**: SOL/USDT、BTC/USDT、ETH/USDTなどを同時に管理
+- **ポートフォリオリスク管理**: VaR計算、相関分析、集中リスク監視
+- **動的資金配分**: 均等配分、ボラティリティベース配分、カスタム配分
+- **モジュラー設計**: AllocationManagerとPortfolioRiskAnalyzerによる機能分離
+
+```typescript
+// 使用例
+const multiEngine = new MultiSymbolTradingEngine({
+  symbols: ['SOL/USDT', 'BTC/USDT', 'ETH/USDT'],
+  allocationStrategy: AllocationStrategy.VOLATILITY,
+  timeframeHours: 1
+});
+
+// ポートフォリオ更新
+await multiEngine.update(candlesBySymbol);
+
+// リスク分析結果取得
+const riskAnalysis = multiEngine.getPortfolioRiskAnalysis();
+```
+
 ## 🌟 特徴
 
 - **マルチアセット対応**: SOL/USDT、BTC/USDT、ETH/USDTなど様々な通貨ペアでのトレーディング
@@ -61,6 +85,9 @@ const orderSize = await orderSizingService.calculateOrderSize(
 - **高速計算**: EMA/ATR計算のインクリメンタル化により最大10倍のパフォーマンス向上
 - **動的パラメータ調整**: 市場状態に応じて自動的に戦略パラメータを最適化
 - **リソース最適化**: LRUキャッシュ実装によるメモリ使用量の最適化
+- **マルチシンボル取引**: 複数通貨ペアの同時取引とポートフォリオ管理
+- **高度なリスク分析**: VaR計算、相関分析、集中リスク管理
+- **モジュラー設計**: 機能別モジュール分離による保守性とテスト性の向上
 
 ## 🚀 主要技術
 
@@ -73,7 +100,8 @@ const orderSize = await orderSizingService.calculateOrderSize(
 - **Prometheus & Grafana**: システム監視とアラート
 - **DuckDB & Parquet**: 高効率なデータ永続化と分析
 - **GitHub Actions CI/CD**: 自動テスト・デプロイ・セキュリティスキャン
-- **Jest**: テストフレームワーク
+- **Jest**: テストフレームワーク（REF-036でネイティブスタックトレースエラー解決済み）
+- **モジュラーアーキテクチャ**: 機能別モジュール分離による保守性向上
 
 ## 📊 戦略概要
 

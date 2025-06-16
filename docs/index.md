@@ -8,6 +8,7 @@
 
 ## 管理者向けドキュメント
 
+- [WSL環境セットアップガイド](./WSL-Development-Setup.md) - WSL環境での開発セットアップ方法
 - [AWS S3/Glacier設定ガイド](./AWS-S3-SETUP.md) - データライフサイクル管理用のAWS設定方法
 - [Gitleaks設定ガイド](./gitleaks-setup.md) - セキュリティスキャン設定方法
 - [緊急停止ガイド](./EmergencyStopGuide.md) - 異常時のシステム緊急停止方法
