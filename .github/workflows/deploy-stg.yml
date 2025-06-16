@@ -226,8 +226,8 @@ jobs:
             echo "Application files deployed successfully"
             ls -la /opt/solbot/
             
-            # Install dependencies as solbot user
-            echo "Installing dependencies as solbot user..."
+            # Install dependencies and build application as solbot user
+            echo "Installing dependencies and building application as solbot user..."
             sudo -u solbot bash -c '
               export PATH="/usr/bin:/usr/local/bin:$PATH"
               unset NVM_DIR
@@ -236,9 +236,23 @@ jobs:
               echo "Node.js version: $(node --version)"
               echo "npm version: $(npm --version)"
               
-              # Install production dependencies
+              # Install all dependencies (including devDependencies for TypeScript compilation)
               echo "Installing npm dependencies..."
-              npm ci --production
+              npm ci
+              
+              # Build the TypeScript application
+              echo "Building TypeScript application..."
+              npm run build
+              
+              # Verify build output
+              echo "Verifying build output..."
+              if [ -f "dist/index.js" ]; then
+                echo "✓ Build successful - dist/index.js exists"
+                ls -la dist/
+              else
+                echo "✗ Build failed - dist/index.js not found"
+                exit 1
+              fi
               
               # Create required directories
               mkdir -p data logs config
@@ -253,7 +267,7 @@ jobs:
                 echo "LOG_LEVEL=info" >> .env
               fi
               
-              echo "Application deployment completed"
+              echo "Application deployment and build completed"
             '
             
             # Check if systemd service exists
@@ -267,7 +281,7 @@ jobs:
               sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
               sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
               sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'ExecStart=/usr/bin/node index.js' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot.service"
               sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
               sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
               sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
@@ -310,8 +324,10 @@ jobs:
             echo "Verifying application deployment..."
             cd /opt/solbot
             echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
-            echo "Index.js exists: $(test -f index.js && echo 'YES' || echo 'NO')"
+            echo "Built index.js exists: $(test -f dist/index.js && echo 'YES' || echo 'NO')"
+            echo "Source index.ts exists: $(test -f src/index.ts && echo 'YES' || echo 'NO')"
             echo "Node modules: $(test -d node_modules && echo 'YES' || echo 'NO')"
+            echo "Dist directory: $(test -d dist && echo 'YES' || echo 'NO')"
             
             # Start the service
             echo "Starting bot.service..."
