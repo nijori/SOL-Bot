@@ -108,16 +108,27 @@ jobs:
             
             # Install Node.js if not exists
             if ! command -v node &> /dev/null; then
-              echo "Installing Node.js..."
-              curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-              sudo yum install -y nodejs
+              echo "Installing Node.js 18 via NVM..."
+              # NVMを使用してNode.js 18をインストール（Amazon Linux 2互換）
+              curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+              nvm install 18
+              nvm use 18
+              nvm alias default 18
+              
+              # システム全体で利用可能にする
+              sudo ln -sf ~/.nvm/versions/node/v*/bin/node /usr/local/bin/node
+              sudo ln -sf ~/.nvm/versions/node/v*/bin/npm /usr/local/bin/npm
+              
               echo "Node.js version: $(node --version)"
               echo "npm version: $(npm --version)"
             fi
             
             # Install dependencies
             cd /opt/solbot
-            sudo -u solbot npm ci --production
+            # solbotユーザーでnpmが利用できることを確認
+            sudo -u solbot bash -c 'export PATH=/usr/local/bin:$PATH && npm ci --production'
             
             # Build TypeScript (一時的に無効化 - CommonJS移行中)
             # sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
