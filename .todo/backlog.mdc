@@ -145,24 +145,6 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
 ## P5 ― Go-Live（実弾投入 & 監視運用開始）
 
 
-## PXX ― いずれやるタスク。
-- [ ] REF-037: ESM移行計画の見直しと段階的アプローチ
-      - 📅 Due        : 2023-12-15
-      - 👤 Owner      : @nijor
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ずっとESM環境完全化を目指していたがとん挫。ESM化の優先度を下げ、段階的移行プランを策定。実働化を阻害しない範囲で対応。REF-037,038は緊急度低。
-
-- [ ] REF-038: CommonJS/ESM混在環境の安定化
-      - 📅 Due        : 2023-12-20
-      - 👤 Owner      : @nijor
-      - 🔗 Depends-on : REF-030
-      - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ずっとESM環境完全化を目指していたがとん挫。現状のCommonJS/ESM混在環境でのテスト安定化。Jest設定の最小変更で対応。REF-037,038は緊急度低。
-
 
 
 ## 完了済みタスク（アーカイブ待ち）
