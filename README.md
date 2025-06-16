@@ -83,11 +83,13 @@ const riskAnalysis = multiEngine.getPortfolioRiskAnalysis();
 - **ブラックスワン対策**: 急激な価格変動時の緊急対応戦略
 - **REST API**: 監視・制御用のAPIエンドポイント
 - **高速計算**: EMA/ATR計算のインクリメンタル化により最大10倍のパフォーマンス向上
+- **Wilder's ATRアルゴリズム**: technicalindicatorsライブラリとの完全互換性（誤差率4.54%以内）
 - **動的パラメータ調整**: 市場状態に応じて自動的に戦略パラメータを最適化
 - **リソース最適化**: LRUキャッシュ実装によるメモリ使用量の最適化
 - **マルチシンボル取引**: 複数通貨ペアの同時取引とポートフォリオ管理
 - **高度なリスク分析**: VaR計算、相関分析、集中リスク管理
 - **モジュラー設計**: 機能別モジュール分離による保守性とテスト性の向上
+- **自動デプロイメント**: GitHub ActionsによるEC2ステージング環境への安全なデプロイ
 
 ## 🚀 主要技術
 
@@ -186,6 +188,27 @@ sudo journalctl -u bot -f     # ログ確認
 
 詳細なsystemdデプロイメント手順については、[systemdデプロイメントガイド](docs/systemd-deployment.md)を参照してください。
 
+#### CI/CD自動デプロイ（推奨）
+
+```bash
+# masterブランチへのプッシュで自動実行
+git add -A
+git commit -m "CICD-005: Update application code"
+git push origin master
+
+# GitHub Actionsによる自動デプロイ実行：
+# 1. rsync+SCPでソースコードをEC2に転送
+# 2. npm依存関係の自動インストール
+# 3. systemdサービスの自動起動
+# 4. ヘルスチェック（/api/status）実行
+# 5. Discord通知送信
+```
+
+**デプロイ完了確認:**
+- GitHub Actionsタブでワークフロー実行状況を確認
+- Discord通知でデプロイ結果を確認
+- ステージング環境: `http://13.158.58.241:3000/api/status`
+
 ### テスト実行
 
 SOL-BotはESM環境に完全対応したテストフレームワークを提供しています：
@@ -198,6 +221,7 @@ npm run test
 npm run test:esm
 
 # カバレッジレポート生成
+npm run test:coverage
 npm run test:coverage
 
 # 統合テスト実行（CommonJS/ESMの両方を実行）

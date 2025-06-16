@@ -27,6 +27,9 @@ SOL-Bot/
 ├── .github/                    # GitHub Actions設定
 │   ├── workflows/              # CI/CDワークフロー定義
 │   │   ├── ci.yml                  # 基本CI/CDパイプライン
+│   │   ├── deploy-stg.yml          # ステージング環境自動デプロイ（SCP+systemd）
+│   │   ├── deploy-prod.yml         # 本番環境デプロイ
+│   │   ├── esm-tests.yml           # ESM環境テスト実行
 │   │   ├── security-scan.yml       # セキュリティスキャン
 │   │   ├── trivy-dependency-scan.yml # 依存関係脆弱性スキャン
 │   │   ├── todo-check.yml          # Todoフォーマット検証
@@ -135,6 +138,7 @@ SOL-Bot/
   - VWAPとボラティリティ計測
   - 緊急モード判定と復帰ロジック
   - IncrementalEMA/IncrementalATRによる高速計算
+  - Wilder's ATRアルゴリズム実装（technicalindicatorsライブラリとの完全互換性）
 - **parabolicSAR.ts**: トレンド転換点検出とストップロス設定
   - インクリメンタル計算対応で効率的なリアルタイム更新
 
@@ -426,6 +430,11 @@ export class MyService {
 ### CI/CD統合
 
 - **GitHub Actions**: プッシュ時の自動テスト・ビルド・デプロイ
+- **自動デプロイメント**:
+  - **ステージング環境** (`deploy-stg.yml`): rsync+SCP方式でEC2への安全なデプロイ
+  - **本番環境** (`deploy-prod.yml`): 本番環境への制御されたデプロイ
+  - **systemd連携**: 自動サービス起動・ヘルスチェック・Discord通知
+- **ESMテスト環境** (`esm-tests.yml`): ESM専用テスト実行とモック互換性検証
 - **テストカバレッジ検証**:
   - HTML/LCOVレポート生成
   - カバレッジ閾値のゲート機能（PRがカバレッジ基準を満たさない場合はマージ不可）
