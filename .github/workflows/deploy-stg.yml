@@ -106,21 +106,30 @@ jobs:
             # Set proper ownership
             sudo chown -R solbot:solbot /opt/solbot
             
-            # Install Node.js and npm if not exists
-            if ! command -v node &> /dev/null; then
-              echo "Installing Node.js 16 and npm via Amazon Linux Extras..."
-              # Amazon Linux 2公式サポートのNode.js 16とnpmを使用
-              sudo amazon-linux-extras install nodejs16 -y
-              
-              # npmが含まれていない場合は個別にインストール
-              if ! command -v npm &> /dev/null; then
-                echo "Installing npm separately..."
-                sudo yum install -y npm
-              fi
-              
-              echo "Node.js version: $(node --version)"
-              echo "npm version: $(npm --version)"
+            # Clean up any existing Node.js installations and install fresh
+            echo "Cleaning up existing Node.js installations..."
+            
+            # Remove NVM and its Node.js installations
+            if [ -d "$HOME/.nvm" ]; then
+              echo "Removing NVM installation..."
+              rm -rf "$HOME/.nvm"
             fi
+            
+            # Remove any existing Node.js/npm symlinks
+            sudo rm -f /usr/local/bin/node /usr/local/bin/npm
+            
+            # Remove from PATH any NVM references
+            export PATH=$(echo $PATH | sed 's|[^:]*\.nvm[^:]*:||g')
+            
+            # Install Node.js 16 and npm via Amazon Linux Extras
+            echo "Installing Node.js 16 and npm via Amazon Linux Extras..."
+            sudo amazon-linux-extras install nodejs16 -y
+            
+            # Verify installation
+            echo "Node.js version: $(node --version)"
+            echo "npm version: $(npm --version)"
+            echo "Node.js path: $(which node)"
+            echo "npm path: $(which npm)"
             
             # Install dependencies
             cd /opt/solbot
@@ -130,8 +139,18 @@ jobs:
             which npm
             npm --version
             
-            echo "Installing dependencies..."
-            sudo -u solbot npm ci --production
+            # Clean solbot user environment and install dependencies
+            echo "Installing dependencies as solbot user..."
+            sudo -u solbot bash -c '
+              # Clean any NVM references from solbot user
+              export PATH="/usr/bin:/usr/local/bin:$PATH"
+              unset NVM_DIR
+              echo "solbot user - Node.js path: $(which node)"
+              echo "solbot user - npm path: $(which npm)"
+              echo "solbot user - Node.js version: $(node --version)"
+              echo "solbot user - npm version: $(npm --version)"
+              npm ci --production
+            '
             
             # Build TypeScript (一時的に無効化 - CommonJS移行中)
             # sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
