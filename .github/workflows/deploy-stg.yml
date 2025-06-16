@@ -39,6 +39,13 @@ jobs:
       # - name: TypeScriptのビルド
       #   run: npm run build
 
+      - name: GitHub Context Debug
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Expected sub: repo:${{ github.repository }}:ref:${{ github.ref }}"
+
       - name: AWS認証設定
         uses: aws-actions/configure-aws-credentials@v4
         with:
