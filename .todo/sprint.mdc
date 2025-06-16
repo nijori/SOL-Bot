@@ -110,7 +110,7 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🏷️  Label      : cicd
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : ✅完了！GitHub Actionsワークフロー作成完了。Amazon Linux 2023 + Node.js 18環境でのデプロイメント成功。solbotユーザー・ディレクトリ構造・systemdサービスファイルの自動作成実装。SSH接続・インフラストラクチャ確認完了。IP修正（13.158.58.241）、タイムアウト設定、Discord通知エラー回避設定追加。次段階でアプリケーションコードデプロイ実装予定。
+      - ✎ Notes      : ✅完了！GitHub Actionsワークフロー作成・デプロイ・ヘルスチェック全て成功。Amazon Linux 2023 + Node.js 18環境、TypeScriptビルド・systemdサービス起動・ヘルスチェックエンドポイント(/api/status)確認完了。here-document構文エラー修正、systemdサービスファイル強制更新、ExecStartパス(dist/index.js)修正を実施。Discord通知設定済み。ステージング環境での完全なCI/CDパイプライン確立完了。
 
 8. [ ] TST-085: "30 s Stop" CI インテグレーションテスト
       - 📅 Due        : 2026-07-02
