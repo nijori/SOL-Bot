@@ -1,0 +1,13 @@
+{
+  "totalTrades": 3,
+  "winningTrades": 31,
+  "losingTrades": 4,
+  "totalReturn": -62.12079954684202,
+  "maxDrawdown": 19.360404056744528,
+  "sharpeRatio": 1.0041072068956298,
+  "winRate": 0.47340601628893286,
+  "averageWin": 134.6072224144659,
+  "averageLoss": 54.158803510976256,
+  "profitFactor": 0.711258274932927,
+  "annualizedReturn": 13.819324671861356
+}

@@ -156,12 +156,31 @@ class IncrementalATR {
       trueRanges.push(tr);
     }
 
-    // ATRを計算 - technicalindicatorsと同じロジック
+    // ATRを計算 - technicalindicatorsライブラリとの完全互換性を確保
+    // Wilder's ATRは最初のN個のTRでSMAを計算し、その後はEMA更新
     if (trueRanges.length >= this.period) {
-      // 最新のperiod分のTRの平均を計算
-      const latestTRs = trueRanges.slice(-this.period);
-      const sum = latestTRs.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / this.period;
+      // 十分なデータがある場合：Wilder's ATR計算方式
+      // 1. 最初のN個のTRの単純平均を初期ATRとする
+      let firstATR;
+      if (trueRanges.length === this.period) {
+        // ちょうどN個の場合：単純平均
+        const sum = trueRanges.reduce((a, b) => a + b, 0);
+        firstATR = sum / this.period;
+        this.atrValue = firstATR;
+      } else {
+        // N個を超える場合：最初のN個でSMA、その後はWilder's平滑化
+        const initialTRs = trueRanges.slice(0, this.period);
+        const initialSum = initialTRs.reduce((a, b) => a + b, 0);
+        firstATR = initialSum / this.period;
+        
+        // Wilder's平滑化で残りのTRを適用
+        let currentATR = firstATR;
+        for (let i = this.period; i < trueRanges.length; i++) {
+          // Wilder's平滑化: ATR = ((ATR_prev * (N-1)) + TR_current) / N
+          currentATR = ((currentATR * (this.period - 1)) + trueRanges[i]) / this.period;
+        }
+        this.atrValue = currentATR;
+      }
     } else {
       // データが不足している場合は全データの平均
       const sum = trueRanges.reduce((a, b) => a + b, 0);

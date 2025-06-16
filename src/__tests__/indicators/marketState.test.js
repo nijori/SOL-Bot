@@ -251,6 +251,10 @@ describe('MarketState Indicators', () => {
       const atr2 = result2.indicators.atr || 0;
       const atr3 = result3.indicators.atr || 0;
 
+      // ATRデバッグ情報（エラー時のみ表示）
+      const atrDiff = Math.abs(atr2 - atr3);
+      const atrErrorRate = atr3 > 0 ? atrDiff / atr3 : 0;
+      
       // 0除算防止
       if (stEma3 > 0) {
         expect(Math.abs(stEma2 - stEma3) / stEma3).toBeLessThan(0.05);
@@ -261,7 +265,12 @@ describe('MarketState Indicators', () => {
       }
 
       if (atr3 > 0) {
-        expect(Math.abs(atr2 - atr3) / atr3).toBeLessThan(0.15);
+        // ATRエラー率チェック（許容誤差15%）
+        if (atrErrorRate >= 0.15) {
+          console.log(`❌ ATR Error: atr2(incremental)=${atr2}, atr3(full_recalc)=${atr3}`);
+          console.log(`❌ ATR Error Rate: ${(atrErrorRate * 100).toFixed(2)}% (tolerance: 15%)`);
+        }
+        expect(atrErrorRate).toBeLessThan(0.15);
       }
     });
 
