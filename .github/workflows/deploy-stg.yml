@@ -403,7 +403,9 @@ jobs:
 
       - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
-        if: always() && secrets.DISCORD_WEBHOOK_URL != ''
+        if: always() && env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
@@ -545,7 +547,9 @@ jobs:
 
       - name: Test Results Notification
         uses: sarisia/actions-status-discord@v1
-        if: always() && secrets.DISCORD_WEBHOOK_URL != ''
+        if: always() && env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
