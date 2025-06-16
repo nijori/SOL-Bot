@@ -346,12 +346,13 @@ describe('TrendFollowStrategy', () => {
 
   describe('isSARBuySignal', () => {
     it('トレンド転換時（下降→上昇）にtrue を返す', () => {
-      // テスト用のキャンドルデータ
+      // テスト用のキャンドルデータ（価格100のclose、low=99.5）
       const candles = generateTestCandles(10);
       
-      // モックSAR結果
+      // モックSAR結果 - SARがlowより下であることを確実にする
+      const latestCandle = candles[candles.length - 1];
       const sarResult: ParabolicSARResult = {
-        sar: 98, // 価格（100）より下
+        sar: latestCandle.low - 1, // lowより確実に1ポイント下
         isUptrend: true,
         accelerationFactor: 0.02,
         extremePoint: 102
