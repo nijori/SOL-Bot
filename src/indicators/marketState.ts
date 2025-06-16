@@ -109,8 +109,8 @@ class IncrementalEMA {
 }
 
 /**
- * インクリメンタルATR計算クラス
- * 全履歴の再計算をせず、増分計算でATRを更新
+ * インクリメンタルATR計算クラス（SMAベース）
+ * technicalindicatorsライブラリと同じSMA方式でATRを計算
  */
 class IncrementalATR {
   /**
@@ -120,9 +120,7 @@ class IncrementalATR {
     this.period = period;
     this.atrValue = null;
     this.prevClose = null;
-    // Wilderの平滑化手法: α = 1/period
-    this.alpha = 1 / this.period;
-    this.trValues = []; // トゥルーレンジ値の履歴を保持
+    this.trQueue = []; // 直近period個のTR値のキュー
   }
 
   /**
@@ -134,12 +132,12 @@ class IncrementalATR {
     if (!candles || candles.length === 0) {
       this.atrValue = null;
       this.prevClose = null;
-      this.trValues = [];
+      this.trQueue = [];
       return 0;
     }
 
-    // TR値の配列を計算
-    this.trValues = [];
+    // TR値を計算してキューに格納
+    this.trQueue = [];
 
     for (let i = 0; i < candles.length; i++) {
       const candle = candles[i];
@@ -157,28 +155,17 @@ class IncrementalATR {
         tr = Math.max(hl, Math.max(hpc, lpc));
       }
 
-      this.trValues.push(tr);
+      this.trQueue.push(tr);
     }
 
-    // 期間未満のデータしかない場合は単純平均を使用
-    if (this.trValues.length < this.period) {
-      const sum = this.trValues.reduce((a, b) => a + b, 0);
-      this.atrValue = sum / this.trValues.length;
-    } else {
-      // Wilderの平滑化法でATRを計算（より安定した実装）
-      // 最初のATRは直近period分の単純平均
-      const initialTrValues = this.trValues.slice(-this.period);
-      const sum = initialTrValues.reduce((a, b) => a + b, 0);
-      let tempAtr = sum / this.period;
-      
-      // 直近のperiod個のTR値に対してATRを計算（Wilderの平滑化法を使用）
-      // Wilderの平滑化法： ATRt = ((period-1) * ATRt-1 + TRt) / period
-      for (let i = this.period; i < this.trValues.length; i++) {
-        tempAtr = ((this.period - 1) * tempAtr + this.trValues[i]) / this.period;
-      }
-      
-      this.atrValue = tempAtr;
+    // 直近period分のTR値のみ保持
+    if (this.trQueue.length > this.period) {
+      this.trQueue = this.trQueue.slice(-this.period);
     }
+
+    // SMA方式でATRを計算
+    const sum = this.trQueue.reduce((a, b) => a + b, 0);
+    this.atrValue = sum / this.trQueue.length;
 
     // フォールバックチェック：ATRが0または非常に小さい場合
     if (this.atrValue === 0 || this.atrValue < candles[candles.length - 1].close * MIN_ATR_VALUE) {
@@ -205,7 +192,7 @@ class IncrementalATR {
     if (this.atrValue === null) {
       this.atrValue = candle.high - candle.low;
       this.prevClose = candle.close;
-      this.trValues = [candle.high - candle.low];
+      this.trQueue = [candle.high - candle.low];
       return this.atrValue;
     }
 
@@ -221,15 +208,25 @@ class IncrementalATR {
       tr = hl;
     }
 
-    // TR値を配列に追加（最新のperiod+1個を保持）
-    this.trValues.push(tr);
-    if (this.trValues.length > this.period + 1) {
-      this.trValues.shift();
-    }
+    // キューに新しいTR値を追加
+    this.trQueue.push(tr);
 
-    // Wilderの平滑化手法（より安定した実装）
-    // ATR = ((前回のATR * (期間-1)) + 現在のTR) / 期間
-    this.atrValue = ((this.period - 1) * this.atrValue + tr) / this.period;
+    // ウォームアップ中: まだperiod本そろっていない
+    if (this.trQueue.length < this.period) {
+      const sum = this.trQueue.reduce((a, b) => a + b, 0);
+      this.atrValue = sum / this.trQueue.length;
+    } else {
+      // キューが溢れたら最古を削除
+      if (this.trQueue.length > this.period) {
+        const dropped = this.trQueue.shift();
+        // SMAの更新はO(1)で実行可能
+        this.atrValue += (tr - dropped) / this.period;
+      } else {
+        // ちょうどperiod本そろった時は単純平均
+        const sum = this.trQueue.reduce((a, b) => a + b, 0);
+        this.atrValue = sum / this.period;
+      }
+    }
 
     // フォールバックチェック：ATRが0または非常に小さい場合
     if (this.atrValue === 0 || this.atrValue < candle.close * MIN_ATR_VALUE) {
@@ -527,10 +524,15 @@ function analyzeMarketState(
     if (!atrInstance || atrInstance.getPeriod() !== atrPeriod) {
       atrInstance = new IncrementalATR(atrPeriod);
       atrInstance.initialize(candles);
+    } else {
+      // 新しいローソク足でATRを更新（実際のインクリメンタル計算）
+      // 注：本来は新しく追加されたローソク足のみを渡すべきだが、
+      // テスト環境では全データで再計算して検証している
+      const latestCandle = candles[candles.length - 1];
+      atrInstance.update(latestCandle);
     }
 
-    // 最新のローソク足でATRを更新
-    // 実際のシステムでは新しいローソク足だけを渡すよう修正が必要
+    // 現在のATR値を取得
     const currentAtr = atrInstance.getValue();
 
     // ATR履歴を計算（変化率計算用）
