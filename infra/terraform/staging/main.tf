@@ -4,14 +4,14 @@ provider "aws" {
 
 # 変数定義は variables.tf ファイルを参照
 
-# Latest Amazon Linux 2 AMIを検索
-data "aws_ami" "amazon_linux_2" {
+# Latest Amazon Linux 2023 AMIを検索（glibc 2.34でNode.js 18対応）
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-*-x86_64"]
   }
 
   filter {
@@ -172,7 +172,7 @@ resource "aws_iam_instance_profile" "solbot_stg_profile" {
 
 # EC2インスタンスの作成
 resource "aws_instance" "solbot_stg" {
-  ami                    = data.aws_ami.amazon_linux_2.id
+  ami                    = data.aws_ami.amazon_linux_2023.id
   instance_type          = var.instance_type
   key_name               = var.key_name
   subnet_id              = var.subnet_id
@@ -200,9 +200,8 @@ resource "aws_instance" "solbot_stg" {
     curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
     
-    # Node.jsのインストール
-    curl -sL https://rpm.nodesource.com/setup_18.x | bash -
-    yum install -y nodejs
+    # Node.js 18のインストール（AL2023対応）
+    dnf install -y nodejs npm
     
     # アプリケーションディレクトリの作成
     mkdir -p /opt/${var.app_name}/{current,releases,backups,logs,data}

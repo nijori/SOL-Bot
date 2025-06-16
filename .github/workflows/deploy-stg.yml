@@ -126,67 +126,35 @@ jobs:
             # Remove from PATH any NVM references
             export PATH=$(echo $PATH | sed 's|[^:]*\.nvm[^:]*:||g')
             
-            # Check available Amazon Linux Extras topics and install appropriate Node.js
-            echo "Checking available Node.js topics in Amazon Linux Extras..."
-            sudo amazon-linux-extras list | grep -i node || echo "No node topics found"
+            # Check OS version and install appropriate Node.js
+            OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d'"' -f2)
+            echo "Detected OS version: $OS_VERSION"
             
-            # Try different Node.js installation methods in order of preference
-            if sudo amazon-linux-extras list | grep -q "nodejs18"; then
-              echo "Installing Node.js 18 via Amazon Linux Extras..."
-              sudo amazon-linux-extras install nodejs18 -y
-            elif sudo amazon-linux-extras list | grep -q "nodejs16"; then
-              echo "Installing Node.js 16 via Amazon Linux Extras..."
-              sudo amazon-linux-extras install nodejs16 -y
-            elif sudo amazon-linux-extras list | grep -q "nodejs14"; then
-              echo "Installing Node.js 14 via Amazon Linux Extras..."
-              sudo amazon-linux-extras install nodejs14 -y
-            else
-              echo "No Node.js topics found in Amazon Linux Extras, trying alternative methods..."
-              
-              # Method 1: Direct binary installation for maximum compatibility
-              echo "Installing Node.js 14 binary (compatible with Amazon Linux 2 glibc 2.26)..."
-              cd /tmp
-              
-              # Remove any existing Node.js packages that might cause conflicts
-              sudo yum remove -y nodejs npm nodesource-release nsolid* 2>/dev/null || true
-              
-              # Download and install Node.js 14.21.3 binary
-              echo "Downloading Node.js 14.21.3 binary..."
-              wget -q https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.xz
-              
-              echo "Installing Node.js binary to /usr/local..."
-              sudo tar -C /usr/local --strip-components 1 -xJf node-v14.21.3-linux-x64.tar.xz
-              
-              # Create symlinks
-              sudo ln -sf /usr/local/bin/node /usr/bin/node
-              sudo ln -sf /usr/local/bin/npm /usr/bin/npm
-              sudo ln -sf /usr/local/bin/npx /usr/bin/npx
-              
-              # Verify binary compatibility
-              echo "Verifying Node.js installation compatibility..."
-              ldd /usr/local/bin/node | grep GLIBC || echo "No GLIBC dependencies shown"
-              
-              cd -
-              
-              # If binary installation fails, try alternative methods
-              if ! command -v node &> /dev/null; then
-                echo "Binary installation failed, trying EPEL with older Node.js..."
-                
-                # Install EPEL if not already installed
-                if ! sudo amazon-linux-extras list | grep -q "epel.*enabled"; then
-                  sudo amazon-linux-extras install epel -y
-                fi
-                
-                # Try to find and install compatible Node.js version from EPEL
-                echo "Searching for compatible Node.js in EPEL..."
-                sudo yum search nodejs --enablerepo=epel | head -20
-                
-                # Try installing specific older version if available
-                sudo yum install -y nodejs-6* npm-3* --enablerepo=epel 2>/dev/null || {
-                  echo "No compatible Node.js found in EPEL, using latest available..."
-                  sudo yum install -y nodejs npm --enablerepo=epel --skip-broken || true
-                }
+            if [[ "$OS_VERSION" =~ ^2023 ]]; then
+              # Amazon Linux 2023 - use dnf with Node.js 18+
+              echo "Installing Node.js 18 on Amazon Linux 2023..."
+              sudo dnf install -y nodejs npm
+            elif [[ "$OS_VERSION" =~ ^2\. ]]; then
+              # Amazon Linux 2 - try Amazon Linux Extras first
+              echo "Installing Node.js on Amazon Linux 2..."
+              if sudo amazon-linux-extras list | grep -q "nodejs18"; then
+                echo "Installing Node.js 18 via Amazon Linux Extras..."
+                sudo amazon-linux-extras install nodejs18 -y
+              elif sudo amazon-linux-extras list | grep -q "nodejs16"; then
+                echo "Installing Node.js 16 via Amazon Linux Extras..."
+                sudo amazon-linux-extras install nodejs16 -y
+              else
+                echo "No Node.js topics found in Amazon Linux Extras, using NodeSource..."
+                curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+                sudo yum install -y nodejs
               fi
+            else
+              echo "Unknown OS version, trying dnf installation..."
+              sudo dnf install -y nodejs npm || {
+                echo "dnf failed, trying NodeSource..."
+                curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+                sudo yum install -y nodejs || sudo dnf install -y nodejs npm
+              }
             fi
             
             # Ensure npm is installed
