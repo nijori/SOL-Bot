@@ -106,17 +106,31 @@ jobs:
             # Set proper ownership
             sudo chown -R solbot:solbot /opt/solbot
             
-            # Install Node.js if not exists
+            # Install Node.js and npm if not exists
             if ! command -v node &> /dev/null; then
-              echo "Installing Node.js 16 via Amazon Linux Extras..."
-              # Amazon Linux 2公式サポートのNode.js 16を使用
+              echo "Installing Node.js 16 and npm via Amazon Linux Extras..."
+              # Amazon Linux 2公式サポートのNode.js 16とnpmを使用
               sudo amazon-linux-extras install nodejs16 -y
+              
+              # npmが含まれていない場合は個別にインストール
+              if ! command -v npm &> /dev/null; then
+                echo "Installing npm separately..."
+                sudo yum install -y npm
+              fi
+              
               echo "Node.js version: $(node --version)"
               echo "npm version: $(npm --version)"
             fi
             
             # Install dependencies
             cd /opt/solbot
+            
+            # Verify npm is available
+            echo "Verifying npm availability..."
+            which npm
+            npm --version
+            
+            echo "Installing dependencies..."
             sudo -u solbot npm ci --production
             
             # Build TypeScript (一時的に無効化 - CommonJS移行中)
