@@ -109,6 +109,11 @@ jobs:
             # Clean up any existing Node.js installations and install fresh
             echo "Cleaning up existing Node.js installations..."
             
+            # Wait for any existing yum operations to complete
+            echo "Waiting for any existing yum locks to clear..."
+            sudo fuser -k /var/run/yum.pid 2>/dev/null || true
+            sleep 2
+            
             # Remove NVM and its Node.js installations
             if [ -d "$HOME/.nvm" ]; then
               echo "Removing NVM installation..."
@@ -138,16 +143,36 @@ jobs:
             else
               echo "No Node.js topics found in Amazon Linux Extras, trying alternative methods..."
               
-              # Method 1: Try EPEL repository
+              # Method 1: Try EPEL repository for older Node.js version
               if sudo amazon-linux-extras list | grep -q "epel"; then
                 echo "Installing EPEL repository via Amazon Linux Extras..."
                 sudo amazon-linux-extras install epel -y
-                sudo yum install -y nodejs npm
+                
+                # Install specific older Node.js version compatible with glibc 2.26
+                echo "Installing Node.js 14 from EPEL (compatible with Amazon Linux 2)..."
+                sudo yum install -y nodejs npm --enablerepo=epel
+                
+                # If EPEL nodejs installation fails, try direct install
+                if ! command -v node &> /dev/null; then
+                  echo "EPEL Node.js installation failed, trying direct package install..."
+                  # Try to install older NodeJS version that's compatible with glibc 2.26
+                  sudo yum install -y https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/n/nodejs-6.17.1-1.el7.x86_64.rpm || true
+                  sudo yum install -y https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/n/npm-3.10.10-1.6.17.1.1.el7.x86_64.rpm || true
+                fi
               else
-                # Method 2: Try NodeSource repository (for Node.js 16)
-                echo "Installing Node.js 16 from NodeSource repository..."
-                curl -fsSL https://rpm.nodesource.com/setup_16.x | sudo bash -
-                sudo yum install -y nodejs
+                # Method 2: Try Amazon Linux 2 compatible Node.js setup script
+                echo "Installing Node.js 14 via Amazon Linux 2 compatible method..."
+                curl -fsSL https://rpm.nodesource.com/setup_14.x | sudo bash -
+                sudo yum install -y nodejs || {
+                  echo "NodeSource installation failed, trying manual binary installation..."
+                  # Download and install Node.js 14 binary (compatible with glibc 2.26)
+                  cd /tmp
+                  wget https://nodejs.org/dist/v14.21.3/node-v14.21.3-linux-x64.tar.xz
+                  sudo tar -C /usr/local --strip-components 1 -xJf node-v14.21.3-linux-x64.tar.xz
+                  sudo ln -sf /usr/local/bin/node /usr/bin/node
+                  sudo ln -sf /usr/local/bin/npm /usr/bin/npm
+                  cd -
+                }
               fi
             fi
             
