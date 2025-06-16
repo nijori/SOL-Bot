@@ -50,10 +50,10 @@ jobs:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: ステージング環境にアプリケーションをデプロイ
+      - name: スチE�Eジング環墁E��アプリケーションをデプロイ
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           timeout: 10m
@@ -150,7 +150,7 @@ jobs:
               npm ci --production
             '
             
-            # Build TypeScript (一時的に無効化 - CommonJS移行中)
+            # Build TypeScript (一時的に無効匁E- CommonJS移行中)
             # sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
             
             # Stop service if running
@@ -169,19 +169,19 @@ jobs:
             
             # Check service status
             if sudo systemctl is-active --quiet bot.service; then
-              echo "✓ Service started successfully"
+              echo "✁EService started successfully"
               sudo systemctl status bot.service --no-pager -l
             else
-              echo "✗ Service failed to start"
+              echo "✁EService failed to start"
               sudo systemctl status bot.service --no-pager -l
               sudo journalctl -u bot -n 20 --no-pager
               exit 1
             fi
 
-      - name: ヘルスチェック実行
+      - name: ヘルスチェチE��実衁E
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           timeout: 5m
@@ -195,7 +195,7 @@ jobs:
             echo "Waiting for application to be ready..."
             for i in {1..30}; do
               if curl -f -s http://localhost:3000/api/status > /dev/null; then
-                echo "✓ Application is responding"
+                echo "✁EApplication is responding"
                 break
               fi
               echo "Attempt $i/30: Application not ready yet..."
@@ -207,7 +207,7 @@ jobs:
             HEALTH_RESPONSE=$(curl -s http://localhost:3000/api/status || echo "FAILED")
             
             if [ "$HEALTH_RESPONSE" = "FAILED" ]; then
-              echo "✗ Health check failed - no response"
+              echo "✁EHealth check failed - no response"
               exit 1
             fi
             
@@ -217,10 +217,10 @@ jobs:
             # Verify response contains expected fields
             if echo "$HEALTH_RESPONSE" | jq -e '.status' > /dev/null; then
               STATUS=$(echo "$HEALTH_RESPONSE" | jq -r '.status')
-              echo "✓ Status: $STATUS"
+              echo "✁EStatus: $STATUS"
               
               if [ "$STATUS" = "running" ]; then
-                echo "✓ Health check passed - service is running"
+                echo "✁EHealth check passed - service is running"
               else
                 echo "⚠ Warning: Service status is '$STATUS' (expected 'running')"
               fi
@@ -230,11 +230,11 @@ jobs:
             
             echo "=== Deployment Successful ==="
 
-      - name: クリーンアップ
+      - name: クリーンアチE�E
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
           timeout: 3m
@@ -242,7 +242,7 @@ jobs:
           script: |
             # Clean up temporary deployment files
             sudo rm -rf /tmp/solbot-deploy-${{ github.sha }}
-            echo "✓ Cleaned up temporary files"
+            echo "✁ECleaned up temporary files"
 
       - name: Discordへの通知
         uses: sarisia/actions-status-discord@v1
@@ -250,10 +250,10 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
-          title: 'SOL-Bot ステージングデプロイ'
+          title: 'SOL-Bot スチE�EジングチE�Eロイ'
           description: |
             リポジトリ: ${{ github.repository }}
-            コミット: ${{ github.sha }}
-            ステージング環境: ec2-18-183-190-79.ap-northeast-1.compute.amazonaws.com
-            デプロイ結果: ${{ job.status }}
+            コミッチE ${{ github.sha }}
+            スチE�Eジング環墁E ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+            チE�Eロイ結果: ${{ job.status }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
