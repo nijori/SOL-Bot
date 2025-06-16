@@ -270,29 +270,32 @@ jobs:
               echo "Application deployment and build completed"
             '
             
-            # Check if systemd service exists
-            if [ ! -f /etc/systemd/system/bot.service ]; then
-              echo "Creating bot.service systemd file..."
-              sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'Description=SOL Bot Application' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot.service"
-              sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot.service"
-              sudo systemctl daemon-reload
-              sudo systemctl enable bot.service
-            fi
+            # Create or update systemd service file
+            echo "Creating/updating bot.service systemd file..."
+            sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Description=SOL Bot Application' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot.service"
+            
+            # Verify the service file content
+            echo "Service file content:"
+            sudo cat /etc/systemd/system/bot.service
+            
+            sudo systemctl daemon-reload
+            sudo systemctl enable bot.service
             
             # Stop service if running
             if sudo systemctl is-active --quiet bot.service; then
