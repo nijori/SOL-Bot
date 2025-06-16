@@ -49,6 +49,10 @@ jobs:
           # Create a clean archive excluding unnecessary files
           # Use a temporary directory to avoid "file changed as we read it" errors
           
+          # Save current workspace path
+          WORKSPACE_DIR=$(pwd)
+          echo "Workspace directory: $WORKSPACE_DIR"
+          
           # Create temporary staging directory
           mkdir -p /tmp/solbot-staging
           
@@ -64,12 +68,13 @@ jobs:
           
           # Create archive from staging directory
           cd /tmp/solbot-staging
-          tar -czf ../solbot-app.tar.gz .
+          tar -czf solbot-app.tar.gz .
           
           # Move archive back to workspace
-          mv /tmp/solbot-app.tar.gz ${{ github.workspace }}/
+          mv solbot-app.tar.gz "$WORKSPACE_DIR/"
           
           # Cleanup staging directory
+          cd "$WORKSPACE_DIR"
           rm -rf /tmp/solbot-staging
           
           # Display archive info
