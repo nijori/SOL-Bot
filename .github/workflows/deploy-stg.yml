@@ -246,13 +246,11 @@ jobs:
               # Create environment file (placeholder for future SSM integration)
               if [ ! -f .env ]; then
                 echo "Creating placeholder .env file..."
-                cat > .env << "ENV_EOF"
-                # Placeholder environment file
-                # In production, this will be managed by AWS SSM Parameter Store
-                NODE_ENV=production
-                PORT=3000
-                LOG_LEVEL=info
-                ENV_EOF
+                echo "# Placeholder environment file" > .env
+                echo "# In production, this will be managed by AWS SSM Parameter Store" >> .env
+                echo "NODE_ENV=production" >> .env
+                echo "PORT=3000" >> .env
+                echo "LOG_LEVEL=info" >> .env
               fi
               
               echo "Application deployment completed"
@@ -261,25 +259,23 @@ jobs:
             # Check if systemd service exists
             if [ ! -f /etc/systemd/system/bot.service ]; then
               echo "Creating bot.service systemd file..."
-              sudo tee /etc/systemd/system/bot.service > /dev/null << 'SERVICE'
-              [Unit]
-              Description=SOL Bot Application
-              After=network.target
-
-              [Service]
-              Type=simple
-              User=solbot
-              WorkingDirectory=/opt/solbot
-              ExecStart=/usr/bin/node index.js
-              Restart=always
-              RestartSec=10
-              Environment=NODE_ENV=production
-              StandardOutput=journal
-              StandardError=journal
-
-              [Install]
-              WantedBy=multi-user.target
-              SERVICE
+              sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'Description=SOL Bot Application' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'ExecStart=/usr/bin/node index.js' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot.service"
+              sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot.service"
               sudo systemctl daemon-reload
               sudo systemctl enable bot.service
             fi
