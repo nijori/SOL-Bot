@@ -121,9 +121,33 @@ jobs:
             # Remove from PATH any NVM references
             export PATH=$(echo $PATH | sed 's|[^:]*\.nvm[^:]*:||g')
             
-            # Install Node.js 16 and npm via Amazon Linux Extras
-            echo "Installing Node.js 16 and npm via Amazon Linux Extras..."
-            sudo amazon-linux-extras install nodejs16 -y
+            # Check available Amazon Linux Extras topics and install appropriate Node.js
+            echo "Checking available Node.js topics in Amazon Linux Extras..."
+            sudo amazon-linux-extras list | grep -i node || echo "No node topics found"
+            
+            # Try different Node.js installation methods in order of preference
+            if sudo amazon-linux-extras list | grep -q "nodejs18"; then
+              echo "Installing Node.js 18 via Amazon Linux Extras..."
+              sudo amazon-linux-extras install nodejs18 -y
+            elif sudo amazon-linux-extras list | grep -q "nodejs16"; then
+              echo "Installing Node.js 16 via Amazon Linux Extras..."
+              sudo amazon-linux-extras install nodejs16 -y
+            elif sudo amazon-linux-extras list | grep -q "nodejs14"; then
+              echo "Installing Node.js 14 via Amazon Linux Extras..."
+              sudo amazon-linux-extras install nodejs14 -y
+            else
+              echo "No Node.js topics found in Amazon Linux Extras, trying EPEL repository..."
+              # Install EPEL repository
+              sudo yum install -y epel-release
+              # Install Node.js and npm from EPEL
+              sudo yum install -y nodejs npm
+            fi
+            
+            # Ensure npm is installed
+            if ! command -v npm &> /dev/null; then
+              echo "npm not found, installing npm separately..."
+              sudo yum install -y npm
+            fi
             
             # Verify installation
             echo "Node.js version: $(node --version)"
