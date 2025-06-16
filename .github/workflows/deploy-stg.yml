@@ -47,16 +47,18 @@ jobs:
       - name: Create deployment archive
         run: |
           # Create a clean archive excluding unnecessary files
-          # Use a temporary directory to avoid "file changed as we read it" errors
+          # Use a more robust approach to avoid file change errors
           
           # Save current workspace path
           WORKSPACE_DIR=$(pwd)
           echo "Workspace directory: $WORKSPACE_DIR"
           
-          # Create temporary staging directory
-          mkdir -p /tmp/solbot-staging
+          # Create temporary staging directory with unique name
+          STAGING_DIR="/tmp/solbot-staging-$$"
+          mkdir -p "$STAGING_DIR"
           
           # Copy files to staging, excluding unwanted directories
+          echo "Copying files to staging directory..."
           rsync -av \
             --exclude='.git/' \
             --exclude='node_modules/' \
@@ -64,20 +66,26 @@ jobs:
             --exclude='*.log' \
             --exclude='.env' \
             --exclude='solbot-app.tar.gz' \
-            ./ /tmp/solbot-staging/
+            ./ "$STAGING_DIR/"
           
-          # Create archive from staging directory
-          cd /tmp/solbot-staging
-          tar -czf solbot-app.tar.gz .
+          echo "Files copied successfully. Creating archive..."
           
-          # Move archive back to workspace
-          mv solbot-app.tar.gz "$WORKSPACE_DIR/"
+          # Wait a moment to ensure all file operations are complete
+          sleep 1
+          
+          # Create archive using absolute paths to avoid current directory issues
+          tar --create \
+              --gzip \
+              --file="$WORKSPACE_DIR/solbot-app.tar.gz" \
+              --directory="$STAGING_DIR" \
+              --exclude-from=<(echo -e ".git\nnode_modules\n.github\n*.log\n.env") \
+              .
           
           # Cleanup staging directory
-          cd "$WORKSPACE_DIR"
-          rm -rf /tmp/solbot-staging
+          rm -rf "$STAGING_DIR"
           
           # Display archive info
+          cd "$WORKSPACE_DIR"
           ls -la solbot-app.tar.gz
           echo "Archive contents preview:"
           tar -tzf solbot-app.tar.gz | head -20
