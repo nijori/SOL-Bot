@@ -152,22 +152,54 @@ jobs:
               echo "Application directory structure created"
             fi
             
-            # Clean solbot user environment and install dependencies
+            # Clone application code
+            echo "Deploying application code..."
+            if [ -d /opt/solbot/.git ]; then
+              echo "Updating existing repository..."
+              cd /opt/solbot
+              sudo -u solbot git fetch origin
+              sudo -u solbot git reset --hard origin/master
+            else
+              echo "Cloning repository..."
+              sudo rm -rf /opt/solbot/*
+              sudo -u solbot git clone https://github.com/nijori/SOL_bot.git /opt/solbot
+              cd /opt/solbot
+            fi
+            
+            # Set proper ownership
+            sudo chown -R solbot:solbot /opt/solbot
+            
+            # Install dependencies as solbot user
             echo "Installing dependencies as solbot user..."
             sudo -u solbot bash -c '
-              # Clean any NVM references from solbot user
               export PATH="/usr/bin:/usr/local/bin:$PATH"
               unset NVM_DIR
-              echo "solbot user - Node.js path: $(which node)"
-              echo "solbot user - npm path: $(which npm)"
-              echo "solbot user - Node.js version: $(node --version)"
-              echo "solbot user - npm version: $(npm --version)"
-              # TODO: npm ci --production (需要先部署代码)
-              echo "Skipping npm ci for now - need to deploy code first"
+              cd /opt/solbot
+              echo "Working directory: $(pwd)"
+              echo "Node.js version: $(node --version)"
+              echo "npm version: $(npm --version)"
+              
+              # Install production dependencies
+              echo "Installing npm dependencies..."
+              npm ci --production
+              
+              # Create required directories
+              mkdir -p data logs config
+              
+              # Create environment file (placeholder for future SSM integration)
+              if [ ! -f .env ]; then
+                echo "Creating placeholder .env file..."
+                cat > .env << "ENV_EOF"
+# Placeholder environment file
+# In production, this will be managed by AWS SSM Parameter Store
+NODE_ENV=production
+PORT=3000
+LOG_LEVEL=info
+ENV_EOF
+              fi
+              
+              echo "Application deployment completed"
             '
-            
-            # Build TypeScript (一時的に無効化 - CommonJS移行中)
-            # sudo -u solbot npm run build || echo "Warning: Build failed or no build script"
             
             # Check if systemd service exists
             if [ ! -f /etc/systemd/system/bot.service ]; then
@@ -208,38 +240,80 @@ jobs:
             echo "✓ Directory structure: $(ls -la /opt/solbot/)"
             echo "✓ Service file: $(ls -la /etc/systemd/system/bot.service)"
 
-      - name: インフラストラクチャ確認
+      - name: サービス起動とヘルスチェック
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
           username: ec2-user
           key: ${{ secrets.STG_SSH_KEY }}
-          timeout: 5m
-          command_timeout: 10m
+          timeout: 10m
+          command_timeout: 15m
           script: |
             set -e
             
-            echo "=== Infrastructure Verification ==="
+            echo "=== Service Startup and Health Check ==="
             
-            # Verify user setup
-            echo "Checking solbot user..."
-            id solbot
+            # Verify deployment
+            echo "Verifying application deployment..."
+            cd /opt/solbot
+            echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
+            echo "Index.js exists: $(test -f index.js && echo 'YES' || echo 'NO')"
+            echo "Node modules: $(test -d node_modules && echo 'YES' || echo 'NO')"
             
-            # Verify directory structure
-            echo "Checking directory structure..."
-            ls -la /opt/solbot/
+            # Start the service
+            echo "Starting bot.service..."
+            sudo systemctl start bot.service
             
-            # Verify service file
-            echo "Checking service file..."
-            ls -la /etc/systemd/system/bot.service
+            # Wait for startup
+            echo "Waiting for service to start..."
+            sleep 10
             
-            # Verify Node.js setup
-            echo "Checking Node.js setup..."
-            node --version
-            npm --version
+            # Check service status
+            echo "Checking service status..."
+            sudo systemctl status bot.service --no-pager || true
             
-            echo "✓ Infrastructure setup verification complete"
-            echo "=== Ready for Application Deployment ==="
+            # Wait a bit more for the application to fully initialize
+            echo "Waiting for application initialization..."
+            sleep 15
+            
+            # Health check with retries
+            echo "Performing health check..."
+            HEALTH_CHECK_URL="http://localhost:3000/api/status"
+            MAX_RETRIES=6
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "Health check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+              
+              if curl -f -s --connect-timeout 10 --max-time 30 "$HEALTH_CHECK_URL"; then
+                echo ""
+                echo "✅ Health check passed!"
+                echo "✅ SOL Bot is running successfully"
+                break
+              else
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  echo "Health check failed, retrying in 10 seconds..."
+                  sleep 10
+                else
+                  echo "❌ Health check failed after $MAX_RETRIES attempts"
+                  echo "Service logs:"
+                  sudo journalctl -u bot.service --no-pager --lines=20
+                  echo "Port check:"
+                  sudo netstat -tulpn | grep :3000 || echo "Port 3000 not listening"
+                  exit 1
+                fi
+              fi
+            done
+            
+            # Final verification
+            echo "=== Final Verification ==="
+            echo "Service status: $(sudo systemctl is-active bot.service)"
+            echo "Service enabled: $(sudo systemctl is-enabled bot.service)"
+            echo "Process check: $(pgrep -f 'node.*index.js' | wc -l) processes running"
+            echo ""
+            echo "🎉 Deployment completed successfully!"
+            echo "🚀 SOL Bot is now running on staging environment"
 
       - name: クリーンアップ
         if: always()
