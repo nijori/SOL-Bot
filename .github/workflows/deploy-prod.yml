@@ -36,49 +36,121 @@ jobs:
       - name: TypeScriptのビルド
         run: npm run build
 
-      - name: デプロイ準備 - 環境ファイル作成
-        run: |
-          echo "NODE_ENV=production" > .env
-          echo "アクセスキーなど機密情報は GitHub Secrets から設定します"
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
+          aws-region: ap-northeast-1
 
-      - name: EC2インスタンスへのデプロイ
-        uses: appleboy/scp-action@master
+      - name: Retrieve environment variables from SSM Parameter Store
+        run: |
+          echo "Retrieving production environment variables from SSM Parameter Store..."
+          
+          # Get environment variables from SSM Parameter Store
+          SSM_PARAMETERS=$(aws ssm get-parameter \
+            --name "/solbot/prod/env" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          # Create .env file for deployment
+          echo "$SSM_PARAMETERS" > deployment.env
+          echo "✅ Production environment variables retrieved and saved to deployment.env file"
+          
+          # Verify the .env file was created (but don't show contents for security)
+          if [ -f deployment.env ]; then
+            echo "✅ deployment.env file created successfully"
+            echo "📄 File size: $(wc -c < deployment.env) bytes"
+            echo "📄 Line count: $(wc -l < deployment.env) lines"
+          else
+            echo "❌ Failed to create deployment.env file"
+            exit 1
+          fi
+
+      - name: Upload environment variables to EC2
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          source: '.,!node_modules,!.git,!__tests__,!logs'
+          source: "deployment.env"
+          target: "/tmp/"
+
+      - name: EC2インスタンスへのデプロイ
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: '.,!node_modules,!.git,!__tests__,!logs,!deployment.env'
           target: '/opt/solbot/releases/${{ github.sha }}'
           strip_components: 0
 
       - name: デプロイスクリプト実行
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
+          timeout: 10m
+          command_timeout: 15m
           script: |
+            set -e
+            
+            echo "=== SOL Bot Production Deployment ==="
+            echo "Commit: ${{ github.sha }}"
+            echo "Triggered by: ${{ github.actor }}"
+            echo "Timestamp: $(date)"
+            
             cd /opt/solbot/releases/${{ github.sha }}
-            chmod +x scripts/deploy.sh
-            export NODE_ENV=production
-            export EXCHANGE_API_KEY="${{ secrets.EXCHANGE_API_KEY }}"
-            export EXCHANGE_SECRET_KEY="${{ secrets.EXCHANGE_SECRET_KEY }}"
-            export DISCORD_WEBHOOK_URL="${{ secrets.DISCORD_WEBHOOK_URL }}"
-            ./scripts/deploy.sh
+            
+            # Deploy environment variables from SSM Parameter Store
+            echo "Deploying environment variables from SSM Parameter Store..."
+            if [ -f "/tmp/deployment.env" ]; then
+              # Copy environment file to application directory
+              cp /tmp/deployment.env .env
+              
+              # Also create backup in env.d directory for runtime access
+              mkdir -p env.d
+              cp /tmp/deployment.env env.d/runtime
+              
+              echo "✅ Environment variables deployed from SSM Parameter Store"
+              echo "📄 Environment file size: $(wc -c < .env) bytes"
+              
+              # Secure the environment files
+              chmod 600 .env env.d/runtime
+              
+              # Clean up temporary file
+              rm -f /tmp/deployment.env
+            else
+              echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
+              echo "NODE_ENV=production" > .env
+              chmod 600 .env
+            fi
+            
+            # Install dependencies and build
+            echo "Installing dependencies..."
+            npm ci
+            
+            echo "Building application..."
+            npm run build
+            
+            # Run deploy script if exists
+            if [ -f "scripts/deploy.sh" ]; then
+              chmod +x scripts/deploy.sh
+              ./scripts/deploy.sh
+            fi
 
             # 成功したらcurrentシンボリックリンクを更新
-            if [ $? -eq 0 ]; then
-              echo "デプロイ成功: currentシンボリックリンクを更新します"
-              ln -sfn /opt/solbot/releases/${{ github.sha }} /opt/solbot/current
-              echo "デプロイ完了: $(date)"
-            else
-              echo "デプロイ失敗: $(date)"
-              exit 1
-            fi
+            echo "デプロイ成功: currentシンボリックリンクを更新します"
+            ln -sfn /opt/solbot/releases/${{ github.sha }} /opt/solbot/current
+            echo "デプロイ完了: $(date)"
 
       - name: Discordへの通知
         uses: sarisia/actions-status-discord@v1
-        if: always()
+        if: always() && env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
@@ -88,3 +160,5 @@ jobs:
             コミット: ${{ github.sha }}
             トリガー: ${{ github.actor }}
             ${{ github.event_name == 'workflow_dispatch' && format('理由: {0}', github.event.inputs.reason) || '' }}
+          color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
+          ack_no_webhook: true

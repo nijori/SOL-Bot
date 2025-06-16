@@ -96,6 +96,40 @@ jobs:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Retrieve environment variables from SSM Parameter Store
+        run: |
+          echo "Retrieving environment variables from SSM Parameter Store..."
+          
+          # Get environment variables from SSM Parameter Store
+          SSM_PARAMETERS=$(aws ssm get-parameter \
+            --name "/solbot/stg/env" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          # Create .env file for deployment
+          echo "$SSM_PARAMETERS" > deployment.env
+          echo "✅ Environment variables retrieved and saved to deployment.env file"
+          
+          # Verify the .env file was created (but don't show contents for security)
+          if [ -f deployment.env ]; then
+            echo "✅ deployment.env file created successfully"
+            echo "📄 File size: $(wc -c < deployment.env) bytes"
+            echo "📄 Line count: $(wc -l < deployment.env) lines"
+          else
+            echo "❌ Failed to create deployment.env file"
+            exit 1
+          fi
+
+      - name: Upload environment variables to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.STG_SSH_KEY }}
+          source: "deployment.env"
+          target: "/tmp/"
+
       - name: Upload application archive
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -255,16 +289,31 @@ jobs:
               fi
               
               # Create required directories
-              mkdir -p data logs config
+              mkdir -p data logs config env.d
               
-              # Create environment file (placeholder for future SSM integration)
-              if [ ! -f .env ]; then
-                echo "Creating placeholder .env file..."
-                echo "# Placeholder environment file" > .env
-                echo "# In production, this will be managed by AWS SSM Parameter Store" >> .env
-                echo "NODE_ENV=production" >> .env
+              # Deploy environment variables from SSM Parameter Store
+              echo "Deploying environment variables from SSM Parameter Store..."
+              if [ -f "/tmp/deployment.env" ]; then
+                # Copy environment file to application directory
+                cp /tmp/deployment.env .env
+                
+                # Also create backup in env.d directory for runtime access
+                cp /tmp/deployment.env env.d/runtime
+                
+                echo "✅ Environment variables deployed from SSM Parameter Store"
+                echo "📄 Environment file size: $(wc -c < .env) bytes"
+                
+                # Secure the environment files
+                chmod 600 .env env.d/runtime
+                
+                # Clean up temporary file
+                rm -f /tmp/deployment.env
+              else
+                echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
+                echo "NODE_ENV=staging" > .env
                 echo "PORT=3000" >> .env
                 echo "LOG_LEVEL=info" >> .env
+                chmod 600 .env
               fi
               
               echo "Application deployment and build completed"

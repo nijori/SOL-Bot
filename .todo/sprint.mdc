@@ -150,22 +150,22 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
 ### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
 目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
 
-1. [ ] SEC-008: SSM Parameter Store に `.env` SecureString 登録
+1. [x] SEC-008: SSM Parameter Store に `.env` SecureString 登録
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @operator
       - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : パス `/solbot/stg/env` `/solbot/prod/env` を作成。KMS default key 使用。GitHub Actions から `aws ssm get-parameters` で取得できることを確認。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！BybitのAPIキー(ステージング・本番)作成完了。SSM Parameter Store設定完了：`/solbot/stg/env`と`/solbot/prod/env`をSecureString形式で作成。BYBIT_API_KEY、BYBIT_SECRET_KEY、NODE_ENV、LOG_LEVEL等を設定。KMS暗号化(aws/ssm)適用済み。Binance、Discord Webhook等は将来追加予定。次はINF-028でGitHub ActionsからSSM取得実装。
 
-2. [ ] INF-028: deploy.yml に SSM 取得ステップ追加
+2. [x] INF-028: deploy.yml に SSM 取得ステップ追加
       - 📅 Due        : 2026-07-06
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : SEC-008
       - 🏷️  Label      : infra
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ステージングと本番でパス切替可能に。取得した env_runtime を `/opt/solbot/env.d/runtime` にアップロード。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！deploy-stg.ymlとdeploy-prod.ymlにSSM Parameter Store統合完了。`/solbot/stg/env`と`/solbot/prod/env`からSecureString取得、`/opt/solbot/.env`と`/opt/solbot/env.d/runtime`に配置。AWS OIDC認証で自動化、GitHub Secrets依存を削減。deploy-prod.ymlも最新構成に更新（appleboy/ssh-action v1.0.3、AWS OIDC、systemd管理）。全237テスト通過、GitHubプッシュ完了。
 
 3. [ ] INF-029: ParameterService の runtime-env 読み込み対応
       - 📅 Due        : 2026-07-07
