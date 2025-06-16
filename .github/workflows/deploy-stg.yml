@@ -47,13 +47,35 @@ jobs:
       - name: Create deployment archive
         run: |
           # Create a clean archive excluding unnecessary files
-          tar --exclude='.git' \
-              --exclude='node_modules' \
-              --exclude='.github' \
-              --exclude='*.log' \
-              --exclude='.env' \
-              -czf solbot-app.tar.gz .
+          # Use a temporary directory to avoid "file changed as we read it" errors
+          
+          # Create temporary staging directory
+          mkdir -p /tmp/solbot-staging
+          
+          # Copy files to staging, excluding unwanted directories
+          rsync -av \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='.github/' \
+            --exclude='*.log' \
+            --exclude='.env' \
+            --exclude='solbot-app.tar.gz' \
+            ./ /tmp/solbot-staging/
+          
+          # Create archive from staging directory
+          cd /tmp/solbot-staging
+          tar -czf ../solbot-app.tar.gz .
+          
+          # Move archive back to workspace
+          mv /tmp/solbot-app.tar.gz ${{ github.workspace }}/
+          
+          # Cleanup staging directory
+          rm -rf /tmp/solbot-staging
+          
+          # Display archive info
           ls -la solbot-app.tar.gz
+          echo "Archive contents preview:"
+          tar -tzf solbot-app.tar.gz | head -20
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
