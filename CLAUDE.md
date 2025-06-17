@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Build and Test Commands
 - `npm run build` - Build the project (TypeScript → CommonJS)
 - `npm run test` - Run Jest tests (CommonJS mode for stability)
-- `npm run test:unified` - Run integrated tests (both CJS and ESM)
+- `npm run test:unified` - Run integrated tests (CommonJS)
 
 - `npm run format` - Format code with Prettier
 

@@ -79,12 +79,7 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ---
 
-#### 4. ESM Tests (`esm-tests.yml`)
-**目的**: ESM環境専用テスト実行  
-**トリガー**: push、pull_request  
-**特徴**: ES Modulesでのモック互換性検証
 
----
 
 ### セキュリティ系
 

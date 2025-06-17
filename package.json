@@ -52,7 +52,6 @@
     "test:watch": "jest --watch",
     "test:smoke": "ts-node --transpile-only src/core/smokeTest.ts",
     "test:file": "jest --testPathPattern",
-    "test:fix": "npm run fix:jest-mocks && npm test",
     "test:debug": "node --inspect-brk node_modules/jest/bin/jest.js --runInBand",
     "test:parallel": "node scripts/test-sharding.js",
     "test:parallel:fast": "node scripts/test-sharding.js fast",
@@ -62,7 +61,6 @@
     "test:parallel:core": "node scripts/test-sharding.js core",
     "test:parallel:all": "node scripts/test-sharding.js",
     "test:ci": "node scripts/test-sharding.js fast 2 && node scripts/test-sharding.js medium 2 && node scripts/test-sharding.js slow 1 && node scripts/test-sharding.js core 1 && node scripts/test-sharding.js heavy 1",
-    "fix:jest-mocks": "node scripts/fix-jest-mocks-for-esm.js",
 
     "format": "prettier --write \"src/**/*.ts\"",
     "backtest": "ts-node --transpile-only src/core/backtestRunner.ts",
@@ -114,9 +112,7 @@
     "test:stable": "npm run test:detect-handles",
     "test:cjs": "jest",
     "test:noncrash": "jest --detectOpenHandles --forceExit",
-    "fix:test-imports": "node scripts/fix-test-imports.js",
-    "fix:test-imports:dry": "node scripts/fix-test-imports-dry-run.js",
-    "test:dual-format:cjs": "node src/examples/dual-format-usage.js",
+
     "smoketest": "ts-node --transpile-only src/core/smokeTest.ts",
     "backtest:smoke:stable": "node scripts/run-backtest-smoke.js",
     "verify:ref-031": "node scripts/verify-ref-031.js",

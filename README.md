@@ -7,7 +7,7 @@
 [![Build Status](https://github.com/yourusername/SOL-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/SOL-bot/actions)
 [![codecov](https://codecov.io/gh/yourusername/SOL-bot/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/SOL-bot)
 
-[![ESM Ready](https://img.shields.io/badge/ESM-Ready-brightgreen.svg)](https://nodejs.org/api/esm.html)
+
 
 複数の暗号資産ペア（SOL/USDT, BTC/USDT, ETH/USDTなど）のトレンドとレンジを自動検出し、適切な売買戦略を適用するアルゴリズムトレーディングシステムです。
 
@@ -143,7 +143,7 @@ MarketStateモジュールは以下の環境を識別します：
 
 ### 前提条件
 
-- Node.js 18.x以上（ESMをサポート）
+- Node.js 18.x以上
 - npm/yarn
 - PostgreSQL 13+ （メタデータとパフォーマンス分析用）
 
@@ -225,42 +225,36 @@ SOL-Botでは以下のワークフローで完全なCI/CDパイプラインを�
 | **Security Scan** | セキュリティチェック（gitleaks + Trivy） | push/PR/日次 | ✅ 保持 |
 | **CI/CD Pipeline** | テスト・ビルド・品質管理 | push/PR | ⚠️ 整理予定 |
 | **Deploy to Production** | 本番環境デプロイ（1台構成、SSM対応） | master push + 手動 | ⚠️ 修正中 |
-| **ESM Tests** | ES Modules環境テスト | push/PR | ✅ 保持 |
+
 
 詳細な設定・用途・トラブルシューティングについては、[GitHub Actions ワークフロー詳細ガイド](docs/github-actions-workflows.md)を参照してください。
 
 ### テスト実行
 
-SOL-BotはESM環境に完全対応したテストフレームワークを提供しています：
+SOL-BotはCommonJS環境で安定したテストフレームワークを提供しています：
 
 ```bash
 # 標準テスト実行
 npm run test
 
-# ESM専用テスト実行（高度なモック機能と安定性向上）
-npm run test:esm
-
 # カバレッジレポート生成
 npm run test:coverage
-npm run test:coverage
 
-# 統合テスト実行（CommonJS/ESMの両方を実行）
+# 統合テスト実行
 npm run test:unified
 
 # テストグループ別実行（高速/中速/低速/重いテスト）
-npm run test:unified --group fast
-npm run test:unified --group medium
-npm run test:unified --group slow
-npm run test:unified --group heavy
+npm run test:parallel:fast
+npm run test:parallel:medium
+npm run test:parallel:slow
+npm run test:parallel:heavy
+npm run test:parallel:core
 
 # 前回のテスト実行レポート表示
 npm run test:unified:report
 
-# CommonJSテストのみ実行
+# CommonJSテスト実行
 npm run test:unified:cjs
-
-# ESMテストのみ実行
-npm run test:unified:esm
 ```
 
 詳細なセットアップ手順やシステムの使用方法については、[ユーザーマニュアル](docs/UserManual.md)を参照してください。また、[ドキュメント索引](docs/index.md)からその他のガイドにもアクセスできます。
@@ -330,11 +324,9 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 
 - ✅ **OMS-018**: UnifiedOrderManagerの配分アルゴリズム単体テスト実装。PRIORITY、ROUND_ROBIN、SPLIT_EQUAL、CUSTOMなど各種配分方式のエッジケース対応を検証済み。
 
-- ✅ **TST-055**: モジュールモックの一貫性向上。ESM/CJSデュアルフォーマット対応のモックファクトリーライブラリを実装。戦略・サービス・データモジュール用のモックファクトリー関数と、一括モック化機能を提供。テスト間でのモック実装の統一とコード重複削減を実現。
+- ✅ **TST-055**: モジュールモックの一貫性向上。CommonJS対応のモックファクトリーライブラリを実装。戦略・サービス・データモジュール用のモックファクトリー関数と、一括モック化機能を提供。テスト間でのモック実装の統一とコード重複削減を実現。
 
-- ✅ **TST-084**: 統合テスト実行スクリプトの実装。CommonJSとESMのテストを一括実行し、テストグループ別（fast/medium/slow/heavy/core/esm）の実行とパフォーマンス計測機能を提供。詳細なテスト統計の収集、レポート生成、実行履歴の保存など高度な機能を実装。CIパイプラインとの連携も強化。
-
-- 🔄 **REF-020/021/022/023**: テスト環境のESM完全対応プロジェクト（進行中）。Jest設定ファイルのESM対応、型アノテーション除去の強化、テスト変換スクリプトの改良中。
+- ✅ **TST-084**: 統合テスト実行スクリプトの実装。CommonJSテストのグループ別（fast/medium/slow/heavy/core）の実行とパフォーマンス計測機能を提供。詳細なテスト統計の収集、レポート生成、実行履歴の保存など高度な機能を実装。CIパイプラインとの連携も強化。
 
 - ⚠️ **CICD-007**: deploy-prod.ymlの更新・SSM対応（90%完了）。1台構成での本番環境デプロイ対応、SSM Parameter Store統合、systemdサービス管理への移行を実装。AWS設定修正（INF-031）完了後にワークフロー成功確認予定。
 

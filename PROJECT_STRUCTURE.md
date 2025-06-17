@@ -29,7 +29,7 @@ SOL-Bot/
 │   │   ├── ci.yml                  # 基本CI/CDパイプライン
 │   │   ├── deploy-stg.yml          # ステージング環境自動デプロイ（SCP+systemd）
 │   │   ├── deploy-prod.yml         # 本番環境デプロイ（1台構成、SSM対応、systemd、TST-085統合テスト）
-│   │   ├── esm-tests.yml           # ESM環境テスト実行
+
 │   │   ├── security-scan.yml       # セキュリティスキャン
 │   │   ├── trivy-dependency-scan.yml # 依存関係脆弱性スキャン
 │   │   ├── todo-check.yml          # Todoフォーマット検証
@@ -300,7 +300,7 @@ SOL-Botは、安定性と互換性を優先するため、CommonJSモジュー�
 #### TypeScriptとの統合
 
 - TypeScript設定では`"module": "CommonJS"`を指定し、CommonJS形式の出力を生成します。
-- `esModuleInterop`と`allowSyntheticDefaultImports`オプションにより、CommonJSモジュールをESM風の構文でインポート可能です。
+- `esModuleInterop`と`allowSyntheticDefaultImports`オプションにより、CommonJSモジュールの互換性を確保しています。
 
 ```typescript
 // TypeScript内でのインポート
@@ -335,18 +335,17 @@ export class MyService {
 ### テスト環境
 
 - **Jest**: TypeScriptテストフレームワーク
-- **ESM対応**: テスト環境のES Module完全対応
+- **CommonJS統一**: テスト環境のCommonJS統一による安定性向上
 
-  - Jest設定ファイルのESM設定
-  - テストファイルの.mjs拡張子対応
+  - Jest設定ファイルのCommonJS最適化
   - テスト実行用カスタムスクリプト
-  - Jestモック関数のESM互換実装
-  - **進捗状況**: ESM対応は完了 ✅
+  - Jestモック関数の安定実装
+  - **進捗状況**: CommonJS統一完了 ✅
 
 - **統合テスト実行システム**:
   - **TST-084**: 統合テスト実行スクリプト実装
-  - CJS/ESMの両モード対応テスト自動実行
-  - テストグループ別実行機能（fast/medium/slow/heavy/core/esm）
+  - CommonJSテストの自動実行
+- テストグループ別実行機能（fast/medium/slow/heavy/core）
   - 詳細なテスト統計とパフォーマンス計測
   - レポート生成と履歴保存機能
   - NPMスクリプト連携（test:unified）
@@ -379,10 +378,10 @@ export class MyService {
   - **slow**: 低速テスト（一部services）10-30秒/テスト
   - **heavy**: 特に重いテスト（RealTimeDataProcessor）30秒以上/テスト
   - **core**: コア機能テスト（core）
-  - **esm**: ESMテスト（.mjs拡張子）
+  
 
 - **テストヘルパーユーティリティ**:
-  - `export-esm-mock.mjs`: ESM環境でのモック作成ヘルパー
+  
   - `test-cleanup-utils.js`: 非同期処理クリーンアップユーティリティ
   - カスタムテストランナー（ハング検出と強制終了機能付き）
   - モックデータファクトリー関数
@@ -398,11 +397,7 @@ export class MyService {
       - `createMultiTimeframeDataFetcherMock`: マルチタイムフレームデータフェッチャーモック
       - `createRealTimeDataProcessorMock`: リアルタイムデータプロセッサーモック
     - `setupAllMocks`: すべてのモジュールを一括モック化する関数
-    - **デュアルフォーマット対応**: ESM/CJS両環境での一貫したモックパターン実装
-
-- **ESM対応ドキュメント**:
-  - `ESM-Migration-Guide.md`: ESM環境での開発とテストのガイド
-  - `esm-migration-issues.md`: 移行プロセスで見つかった問題と解決策の記録
+    - **CommonJS統一**: CommonJS環境での一貫したモックパターン実装
 
 - **テストカバレッジ目標**:
   - 全体コード: 90%以上（CI/CDによる自動検証）
@@ -434,7 +429,7 @@ export class MyService {
   - **ステージング環境** (`deploy-stg.yml`): rsync+SCP方式でEC2への安全なデプロイ
   - **本番環境** (`deploy-prod.yml`): 本番環境への制御されたデプロイ
   - **systemd連携**: 自動サービス起動・ヘルスチェック・Discord通知
-- **ESMテスト環境** (`esm-tests.yml`): ESM専用テスト実行とモック互換性検証
+
 - **テストカバレッジ検証**:
   - HTML/LCOVレポート生成
   - カバレッジ閾値のゲート機能（PRがカバレッジ基準を満たさない場合はマージ不可）
