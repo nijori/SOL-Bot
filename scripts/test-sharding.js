@@ -36,12 +36,12 @@ const TEST_GROUPS = {
   ],
   core: [
     'src/__tests__/core'
-  ],
-  // ESMテスト用
-  esm: [
-    'src/__tests__/**/*.test.mjs',
-    'src/__tests__/esm-*.test.mjs'
   ]
+  // ESMテストは削除（CommonJS統一方針のため）
+  // esm: [
+  //   'src/__tests__/**/*.test.mjs',
+  //   'src/__tests__/esm-*.test.mjs'
+  // ]
 };
 
 // JestのNode.js実行用のパス
@@ -77,8 +77,8 @@ const BASELINE_TIMES = {
   slow: 180,     // 3分
   heavy: 300,    // 5分
   core: 150,     // 2分30秒
-  esm: 120,      // 2分
-  total: 900     // 15分 (すべてのテストを順次実行)
+  // esm: 120,   // 2分 (削除: CommonJS統一方針のため)
+  total: 780     // 13分 (ESM削除により2分短縮)
 };
 
 // メトリクスディレクトリとレポートファイル
