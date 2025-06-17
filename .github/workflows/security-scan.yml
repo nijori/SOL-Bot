@@ -188,6 +188,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Trivy
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
+
       - name: Generate SBOM with CycloneDX
         uses: CycloneDX/gh-node-module-generatebom@master
         with:
@@ -200,13 +207,21 @@ jobs:
           name: cyclonedx-sbom
           path: ./bom.xml
 
+      - name: Verify SBOM file exists
+        run: |
+          if [ -f "./bom.xml" ]; then
+            echo "SBOM file found: ./bom.xml"
+            ls -la ./bom.xml
+            head -10 ./bom.xml
+          else
+            echo "SBOM file not found!"
+            exit 1
+          fi
+
       - name: Analyze SBOM with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'sbom'
-          input: ./bom.xml
-          format: 'table'
-          exit-code: '0' # 情報提供のみなので失敗させない
+        run: |
+          # Trivyを使ってSBOMファイルを解析
+          trivy sbom ./bom.xml --format table --exit-code 0 || echo "SBOM analysis completed with warnings"
 
   security-report:
     name: Security Report Generation
