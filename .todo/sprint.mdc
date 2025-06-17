@@ -189,8 +189,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🏷️  Label      : refactor
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : ファイルパス指定があれば `.env` より優先してロード。ユニットテストを追加。
+      - 📊 Progress   : 70%
+      - ✎ Notes      : 実装完了：loadEnvironmentVariables追加、コンストラクタ拡張、runtime-env優先読み込み機能実装。テスト1件失敗中（モック設定調整必要）。
 
 
 4. [ ] CICD-006: Blue/Green デプロイトグル追加
