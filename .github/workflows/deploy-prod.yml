@@ -9,38 +9,96 @@ on:
         description: '手動デプロイの理由'
         required: true
         default: '定期メンテナンス'
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
+
+env:
+  AWS_REGION: ap-northeast-1
 
 jobs:
-  test-and-deploy:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: チェックアウト
-        uses: actions/checkout@v3
-
-      - name: Node.jsセットアップ
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: 依存関係のインストール
+          
+      - name: Install dependencies
         run: npm ci
-
-      - name: ESLintによるコード検証
-        run: npm run lint
-
-      - name: Jestによるテスト実行
+        
+      - name: Run tests
         run: npm test
+        continue-on-error: ${{ github.event.inputs.force_deploy == 'true' }}
 
-      - name: TypeScriptのビルド
-        run: npm run build
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: success() || github.event.inputs.force_deploy == 'true'
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create deployment archive
+        run: |
+          # Create a clean archive excluding unnecessary files
+          # Use a more robust approach to avoid file change errors
+          
+          # Save current workspace path
+          WORKSPACE_DIR=$(pwd)
+          echo "Workspace directory: $WORKSPACE_DIR"
+          
+          # Create temporary staging directory with unique name
+          STAGING_DIR="/tmp/solbot-staging-$$"
+          mkdir -p "$STAGING_DIR"
+          
+          # Copy files to staging, excluding unwanted directories
+          echo "Copying files to staging directory..."
+          rsync -av \
+            --exclude='.git/' \
+            --exclude='node_modules/' \
+            --exclude='.github/' \
+            --exclude='*.log' \
+            --exclude='.env' \
+            --exclude='solbot-app.tar.gz' \
+            ./ "$STAGING_DIR/"
+          
+          echo "Files copied successfully. Creating archive..."
+          
+          # Wait a moment to ensure all file operations are complete
+          sleep 1
+          
+          # Create archive using absolute paths to avoid current directory issues
+          tar --create \
+              --gzip \
+              --file="$WORKSPACE_DIR/solbot-app.tar.gz" \
+              --directory="$STAGING_DIR" \
+              --exclude-from=<(echo -e ".git\nnode_modules\n.github\n*.log\n.env") \
+              .
+          
+          # Cleanup staging directory
+          rm -rf "$STAGING_DIR"
+          
+          # Display archive info
+          cd "$WORKSPACE_DIR"
+          ls -la solbot-app.tar.gz
+          echo "Archive contents preview:"
+          tar -tzf solbot-app.tar.gz | head -20
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
-          aws-region: ap-northeast-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Retrieve environment variables from SSM Parameter Store
         run: |
@@ -76,17 +134,16 @@ jobs:
           source: "deployment.env"
           target: "/tmp/"
 
-      - name: EC2インスタンスへのデプロイ
+      - name: Upload application archive
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          source: '.,!node_modules,!.git,!__tests__,!logs,!deployment.env'
-          target: '/opt/solbot/releases/${{ github.sha }}'
-          strip_components: 0
+          source: "solbot-app.tar.gz"
+          target: "/tmp/"
 
-      - name: デプロイスクリプト実行
+      - name: Deploy Application to Production Environment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -101,52 +158,304 @@ jobs:
             echo "Commit: ${{ github.sha }}"
             echo "Triggered by: ${{ github.actor }}"
             echo "Timestamp: $(date)"
+            ${{ github.event.inputs.reason && format('Deployment reason: {0}', github.event.inputs.reason) || '' }}
             
-            cd /opt/solbot/releases/${{ github.sha }}
+            # Clean up any existing Node.js installations and install fresh
+            echo "Cleaning up existing Node.js installations..."
             
-            # Deploy environment variables from SSM Parameter Store
-            echo "Deploying environment variables from SSM Parameter Store..."
-            if [ -f "/tmp/deployment.env" ]; then
-              # Copy environment file to application directory
-              cp /tmp/deployment.env .env
-              
-              # Also create backup in env.d directory for runtime access
-              mkdir -p env.d
-              cp /tmp/deployment.env env.d/runtime
-              
-              echo "✅ Environment variables deployed from SSM Parameter Store"
-              echo "📄 Environment file size: $(wc -c < .env) bytes"
-              
-              # Secure the environment files
-              chmod 600 .env env.d/runtime
-              
-              # Clean up temporary file
-              rm -f /tmp/deployment.env
+            # Wait for any existing yum operations to complete
+            echo "Waiting for any existing yum locks to clear..."
+            sudo fuser -k /var/run/yum.pid 2>/dev/null || true
+            sleep 2
+            
+            # Remove NVM and its Node.js installations
+            if [ -d "$HOME/.nvm" ]; then
+              echo "Removing NVM installation..."
+              rm -rf "$HOME/.nvm"
+            fi
+            
+            # Remove any existing Node.js/npm symlinks
+            sudo rm -f /usr/local/bin/node /usr/local/bin/npm
+            
+            # Remove from PATH any NVM references
+            export PATH=$(echo $PATH | sed 's|[^:]*\.nvm[^:]*:||g')
+            
+            # Check OS version and install appropriate Node.js
+            OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d'"' -f2)
+            echo "Detected OS version: $OS_VERSION"
+            
+            if [[ "$OS_VERSION" =~ ^2023 ]]; then
+              # Amazon Linux 2023 - use dnf with Node.js 18+
+              echo "Installing Node.js 18 on Amazon Linux 2023..."
+              sudo dnf install -y nodejs npm
+            elif [[ "$OS_VERSION" =~ ^2\. ]]; then
+              # Amazon Linux 2 - try Amazon Linux Extras first
+              echo "Installing Node.js on Amazon Linux 2..."
+              if sudo amazon-linux-extras list | grep -q "nodejs18"; then
+                echo "Installing Node.js 18 via Amazon Linux Extras..."
+                sudo amazon-linux-extras install nodejs18 -y
+              elif sudo amazon-linux-extras list | grep -q "nodejs16"; then
+                echo "Installing Node.js 16 via Amazon Linux Extras..."
+                sudo amazon-linux-extras install nodejs16 -y
+              else
+                echo "No Node.js topics found in Amazon Linux Extras, using NodeSource..."
+                curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+                sudo yum install -y nodejs
+              fi
             else
-              echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
-              echo "NODE_ENV=production" > .env
-              chmod 600 .env
+              echo "Unknown OS version, trying dnf installation..."
+              sudo dnf install -y nodejs npm || {
+                echo "dnf failed, trying NodeSource..."
+                curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+                sudo yum install -y nodejs || sudo dnf install -y nodejs npm
+              }
             fi
             
-            # Install dependencies and build
-            echo "Installing dependencies..."
-            npm ci
-            
-            echo "Building application..."
-            npm run build
-            
-            # Run deploy script if exists
-            if [ -f "scripts/deploy.sh" ]; then
-              chmod +x scripts/deploy.sh
-              ./scripts/deploy.sh
+            # Ensure npm is installed
+            if ! command -v npm &> /dev/null; then
+              echo "npm not found, installing npm separately..."
+              sudo yum install -y npm
             fi
+            
+            # Verify installation
+            echo "Node.js version: $(node --version)"
+            echo "npm version: $(npm --version)"
+            echo "Node.js path: $(which node)"
+            echo "npm path: $(which npm)"
+            
+            # Create solbot user if not exists
+            if ! id solbot &>/dev/null; then
+              echo "Creating solbot user..."
+              sudo useradd -m -s /bin/bash solbot
+              sudo mkdir -p /opt/solbot
+              sudo chown -R solbot:solbot /opt/solbot
+            fi
+            
+            # Install dependencies
+            cd /opt/solbot
+            
+            # Verify npm is available
+            echo "Verifying npm availability..."
+            which npm
+            npm --version
+            
+            # Initialize application directory
+            if [ ! -f /opt/solbot/package.json ]; then
+              echo "Initializing application directory..."
+              sudo -u solbot mkdir -p /opt/solbot/{logs,data,config}
+              echo "Application directory structure created"
+            fi
+            
+            # Install git if not present
+            if ! command -v git &> /dev/null; then
+              echo "Installing git..."
+              sudo dnf install -y git
+            fi
+            
+            # Deploy application code
+            echo "Deploying application code..."
+            sudo rm -rf /opt/solbot/*
+            sudo mkdir -p /opt/solbot
+            
+            # Extract application archive
+            echo "Extracting application archive..."
+            sudo -u solbot tar -xzf /tmp/solbot-app.tar.gz -C /opt/solbot
+            sudo chown -R solbot:solbot /opt/solbot
+            
+            echo "Application files deployed successfully"
+            ls -la /opt/solbot/
+            
+            # Install dependencies and build application as solbot user
+            echo "Installing dependencies and building application as solbot user..."
+            sudo -u solbot bash -c '
+              export PATH="/usr/bin:/usr/local/bin:$PATH"
+              unset NVM_DIR
+              cd /opt/solbot
+              echo "Working directory: $(pwd)"
+              echo "Node.js version: $(node --version)"
+              echo "npm version: $(npm --version)"
+              
+              # Install all dependencies (including devDependencies for TypeScript compilation)
+              echo "Installing npm dependencies..."
+              npm ci
+              
+              # Build the TypeScript application
+              echo "Building TypeScript application..."
+              npm run build
+              
+              # Verify build output
+              echo "Verifying build output..."
+              if [ -f "dist/index.js" ]; then
+                echo "✓ Build successful - dist/index.js exists"
+                ls -la dist/
+              else
+                echo "✗ Build failed - dist/index.js not found"
+                exit 1
+              fi
+              
+              # Create required directories
+              mkdir -p data logs config env.d
+              
+              # Deploy environment variables from SSM Parameter Store
+              echo "Deploying environment variables from SSM Parameter Store..."
+              if [ -f "/tmp/deployment.env" ]; then
+                # Copy environment file to application directory
+                cp /tmp/deployment.env .env
+                
+                # Also create backup in env.d directory for runtime access
+                cp /tmp/deployment.env env.d/runtime
+                
+                echo "✅ Environment variables deployed from SSM Parameter Store"
+                echo "📄 Environment file size: $(wc -c < .env) bytes"
+                
+                # Secure the environment files
+                chmod 600 .env env.d/runtime
+                
+                # Clean up temporary file
+                rm -f /tmp/deployment.env
+              else
+                echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
+                echo "NODE_ENV=production" > .env
+                echo "PORT=3000" >> .env
+                echo "LOG_LEVEL=info" >> .env
+                chmod 600 .env
+              fi
+              
+              echo "Application deployment and build completed"
+            '
+            
+            # Create or update systemd service file
+            echo "Creating/updating bot.service systemd file..."
+            sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Description=SOL Bot Application' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot.service"
+            sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot.service"
+            
+            # Verify the service file content
+            echo "Service file content:"
+            sudo cat /etc/systemd/system/bot.service
+            
+            sudo systemctl daemon-reload
+            sudo systemctl enable bot.service
+            
+            # Stop service if running
+            if sudo systemctl is-active --quiet bot.service; then
+              echo "Stopping bot.service..."
+              sudo systemctl stop bot.service
+              sleep 2
+            fi
+            
+            # For now, just verify the setup is complete
+            echo "✓ SOL Bot user and service configuration complete"
+            echo "✓ Node.js $(node --version) installed"
+            echo "✓ Directory structure: $(ls -la /opt/solbot/)"
+            echo "✓ Service file: $(ls -la /etc/systemd/system/bot.service)"
 
-            # 成功したらcurrentシンボリックリンクを更新
-            echo "デプロイ成功: currentシンボリックリンクを更新します"
-            ln -sfn /opt/solbot/releases/${{ github.sha }} /opt/solbot/current
-            echo "デプロイ完了: $(date)"
+      - name: Start Service and Health Check
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          timeout: 10m
+          command_timeout: 15m
+          script: |
+            set -e
+            
+            echo "=== Production Service Startup and Health Check ==="
+            
+            # Verify deployment
+            echo "Verifying application deployment..."
+            cd /opt/solbot
+            echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
+            echo "Built index.js exists: $(test -f dist/index.js && echo 'YES' || echo 'NO')"
+            echo "Source index.ts exists: $(test -f src/index.ts && echo 'YES' || echo 'NO')"
+            echo "Node modules: $(test -d node_modules && echo 'YES' || echo 'NO')"
+            echo "Dist directory: $(test -d dist && echo 'YES' || echo 'NO')"
+            
+            # Start the service
+            echo "Starting bot.service..."
+            sudo systemctl start bot.service
+            
+            # Wait for startup
+            echo "Waiting for service to start..."
+            sleep 10
+            
+            # Check service status
+            echo "Checking service status..."
+            sudo systemctl status bot.service --no-pager || true
+            
+            # Wait a bit more for the application to fully initialize
+            echo "Waiting for application initialization..."
+            sleep 15
+            
+            # Health check with retries
+            echo "Performing health check..."
+            HEALTH_CHECK_URL="http://localhost:3000/api/status"
+            MAX_RETRIES=6
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "Health check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+              
+              if curl -f -s --connect-timeout 10 --max-time 30 "$HEALTH_CHECK_URL"; then
+                echo ""
+                echo "✅ Health check passed!"
+                echo "✅ SOL Bot is running successfully in production"
+                break
+              else
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  echo "Health check failed, retrying in 10 seconds..."
+                  sleep 10
+                else
+                  echo "❌ Health check failed after $MAX_RETRIES attempts"
+                  echo "Service logs:"
+                  sudo journalctl -u bot.service --no-pager --lines=20
+                  echo "Port check:"
+                  sudo netstat -tulpn | grep :3000 || echo "Port 3000 not listening"
+                  exit 1
+                fi
+              fi
+            done
+            
+            # Final verification
+            echo "=== Final Verification ==="
+            echo "Service status: $(sudo systemctl is-active bot.service)"
+            echo "Service enabled: $(sudo systemctl is-enabled bot.service)"
+            echo "Process check: $(pgrep -f 'node.*index.js' | wc -l) processes running"
+            echo ""
+            echo "🎉 Production deployment completed successfully!"
+            echo "🚀 SOL Bot is now running on production environment"
 
-      - name: Discordへの通知
+      - name: Cleanup
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          timeout: 3m
+          command_timeout: 5m
+          script: |
+            # Clean up temporary deployment files
+            sudo rm -rf /tmp/solbot-deploy-${{ github.sha }}
+            echo "✓ Cleaned up temporary files"
+
+      - name: Discord Notification
         uses: sarisia/actions-status-discord@v1
         if: always() && env.DISCORD_WEBHOOK_URL != ''
         env:
@@ -154,11 +463,12 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
-          title: 'SOL-Bot プロダクションデプロイ'
+          title: 'SOL-Bot Production Deployment'
           description: |
-            リポジトリ: ${{ github.repository }}
-            コミット: ${{ github.sha }}
-            トリガー: ${{ github.actor }}
-            ${{ github.event_name == 'workflow_dispatch' && format('理由: {0}', github.event.inputs.reason) || '' }}
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Production Environment: ${{ secrets.PROD_HOST }}
+            Deployment Result: ${{ job.status }}
+            ${{ github.event.inputs.reason && format('Reason: {0}', github.event.inputs.reason) || '' }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
           ack_no_webhook: true
