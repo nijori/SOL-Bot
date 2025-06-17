@@ -202,12 +202,18 @@ git push origin master
 # 3. systemdサービスの自動起動
 # 4. ヘルスチェック（/api/status）実行
 # 5. Discord通知送信
+
+# 1台構成での運用：
+# - ステージング環境：ポート3000、/opt/solbot
+# - 本番環境：ポート3001、/opt/solbot-prod
+# - SSM Parameter Store統合（/solbot/prod/env）
 ```
 
 **デプロイ完了確認:**
 - GitHub Actionsタブでワークフロー実行状況を確認
 - Discord通知でデプロイ結果を確認
 - ステージング環境: `http://13.158.58.241:3000/api/status`
+- 本番環境: `http://13.158.58.241:3001/api/status`（1台構成でポート分離）
 
 ### GitHub Actions ワークフロー
 
@@ -218,7 +224,7 @@ SOL-Botでは以下のワークフローで完全なCI/CDパイプラインを�
 | **Deploy to Staging** | ステージング環境自動デプロイ | master push | ✅ 稼働中 |
 | **Security Scan** | セキュリティチェック（gitleaks + Trivy） | push/PR/日次 | ✅ 保持 |
 | **CI/CD Pipeline** | テスト・ビルド・品質管理 | push/PR | ⚠️ 整理予定 |
-| **Deploy to Production** | 本番環境デプロイ | master push + 手動 | ❌ 要修正 |
+| **Deploy to Production** | 本番環境デプロイ（1台構成、SSM対応） | master push + 手動 | ⚠️ 修正中 |
 | **ESM Tests** | ES Modules環境テスト | push/PR | ✅ 保持 |
 
 詳細な設定・用途・トラブルシューティングについては、[GitHub Actions ワークフロー詳細ガイド](docs/github-actions-workflows.md)を参照してください。
@@ -329,6 +335,8 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 - ✅ **TST-084**: 統合テスト実行スクリプトの実装。CommonJSとESMのテストを一括実行し、テストグループ別（fast/medium/slow/heavy/core/esm）の実行とパフォーマンス計測機能を提供。詳細なテスト統計の収集、レポート生成、実行履歴の保存など高度な機能を実装。CIパイプラインとの連携も強化。
 
 - 🔄 **REF-020/021/022/023**: テスト環境のESM完全対応プロジェクト（進行中）。Jest設定ファイルのESM対応、型アノテーション除去の強化、テスト変換スクリプトの改良中。
+
+- ⚠️ **CICD-007**: deploy-prod.ymlの更新・SSM対応（90%完了）。1台構成での本番環境デプロイ対応、SSM Parameter Store統合、systemdサービス管理への移行を実装。AWS設定修正（INF-031）完了後にワークフロー成功確認予定。
 
 ### 前回スプリント（W9: パフォーマンス最適化・リソース管理スプリント）
 

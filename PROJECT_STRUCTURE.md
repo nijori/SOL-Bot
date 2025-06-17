@@ -28,7 +28,7 @@ SOL-Bot/
 │   ├── workflows/              # CI/CDワークフロー定義
 │   │   ├── ci.yml                  # 基本CI/CDパイプライン
 │   │   ├── deploy-stg.yml          # ステージング環境自動デプロイ（SCP+systemd）
-│   │   ├── deploy-prod.yml         # 本番環境デプロイ
+│   │   ├── deploy-prod.yml         # 本番環境デプロイ（1台構成、SSM対応、systemd）
 │   │   ├── esm-tests.yml           # ESM環境テスト実行
 │   │   ├── security-scan.yml       # セキュリティスキャン
 │   │   ├── trivy-dependency-scan.yml # 依存関係脆弱性スキャン
