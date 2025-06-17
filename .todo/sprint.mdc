@@ -148,13 +148,13 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : ci.ymlとdeploy-stg.ymlの機能重複を整理。ci.ymlはテスト・ビルドのみ、デプロイは専用ワークフローに分離。古いPM2/SSH設定削除。test-sharding.js並列テスト修正・ESMテスト削除でCommonJS統一。CI・Stagingワークフロー成功確認済み。
 
-11. [ ] CICD-009: 重複ワークフローの削除・統合
+11. [x] CICD-009: 重複ワークフローの削除・統合
       - 📅 Due        : 2026-07-05
       - 👤 Owner      : @nijor
       - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 90%
-      - ✎ Notes      : trivy-dependency-scan.yml削除完了。security-scan.yml統合・強化完了（PRコメント、SARIF、JSON、手動実行対応）。ドキュメント更新完了。upload-artifact@v3→v4修正完了。GitHubワークフロー成功確認後に完了とする。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！trivy-dependency-scan.yml削除・security-scan.yml統合強化完了。PRコメント機能・SARIF統合・JSON/Artifactレポート・手動実行対応実装。upload-artifact@v3→v4・SBOM解析エラー修正完了。GitHubワークフロー全ジョブ成功確認済み。
 
 12. [x] REF-037: ESM関連ファイルとドキュメント完全削除
       - 📅 Due        : 2026-07-04
