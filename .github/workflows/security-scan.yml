@@ -2,7 +2,7 @@ name: Security Scan
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, cicd/remove-duplicate-workflows]
   pull_request:
     branches: [master, main]
     paths:
