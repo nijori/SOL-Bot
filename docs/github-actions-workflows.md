@@ -83,30 +83,26 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ### セキュリティ系
 
-#### 5. Security Scan (`security-scan.yml`) ✅ 保持推奨
+#### 5. Security Scan (`security-scan.yml`) ✅ 統合強化完了
 **目的**: 包括的なセキュリティチェック  
-**トリガー**: push、pull_request、毎日UTC 0:00
+**トリガー**: push、pull_request、毎日UTC 0:00、週次詳細スキャン、手動実行
 
 **処理内容**:
 - **secrets-scan**: gitleaksによる機密情報漏洩検出
-- **dependency-scan**: Trivyによる依存関係脆弱性チェック
+- **dependency-scan**: Trivyによる詳細脆弱性チェック（旧trivy-dependency-scan.yml統合）
 - **sbom-generation**: CycloneDXによるSBOM生成
 - **security-report**: 統合レポート生成
 
 **特徴**:
 - SARIF形式でGitHub Securityタブに統合
-- PRに脆弱性サマリーを自動コメント
+- PRに詳細脆弱性サマリーを自動コメント（上位5件表示）
 - 重大度レベル別の集計表示
+- 手動実行時の重大度カスタマイズ対応
+- JSONレポート生成とアーティファクト保存
 
 ---
 
-#### 6. Trivy Dependency Scan (`trivy-dependency-scan.yml`) ❌ 削除予定
-**目的**: 依存関係脆弱性スキャン  
-**問題**: `security-scan.yml`と機能完全重複
 
-**対応** (CICD-009): 削除して`security-scan.yml`に統合
-
----
 
 ### 運用管理系
 
@@ -158,8 +154,8 @@ gh run view <run-id> --log
 
 ### 短期（W12スプリント）
 - **CICD-007**: ✅ `deploy-prod.yml`のSSM対応・modernization完了
-- **CICD-008**: `ci.yml`の機能整理・重複排除
-- **CICD-009**: `trivy-dependency-scan.yml`削除
+- **CICD-008**: ✅ `ci.yml`の機能整理・重複排除完了
+- **CICD-009**: ✅ `trivy-dependency-scan.yml`削除・`security-scan.yml`統合完了
 
 ### 中期（W13-W14スプリント）
 - Blue/Green デプロイメントの実装

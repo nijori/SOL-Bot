@@ -5,8 +5,21 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+      - '.github/workflows/security-scan.yml'
   schedule:
-    - cron: '0 0 * * *' # 毎日UTCの0:00に実行
+    - cron: '0 0 * * *' # 毎日UTCの0:00に実行（全体スキャン）
+    - cron: '0 1 * * 1' # 毎週月曜日AM 1:00（UTC）に実行（詳細脆弱性スキャン）
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      severity:
+        description: 'スキャン重大度（CRITICAL,HIGH,MEDIUM,LOW）'
+        required: false
+        default: 'CRITICAL,HIGH'
 
 jobs:
   secrets-scan:
@@ -29,6 +42,9 @@ jobs:
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -43,14 +59,118 @@ jobs:
         run: npm ci
 
       - name: Setup Trivy
-        uses: aquasecurity/trivy-action@master
+        run: |
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy -y
+
+      # 詳細スキャンの実行
+      - name: Run Trivy vulnerability scanner (Detailed)
+        run: |
+          # 手動実行時はinputsを使用、それ以外はデフォルト設定
+          SEVERITY="${{ github.event.inputs.severity || 'CRITICAL,HIGH' }}"
+
+          # 詳細な脆弱性情報を含むJSONレポートを生成
+          trivy fs --format json -o trivy-results.json \
+            --severity $SEVERITY \
+            --ignore-unfixed=false \
+            --vuln-type os,library \
+            .
+
+          # GitHubセキュリティダッシュボード用のSARIFレポートを生成
+          trivy fs --format sarif -o trivy-sarif.json \
+            --severity $SEVERITY \
+            --ignore-unfixed=false \
+            --vuln-type os,library \
+            .
+
+          # 読みやすいテーブル形式でターミナルに表示
+          trivy fs --severity $SEVERITY \
+            --ignore-unfixed=false \
+            .
+
+      # GitHub Security Alertsへの統合
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+          sarif_file: trivy-sarif.json
+          category: trivy
+
+      # 脆弱性が検出された場合、PRにコメントを追加
+      - name: Comment PR with vulnerability summary
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const trivyResults = JSON.parse(fs.readFileSync('trivy-results.json', 'utf8'));
+
+            // 脆弱性の集計
+            let criticalCount = 0;
+            let highCount = 0;
+            let mediumCount = 0;
+            let lowCount = 0;
+
+            trivyResults.Results.forEach(result => {
+              if (result.Vulnerabilities) {
+                result.Vulnerabilities.forEach(vuln => {
+                  if (vuln.Severity === 'CRITICAL') criticalCount++;
+                  if (vuln.Severity === 'HIGH') highCount++;
+                  if (vuln.Severity === 'MEDIUM') mediumCount++;
+                  if (vuln.Severity === 'LOW') lowCount++;
+                });
+              }
+            });
+
+            // 詳細な脆弱性情報の抽出（上位5件まで）
+            let topVulns = [];
+            let vulnCount = 0;
+
+            for (const result of trivyResults.Results) {
+              if (result.Vulnerabilities) {
+                for (const vuln of result.Vulnerabilities) {
+                  if (vuln.Severity === 'CRITICAL' || vuln.Severity === 'HIGH') {
+                    if (vulnCount < 5) {
+                      topVulns.push(`- **${vuln.PkgName}@${vuln.InstalledVersion}**: ${vuln.VulnerabilityID} (${vuln.Severity}) - ${vuln.Title}`);
+                      vulnCount++;
+                    }
+                  }
+                }
+              }
+            }
+
+            // PRコメントの作成
+            let comment = `## Trivy Security Scan 🔍\n\n`;
+            comment += `**検出された脆弱性:**\n`;
+            comment += `- Critical: ${criticalCount}\n`;
+            comment += `- High: ${highCount}\n`;
+            comment += `- Medium: ${mediumCount}\n`;
+            comment += `- Low: ${lowCount}\n\n`;
+
+            if (criticalCount > 0 || highCount > 0) {
+              comment += `### 主要な脆弱性:\n${topVulns.join('\n')}\n\n`;
+              comment += `⚠️ 重大な脆弱性が検出されました。マージ前に対応を検討してください。\n`;
+            } else {
+              comment += `✅ 重大な脆弱性は検出されませんでした。\n`;
+            }
+
+            comment += `\n詳細はGitHub Security Advisoriesを確認してください。`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      # 成果物のアップロード
+      - name: Upload vulnerability report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-vulnerability-report
+          path: trivy-results.json
 
   sbom-generation:
     name: SBOM Generation
