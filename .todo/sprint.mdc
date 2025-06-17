@@ -124,11 +124,20 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
 9. [ ] CICD-007: deploy-prod.ymlの更新・SSM対応
       - 📅 Due        : 2026-07-03
       - 👤 Owner      : @nijor
-      - 🔗 Depends-on : SEC-008
+      - 🔗 Depends-on : SEC-008, INF-031
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⚠️
-      - 📊 Progress   : 80%
-      - ✎ Notes      : ワークフロー更新完了、但しSSH接続エラーで実行失敗中。「Upload environment variables to EC2」ステップで「can't connect without a private SSH key or password」エラー。PROD_SSH_KEY、PROD_HOST、PROD_USERNAMEのGitHub Secrets設定を確認・修正が必要。ワークフローが成功してからタスク完了とする。
+      - 📊 Progress   : 90%
+      - ✎ Notes      : SSH接続エラー修正済み（STG_SSH_KEY使用、1台構成で/opt/solbot-prodディレクトリ分離、ポート3001）。AWS側でSG修正（INF-031）完了後にワークフロー実行テスト。実際にワークフローが成功してからタスク完了とする。
+
+9.1. [ ] INF-031: 1台構成用AWS設定修正
+      - 📅 Due        : 2026-07-03
+      - 👤 Owner      : @nijor
+      - 🔗 Depends-on : -
+      - 🏷️  Label      : infra
+      - 🩺 Health     : ⏳
+      - 📊 Progress   : 0%
+      - ✎ Notes      : 1台構成でStaging/Production両環境運用のためのAWS設定修正。1) Security Group: ポート3001追加（Production用）、2) IAM Role名の確認・汎用化、3) SSM Parameter Store権限範囲確認(/solbot/*)。Terraform apply実行して設定反映。
 
 10. [ ] CICD-008: ci.ymlワークフローの整理・重複排除
       - 📅 Due        : 2026-07-04
