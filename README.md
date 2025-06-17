@@ -261,6 +261,22 @@ npm run test:unified:cjs
 
 ## ⚙️ 設定
 
+### 本番環境での設定管理
+
+**本番・ステージング環境では、機密情報は AWS SSM Parameter Store で管理されています** (SEC-006対応完了)：
+
+| パラメータ | 説明 | 環境 |
+|-----------|------|------|
+| `/solbot/stg/env` | ステージング環境変数 | Staging |
+| `/solbot/prod/env` | 本番環境変数 | Production |
+| `/solbot/stg/ssh-key` | ステージングSSH秘密鍵 | Staging |
+| `/solbot/prod/ssh-key` | 本番SSH秘密鍵 | Production |
+| `/solbot/discord/webhook-url` | Discord通知URL | 共通 |
+
+GitHub ActionsワークフローはAWS OIDC認証を使用してSSM Parameter Storeから設定を取得し、GitHub Secretsへの依存を削減しています。
+
+### 開発環境での設定
+
 `.env`ファイルで以下の項目を設定できます：
 
 ```

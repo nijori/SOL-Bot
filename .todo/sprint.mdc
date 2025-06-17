@@ -305,9 +305,9 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : SEC-006
       - 🏷️  Label      : security
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : GitHub ActionsからAWS OIDCを使用したロールベースの認証を設定。最小権限原則に基づきS3:PutObject、S3:GetObject、ssm:GetParametersのみを許可するIAMポリシーを作成。GitHub SecretsからAPIキーなどの機密情報を削除し、代わりにSSM Parameter Storeから取得するようCI/CDを修正。
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 80%
+      - ✎ Notes      : ワークフロー修正完了！deploy-stg.yml・deploy-prod.ymlでGitHub Secrets参照を削除し、SSM Parameter Store経由に統一。${{ secrets.* }} → ${{ env.* }}への変更完了。AWS OIDC認証・SSMパラメータ取得実装済み。残件：GitHub Secretsから機密情報削除、統合テスト実施。
 
 4. [ ] INF-024: deploy.ymlをCI→SSM仕様に修正
       - 📅 Due        : 2026-05-20

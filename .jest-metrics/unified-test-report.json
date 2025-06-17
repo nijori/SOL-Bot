@@ -467,25 +467,103 @@
         "memory": 8,
         "version": "1.0.0"
       }
+    },
+    {
+      "timestamp": 1750154830802,
+      "stats": {
+        "startTime": 1750154830802,
+        "endTime": 1750154900485,
+        "cjs": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 69577,
+          "exitCode": 0
+        },
+        "esm": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 105,
+          "exitCode": 1
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 105,
+            "exitCode": 1
+          }
+        },
+        "total": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 69683
+        }
+      },
+      "environment": {
+        "node": "v18.20.8",
+        "os": "Linux 6.6.87.1-microsoft-standard-WSL2",
+        "cpus": 20,
+        "memory": 8,
+        "version": "1.0.0"
+      }
     }
   ],
   "lastRun": {
-    "timestamp": 1750154575680,
+    "timestamp": 1750154830802,
     "stats": {
-      "startTime": 1750154575680,
-      "endTime": 1750154679256,
+      "startTime": 1750154830802,
+      "endTime": 1750154900485,
       "cjs": {
         "passed": 2,
         "failed": 0,
         "skipped": 0,
-        "duration": 103442,
+        "duration": 69577,
         "exitCode": 0
       },
       "esm": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "duration": 134,
+        "duration": 105,
         "exitCode": 1
       },
       "groups": {
@@ -528,7 +606,7 @@
           "passed": 0,
           "failed": 0,
           "skipped": 0,
-          "duration": 134,
+          "duration": 105,
           "exitCode": 1
         }
       },
@@ -536,7 +614,7 @@
         "passed": 2,
         "failed": 0,
         "skipped": 0,
-        "duration": 103576
+        "duration": 69683
       }
     },
     "environment": {

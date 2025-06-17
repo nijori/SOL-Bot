@@ -552,9 +552,14 @@ EC2インスタンス起動時に以下が自動インストール・設定さ�
 ### セキュリティ対策
 
 - **シークレットマネージャー**: 機密情報の安全な管理
-  - AWS Parameter Store、GCP Secret Manager対応
+  - **AWS SSM Parameter Store**: CI/CDパイプライン統合完了（SEC-006対応）
+  - GitHub Secrets削除、SSM Parameter Store経由での機密情報管理
+  - AWS OIDC認証によるセキュアなアクセス（最小権限IAMポリシー）
+  - `/solbot/stg/env`, `/solbot/prod/env`, `/solbot/discord/webhook-url`等の統合管理
+  - GCP Secret Manager、Azure Key Vault対応
   - 開発/本番環境での適切な実装切替
   - ファクトリーパターンによる実装切替
+  - 環境別SSH鍵管理（`/solbot/stg/ssh-key`, `/solbot/prod/ssh-key`）
 - **Gitleaksによる機密情報スキャン**:
   - コミット前と定期実行による自動スキャン
   - プッシュ時、PR時、日次バッチスキャン
