@@ -71,7 +71,7 @@ dist/
 - `src/core/smokeTest.ts`
 - `src/data/MultiTimeframeDataFetcher.ts`
 - `src/scripts/cli.ts`
-- `src/scripts/todo-lint.ts`
+
 
 これらのファイルでは、CommonJS環境でも動作するようにポリフィルか条件分岐を使用する必要があります。そのために`src/utils/import-meta-polyfill.js`を提供しています：
 

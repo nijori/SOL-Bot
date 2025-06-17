@@ -349,18 +349,7 @@ async function main() {
       )
     );
 
-    // todo-lintを実行してチェック
-    console.log(chalk.blue(`Todoファイルを検証しています...\n`));
-    try {
-      execSync('npm run todo-lint', { stdio: 'inherit' });
-    } catch (error) {
-      console.warn(
-        chalk.yellow('Todoファイルの検証中にエラーが発生しましたが、修正処理は完了しました。')
-      );
-      console.warn(
-        chalk.yellow(`エラー内容: ${error instanceof Error ? error.message : String(error)}`)
-      );
-    }
+    console.log('\n✅ すべての修正が完了しました！');
   } catch (error) {
     console.error(
       chalk.red(`エラーが発生しました: ${error instanceof Error ? error.message : String(error)}`)

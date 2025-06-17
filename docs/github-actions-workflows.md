@@ -64,7 +64,6 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 **処理内容**:
 - **lint-and-test**ジョブ:
-  - ESLint実行
   - 並列テスト実行（fast/medium/slow/core/heavy/esm）
   - PRでの未完了Todoタスクチェック
 - **build**ジョブ:

@@ -199,7 +199,7 @@ for (const sym of symbols) {
 
 1. ATRフォールバックユーティリティ（UTIL-001）
 2. SAR信号検出ロジック修正（ALG-037）
-3. Todo-lint実装（TST-004）
+
 4. OrderSizingService実装（OMS-014）
 
 ### テスト戦略

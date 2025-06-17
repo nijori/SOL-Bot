@@ -57,7 +57,7 @@ function getCurrentFileUrl() {
   
   // __filenameがCommonJSで利用可能な場合
   try {
-    // TypeScript+ESLintではエラーになるためtry-catchで回避
+    // TypeScriptではエラーになるためtry-catchで回避
     if (typeof __filename !== 'undefined') {
       filename = __filename;
     }

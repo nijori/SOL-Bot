@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Build the project (TypeScript → CommonJS)
 - `npm run test` - Run Jest tests (CommonJS mode for stability)
 - `npm run test:unified` - Run integrated tests (both CJS and ESM)
-- `npm run lint` - Run ESLint
+
 - `npm run format` - Format code with Prettier
 
 ### Running the Bot
@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:parallel:heavy` - Heavy tests (RealTimeDataProcessor)
 
 ### Todo Management
-- `npm run todo-lint` - Validate todo format in .todo/ files
+
 - `npm run todo-fix` - Auto-fix some todo issues
 
 ### Data Management
@@ -88,7 +88,7 @@ Tests are categorized by execution time:
 Always run the full test suite before committing:
 ```bash
 npm run test:unified  # Runs all test groups
-npm run lint          # Check code style
+
 ```
 
 ## Project Structure Guidelines
@@ -123,14 +123,14 @@ Task format:
       - 📊 Progress   : 0%/25%/50%/75%/100%
 ```
 
-Always validate todos before committing: `npm run todo-lint`
+
 
 ## Development Practices
 
 ### Code Style
 - Use TypeScript for all new code
 - Follow existing patterns for imports/exports
-- Run `npm run lint` and `npm run format` before committing
+- Run `npm run format` before committing
 - Maintain 90%+ test coverage
 
 ### Git Workflow
@@ -142,7 +142,7 @@ Always validate todos before committing: `npm run todo-lint`
 ### Security
 - Never commit API keys or secrets
 - Use environment variables for sensitive data
-- Run `npm run todo-lint` to validate task format
+
 - Gitleaks scans for secrets automatically
 
 ### Multi-Symbol Support

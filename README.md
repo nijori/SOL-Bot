@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://github.com/yourusername/SOL-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/SOL-bot/actions)
 [![codecov](https://codecov.io/gh/yourusername/SOL-bot/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/SOL-bot)
-[![Code Style: ESLint](https://img.shields.io/badge/code_style-ESLint-5ed9c7.svg)](https://eslint.org/)
+
 [![ESM Ready](https://img.shields.io/badge/ESM-Ready-brightgreen.svg)](https://nodejs.org/api/esm.html)
 
 複数の暗号資産ペア（SOL/USDT, BTC/USDT, ETH/USDTなど）のトレンドとレンジを自動検出し、適切な売買戦略を適用するアルゴリズムトレーディングシステムです。
@@ -326,7 +326,7 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 
 - 🔄 **DOC-004**: ユーザーマニュアル作成（50%完了）。インストール手順、設定ファイルの編集方法、コマンドラインオプションの説明、バックテスト実行方法などを包括的に文書化中。
 
-- ✅ **TODO-CLI**: todo-lintの機能強化。front-matterブロックスキップ機能や空文字チェック、タスク行とフィールドの検出精度向上、統計情報表示機能などを追加。
+
 
 - ✅ **OMS-018**: UnifiedOrderManagerの配分アルゴリズム単体テスト実装。PRIORITY、ROUND_ROBIN、SPLIT_EQUAL、CUSTOMなど各種配分方式のエッジケース対応を検証済み。
 

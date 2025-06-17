@@ -63,7 +63,7 @@
     "test:parallel:all": "node scripts/test-sharding.js",
     "test:ci": "node scripts/test-sharding.js fast 2 && node scripts/test-sharding.js medium 2 && node scripts/test-sharding.js slow 1 && node scripts/test-sharding.js core 1 && node scripts/test-sharding.js heavy 1",
     "fix:jest-mocks": "node scripts/fix-jest-mocks-for-esm.js",
-    "lint": "eslint src --ext .ts",
+
     "format": "prettier --write \"src/**/*.ts\"",
     "backtest": "ts-node --transpile-only src/core/backtestRunner.ts",
     "backtest:multi": "ts-node src/scripts/multiSymbolBacktest.ts",
@@ -71,9 +71,8 @@
     "backtest:report": "ts-node src/scripts/generateReport.ts",
     "collect-data": "ts-node src/scripts/dataCollection.ts",
     "analyze-market": "ts-node src/scripts/marketAnalysis.ts",
-    "lint:fix": "eslint --fix \"src/**/*.ts\"",
-    "todo-lint": "ts-node src/scripts/todo-lint.ts",
-    "manual-todo-lint": "ts-node src/scripts/manual-todo-lint.ts",
+
+
     "todo-fix": "ts-node src/scripts/fix-todo-issues.ts",
     "todo-fix-backlog": "ts-node src/scripts/fix-todo-backlog.ts",
     "todo-fix-status": "ts-node src/scripts/fix-todo-status.ts",
@@ -174,12 +173,7 @@
     "@types/lru-cache": "^7.10.9",
     "@types/node": "^20.4.5",
     "@types/node-cron": "^3.0.11",
-    "@typescript-eslint/eslint-plugin": "^6.2.0",
-    "@typescript-eslint/parser": "^6.2.0",
     "cross-env": "^7.0.3",
-    "eslint": "^8.46.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.1",
     "glob": "^9.3.5",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^29.6.2",

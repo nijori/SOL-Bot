@@ -22,16 +22,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run tests
         run: npm test
         continue-on-error: ${{ github.event.inputs.force_deploy == 'true' }}
@@ -304,30 +304,30 @@ jobs:
               
               # Create required directories
               mkdir -p data logs config env.d
+            
+            # Deploy environment variables from SSM Parameter Store
+            echo "Deploying environment variables from SSM Parameter Store..."
+            if [ -f "/tmp/deployment.env" ]; then
+              # Copy environment file to application directory
+              cp /tmp/deployment.env .env
               
-              # Deploy environment variables from SSM Parameter Store
-              echo "Deploying environment variables from SSM Parameter Store..."
-              if [ -f "/tmp/deployment.env" ]; then
-                # Copy environment file to application directory
-                cp /tmp/deployment.env .env
-                
-                # Also create backup in env.d directory for runtime access
-                cp /tmp/deployment.env env.d/runtime
-                
-                echo "✅ Environment variables deployed from SSM Parameter Store"
-                echo "📄 Environment file size: $(wc -c < .env) bytes"
-                
-                # Secure the environment files
-                chmod 600 .env env.d/runtime
-                
-                # Clean up temporary file
-                rm -f /tmp/deployment.env
-              else
-                echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
-                echo "NODE_ENV=production" > .env
+              # Also create backup in env.d directory for runtime access
+              cp /tmp/deployment.env env.d/runtime
+              
+              echo "✅ Environment variables deployed from SSM Parameter Store"
+              echo "📄 Environment file size: $(wc -c < .env) bytes"
+              
+              # Secure the environment files
+              chmod 600 .env env.d/runtime
+              
+              # Clean up temporary file
+              rm -f /tmp/deployment.env
+            else
+              echo "⚠️  Warning: No environment file found from SSM, creating minimal .env"
+              echo "NODE_ENV=production" > .env
                 echo "PORT=3000" >> .env
                 echo "LOG_LEVEL=info" >> .env
-                chmod 600 .env
+              chmod 600 .env
               fi
               
               echo "Application deployment and build completed"

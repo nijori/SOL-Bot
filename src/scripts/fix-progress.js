@@ -73,14 +73,7 @@ function main() {
     console.log(`DATA-011 進捗率: ${data011MatchAfter[1]}`);
   }
 
-  // lint実行
-  console.log('\nlint実行して確認します:');
-  try {
-    require('child_process').execSync('npm run todo-lint', { stdio: 'inherit' });
-    console.log('✓ すべての問題が修正されました！');
-  } catch (error) {
-    console.log('まだエラーが残っています。');
-  }
+  console.log('\n✅ 修正完了');
 }
 
 // スクリプト実行

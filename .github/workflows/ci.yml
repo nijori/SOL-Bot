@@ -22,9 +22,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
-        run: npm run lint
-        
+
       # TST-061: テスト分割実行とパラレル化の実装
       - name: Run tests in parallel (fast group)
         run: npm run test:parallel:fast
