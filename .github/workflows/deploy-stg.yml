@@ -547,7 +547,46 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     
+    permissions:
+      id-token: write
+      contents: read
+    
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Retrieve SSH configuration from SSM
+        run: |
+          echo "Retrieving SSH configuration from SSM Parameter Store..."
+          
+          STG_HOST=$(aws ssm get-parameter \
+            --name "/solbot/stg/host" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          STG_USERNAME=$(aws ssm get-parameter \
+            --name "/solbot/stg/username" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          STG_SSH_KEY=$(aws ssm get-parameter \
+            --name "/solbot/stg/ssh-key" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          # Save to environment variables for later steps
+          echo "STG_HOST=$STG_HOST" >> $GITHUB_ENV
+          echo "STG_USERNAME=$STG_USERNAME" >> $GITHUB_ENV
+          echo "STG_SSH_KEY<<EOF" >> $GITHUB_ENV
+          echo "$STG_SSH_KEY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "✅ SSH configuration retrieved from SSM Parameter Store"
+
       - name: 30 Second Stop Integration Test
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -691,7 +730,53 @@ jobs:
     runs-on: ubuntu-latest
     if: success()
     
+    permissions:
+      id-token: write
+      contents: read
+    
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Retrieve SSH configuration from SSM
+        run: |
+          echo "Retrieving SSH configuration from SSM Parameter Store..."
+          
+          STG_HOST=$(aws ssm get-parameter \
+            --name "/solbot/stg/host" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          STG_USERNAME=$(aws ssm get-parameter \
+            --name "/solbot/stg/username" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          STG_SSH_KEY=$(aws ssm get-parameter \
+            --name "/solbot/stg/ssh-key" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          DISCORD_WEBHOOK_URL=$(aws ssm get-parameter \
+            --name "/solbot/discord/webhook-url" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          # Save to environment variables for later steps
+          echo "STG_HOST=$STG_HOST" >> $GITHUB_ENV
+          echo "STG_USERNAME=$STG_USERNAME" >> $GITHUB_ENV
+          echo "DISCORD_WEBHOOK_URL=$DISCORD_WEBHOOK_URL" >> $GITHUB_ENV
+          echo "STG_SSH_KEY<<EOF" >> $GITHUB_ENV
+          echo "$STG_SSH_KEY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "✅ SSH configuration retrieved from SSM Parameter Store"
+
       - name: PnL=0 Smoke Test
         uses: appleboy/ssh-action@v1.0.3
         with:
