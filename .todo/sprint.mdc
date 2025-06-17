@@ -193,14 +193,6 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - ✎ Notes      : 完了！loadEnvironmentVariables追加、コンストラクタ拡張、runtime-env優先読み込み機能実装。AWS Terraform設定で1台構成対応、IAMロール・セキュリティグループ・SSMパラメータストア設定実装完了。
 
 
-4. [ ] CICD-006: Blue/Green デプロイトグル追加
-      - 📅 Due        : 2026-07-08
-      - 👤 Owner      : @assistant
-      - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : `deploy-prod.yml` で `HOST=$(BLUE_OR_GREEN)` を切り替えるジョブを追加。タグ `prod-blue`, `prod-green` を使い交互再起動。
-
 5. [x] OPS-009: Post-Deploy PnL=0 Smoke テスト
       - 📅 Due        : 2026-07-09
       - 👤 Owner      : @qa-team
@@ -306,7 +298,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 🏷️  Label      : security
       - 🩺 Health     : ✅
       - 📊 Progress   : 100%
-      - ✎ Notes      : 完了！AWSParameterStoreManager・SecretManagerFactory実装済み。CI/CDパイプライン（deploy-stg.yml・deploy-prod.yml）のSSM統合完了。docs/AWS-SSM-Parameter-Setup.mdでパラメータ設定手順を文書化。残件：実際のSSMパラメータ設定（/solbot/stg/env, /solbot/stg/host, /solbot/stg/username, /solbot/stg/ssh-key, /solbot/prod/*, /solbot/discord/webhook-url）。手動設定後、GitHub Secrets削除でSEC-005へ移行可能。
+      - ✎ Notes      : 完了！AWSParameterStoreManager・SecretManagerFactory実装、CI/CDパイプライン統合、全SSMパラメータ設定完了。設定済みパラメータ：/solbot/stg/env, /solbot/stg/host, /solbot/stg/username, /solbot/stg/ssh-key, /solbot/prod/env, /solbot/prod/host, /solbot/prod/username, /solbot/prod/ssh-key, /solbot/discord/webhook-url。次はSEC-005でGitHub Secrets削除とSSM統合テストを実施。
 
 3. [ ] SEC-005: GitHub SecretsからAWS OIDCへの移行
       - 📅 Due        : 2026-05-15
@@ -362,6 +354,7 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
 - docker-compose経由での自動プロビジョニング
 
 次回スプリントではアラート設定と残りのダッシュボードを実装する予定です。P2フェーズ完了後はP3「リスクロジック実戦テスト」へと進みます。
+
 
 
 
