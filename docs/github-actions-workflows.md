@@ -6,6 +6,14 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ## 📋 ワークフロー一覧
 
+**現在のワークフローファイル構成** (CICD-009完了後):
+- `deploy-stg.yml` - ステージング環境デプロイ
+- `deploy-prod.yml` - 本番環境デプロイ  
+- `ci.yml` - CI（テスト・ビルド）
+- `security-scan.yml` - セキュリティスキャン（統合済み）
+- `pr-todo-auto-update.yml` - PRタスク自動更新
+- `pr-label-check.yml` - PRラベル検証
+
 ### デプロイメント系
 
 #### 1. Deploy to Staging (`deploy-stg.yml`) ✅
@@ -58,24 +66,23 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ### テスト・品質管理系
 
-#### 3. CI/CD Pipeline (`ci.yml`) ⚠️ 整理予定
-**目的**: 統合CI/CDパイプライン（テスト・ビルド・デプロイ）  
+#### 3. CI/CD Pipeline (`ci.yml`) ✅ 整理完了
+**目的**: 継続的インテグレーション（テスト・ビルド専用）  
 **トリガー**: push、pull_request
 
 **処理内容**:
 - **test**ジョブ:
-  - 並列テスト実行（fast/medium/slow/core/heavy/esm）
+  - 並列テスト実行（fast/medium/slow/core/heavy）
   - PRでの未完了Todoタスクチェック
 - **build**ジョブ:
   - TypeScriptビルド
   - distアーティファクト保存
-- **deploy**ジョブ:
-  - EC2への本番デプロイ（masterブランチのみ）
 
-**問題と修正予定** (CICD-008):
-- `deploy-stg.yml`との機能重複排除
-- テスト・ビルドのみに機能限定
-- 古いPM2設定削除
+**特徴** (CICD-008で完了):
+- デプロイ機能を専用ワークフローに分離
+- CommonJS統一環境でのテスト実行
+- 古いPM2/SSH設定完全削除
+- Node.js 18に統一
 
 ---
 
@@ -83,7 +90,7 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ### セキュリティ系
 
-#### 5. Security Scan (`security-scan.yml`) ✅ 統合強化完了
+#### 6. Security Scan (`security-scan.yml`) ✅ 統合強化完了
 **目的**: 包括的なセキュリティチェック  
 **トリガー**: push、pull_request、毎日UTC 0:00、週次詳細スキャン、手動実行
 
@@ -106,12 +113,12 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ### 運用管理系
 
-#### 7. PR Todo Auto Update (`pr-todo-auto-update.yml`)
+#### 4. PR Todo Auto Update (`pr-todo-auto-update.yml`)
 **目的**: PRマージ時のTodoタスク自動更新  
 **トリガー**: pull_request (closed)  
 **処理**: PRタイトルのタスクIDを[x]完了状態に更新
 
-#### 8. PR Label Check (`pr-label-check.yml`)
+#### 5. PR Label Check (`pr-label-check.yml`)
 **目的**: PRラベル検証  
 **トリガー**: pull_request  
 **処理**: 必須ラベルの確認
