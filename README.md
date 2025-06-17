@@ -333,7 +333,15 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 
 ## 🔍 現在の開発状況
 
-### 最新スプリント進捗（W10: 追加機能開発・ユーザビリティ向上スプリント）
+### 最新完了タスク（2025-06-17）
+
+- ✅ **ALG-057**: ATR Wilder平滑化アルゴリズム実装完了。technicalindicatorsライブラリとの誤差率を15.37%から4.54%以内に改善。
+
+- ✅ **SEC-005/SEC-006**: GitHub Secrets to SSM Parameter Store完全移行。AWS OIDC認証統合、KMS暗号化によるSecureString保護、最小権限IAMポリシー実装。
+
+- ✅ **DAT-015**: Data-Lifecycle Cron実機テスト完了。EC2環境で90日以上前のファイルをS3に自動アーカイブ成功。cronジョブ設定サンプル作成済み。
+
+### 前回スプリント進捗（W13: P0→P1 安全ネット＆インフラHardening）
 
 - ✅ **INF-026**: ステージングEC2セットアップ完了。TerraformによるIaCでAWS EC2インスタンス（t3.small）、セキュリティグループ、IAMロール、Elastic IPを作成。Docker、Node.js、必要なディレクトリ構造が自動セットアップ済み。パブリックIP: 13.158.58.241で稼働中。
 
@@ -403,6 +411,37 @@ npm run backtest -- --symbol SOL/USDT --exchanges binance,bybit,kucoin
 ## 📁 プロジェクト構造
 
 プロジェクトの詳細な構造については、[PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)を参照してください。
+
+## 📦 データライフサイクル管理
+
+SOL-Botには自動データアーカイブ機能が実装されています：
+
+### 主な機能
+
+- **自動アーカイブ**: 90日以上経過したデータファイルをS3に自動移行
+- **Glacier対応**: S3保存後30日でGlacierへの段階的移行（コスト最適化）
+- **IAMロール統合**: EC2インスタンスロールによる安全なS3アクセス
+- **ファイルタイプ対応**: Parquet（取引データ）、JSON（メトリクス）、ログファイル
+
+### 使用方法
+
+```bash
+# 手動実行
+npm run data-lifecycle:now
+
+# スケジュール実行（バックグラウンド）
+npm run data-lifecycle:schedule
+
+# cronジョブ設定（毎日深夜2時に実行）
+0 2 * * * cd /opt/solbot && node dist/scripts/data-lifecycle-manager.js --run-now >> logs/data-lifecycle.log 2>&1
+```
+
+### 必要な設定
+
+- S3バケット: `solbot-data`（通常アーカイブ）、`solbot-archive-nijori`（長期保存）
+- IAMロール権限: s3:PutObject, s3:GetObject, s3:DeleteObject, s3:ListBucket
+
+詳細な設定方法は[AWS S3設定ガイド](docs/AWS-S3-SETUP.md)を参照してください。
 
 ## 👀 監視システム
 

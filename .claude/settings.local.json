@@ -27,7 +27,14 @@
       "Bash(--name \"/solbot/stg/username\" )",
       "Bash(--type \"String\" )",
       "Bash(--value \"ec2-user\" )",
-      "Bash(--description \"SOL Bot ステージング環境のSSHユーザー名\")"
+      "Bash(--description \"SOL Bot ステージング環境のSSHユーザー名\")",
+      "Bash(npm run data-lifecycle:*)",
+      "Bash(cat:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(ssh:*)",
+      "Bash(gh run list:*)",
+      "Bash(aws s3 ls:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

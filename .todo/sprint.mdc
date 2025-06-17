@@ -318,13 +318,13 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 📊 Progress   : 0%
       - ✎ Notes      : deploy.ymlワークフローを修正し、直接.envファイルをEC2に配置せず、SSM Parameter Storeから取得するように変更。main pushでEC2起動し、PnL出力が0になることを確認。OIDC認証とSSM Parameter Store取得のエラーハンドリングも実装。
 
-5. [ ] DAT-015: Data-Lifecycle Cron実機テスト
+5. [x] DAT-015: Data-Lifecycle Cron実機テスト
       - 📅 Due        : 2026-05-25
       - 👤 Owner      : @nijor
       - 🏷️  Label      : ops
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : 完了！EC2環境でData-Lifecycleスクリプト実行成功。S3バケット作成（solbot-data, solbot-archive-nijori）、IAMロール権限追加、90日以上前のテストファイル2件をS3に正常アップロード確認。cronジョブ設定サンプルも作成済み（scripts/crontab-data-lifecycle.txt）。本番運用準備完了。
 
 
 

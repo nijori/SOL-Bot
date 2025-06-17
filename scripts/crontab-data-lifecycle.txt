@@ -1,0 +1,12 @@
+# SOL-Bot Data Lifecycle Cron Job
+# 毎日深夜2時にデータライフサイクルスクリプトを実行
+# 90日以上経過したデータファイルをS3に自動アーカイブ
+
+# データライフサイクル管理（毎日2:00 AM）
+0 2 * * * cd /opt/solbot && /usr/bin/node dist/scripts/data-lifecycle-manager.js --run-now >> logs/data-lifecycle.log 2>&1
+
+# ログローテーション（毎週日曜日3:00 AM）
+0 3 * * 0 cd /opt/solbot && find logs/ -name "*.log" -mtime +30 -exec rm {} \; 2>/dev/null
+
+# ヘルスチェック（5分ごと）- オプション
+*/5 * * * * cd /opt/solbot && curl -f http://localhost:3000/api/status || echo "Health check failed at $(date)" >> logs/health-check.log
