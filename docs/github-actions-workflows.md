@@ -72,55 +72,75 @@ graph LR
 ### デプロイメント系
 
 #### 1. Deploy to Staging (`deploy-stg.yml`) ✅
-**目的**: ステージング環境への自動デプロイ  
+**目的**: ステージング環境への自動デプロイ（SEC-005: SSM Parameter Store統合完了）  
 **トリガー**: `master`ブランチへのpush  
 **実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2)
 
 **処理フロー**:
-1. **ソースコード準備**: rsync+SCPでソースコードをEC2に転送
-2. **環境構築**: Node.js 18インストール・NPMアップデート
-3. **アプリケーションビルド**: TypeScriptコンパイル（`src/` → `dist/`）
-4. **systemdサービス設定**: bot.serviceファイル作成・強制更新
-5. **サービス起動**: systemctl start + ヘルスチェック
-6. **統合テスト**: 
-   - TST-085: 30秒以内サービス停止テスト
-   - OPS-009: PnL=0 Smokeテスト
-7. **通知**: Discord通知（成功・失敗）
+1. **AWS認証**: OIDC認証でSSM Parameter Storeアクセス
+2. **設定取得**: SSMから環境変数・SSH鍵・Discord Webhook取得
+3. **アプリケーション配布**: rsync+SCPでコードとenv情報をEC2転送
+4. **環境構築**: Node.js 18インストール・依存関係構築
+5. **TypeScriptビルド**: `npm run build`（`src/` → `dist/`）
+6. **systemdサービス**: bot.service作成・設定・起動
+7. **ヘルスチェック**: `/api/status`エンドポイント確認（最大6回リトライ）
+8. **統合テスト（3ジョブ並行実行）**: 
+   - **TST-085**: 30秒以内サービス停止テスト + 復旧確認
+   - **OPS-009**: PnL=0 Smokeテスト（独立ジョブ）
+9. **Discord通知**: 全ステップの結果通知
 
-**特徴**:
-- here-document構文エラー修正済み
-- TypeScriptビルド対応（`ExecStart=/usr/bin/node dist/index.js`）
-- ヘルスチェックエンドポイント（`/api/status`）での起動確認
-- Discord通知の条件付き実行（Webhook URL設定時のみ）
+**🔒 セキュリティ強化（SEC-005対応）**:
+- GitHub Secrets完全削除、SSM Parameter Store統合
+- AWS OIDC認証（最小権限IAMポリシー）
+- 各ジョブでSSM設定を独立取得（ジョブ間環境変数共有問題解決）
 
-**対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com`
+**📊 SSMパラメータ**:
+- `/solbot/stg/env` - 環境変数一式
+- `/solbot/stg/host` - EC2ホスト名  
+- `/solbot/stg/username` - SSH接続ユーザー
+- `/solbot/stg/ssh-key` - SSH秘密鍵（SecureString）
+- `/solbot/discord/webhook-url` - Discord通知URL
+
+**対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com:3000`
 
 ---
 
 #### 2. Deploy to Production (`deploy-prod.yml`) ✅
-**目的**: 本番環境への制御されたデプロイ  
+**目的**: 本番環境への制御されたデプロイ（SEC-005: SSM Parameter Store統合完了）  
 **トリガー**: `master`ブランチpush + 手動実行(`workflow_dispatch`)  
 **実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2) - 1台構成
 
 **処理フロー**:
-1. **ソースコード準備**: rsync+SCPでソースコードをEC2に転送
-2. **環境構築**: Node.js 18インストール・NPMアップデート
-3. **アプリケーションビルド**: TypeScriptコンパイル（`src/` → `dist/`）
-4. **systemdサービス設定**: bot-prod.serviceファイル作成・強制更新
-5. **サービス起動**: systemctl start + ヘルスチェック（ポート3001）
-6. **統合テスト**: 
-   - TST-085: 30秒以内サービス停止テスト（本番）
-   - OPS-009: PnL=0 Smokeテスト（失敗時自動停止）
-7. **通知**: Discord通知（成功・失敗）
+1. **AWS認証**: OIDC認証でSSM Parameter Storeアクセス
+2. **設定取得**: SSMから本番環境変数・SSH鍵・Discord Webhook取得
+3. **アプリケーション配布**: rsync+SCPでコードとenv情報をEC2転送
+4. **環境構築**: Node.js 18インストール・依存関係構築  
+5. **TypeScriptビルド**: `npm run build`（`src/` → `dist/`）
+6. **systemdサービス**: bot-prod.service作成・設定・起動
+7. **ヘルスチェック**: `/api/status`エンドポイント確認（ポート3001）
+8. **統合テスト**: 
+   - **TST-085**: 30秒以内サービス停止テスト + 復旧確認
+   - **PnL検証**: 30秒停止テスト内でPnL=0確認（プレースホルダー実装）
+9. **Discord通知**: デプロイ・テスト結果通知
 
-**特徴**:
-- SSM Parameter Store対応（`/solbot/prod/env`）
-- 1台構成（ステージングと本番が同居、ディレクトリ分離）
+**🔒 セキュリティ強化（SEC-005対応）**:
+- GitHub Secrets完全削除、SSM Parameter Store統合
+- AWS OIDC認証（最小権限IAMポリシー）  
+- 本番環境専用SSH鍵管理（`/solbot/prod/ssh-key`）
+
+**📊 SSMパラメータ**:
+- `/solbot/prod/env` - 本番環境変数一式
+- `/solbot/prod/host` - EC2ホスト名
+- `/solbot/prod/username` - SSH接続ユーザー
+- `/solbot/prod/ssh-key` - SSH秘密鍵（SecureString）
+- `/solbot/discord/webhook-url` - Discord通知URL（共通）
+
+**🏗️ 1台構成の特徴**:
+- ディレクトリ分離（Staging: `/opt/solbot`, Production: `/opt/solbot-prod`）
 - ポート分離（Staging: 3000, Production: 3001）
-- 本番専用systemdサービス（`bot-prod.service`）
-- 統合テスト自動実行（サービス停止・復旧テスト）
+- サービス分離（`bot.service`, `bot-prod.service`）
 
-**対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com`
+**対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com:3001`
 
 ---
 
@@ -145,23 +165,33 @@ graph LR
 ### OPS-009: PnL=0 Smokeテスト
 
 **目的**: デプロイ後のPnL（損益）が0であることを確認  
-**実行環境**: ステージング・本番両環境  
+**実行環境**: 
+- **ステージング**: 独立した詳細スモークテストジョブ（`pnl-smoke-test`）
+- **本番**: 30秒停止テスト内でPnL検証（プレースホルダー実装）
 
-**テスト手順**:
-1. `/api/account` エンドポイントアクセス
-2. `dailyPnL` 値の抽出
-3. 値が0であることを確認
-4. 追加の健全性チェック実行
+**テスト手順（ステージング詳細版）**:
+1. サービス稼働状態確認（`systemctl is-active bot.service`）
+2. `/api/account` エンドポイントアクセス（最大6回リトライ）
+3. `dailyPnL` 値の抽出（jqまたはgrep/sed）
+4. 値が0であることを確認（`0`, `0.0`, `0.00`のいずれか）
+5. 残高チェック・健全性検証
+
+**テスト手順（本番軽量版）**:
+- 30秒停止テスト内でPnL検証プレースホルダー実装
+- 今後の拡張予定：`/api/account`エンドポイント実装後に詳細化
 
 **成功条件**: 
-- `dailyPnL === 0`
-- API正常応答
-- 残高チェック通過
+- `dailyPnL === 0` （フレッシュデプロイ後の期待値）
+- API正常応答（ステータス200）
+- 残高が正常範囲内（≥ 0 USDT）
 
-**安全機能**: 
+**🛡️ 安全機能**: 
 - **本番環境でテスト失敗時は自動的にサービス停止**
-- GitHub Status も RED に設定
-- Discord 通知で即座にアラート
+- Discord通知で即座にアラート送信
+- GitHub Actions Status も失敗マーク
+
+**💡 スモークテストとは**: 
+システムの基本機能が「煙を上げずに」正常動作するかの軽量検証テスト
 
 ### OBS-009: /metrics エンドポイント
 
@@ -244,6 +274,46 @@ graph LR
 **目的**: PRラベル検証  
 **トリガー**: pull_request  
 **処理**: 必須ラベルの確認
+
+---
+
+## 🔒 セキュリティ強化（SEC-005/SEC-006対応）
+
+### GitHub Secrets → SSM Parameter Store移行完了
+
+**移行対象**:
+- ✅ `STG_SSH_KEY` → `/solbot/stg/ssh-key`
+- ✅ `PROD_SSH_KEY` → `/solbot/prod/ssh-key`  
+- ✅ `DISCORD_WEBHOOK_URL` → `/solbot/discord/webhook-url`
+- ✅ 環境変数一式 → `/solbot/stg/env`, `/solbot/prod/env`
+
+**セキュリティ強化内容**:
+
+1. **AWS OIDC認証**:
+   - GitHub Secrets認証からOIDCロールベース認証に移行
+   - IAMロール: `arn:aws:iam::475538532274:role/solbot-ci`
+   - 最小権限ポリシー（ssm:GetParameter, s3:GetObject/PutObject のみ）
+
+2. **暗号化強化**:
+   - SSH秘密鍵: KMS暗号化SecureString（aws/ssm）
+   - Discord Webhook: SecureString暗号化
+   - 環境変数: SecureString一括管理
+
+3. **アクセス制御**:
+   - GitHub ActionsからのみSSMアクセス可能
+   - リポジトリ固有の制限（`repo:nijori/SOL_bot:*`）
+   - 時限的なアクセストークン（OIDC）
+
+4. **ジョブ間分離**:
+   - 各ジョブで独立してSSM Parameter Store取得
+   - 環境変数の漏洩防止（ジョブ間非共有）
+   - 最小権限でのSSMアクセス
+
+**移行効果**:
+- ✅ GitHub Secrets依存完全排除
+- ✅ 機密情報の中央集権管理
+- ✅ 監査ログ強化（CloudTrail連携）
+- ✅ ローテーション・アクセス制御の向上
 
 ---
 
