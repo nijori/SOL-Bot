@@ -136,8 +136,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 🔗 Depends-on : -
       - 🏷️  Label      : infra
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 1台構成でStaging/Production両環境運用のためのAWS設定修正。1) Security Group: ポート3001追加（Production用）、2) IAM Role名の確認・汎用化、3) SSM Parameter Store権限範囲確認(/solbot/*)。Terraform apply実行して設定反映。
+      - 📊 Progress   : 50%
+      - ✎ Notes      : Terraform設定修正完了。1) Security Group: ポート3001追加（Production用）✅、2) IAM Role名汎用化（solbot-shared-role）✅、3) SSM Parameter Store権限拡張（/solbot/*）✅。次：Terraform apply実行してAWS設定反映。
 
 10. [ ] CICD-008: ci.ymlワークフローの整理・重複排除
       - 📅 Due        : 2026-07-04

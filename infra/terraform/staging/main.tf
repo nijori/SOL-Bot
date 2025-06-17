@@ -53,13 +53,22 @@ resource "aws_security_group" "solbot_stg_sg" {
     description = "HTTPS access"
   }
 
-  # API用ポート
+  # API用ポート（Staging）
   ingress {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    description = "API endpoint"
+    description = "API endpoint (Staging)"
+  }
+
+  # API用ポート（Production）
+  ingress {
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "API endpoint (Production)"
   }
 
   # Prometheusエクスポーター用ポート
@@ -86,9 +95,9 @@ resource "aws_security_group" "solbot_stg_sg" {
   }
 }
 
-# IAMロールの作成
+# IAMロールの作成（1台構成用汎用ロール）
 resource "aws_iam_role" "solbot_stg_role" {
-  name = "${var.app_name}-${var.environment}-role"
+  name = "${var.app_name}-shared-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -104,15 +113,15 @@ resource "aws_iam_role" "solbot_stg_role" {
   })
 
   tags = {
-    Name = "${var.app_name}-${var.environment}-role"
-    Env  = var.environment
+    Name = "${var.app_name}-shared-role"
+    Env  = "shared"
   }
 }
 
 # S3アクセスポリシーの作成
 resource "aws_iam_policy" "solbot_s3_policy" {
-  name        = "${var.app_name}-${var.environment}-s3-policy"
-  description = "SOL-Bot ステージング環境のS3アクセスポリシー"
+  name        = "${var.app_name}-shared-s3-policy"
+  description = "SOL-Bot 1台構成用S3アクセスポリシー"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -133,10 +142,10 @@ resource "aws_iam_policy" "solbot_s3_policy" {
   })
 }
 
-# SSMパラメータストアアクセスポリシーの作成
+# SSMパラメータストアアクセスポリシーの作成（1台構成用）
 resource "aws_iam_policy" "solbot_ssm_policy" {
-  name        = "${var.app_name}-${var.environment}-ssm-policy"
-  description = "SOL-Bot ステージング環境のSSMパラメータストアアクセスポリシー"
+  name        = "${var.app_name}-shared-ssm-policy"
+  description = "SOL-Bot 1台構成用SSMパラメータストアアクセスポリシー"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -147,7 +156,7 @@ resource "aws_iam_policy" "solbot_ssm_policy" {
           "ssm:GetParameter"
         ]
         Effect = "Allow"
-        Resource = "arn:aws:ssm:${var.region}:${var.aws_account_id}:parameter/${var.app_name}/${var.environment}/*"
+        Resource = "arn:aws:ssm:${var.region}:${var.aws_account_id}:parameter/${var.app_name}/*"
       }
     ]
   })
@@ -166,7 +175,7 @@ resource "aws_iam_role_policy_attachment" "solbot_ssm_attachment" {
 
 # インスタンスプロファイルの作成
 resource "aws_iam_instance_profile" "solbot_stg_profile" {
-  name = "${var.app_name}-${var.environment}-profile"
+  name = "${var.app_name}-shared-profile"
   role = aws_iam_role.solbot_stg_role.name
 }
 
