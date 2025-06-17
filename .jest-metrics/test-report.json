@@ -98,14 +98,24 @@
           "duration": 5.074
         }
       ]
+    },
+    {
+      "timestamp": 1750139141897,
+      "totalTime": 7.529,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 134,
+          "duration": 7.529
+        }
+      ]
     }
   ],
   "averages": {
-    "fast": 24.799,
-    "slow": 60.943,
+    "fast": 16.164,
     "heavy": 93.88,
     "core": 8.344,
     "esm": 5.074,
-    "total": 38.6084
+    "total": 27.925600000000003
   }
 }

@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
@@ -16,12 +16,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-
 
       # TST-061: テスト分割実行とパラレル化の実装
       - name: Run tests in parallel (fast group)
@@ -88,7 +87,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install dependencies
@@ -103,64 +102,3 @@ jobs:
           name: dist
           path: dist/
           retention-days: 30
-
-  deploy:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Add EC2 host to known hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to EC2
-        env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
-          APP_DIR: ${{ secrets.APP_DIR }}
-        run: |
-          # パッケージファイルと設定ファイルをコピー
-          scp -r dist package.json package-lock.json .env.example ${EC2_USER}@${EC2_HOST}:${APP_DIR}/
-
-          # リモートでのコマンド実行
-          ssh ${EC2_USER}@${EC2_HOST} << 'EOF'
-            cd ${APP_DIR}
-            # .envが存在しなければ.env.exampleからコピー
-            [ ! -f .env ] && cp .env.example .env
-            npm ci --production
-            # 実行中のプロセスを停止
-            pm2 stop sol-bot || true
-            # 新しいバージョンで起動
-            pm2 start dist/index.js --name sol-bot
-            # PM2の設定を保存
-            pm2 save
-          EOF
-
-      - name: Notify deployment
-        if: success()
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          status: ${{ job.status }}
-          title: 'SOL-Bot デプロイ通知'
-          description: |
-            デプロイステータス: 成功 ✅
-            ブランチ: ${{ github.ref }}
-            コミット: ${{ github.sha }}
-            デプロイ日時: $(date)
-            デプロイユーザー: ${{ github.actor }}
