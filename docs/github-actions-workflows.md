@@ -4,6 +4,61 @@
 
 SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを使用してCI/CDパイプラインを構築しています。
 
+## 🔄 CI/CDパイプライン全体図
+
+```mermaid
+graph TD
+    A[GitHub Push to master] --> B[ci.yml - CI Tests]
+    B --> C{Tests Pass?}
+    C -->|✅ Pass| D[deploy-stg.yml - Staging Deploy]
+    C -->|❌ Fail| E[❌ CI Failed - Stop]
+    
+    D --> F[Staging App Deploy]
+    F --> G[TST-085: 30s Stop Test]
+    G --> H[OPS-009: PnL=0 Smoke Test]
+    H --> I{Staging Tests Pass?}
+    
+    I -->|✅ Pass| J[deploy-prod.yml - Production Deploy] 
+    I -->|❌ Fail| K[❌ Staging Failed - Stop]
+    
+    J --> L[Production App Deploy]
+    L --> M[TST-085: Production 30s Stop Test]
+    M --> N[OPS-009: Production PnL=0 Smoke Test]
+    N --> O{Production Tests Pass?}
+    
+    O -->|✅ Pass| P[✅ Deployment Complete]
+    O -->|❌ Fail| Q[⚠️ Auto-Stop Production Service]
+    
+    style A fill:#e1f5fe
+    style P fill:#c8e6c9
+    style E fill:#ffcdd2
+    style K fill:#ffcdd2
+    style Q fill:#ffcdd2
+```
+
+### 🔍 テストフロー詳細
+
+```mermaid
+graph LR
+    A[Deploy Complete] --> B[TST-085: 30s Stop Test]
+    B --> C[systemctl stop service]
+    C --> D{Stopped ≤ 30s?}
+    D -->|✅ Yes| E[Service Restart]
+    D -->|❌ No| F[❌ Test Failed]
+    
+    E --> G[OPS-009: PnL=0 Test]
+    G --> H[curl /api/account]
+    H --> I[Extract dailyPnL]
+    I --> J{dailyPnL == 0?}
+    J -->|✅ Yes| K[✅ All Tests Pass]
+    J -->|❌ No| L[🛑 Auto-Stop Service]
+    
+    style A fill:#e1f5fe
+    style K fill:#c8e6c9
+    style F fill:#ffcdd2
+    style L fill:#ffcdd2
+```
+
 ## 📋 ワークフロー一覧
 
 **現在のワークフローファイル構成** (CICD-009完了後):
@@ -27,7 +82,10 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 3. **アプリケーションビルド**: TypeScriptコンパイル（`src/` → `dist/`）
 4. **systemdサービス設定**: bot.serviceファイル作成・強制更新
 5. **サービス起動**: systemctl start + ヘルスチェック
-6. **通知**: Discord通知（成功・失敗）
+6. **統合テスト**: 
+   - TST-085: 30秒以内サービス停止テスト
+   - OPS-009: PnL=0 Smokeテスト
+7. **通知**: Discord通知（成功・失敗）
 
 **特徴**:
 - here-document構文エラー修正済み
@@ -50,7 +108,9 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 3. **アプリケーションビルド**: TypeScriptコンパイル（`src/` → `dist/`）
 4. **systemdサービス設定**: bot-prod.serviceファイル作成・強制更新
 5. **サービス起動**: systemctl start + ヘルスチェック（ポート3001）
-6. **統合テスト**: TST-085（30秒以内サービス停止テスト）
+6. **統合テスト**: 
+   - TST-085: 30秒以内サービス停止テスト（本番）
+   - OPS-009: PnL=0 Smokeテスト（失敗時自動停止）
 7. **通知**: Discord通知（成功・失敗）
 
 **特徴**:
@@ -61,6 +121,68 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 - 統合テスト自動実行（サービス停止・復旧テスト）
 
 **対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com`
+
+---
+
+## 🧪 統合テスト詳細
+
+### TST-085: 30秒停止テスト
+
+**目的**: サービスが30秒以内に安全に停止できることを確認  
+**実行環境**: ステージング・本番両環境  
+
+**テスト手順**:
+1. サービス稼働状態確認
+2. `systemctl stop` コマンド実行
+3. 停止時間が30秒以内かを測定
+4. サービス再起動・動作確認
+
+**成功条件**: 
+- 停止時間 ≤ 30秒
+- サービス正常再起動
+- ヘルスチェック成功
+
+### OPS-009: PnL=0 Smokeテスト
+
+**目的**: デプロイ後のPnL（損益）が0であることを確認  
+**実行環境**: ステージング・本番両環境  
+
+**テスト手順**:
+1. `/api/account` エンドポイントアクセス
+2. `dailyPnL` 値の抽出
+3. 値が0であることを確認
+4. 追加の健全性チェック実行
+
+**成功条件**: 
+- `dailyPnL === 0`
+- API正常応答
+- 残高チェック通過
+
+**安全機能**: 
+- **本番環境でテスト失敗時は自動的にサービス停止**
+- GitHub Status も RED に設定
+- Discord 通知で即座にアラート
+
+### OBS-009: /metrics エンドポイント
+
+**目的**: Prometheus形式のメトリクスを公開し、監視システムとの統合を実現  
+**実装場所**: `index.ts` の `/metrics` エンドポイント  
+
+**公開メトリクス**:
+- `solbot_account_balance`: 現在の残高
+- `solbot_daily_pnl`: 日次損益
+- `solbot_orders_total`: 注文総数
+- `solbot_uptime_seconds`: アプリケーション稼働時間
+
+**Prometheus設定**:
+- ステージング: `ec2-13-158-58-241:3000/metrics`
+- 本番: `ec2-13-158-58-241:3001/metrics`
+- 収集間隔: 30秒
+
+**安全機能**:
+- prom-client統合とフォールバック機能
+- エラー時も基本メトリクスを提供
+- 機密情報を含まない安全な設計
 
 ---
 

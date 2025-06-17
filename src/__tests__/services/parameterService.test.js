@@ -176,6 +176,202 @@ operation:
   });
 
   /**
+   * runtime-env読み込み機能のテスト
+   */
+  describe('runtime-env読み込み機能', () => {
+    const originalEnv = process.env;
+    
+    beforeEach(() => {
+      // 環境変数をクリーンアップ
+      process.env = { ...originalEnv };
+      jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+      // 環境変数を復元
+      process.env = originalEnv;
+    });
+
+    test('runtime-envファイルが存在する場合、.envより優先して読み込む', () => {
+      // テスト用のファイル内容を設定
+      const envContent = 'TEST_VAR=default_value\nANOTHER_VAR=default_another';
+      const runtimeContent = 'TEST_VAR=runtime_value\nRUNTIME_VAR=runtime_only';
+      
+      // fsモックを設定
+      fs.existsSync = jest.fn((filePath) => {
+        if (filePath.endsWith('.env')) return true;
+        if (filePath.endsWith('runtime')) return true;
+        return false;
+      });
+      
+      fs.readFileSync = jest.fn((filePath) => {
+        if (filePath.endsWith('.env')) return envContent;
+        if (filePath.endsWith('runtime')) return runtimeContent;
+        return mockYamlContent;
+      });
+
+      // dotenvモックを設定
+      const dotenv = require('dotenv');
+      dotenv.config = jest.fn((options) => {
+        if (options && options.path && options.path.endsWith('.env')) {
+          process.env.TEST_VAR = 'default_value';
+          process.env.ANOTHER_VAR = 'default_another';
+        } else if (options && options.path && options.path.endsWith('runtime')) {
+          process.env.TEST_VAR = 'runtime_value'; // 上書き
+          process.env.RUNTIME_VAR = 'runtime_only';
+        }
+      });
+
+      // runtime-envパスを指定してParameterServiceを作成
+      const service = new ParameterService(undefined, undefined, 'env.d/runtime');
+      
+      // 環境変数が正しく設定されているか確認
+      expect(process.env.TEST_VAR).toBe('runtime_value'); // runtime-envが優先
+      expect(process.env.ANOTHER_VAR).toBe('default_another'); // .envから
+      expect(process.env.RUNTIME_VAR).toBe('runtime_only'); // runtime-envのみ
+      
+      // dotenv.configが正しく呼ばれているか確認
+      expect(dotenv.config).toHaveBeenCalledTimes(2);
+      expect(dotenv.config).toHaveBeenCalledWith({ path: expect.stringContaining('.env') });
+      expect(dotenv.config).toHaveBeenCalledWith({ 
+        path: expect.stringContaining('runtime'), 
+        override: true 
+      });
+    });
+
+    test('runtime-envファイルが存在しない場合、.envのみ読み込む', () => {
+      // テスト用のファイル内容を設定
+      const envContent = 'TEST_VAR=default_value\nANOTHER_VAR=default_another';
+      
+      // fsモックを設定
+      fs.existsSync = jest.fn((filePath) => {
+        if (filePath.endsWith('.env')) return true;
+        if (filePath.endsWith('runtime')) return false; // runtime-envは存在しない
+        return false;
+      });
+      
+      fs.readFileSync = jest.fn((filePath) => {
+        if (filePath.endsWith('.env')) return envContent;
+        return mockYamlContent;
+      });
+
+      // dotenvモックを設定
+      const dotenv = require('dotenv');
+      dotenv.config = jest.fn((options) => {
+        if (options && options.path && options.path.endsWith('.env')) {
+          process.env.TEST_VAR = 'default_value';
+          process.env.ANOTHER_VAR = 'default_another';
+        }
+      });
+
+      // runtime-envパスを指定してParameterServiceを作成
+      const service = new ParameterService(undefined, undefined, 'env.d/runtime');
+      
+      // 環境変数が.envから読み込まれているか確認
+      expect(process.env.TEST_VAR).toBe('default_value');
+      expect(process.env.ANOTHER_VAR).toBe('default_another');
+      
+      // dotenv.configが.envのみ呼ばれているか確認
+      expect(dotenv.config).toHaveBeenCalledTimes(1);
+      expect(dotenv.config).toHaveBeenCalledWith({ path: expect.stringContaining('.env') });
+    });
+
+    test('デフォルトruntime-envパス（env.d/runtime）を自動検出する', () => {
+      // 環境変数をクリア
+      delete process.env.DEFAULT_RUNTIME_VAR;
+      
+      // fsモックを設定
+      fs.existsSync = jest.fn((filePath) => {
+        if (filePath.endsWith('.env')) return false;
+        if (filePath.includes('env.d/runtime')) return true; // デフォルトruntime-envは存在
+        if (filePath.includes('parameters.yaml')) return true; // YAMLファイルも存在
+        return false;
+      });
+      
+      fs.readFileSync = jest.fn((filePath) => {
+        if (filePath.includes('env.d/runtime')) return 'DEFAULT_RUNTIME_VAR=auto_detected';
+        return mockYamlContent;
+      });
+
+      // dotenvモックを設定（実際に環境変数を設定）
+      const originalDotenvConfig = require('dotenv').config;
+      const mockDotenvConfig = jest.fn((options) => {
+        console.log('dotenv.config called with:', options);
+        if (options && options.path && options.path.includes('env.d/runtime')) {
+          // 実際に環境変数を設定
+          process.env.DEFAULT_RUNTIME_VAR = 'auto_detected';
+          return { parsed: { DEFAULT_RUNTIME_VAR: 'auto_detected' } };
+        }
+        return { parsed: {} };
+      });
+
+      // dotenvモジュールを直接モック
+      const dotenv = require('dotenv');
+      dotenv.config = mockDotenvConfig;
+
+      try {
+        // ParameterServiceインスタンスを作成（runtimeEnvPathを指定せず）
+        // コンストラクタ内でloadEnvironmentVariablesが呼ばれる
+        const service = new ParameterService();
+        
+        // dotenv.configが呼ばれたかログ出力
+        console.log('mockDotenvConfig.mock.calls:', mockDotenvConfig.mock.calls);
+        console.log('process.env.DEFAULT_RUNTIME_VAR:', process.env.DEFAULT_RUNTIME_VAR);
+        
+        // 環境変数がデフォルトruntime-envから読み込まれているか確認
+        expect(process.env.DEFAULT_RUNTIME_VAR).toBe('auto_detected');
+        
+        // dotenv.configがデフォルトruntime-envで呼ばれているか確認
+        expect(mockDotenvConfig).toHaveBeenCalledWith(
+          expect.objectContaining({
+            path: expect.stringContaining('env.d/runtime'),
+            override: true
+          })
+        );
+      } finally {
+        // dotenvを元に戻す
+        dotenv.config = originalDotenvConfig;
+      }
+    });
+
+    test('絶対パスでruntime-envファイルを指定できる', () => {
+      const absolutePath = '/absolute/path/to/runtime-env';
+      const runtimeContent = 'ABSOLUTE_VAR=absolute_value';
+      
+      // fsモックを設定
+      fs.existsSync = jest.fn((filePath) => {
+        if (filePath === absolutePath) return true;
+        return false;
+      });
+      
+      fs.readFileSync = jest.fn((filePath) => {
+        if (filePath === absolutePath) return runtimeContent;
+        return mockYamlContent;
+      });
+
+      // dotenvモックを設定
+      const dotenv = require('dotenv');
+      dotenv.config = jest.fn((options) => {
+        if (options && options.path === absolutePath) {
+          process.env.ABSOLUTE_VAR = 'absolute_value';
+        }
+      });
+
+      // 絶対パスでruntime-envを指定してParameterServiceを作成
+      const service = new ParameterService(undefined, undefined, absolutePath);
+      
+      // 環境変数が正しく設定されているか確認
+      expect(process.env.ABSOLUTE_VAR).toBe('absolute_value');
+      
+      // dotenv.configが絶対パスで呼ばれているか確認
+      expect(dotenv.config).toHaveBeenCalledWith({ 
+        path: absolutePath, 
+        override: true 
+      });
+    });
+  });
+
+  /**
    * 環境変数プレースホルダー置換の型変換をテスト
    */
   describe('processEnvVariables - 修正版v2', () => {

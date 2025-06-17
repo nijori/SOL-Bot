@@ -181,6 +181,95 @@ app.get('/api/symbol/:symbol', (req, res) => {
   });
 });
 
+// アカウント情報エンドポイント (OPS-009対応)
+app.get('/api/account', (req, res) => {
+  try {
+    var accountInfo = {
+      balance: 0,
+      dailyPnL: 0,
+      totalPnL: 0,
+      positions: [],
+      totalValue: 0
+    };
+
+    // 全エンジンの状態を集計
+    tradingEngines.forEach((engine, symbol) => {
+      var status = engine.getStatus();
+      if (status && status.account) {
+        accountInfo.balance += status.account.balance || 0;
+        accountInfo.dailyPnL += status.account.dailyPnl || 0;
+        accountInfo.totalPnL += status.account.totalPnl || 0;
+        if (status.account.positions && status.account.positions.length > 0) {
+          accountInfo.positions.push(...status.account.positions.map(pos => ({
+            ...pos,
+            symbol: symbol
+          })));
+        }
+      }
+    });
+
+    accountInfo.totalValue = accountInfo.balance + accountInfo.totalPnL;
+
+    res.json(accountInfo);
+  } catch (error) {
+    logger.error(`アカウント情報取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).json({ 
+      error: 'アカウント情報の取得に失敗しました',
+      dailyPnL: 0 // フェイルセーフとして0を返す
+    });
+  }
+});
+
+// Prometheusメトリクスエンドポイント (OBS-009対応)
+app.get('/metrics', async (req, res) => {
+  try {
+    // メトリクスサービスから最新メトリクスを取得
+    if (metricsService && metricsService.register) {
+      res.set('Content-Type', metricsService.register.contentType);
+      res.end(await metricsService.register.metrics());
+    } else {
+      // フォールバック: 基本的なメトリクスを生成
+      var basicMetrics = '';
+      
+      // 全エンジンから現在の状態を集計
+      var totalBalance = 0;
+      var totalDailyPnL = 0;
+      var totalOrders = 0;
+      
+      tradingEngines.forEach((engine, symbol) => {
+        var status = engine.getStatus();
+        if (status && status.account) {
+          totalBalance += status.account.balance || 0;
+          totalDailyPnL += status.account.dailyPnl || 0;
+        }
+      });
+      
+      // Prometheus形式でメトリクスを生成
+      basicMetrics += `# HELP solbot_account_balance Current trading account balance\n`;
+      basicMetrics += `# TYPE solbot_account_balance gauge\n`;
+      basicMetrics += `solbot_account_balance ${totalBalance}\n`;
+      
+      basicMetrics += `# HELP solbot_daily_pnl Daily profit and loss\n`;
+      basicMetrics += `# TYPE solbot_daily_pnl gauge\n`;
+      basicMetrics += `solbot_daily_pnl ${totalDailyPnL}\n`;
+      
+      basicMetrics += `# HELP solbot_orders_total Total number of orders placed\n`;
+      basicMetrics += `# TYPE solbot_orders_total counter\n`;
+      basicMetrics += `solbot_orders_total ${totalOrders}\n`;
+      
+      basicMetrics += `# HELP solbot_uptime_seconds Application uptime in seconds\n`;
+      basicMetrics += `# TYPE solbot_uptime_seconds counter\n`;
+      basicMetrics += `solbot_uptime_seconds ${process.uptime()}\n`;
+      
+      res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+      res.end(basicMetrics);
+    }
+  } catch (error) {
+    logger.error(`メトリクス取得エラー: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).end('# ERROR: Could not generate metrics\n');
+  }
+});
+
 // 手動注文エンドポイント
 app.post('/api/order', async (req, res) => {
   try {

@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
 const logger = require('../utils/logger');
-require('dotenv/config');
+const dotenv = require('dotenv');
 
 /**
  * IParameterServiceインターフェース
@@ -48,11 +48,16 @@ class ParameterService {
    * コンストラクタ
    * @param customYamlPath カスタムYAMLファイルパス（テスト用）
    * @param initialParameters 初期パラメータ（テスト用）
+   * @param runtimeEnvPath runtime環境ファイルパス（env.d/runtimeなど）
    */
-  constructor(customYamlPath, initialParameters) {
+  constructor(customYamlPath, initialParameters, runtimeEnvPath) {
     this.yamlPath = customYamlPath || path.join(process.cwd(), 'src', 'config', 'parameters.yaml');
+    this.runtimeEnvPath = runtimeEnvPath;
     this.parameters = {};
     this.symbolOverrides = null;
+
+    // 環境変数の読み込み（runtime-envを優先）
+    this.loadEnvironmentVariables();
 
     if (initialParameters) {
       this.parameters = initialParameters;
@@ -65,9 +70,10 @@ class ParameterService {
   /**
    * シングルトンインスタンスを取得（後方互換性のため）
    * @deprecated 直接インスタンス化するか、DIコンテナを使用してください
+   * @param runtimeEnvPath runtime環境ファイルパス（初回作成時のみ有効）
    * @returns ParameterServiceのインスタンス
    */
-  static getInstance() {
+  static getInstance(runtimeEnvPath) {
     if (ParameterService.instance === null) {
       // グローバル変数にインスタンスがある場合はそれを使用
       if (global._parameterServiceSingleton !== null && global._parameterServiceSingleton !== undefined) {
@@ -75,7 +81,7 @@ class ParameterService {
         logger.debug('既存のパラメータサービスを使用しました');
       } else {
         // なければ新規作成
-        ParameterService.instance = new ParameterService();
+        ParameterService.instance = new ParameterService(undefined, undefined, runtimeEnvPath);
         // グローバル変数にも保存
         global._parameterServiceSingleton = ParameterService.instance;
         logger.debug('新しいパラメータサービスを作成しました');
@@ -101,6 +107,45 @@ class ParameterService {
     global._parameterServiceSingleton = newInstance;
     
     logger.debug('パラメータサービスをリセットしました');
+  }
+
+  /**
+   * 環境変数を読み込む（runtime-envを優先）
+   */
+  loadEnvironmentVariables() {
+    try {
+      // デフォルトの.envファイルを読み込み
+      const defaultEnvPath = path.join(process.cwd(), '.env');
+      if (fs.existsSync(defaultEnvPath)) {
+        dotenv.config({ path: defaultEnvPath });
+        logger.debug('デフォルト.envファイルを読み込みました');
+      }
+
+      // runtime-envファイルが指定されている場合は優先的に読み込み
+      if (this.runtimeEnvPath) {
+        const fullRuntimePath = path.isAbsolute(this.runtimeEnvPath) 
+          ? this.runtimeEnvPath 
+          : path.join(process.cwd(), this.runtimeEnvPath);
+          
+        if (fs.existsSync(fullRuntimePath)) {
+          dotenv.config({ path: fullRuntimePath, override: true });
+          logger.info(`runtime環境ファイルを読み込みました: ${fullRuntimePath}`);
+        } else {
+          logger.debug(`runtime環境ファイルが見つかりません: ${fullRuntimePath}`);
+        }
+      } else {
+        // runtimeEnvPathが指定されていない場合、デフォルトのruntime環境ファイルをチェック
+        const defaultRuntimePath = path.join(process.cwd(), 'env.d', 'runtime');
+        if (fs.existsSync(defaultRuntimePath)) {
+          dotenv.config({ path: defaultRuntimePath, override: true });
+          logger.info(`デフォルトruntime環境ファイルを読み込みました: ${defaultRuntimePath}`);
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `環境変数読み込みエラー: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**

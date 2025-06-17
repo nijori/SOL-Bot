@@ -1,13 +1,13 @@
 {
-  "totalTrades": 49,
-  "winningTrades": 12,
-  "losingTrades": 11,
-  "totalReturn": -168.61211807633646,
-  "maxDrawdown": 50.64234394856892,
-  "sharpeRatio": 1.6756669969378812,
-  "winRate": 0.7943188702093207,
-  "averageWin": 147.38275781105867,
-  "averageLoss": 45.03211897692462,
-  "profitFactor": 1.3167097735534479,
-  "annualizedReturn": 33.119370071076915
+  "totalTrades": 12,
+  "winningTrades": 13,
+  "losingTrades": 28,
+  "totalReturn": 360.9790113927502,
+  "maxDrawdown": 57.6170294057643,
+  "sharpeRatio": 1.6703374415412777,
+  "winRate": 0.8076336376964708,
+  "averageWin": 116.54467066180325,
+  "averageLoss": 47.75917642113042,
+  "profitFactor": 2.0853741006855713,
+  "annualizedReturn": 4.264273147458231
 }

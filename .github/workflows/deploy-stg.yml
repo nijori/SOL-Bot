@@ -658,3 +658,122 @@ jobs:
             Result: ${{ job.status }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
           ack_no_webhook: true
+
+  # OPS-009: Post-Deploy PnL=0 Smoke テスト
+  pnl-smoke-test:
+    needs: [deploy, thirty-second-stop-test]
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: PnL=0 Smoke Test
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.STG_SSH_KEY }}
+          timeout: 3m
+          command_timeout: 5m
+          script: |
+            set -e
+            
+            echo "=== OPS-009: Post-Deploy PnL=0 Smoke Test ==="
+            echo "デプロイ後のPnL=0確認テスト実行"
+            echo "Timestamp: $(date)"
+            
+            # サービスが稼働中であることを確認
+            echo "Verifying service is running..."
+            if ! sudo systemctl is-active --quiet bot.service; then
+              echo "❌ ERROR: bot.service is not active"
+              sudo systemctl status bot.service --no-pager
+              exit 1
+            fi
+            echo "✓ Service is active"
+            
+            # /api/accountエンドポイントにアクセスしてPnLを確認
+            echo "Checking PnL via /api/account endpoint..."
+            ACCOUNT_URL="http://localhost:3000/api/account"
+            MAX_RETRIES=6
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "PnL check attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+              
+              # /api/accountからレスポンスを取得
+              if ACCOUNT_RESPONSE=$(curl -f -s --connect-timeout 10 --max-time 30 "$ACCOUNT_URL"); then
+                echo "Account API Response: $ACCOUNT_RESPONSE"
+                
+                # jqを使ってdailyPnLを抽出
+                if command -v jq &> /dev/null; then
+                  DAILY_PNL=$(echo "$ACCOUNT_RESPONSE" | jq -r '.dailyPnL // 0')
+                else
+                  # jqがない場合はgrepとsedでパース
+                  DAILY_PNL=$(echo "$ACCOUNT_RESPONSE" | grep -o '"dailyPnL":[^,}]*' | sed 's/"dailyPnL"://' | sed 's/[",]//g' || echo "0")
+                fi
+                
+                echo "Extracted dailyPnL: $DAILY_PNL"
+                
+                # dailyPnLが0であることを確認
+                if [ "$DAILY_PNL" = "0" ] || [ "$DAILY_PNL" = "0.0" ] || [ "$DAILY_PNL" = "0.00" ]; then
+                  echo "✅ SUCCESS: dailyPnL = $DAILY_PNL (expected: 0)"
+                  echo "✅ PnL=0 Smoke Test PASSED"
+                  break
+                else
+                  echo "❌ FAIL: dailyPnL = $DAILY_PNL (expected: 0)"
+                  echo "❌ Expected dailyPnL to be 0 after fresh deployment"
+                  exit 1
+                fi
+              else
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                  echo "Account API call failed, retrying in 10 seconds..."
+                  sleep 10
+                else
+                  echo "❌ FAIL: Account API call failed after $MAX_RETRIES attempts"
+                  echo "Service logs:"
+                  sudo journalctl -u bot.service --no-pager --lines=20
+                  exit 1
+                fi
+              fi
+            done
+            
+            # 追加の健全性チェック
+            echo "Performing additional health checks..."
+            
+            # バランスチェック
+            if command -v jq &> /dev/null; then
+              BALANCE=$(echo "$ACCOUNT_RESPONSE" | jq -r '.balance // 0')
+              echo "Account Balance: $BALANCE USDT"
+              
+              # 初期残高が正常範囲内であることを確認
+              if [ "${BALANCE%.*}" -ge "0" ]; then
+                echo "✓ Balance check passed: $BALANCE USDT"
+              else
+                echo "⚠️  Warning: Unexpected balance: $BALANCE USDT"
+              fi
+            fi
+            
+            echo ""
+            echo "🎉 OPS-009 PnL=0 Smoke Test PASSED"
+            echo "📊 Test Results:"
+            echo "   - Service Status: ✅ Active"
+            echo "   - API Response: ✅ Success"
+            echo "   - Daily PnL: ✅ $DAILY_PNL (expected: 0)"
+            echo "   - Account Balance: ✅ $BALANCE USDT"
+
+      - name: PnL Test Results Notification
+        uses: sarisia/actions-status-discord@v1
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: 'OPS-009: PnL=0 Smoke Test (Staging)'
+          description: |
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Test: Post-Deploy PnL=0 verification
+            Result: ${{ job.status }}
+          color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
+          ack_no_webhook: true

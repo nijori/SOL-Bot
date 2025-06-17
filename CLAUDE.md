@@ -183,3 +183,25 @@ Jest configuration is optimized for stability:
 - Backpressure handling in data processing pipeline
 
 When making changes, always test thoroughly and maintain the existing architecture patterns.
+
+## 作業ルール
+
+以下のルールを毎回の作業で厳守してください：
+
+### 基本原則
+- **Git管理ルールの厳守**: タスク着手前に、ブランチ戦略、コミットメッセージ規約、PR作成手順を必ず守る
+- **タスクスコープの遵守**: 指示されたタスクのみに着手し、それ以外の変更は行わない
+- **タスク完了時の一時停止**: 各タスクが完了したら作業を停止し、次の指示を待つ
+
+### タスク管理
+- **Sprint更新**: タスク完了時は必ず `.todo/sprint.mdc` を更新する
+- **ドキュメント更新**: 必要に応じて `PROJECT_STRUCTURE.md` と `README.md` を更新する
+  - アーキテクチャや構造に変更があった場合のみ更新
+  - 単純なバグ修正や小規模な変更では不要
+
+### コミュニケーション
+- **実行困難なタスクの報告**: 以下のような場合は具体的な手順を提示して支援を依頼する
+  - AWSコンソールでの設定作業
+  - 外部サービスのAPIキー取得
+  - 権限が必要な操作
+  - その他、コード外での作業が必要な場合
