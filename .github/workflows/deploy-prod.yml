@@ -100,9 +100,9 @@ jobs:
           role-to-assume: arn:aws:iam::475538532274:role/solbot-ci
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Retrieve environment variables from SSM Parameter Store
+      - name: Retrieve configuration from SSM Parameter Store
         run: |
-          echo "Retrieving production environment variables from SSM Parameter Store..."
+          echo "Retrieving production configuration from SSM Parameter Store..."
           
           # Get environment variables from SSM Parameter Store
           SSM_PARAMETERS=$(aws ssm get-parameter \
@@ -111,44 +111,70 @@ jobs:
             --query "Parameter.Value" \
             --output text)
           
+          # Get deployment configuration from SSM Parameter Store
+          PROD_HOST=$(aws ssm get-parameter \
+            --name "/solbot/prod/host" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          PROD_USERNAME=$(aws ssm get-parameter \
+            --name "/solbot/prod/username" \
+            --query "Parameter.Value" \
+            --output text)
+          
+          PROD_SSH_KEY=$(aws ssm get-parameter \
+            --name "/solbot/prod/ssh-key" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
+          DISCORD_WEBHOOK_URL=$(aws ssm get-parameter \
+            --name "/solbot/discord/webhook-url" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          
           # Create .env file for deployment
           echo "$SSM_PARAMETERS" > deployment.env
-          echo "✅ Production environment variables retrieved and saved to deployment.env file"
           
-          # Verify the .env file was created (but don't show contents for security)
-          if [ -f deployment.env ]; then
-            echo "✅ deployment.env file created successfully"
-            echo "📄 File size: $(wc -c < deployment.env) bytes"
-            echo "📄 Line count: $(wc -l < deployment.env) lines"
-          else
-            echo "❌ Failed to create deployment.env file"
-            exit 1
-          fi
+          # Save deployment configuration to environment variables for later steps
+          echo "PROD_HOST=$PROD_HOST" >> $GITHUB_ENV
+          echo "PROD_USERNAME=$PROD_USERNAME" >> $GITHUB_ENV
+          echo "DISCORD_WEBHOOK_URL=$DISCORD_WEBHOOK_URL" >> $GITHUB_ENV
+          
+          # Save SSH key as environment variable for later steps
+          echo "PROD_SSH_KEY<<EOF" >> $GITHUB_ENV
+          echo "$PROD_SSH_KEY" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+          echo "✅ Production configuration retrieved from SSM Parameter Store"
+          echo "✅ Environment variables saved to deployment.env file"
+          echo "📄 Environment file size: $(wc -c < deployment.env) bytes"
 
       - name: Upload environment variables to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           source: "deployment.env"
           target: "/tmp/"
 
       - name: Upload application archive
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           source: "solbot-app.tar.gz"
           target: "/tmp/"
 
       - name: Deploy Application to Production Environment
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           timeout: 10m
           command_timeout: 15m
           script: |
@@ -377,9 +403,9 @@ jobs:
       - name: Start Service and Health Check
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           timeout: 10m
           command_timeout: 15m
           script: |
@@ -455,9 +481,9 @@ jobs:
         if: always()
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           timeout: 3m
           command_timeout: 5m
           script: |
@@ -469,15 +495,15 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         if: always()
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ env.DISCORD_WEBHOOK_URL }}
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook: ${{ env.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
           title: 'SOL-Bot Production Deployment'
           description: |
             Repository: ${{ github.repository }}
             Commit: ${{ github.sha }}
-            Production Environment: ${{ secrets.PROD_HOST }}
+            Production Environment: ${{ env.PROD_HOST }}
             Deployment Result: ${{ job.status }}
             ${{ github.event.inputs.reason && format('Reason: {0}', github.event.inputs.reason) || '' }}
           color: ${{ job.status == 'success' && 0x00FF00 || 0xFF0000 }}
@@ -493,9 +519,9 @@ jobs:
       - name: 30 Second Stop Integration Test
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ env.PROD_HOST }}
+          username: ${{ env.PROD_USERNAME }}
+          key: ${{ env.PROD_SSH_KEY }}
           timeout: 2m
           command_timeout: 3m
           script: |
@@ -614,9 +640,9 @@ jobs:
         uses: sarisia/actions-status-discord@v1
         if: always()
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL: ${{ env.DISCORD_WEBHOOK_URL }}
         with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          webhook: ${{ env.DISCORD_WEBHOOK_URL }}
           status: ${{ job.status }}
           title: 'TST-085: 30-Second Stop Test (Production)'
           description: |

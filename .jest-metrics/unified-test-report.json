@@ -389,26 +389,104 @@
         "memory": 16,
         "version": "1.0.0"
       }
+    },
+    {
+      "timestamp": 1750154575680,
+      "stats": {
+        "startTime": 1750154575680,
+        "endTime": 1750154679256,
+        "cjs": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 103442,
+          "exitCode": 0
+        },
+        "esm": {
+          "passed": 0,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 134,
+          "exitCode": 1
+        },
+        "groups": {
+          "fast": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "medium": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "slow": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "heavy": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "core": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 0,
+            "exitCode": null
+          },
+          "esm": {
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "duration": 134,
+            "exitCode": 1
+          }
+        },
+        "total": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0,
+          "duration": 103576
+        }
+      },
+      "environment": {
+        "node": "v18.20.8",
+        "os": "Linux 6.6.87.1-microsoft-standard-WSL2",
+        "cpus": 20,
+        "memory": 8,
+        "version": "1.0.0"
+      }
     }
   ],
   "lastRun": {
-    "timestamp": 1747405146023,
+    "timestamp": 1750154575680,
     "stats": {
-      "startTime": 1747405146023,
-      "endTime": 1747405170493,
+      "startTime": 1750154575680,
+      "endTime": 1750154679256,
       "cjs": {
-        "passed": 26,
+        "passed": 2,
         "failed": 0,
         "skipped": 0,
-        "duration": 19321,
+        "duration": 103442,
         "exitCode": 0
       },
       "esm": {
-        "passed": 3,
+        "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "duration": 5147,
-        "exitCode": 0
+        "duration": 134,
+        "exitCode": 1
       },
       "groups": {
         "fast": {
@@ -447,25 +525,25 @@
           "exitCode": null
         },
         "esm": {
-          "passed": 3,
+          "passed": 0,
           "failed": 0,
           "skipped": 0,
-          "duration": 5147,
-          "exitCode": 0
+          "duration": 134,
+          "exitCode": 1
         }
       },
       "total": {
-        "passed": 3,
+        "passed": 2,
         "failed": 0,
         "skipped": 0,
-        "duration": 24470
+        "duration": 103576
       }
     },
     "environment": {
-      "node": "v22.15.0",
-      "os": "Windows_NT 10.0.26100",
+      "node": "v18.20.8",
+      "os": "Linux 6.6.87.1-microsoft-standard-WSL2",
       "cpus": 20,
-      "memory": 16,
+      "memory": 8,
       "version": "1.0.0"
     }
   }
