@@ -45,6 +45,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -69,7 +70,7 @@ jobs:
       - name: Run Trivy vulnerability scanner (Detailed)
         run: |
           # 手動実行時はinputsを使用、それ以外はデフォルト設定
-          SEVERITY="${{ github.event.inputs.severity || 'CRITICAL,HIGH' }}"
+          SEVERITY="${{ github.event.inputs.severity || 'CRITICAL,HIGH,MEDIUM' }}"
 
           # 詳細な脆弱性情報を含むJSONレポートを生成
           trivy fs --format json -o trivy-results.json \
@@ -90,12 +91,27 @@ jobs:
             --ignore-unfixed=false \
             .
 
+      # SARIFファイルの確認
+      - name: Check SARIF file content
+        run: |
+          if [ -f "trivy-sarif.json" ]; then
+            echo "SARIF file found:"
+            ls -la trivy-sarif.json
+            echo "SARIF content preview:"
+            head -20 trivy-sarif.json
+            echo "Number of results:"
+            jq '.runs[0].results | length' trivy-sarif.json || echo "Could not parse JSON"
+          else
+            echo "SARIF file not found!"
+          fi
+
       # GitHub Security Alertsへの統合
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: trivy-sarif.json
           category: trivy
+        continue-on-error: true
 
       # 脆弱性が検出された場合、PRにコメントを追加
       - name: Comment PR with vulnerability summary
@@ -166,11 +182,13 @@ jobs:
             });
 
       # 成果物のアップロード
-      - name: Upload vulnerability report
+      - name: Upload vulnerability reports
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-vulnerability-report
-          path: trivy-results.json
+          name: trivy-vulnerability-reports
+          path: |
+            trivy-results.json
+            trivy-sarif.json
 
   sbom-generation:
     name: SBOM Generation
