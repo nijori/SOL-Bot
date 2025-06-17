@@ -31,7 +31,7 @@ SOL-Bot/
 │   │   ├── deploy-prod.yml         # 本番環境デプロイ（1台構成、SSM対応、systemd、TST-085統合テスト）
 
 │   │   ├── security-scan.yml       # セキュリティスキャン
-│   │   ├── trivy-dependency-scan.yml # 依存関係脆弱性スキャン
+
 │   │   ├── todo-check.yml          # Todoフォーマット検証
 │   │   ├── pr-todo-auto-update.yml # PR時のTodoタスク更新
 │   │   └── pr-label-check.yml      # PRラベル検証
