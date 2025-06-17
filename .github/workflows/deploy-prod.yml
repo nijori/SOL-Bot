@@ -232,7 +232,7 @@ jobs:
             fi
             
             # Install dependencies
-            cd /opt/solbot
+            cd /opt/solbot-prod
             
             # Verify npm is available
             echo "Verifying npm availability..."
@@ -240,10 +240,10 @@ jobs:
             npm --version
             
             # Initialize application directory
-            if [ ! -f /opt/solbot/package.json ]; then
-              echo "Initializing application directory..."
-              sudo -u solbot mkdir -p /opt/solbot/{logs,data,config}
-              echo "Application directory structure created"
+            if [ ! -f /opt/solbot-prod/package.json ]; then
+              echo "Initializing production application directory..."
+              sudo -u solbot mkdir -p /opt/solbot-prod/{logs,data,config}
+              echo "Production application directory structure created"
             fi
             
             # Install git if not present
@@ -252,25 +252,26 @@ jobs:
               sudo dnf install -y git
             fi
             
-            # Deploy application code
-            echo "Deploying application code..."
-            sudo rm -rf /opt/solbot/*
-            sudo mkdir -p /opt/solbot
+            # Deploy application code to production directory
+            echo "Deploying application code to production directory..."
+            sudo rm -rf /opt/solbot-prod/*
+            sudo mkdir -p /opt/solbot-prod
+            sudo chown -R solbot:solbot /opt/solbot-prod
             
             # Extract application archive
             echo "Extracting application archive..."
-            sudo -u solbot tar -xzf /tmp/solbot-app.tar.gz -C /opt/solbot
-            sudo chown -R solbot:solbot /opt/solbot
+            sudo -u solbot tar -xzf /tmp/solbot-app.tar.gz -C /opt/solbot-prod
+            sudo chown -R solbot:solbot /opt/solbot-prod
             
-            echo "Application files deployed successfully"
-            ls -la /opt/solbot/
+            echo "Production application files deployed successfully"
+            ls -la /opt/solbot-prod/
             
             # Install dependencies and build application as solbot user
             echo "Installing dependencies and building application as solbot user..."
             sudo -u solbot bash -c '
               export PATH="/usr/bin:/usr/local/bin:$PATH"
               unset NVM_DIR
-              cd /opt/solbot
+              cd /opt/solbot-prod
               echo "Working directory: $(pwd)"
               echo "Node.js version: $(node --version)"
               echo "npm version: $(npm --version)"
@@ -324,45 +325,46 @@ jobs:
               echo "Application deployment and build completed"
             '
             
-            # Create or update systemd service file
-            echo "Creating/updating bot.service systemd file..."
-            sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'Description=SOL Bot Application' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'WorkingDirectory=/opt/solbot' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo '' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot.service"
-            sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot.service"
+            # Create or update systemd service file for production
+            echo "Creating/updating bot-prod.service systemd file..."
+            sudo bash -c "echo '[Unit]' > /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'Description=SOL Bot Production Application' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'After=network.target' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo '[Service]' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'Type=simple' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'User=solbot' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'WorkingDirectory=/opt/solbot-prod' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'ExecStart=/usr/bin/node dist/index.js' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'Restart=always' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'RestartSec=10' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'Environment=NODE_ENV=production' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'Environment=PORT=3001' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'StandardOutput=journal' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'StandardError=journal' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo '' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo '[Install]' >> /etc/systemd/system/bot-prod.service"
+            sudo bash -c "echo 'WantedBy=multi-user.target' >> /etc/systemd/system/bot-prod.service"
             
             # Verify the service file content
-            echo "Service file content:"
-            sudo cat /etc/systemd/system/bot.service
+            echo "Production service file content:"
+            sudo cat /etc/systemd/system/bot-prod.service
             
             sudo systemctl daemon-reload
-            sudo systemctl enable bot.service
+            sudo systemctl enable bot-prod.service
             
             # Stop service if running
-            if sudo systemctl is-active --quiet bot.service; then
-              echo "Stopping bot.service..."
-              sudo systemctl stop bot.service
+            if sudo systemctl is-active --quiet bot-prod.service; then
+              echo "Stopping bot-prod.service..."
+              sudo systemctl stop bot-prod.service
               sleep 2
             fi
             
             # For now, just verify the setup is complete
-            echo "✓ SOL Bot user and service configuration complete"
+            echo "✓ SOL Bot production user and service configuration complete"
             echo "✓ Node.js $(node --version) installed"
-            echo "✓ Directory structure: $(ls -la /opt/solbot/)"
-            echo "✓ Service file: $(ls -la /etc/systemd/system/bot.service)"
+            echo "✓ Production directory structure: $(ls -la /opt/solbot-prod/)"
+            echo "✓ Production service file: $(ls -la /etc/systemd/system/bot-prod.service)"
 
       - name: Start Service and Health Check
         uses: appleboy/ssh-action@v1.0.3
@@ -378,8 +380,8 @@ jobs:
             echo "=== Production Service Startup and Health Check ==="
             
             # Verify deployment
-            echo "Verifying application deployment..."
-            cd /opt/solbot
+            echo "Verifying production application deployment..."
+            cd /opt/solbot-prod
             echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
             echo "Built index.js exists: $(test -f dist/index.js && echo 'YES' || echo 'NO')"
             echo "Source index.ts exists: $(test -f src/index.ts && echo 'YES' || echo 'NO')"
@@ -387,24 +389,24 @@ jobs:
             echo "Dist directory: $(test -d dist && echo 'YES' || echo 'NO')"
             
             # Start the service
-            echo "Starting bot.service..."
-            sudo systemctl start bot.service
+            echo "Starting bot-prod.service..."
+            sudo systemctl start bot-prod.service
             
             # Wait for startup
             echo "Waiting for service to start..."
             sleep 10
             
             # Check service status
-            echo "Checking service status..."
-            sudo systemctl status bot.service --no-pager || true
+            echo "Checking production service status..."
+            sudo systemctl status bot-prod.service --no-pager || true
             
             # Wait a bit more for the application to fully initialize
             echo "Waiting for application initialization..."
             sleep 15
             
             # Health check with retries
-            echo "Performing health check..."
-            HEALTH_CHECK_URL="http://localhost:3000/api/status"
+            echo "Performing production health check..."
+            HEALTH_CHECK_URL="http://localhost:3001/api/status"
             MAX_RETRIES=6
             RETRY_COUNT=0
             
@@ -422,20 +424,20 @@ jobs:
                   echo "Health check failed, retrying in 10 seconds..."
                   sleep 10
                 else
-                  echo "❌ Health check failed after $MAX_RETRIES attempts"
-                  echo "Service logs:"
-                  sudo journalctl -u bot.service --no-pager --lines=20
+                  echo "❌ Production health check failed after $MAX_RETRIES attempts"
+                  echo "Production service logs:"
+                  sudo journalctl -u bot-prod.service --no-pager --lines=20
                   echo "Port check:"
-                  sudo netstat -tulpn | grep :3000 || echo "Port 3000 not listening"
+                  sudo netstat -tulpn | grep :3001 || echo "Port 3001 not listening"
                   exit 1
                 fi
               fi
             done
             
             # Final verification
-            echo "=== Final Verification ==="
-            echo "Service status: $(sudo systemctl is-active bot.service)"
-            echo "Service enabled: $(sudo systemctl is-enabled bot.service)"
+            echo "=== Final Production Verification ==="
+            echo "Production service status: $(sudo systemctl is-active bot-prod.service)"
+            echo "Production service enabled: $(sudo systemctl is-enabled bot-prod.service)"
             echo "Process check: $(pgrep -f 'node.*index.js' | wc -l) processes running"
             echo ""
             echo "🎉 Production deployment completed successfully!"
