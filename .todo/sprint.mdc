@@ -121,14 +121,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : ✅完了！deploy-stg.ymlに30秒停止統合テストジョブ「thirty-second-stop-test」を追加実装完了。systemctl stop bot.serviceが30秒以内に完了することを検証、サービス復旧テスト、ヘルスチェック(/api/status)による動作確認が成功。タイムアウト保護、エラーハンドリング、Discord通知完備。GitHub Actions構文エラー修正（secrets→env参照）も実施。全ジョブが成功してCI/CDパイプラインでの30秒停止テスト完全動作確認済み。
 
-9. [ ] CICD-007: deploy-prod.ymlの更新・SSM対応
+9. [x] CICD-007: deploy-prod.ymlの更新・SSM対応
       - 📅 Due        : 2026-07-03
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : SEC-008
       - 🏷️  Label      : cicd
-      - 🩺 Health     : ⏳
-      - 📊 Progress   : 0%
-      - ✎ Notes      : 本番デプロイワークフローをステージング版と同様の構成に更新。SSM Parameter Store対応、新しいssh-action使用、systemdサービス管理への変更。Blue/Green切り替え準備も含む。実際にワークフローが成功することを確認してからタスク完了とする。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！成功しているStagingワークフローをベースにProductionワークフローを完全更新。主な変更：1) アーカイブ作成方法をrsync+tarに統一、2) appleboy/ssh-action@v1.0.3に更新、3) Amazon Linux 2/2023対応のNode.js 18インストール処理、4) systemdサービス管理実装、5) ヘルスチェック(/api/status)とリトライロジック追加、6) SSM Parameter Store統合済み、7) force_deploy緊急オプション追加。Node.js版数変更なし。ワークフロー構造をStagingと完全統一し、本番デプロイの信頼性を大幅向上。
 
 10. [ ] CICD-008: ci.ymlワークフローの整理・重複排除
       - 📅 Due        : 2026-07-04
