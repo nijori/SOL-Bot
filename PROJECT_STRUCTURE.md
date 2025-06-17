@@ -16,6 +16,7 @@
 12. [マルチアセット対応計画](#マルチアセット対応計画)
 13. [ドキュメント体系](#ドキュメント体系)
 14. [開発環境とツール](#開発環境とツール)
+15. [最新の技術的成果](#最新の技術的成果)
 
 ## フォルダ構成
 
@@ -760,3 +761,28 @@ EC2インスタンス起動時に以下が自動インストール・設定さ�
 3. **データ分離**: 環境ごとに異なるデータディレクトリ
 4. **設定分離**: SSM Parameter Storeによる本番設定管理
 5. **監視分離**: 環境ごとのヘルスチェックエンドポイント
+
+## 最新の技術的成果
+
+### ALG-057: ATR Wilder平滑化アルゴリズム実装 (2025-06-17完了)
+
+- **技術仕様**: ATRインクリメンタル計算でWilder型平滑化式を実装
+- **True Range計算**: 前日終値(prevClose)を使用した正確なTR値計算
+- **平滑化公式**: `ATR_t = [(n-1)×ATR_{t-1} + TR_t] / n` の実装
+- **精度向上**: technicalindicatorsライブラリとの誤差率を15.37%から4.54%以内に改善
+- **実装場所**: `src/indicators/marketState.ts:updateIncrementalATR`メソッド
+
+### SEC-005/SEC-006: GitHub Secrets to SSM Parameter Store完全移行 (2025-06-17完了)
+
+- **セキュリティ強化**: GitHub Secrets完全削除、AWS OIDC認証統合
+- **中央集権管理**: AWS SSM Parameter Storeによる機密情報統一管理
+- **暗号化強化**: KMS暗号化(aws/ssm)によるSecureString保護
+- **最小権限**: IAMポリシー最優化(ssm:GetParameter, s3:GetObject/PutObject のみ)
+- **ワークフロー統合**: deploy-stg.yml・deploy-prod.yml両環境で統合テスト成功
+- **監査強化**: CloudTrail連携、時限的アクセストークン(OIDC)
+
+### 並列テスト実行安定化 (ALG-057関連)
+
+- **Node.jsアサーションエラー解決**: `scripts/test-sharding.js`でfastグループ単独実行設定
+- **テスト安定性向上**: runInBand設定によるJest並列実行時のネイティブエラー回避
+- **テスト成功率**: 全100テスト通過、並列実行環境での安定動作確認

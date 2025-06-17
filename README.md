@@ -263,17 +263,22 @@ npm run test:unified:cjs
 
 ### 本番環境での設定管理
 
-**本番・ステージング環境では、機密情報は AWS SSM Parameter Store で管理されています** (SEC-006対応完了)：
+**本番・ステージング環境では、機密情報は AWS SSM Parameter Store で管理されています** (SEC-006/SEC-005対応完了)：
 
-| パラメータ | 説明 | 環境 |
-|-----------|------|------|
-| `/solbot/stg/env` | ステージング環境変数 | Staging |
-| `/solbot/prod/env` | 本番環境変数 | Production |
-| `/solbot/stg/ssh-key` | ステージングSSH秘密鍵 | Staging |
-| `/solbot/prod/ssh-key` | 本番SSH秘密鍵 | Production |
-| `/solbot/discord/webhook-url` | Discord通知URL | 共通 |
+| パラメータ | 説明 | 環境 | 暗号化 |
+|-----------|------|------|--------|
+| `/solbot/stg/env` | ステージング環境変数 | Staging | ✅ SecureString |
+| `/solbot/prod/env` | 本番環境変数 | Production | ✅ SecureString |
+| `/solbot/stg/ssh-key` | ステージングSSH秘密鍵 | Staging | ✅ SecureString |
+| `/solbot/prod/ssh-key` | 本番SSH秘密鍵 | Production | ✅ SecureString |
+| `/solbot/discord/webhook-url` | Discord通知URL | 共通 | ✅ SecureString |
 
-GitHub ActionsワークフローはAWS OIDC認証を使用してSSM Parameter Storeから設定を取得し、GitHub Secretsへの依存を削減しています。
+**セキュリティ強化 (SEC-005完了)**:
+- ✅ GitHub Secrets完全削除、AWS OIDC認証統合
+- ✅ 最小権限IAMポリシー（ssm:GetParameter, s3:GetObject/PutObject のみ）
+- ✅ KMS暗号化（aws/ssm）による SecureString 保護
+- ✅ ジョブ間環境変数分離、時限的アクセストークン（OIDC）
+- ✅ 監査ログ強化（CloudTrail連携）、中央集権管理
 
 ### 開発環境での設定
 

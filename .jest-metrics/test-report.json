@@ -1,50 +1,6 @@
 {
   "runs": [
     {
-      "timestamp": 1747050804112,
-      "totalTime": 8.344,
-      "groupResults": [
-        {
-          "groupName": "core",
-          "exitCode": 1,
-          "duration": 8.344
-        }
-      ]
-    },
-    {
-      "timestamp": 1747053325748,
-      "totalTime": 24.8,
-      "groupResults": [
-        {
-          "groupName": "fast",
-          "exitCode": 1,
-          "duration": 24.799
-        }
-      ]
-    },
-    {
-      "timestamp": 1747064070429,
-      "totalTime": 93.881,
-      "groupResults": [
-        {
-          "groupName": "heavy",
-          "exitCode": 1,
-          "duration": 93.88
-        }
-      ]
-    },
-    {
-      "timestamp": 1747395549681,
-      "totalTime": 5.074,
-      "groupResults": [
-        {
-          "groupName": "esm",
-          "exitCode": 0,
-          "duration": 5.074
-        }
-      ]
-    },
-    {
       "timestamp": 1750139141897,
       "totalTime": 7.529,
       "groupResults": [
@@ -109,12 +65,54 @@
           "duration": 8.168
         }
       ]
+    },
+    {
+      "timestamp": 1750156495262,
+      "totalTime": 48.289,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 134,
+          "duration": 48.289
+        }
+      ]
+    },
+    {
+      "timestamp": 1750156687064,
+      "totalTime": 45.844,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 134,
+          "duration": 45.844
+        }
+      ]
+    },
+    {
+      "timestamp": 1750157022794,
+      "totalTime": 2.858,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 1,
+          "duration": 2.858
+        }
+      ]
+    },
+    {
+      "timestamp": 1750157151066,
+      "totalTime": 94.766,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 0,
+          "duration": 94.765
+        }
+      ]
     }
   ],
   "averages": {
-    "fast": 8.444333333333333,
-    "medium": 5.94,
-    "heavy": 1.378,
-    "total": 6.5304
+    "fast": 39.9848,
+    "total": 39.985
   }
 }
