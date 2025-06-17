@@ -61,20 +61,21 @@ graph LR
 
 ## 📋 ワークフロー一覧
 
-**現在のワークフローファイル構成** (CICD-009完了後):
-- `deploy-stg.yml` - ステージング環境デプロイ
-- `deploy-prod.yml` - 本番環境デプロイ  
-- `ci.yml` - CI（テスト・ビルド）
-- `security-scan.yml` - セキュリティスキャン（統合済み）
+**現在のワークフローファイル構成** (2025-06-17時点):
+- `deploy-stg.yml` - ステージング環境デプロイ ✅ SSM統合完了
+- `deploy-prod.yml` - 本番環境デプロイ ✅ SSM統合完了
+- `ci.yml` - CI（テスト・ビルド）✅ 整理完了
+- `security-scan.yml` - セキュリティスキャン ✅ 統合強化完了
 - `pr-todo-auto-update.yml` - PRタスク自動更新
 - `pr-label-check.yml` - PRラベル検証
 
 ### デプロイメント系
 
 #### 1. Deploy to Staging (`deploy-stg.yml`) ✅
-**目的**: ステージング環境への自動デプロイ（SEC-005: SSM Parameter Store統合完了）  
+**目的**: ステージング環境への自動デプロイ  
 **トリガー**: `master`ブランチへのpush  
-**実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2)
+**実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2)  
+**最終更新**: 2025-06-17 (SEC-005/SEC-006: SSM Parameter Store統合完了)
 
 **処理フロー**:
 1. **AWS認証**: OIDC認証でSSM Parameter Storeアクセス
@@ -106,9 +107,10 @@ graph LR
 ---
 
 #### 2. Deploy to Production (`deploy-prod.yml`) ✅
-**目的**: 本番環境への制御されたデプロイ（SEC-005: SSM Parameter Store統合完了）  
+**目的**: 本番環境への制御されたデプロイ  
 **トリガー**: `master`ブランチpush + 手動実行(`workflow_dispatch`)  
-**実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2) - 1台構成
+**実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2) - 1台構成  
+**最終更新**: 2025-06-17 (SEC-005/SEC-006: SSM Parameter Store統合完了)
 
 **処理フロー**:
 1. **AWS認証**: OIDC認証でSSM Parameter Storeアクセス
@@ -349,19 +351,22 @@ gh run view <run-id> --log
 
 ---
 
-## 🎯 改善計画
+## 🎯 最新の成果と今後の計画
 
-### 短期（W12スプリント）
-- **CICD-007**: ✅ `deploy-prod.yml`のSSM対応・modernization完了
-- **CICD-008**: ✅ `ci.yml`の機能整理・重複排除完了
-- **CICD-009**: ✅ `trivy-dependency-scan.yml`削除・`security-scan.yml`統合完了
+### 完了タスク（2025-06-17時点）
+- ✅ **SEC-005/SEC-006**: GitHub Secrets → SSM Parameter Store完全移行
+- ✅ **CICD-007**: `deploy-prod.yml`のSSM対応・modernization完了
+- ✅ **CICD-008**: `ci.yml`の機能整理・重複排除完了
+- ✅ **CICD-009**: `trivy-dependency-scan.yml`削除・`security-scan.yml`統合完了
+- ✅ **TST-085**: 30秒停止テスト統合（ステージング・本番両環境）
+- ✅ **OPS-009**: PnL=0 Smokeテスト実装（ステージング環境）
 
-### 中期（W13-W14スプリント）
-- Blue/Green デプロイメントの実装
-- Parameter Store integration
+### 中期計画（P2フェーズ：監視システム整備）
 - 監視システム（Prometheus/Grafana）との統合
+- Blue/Green デプロイメントの実装
+- アラート自動化（Alertmanager + Discord）
 
-### 長期
+### 長期計画
 - マルチ環境デプロイ（dev/staging/prod）
 - カナリアデプロイメント
 - 自動ロールバック機能
@@ -372,6 +377,8 @@ gh run view <run-id> --log
 
 - [systemdデプロイメントガイド](systemd-deployment.md)
 - [AWS設定ドキュメント](AWS-S3-SETUP.md)
+- [AWS OIDC設定ガイド](aws-oidc-setup.md)
+- [Runbook - 運用手順書](runbook.md)
 - [セキュリティポリシー](../SECURITY.md)
 - [プロジェクト構造](../PROJECT_STRUCTURE.md)
 
