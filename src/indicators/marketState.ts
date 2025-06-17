@@ -167,18 +167,18 @@ class IncrementalATR {
         const sum = trueRanges.reduce((a, b) => a + b, 0);
         firstATR = sum / this.period;
         this.atrValue = firstATR;
-      } else {
+    } else {
         // N個を超える場合：最初のN個でSMA、その後はWilder's平滑化
         const initialTRs = trueRanges.slice(0, this.period);
         const initialSum = initialTRs.reduce((a, b) => a + b, 0);
         firstATR = initialSum / this.period;
-        
+      
         // Wilder's平滑化で残りのTRを適用
         let currentATR = firstATR;
         for (let i = this.period; i < trueRanges.length; i++) {
           // Wilder's平滑化: ATR = ((ATR_prev * (N-1)) + TR_current) / N
           currentATR = ((currentATR * (this.period - 1)) + trueRanges[i]) / this.period;
-        }
+      }
         this.atrValue = currentATR;
       }
     } else {

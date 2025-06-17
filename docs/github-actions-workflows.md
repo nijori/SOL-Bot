@@ -31,20 +31,28 @@ SOL-Botプロジェクトでは、以下のGitHub Actionsワークフローを�
 
 ---
 
-#### 2. Deploy to Production (`deploy-prod.yml`) ❌ 要修正
+#### 2. Deploy to Production (`deploy-prod.yml`) ✅
 **目的**: 本番環境への制御されたデプロイ  
-**トリガー**: `master`ブランチpush + 手動実行(`workflow_dispatch`)
+**トリガー**: `master`ブランチpush + 手動実行(`workflow_dispatch`)  
+**実行環境**: Ubuntu Latest + Amazon Linux 2023 (EC2) - 1台構成
 
-**現在の問題**:
-- 古いscp/ssh-action使用（ステージング版と不整合）
-- GitHub Secretsでの機密情報管理（SSM Parameter Store未対応）
-- PM2使用（systemdに移行済み）
+**処理フロー**:
+1. **ソースコード準備**: rsync+SCPでソースコードをEC2に転送
+2. **環境構築**: Node.js 18インストール・NPMアップデート
+3. **アプリケーションビルド**: TypeScriptコンパイル（`src/` → `dist/`）
+4. **systemdサービス設定**: bot-prod.serviceファイル作成・強制更新
+5. **サービス起動**: systemctl start + ヘルスチェック（ポート3001）
+6. **統合テスト**: TST-085（30秒以内サービス停止テスト）
+7. **通知**: Discord通知（成功・失敗）
 
-**修正予定** (CICD-007):
-- SSM Parameter Store対応
-- appleboy/ssh-actionに統一
-- systemdサービス管理
-- Blue/Green デプロイ準備
+**特徴**:
+- SSM Parameter Store対応（`/solbot/prod/env`）
+- 1台構成（ステージングと本番が同居、ディレクトリ分離）
+- ポート分離（Staging: 3000, Production: 3001）
+- 本番専用systemdサービス（`bot-prod.service`）
+- 統合テスト自動実行（サービス停止・復旧テスト）
+
+**対象EC2**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com`
 
 ---
 
@@ -155,7 +163,7 @@ gh run view <run-id> --log
 ## 🎯 改善計画
 
 ### 短期（W12スプリント）
-- **CICD-007**: `deploy-prod.yml`のSSM対応・modernization
+- **CICD-007**: ✅ `deploy-prod.yml`のSSM対応・modernization完了
 - **CICD-008**: `ci.yml`の機能整理・重複排除
 - **CICD-009**: `trivy-dependency-scan.yml`削除
 
@@ -193,9 +201,13 @@ sudo journalctl -u bot.service -f
 
 **ヘルスチェック失敗時**:
 ```bash
-# アプリケーション状態確認
+# ステージング環境
 curl http://localhost:3000/api/status
 sudo netstat -tulpn | grep :3000
+
+# 本番環境
+curl http://localhost:3001/api/status
+sudo netstat -tulpn | grep :3001
 ```
 
 **セキュリティスキャンエラー時**:

@@ -121,14 +121,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 100%
       - ✎ Notes      : ✅完了！deploy-stg.ymlに30秒停止統合テストジョブ「thirty-second-stop-test」を追加実装完了。systemctl stop bot.serviceが30秒以内に完了することを検証、サービス復旧テスト、ヘルスチェック(/api/status)による動作確認が成功。タイムアウト保護、エラーハンドリング、Discord通知完備。GitHub Actions構文エラー修正（secrets→env参照）も実施。全ジョブが成功してCI/CDパイプラインでの30秒停止テスト完全動作確認済み。
 
-9. [ ] CICD-007: deploy-prod.ymlの更新・SSM対応
+9. [x] CICD-007: deploy-prod.ymlの更新・SSM対応
       - 📅 Due        : 2026-07-03
       - 👤 Owner      : @nijor
       - 🔗 Depends-on : SEC-008, INF-031
       - 🏷️  Label      : cicd
-      - 🩺 Health     : ⚠️
-      - 📊 Progress   : 90%
-      - ✎ Notes      : SSH接続エラー修正済み（STG_SSH_KEY使用、1台構成で/opt/solbot-prodディレクトリ分離、ポート3001）。AWS側でSG修正（INF-031）完了後にワークフロー実行テスト。実際にワークフローが成功してからタスク完了とする。
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : ✅完了！deploy-prod.yml更新・SSM対応・1台構成対応・TST-085統合テスト追加・Discord通知修正すべて完了。SSH接続エラー修正済み（STG_SSH_KEY使用、1台構成で/opt/solbot-prodディレクトリ分離、ポート3001）。ワークフロー実行成功、Discord通知も正常動作確認済み。本番環境デプロイパイプライン完全確立。
 
 9.1. [ ] INF-031: 1台構成用AWS設定修正
       - 📅 Due        : 2026-07-03

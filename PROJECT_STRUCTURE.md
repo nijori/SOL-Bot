@@ -28,7 +28,7 @@ SOL-Bot/
 │   ├── workflows/              # CI/CDワークフロー定義
 │   │   ├── ci.yml                  # 基本CI/CDパイプライン
 │   │   ├── deploy-stg.yml          # ステージング環境自動デプロイ（SCP+systemd）
-│   │   ├── deploy-prod.yml         # 本番環境デプロイ（1台構成、SSM対応、systemd）
+│   │   ├── deploy-prod.yml         # 本番環境デプロイ（1台構成、SSM対応、systemd、TST-085統合テスト）
 │   │   ├── esm-tests.yml           # ESM環境テスト実行
 │   │   ├── security-scan.yml       # セキュリティスキャン
 │   │   ├── trivy-dependency-scan.yml # 依存関係脆弱性スキャン
@@ -725,320 +725,58 @@ npm run todo-lint
   - `--format=json`: JSON出力
   - `--fix`: 自動修正（一部対応）
 - **高度な機能**:
-  - front-matterブロックスキップ（`---`や```で囲まれた部分を解析対象外）
-  - 先頭に「.」があるタスクIDをアーカイブ済みとして処理
-  - エラータイプ別の統計情報表示
-  - 柔軟なタスク行・フィールド検出
-  - 大文字小文字両方のチェックボックス対応（[x]と[X]）
-  - 日付の妥当性厳密チェック（例：2月30日などの無効日付検出）
-  - 差分表示モード（--diff）で変更箇所のみを表示
-  - 日付比較時のUTC統一による正確な期限切れ判定
-  - CI/CD連携による自動チェックと失敗検出
-  - 空白文字のみのフィールド値検証機能
+  - front-matterブロックスキップ（`---`で囲まれたメタデータ）
+  - アーカイブタスクの除外処理
+  - カテゴリ別統計レポート
 
-## マルチアセット対応計画
+## 1台構成での運用詳細
 
-### 実装状況
+### インフラ構成
+現在のシステムは、コスト効率とシンプルさを重視した1台構成を採用しています。
 
-SOL-Botはマルチシンボル対応を実装し、複数の暗号資産ペアを同時に取引できるよう拡張されました：
+**EC2インスタンス**: `ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com`
+- **OS**: Amazon Linux 2023
+- **Node.js**: v18.x
+- **systemdサービス管理**: 2つのサービスが同居
 
-- **CLI引数拡張（CLI-001）**:
-  - `--symbols` オプションで複数シンボル指定（例: `--symbols SOL/USDT,BTC/USDT,ETH/USDT`）
-  - `--timeframes` オプションで複数時間足指定（例: `--timeframes 1h,4h,1d`）
-  - 結果の集計と保存機能
-- **設定ファイル構造変更（CONF-006）**:
-  - シンボル別設定をネスト構造で管理
-  - デフォルト設定と通貨ペア固有設定の階層化
-  - JSON設定ファイルによるオーバーライド機能（`--config-override` オプション）
+### サービス分離
+| 環境 | ディレクトリ | ポート | systemdサービス | ヘルスチェックURL |
+|------|-------------|--------|----------------|------------------|
+| Staging | `/opt/solbot` | 3000 | `bot.service` | `http://localhost:3000/api/status` |
+| Production | `/opt/solbot-prod` | 3001 | `bot-prod.service` | `http://localhost:3001/api/status` |
 
-### コマンドラインインターフェース
+### デプロイメント差分
+**共通処理**:
+- rsync+SCPによるソースコード転送
+- Node.js 18インストール・NPMアップデート
+- TypeScriptビルド（`src/` → `dist/`）
+- systemdサービス管理
+- Discord通知
 
-SOL-Botは拡張されたCLIインターフェースにより、柔軟な運用が可能です：
+**環境固有の差分**:
+| 項目 | Staging | Production |
+|------|---------|------------|
+| トリガー | `master`ブランチpush（自動） | `master`ブランチpush + 手動実行 |
+| 設定管理 | 環境変数 | SSM Parameter Store (`/solbot/prod/env`) |
+| 統合テスト | なし | TST-085（30秒以内サービス停止テスト） |
+| サービス名 | `bot.service` | `bot-prod.service` |
+| TimeoutStopSec | 30秒 | 30秒 |
 
-```bash
-# 基本的な使用方法
-npm run cli -- --help  # ヘルプ表示
+### 1台構成のメリット・デメリット
+**メリット**:
+- コスト削減（EC2インスタンス1台分の料金）
+- 管理の簡素化（SSH接続先、セキュリティグループが1つ）
+- 初期構築の高速化
+- リソース共有による効率化
 
-# マルチシンボル・マルチタイムフレームのバックテスト
-npm run cli -- --mode backtest --symbols SOL/USDT,BTC/USDT --timeframes 1h,4h
+**デメリット**:
+- 障害時の影響範囲（両環境同時停止リスク）
+- リソース競合の可能性
+- 本番環境の完全分離ができない
 
-# 設定オーバーライドを使用したバックテスト
-npm run cli -- --config-override src/config/multiSymbolConfig.example.json
-
-# 便利なショートカットコマンド
-npm run cli:multisymbols     # 複数シンボル・複数タイムフレームのバックテスト
-npm run cli:multiconfig      # 設定ファイルオーバーライドのサンプル実行
-```
-
-### マルチアセット対応の実装状況
-
-マルチアセット対応は以下の機能を含め、完全に実装されました：
-
-1. **UTIL-002: 通貨ペア情報取得ユーティリティ**（完了 ✅）
-
-   - SymbolInfoServiceを実装し、複数通貨ペア情報を一括取得・キャッシュ
-   - 取引所API過剰リクエスト防止のためのキャッシュ機構
-   - ティックサイズ・ステップサイズ計算、手数料情報抽出機能
-
-2. **ALG-040: ATR%自動キャリブレーション**（完了 ✅）
-
-   - ATRCalibratorクラスによるボラティリティプロファイル対応
-   - LOW/MEDIUM/HIGH/EXTREMEプロファイルに基づくパラメータ自動調整
-   - キャッシュ機能とCLIツールによるキャリブレーション
-
-3. **DAT-014: データストアマルチシンボル拡張**（完了 ✅）
-
-   - シンボル固有のディレクトリ構造の実装
-   - 複数シンボルの横断検索機能
-   - loadMultipleSymbolCandlesなどのマルチシンボル対応API
-
-4. **CORE-005: バックテストランナーの拡張**（完了 ✅）
-
-   - 複数シンボルの同時バックテスト
-   - 資金配分戦略（EQUAL/CUSTOM/VOLATILITY/MARKET_CAP）
-   - ポートフォリオリスク管理、相関分析機能
-
-5. **OMS-009: 複数取引所対応**（完了 ✅）
-   - UnifiedOrderManagerによる取引所間の注文統合管理
-   - 取引所間の注文配分アルゴリズム
-   - 取引所特有の制約への自動対応
-
-## ドキュメント体系
-
-SOL-Botのドキュメント体系は、利用者、管理者、開発者向けに分類され、実装されています：
-
-### 利用者向けドキュメント
-
-- **UserManual.md**: SOL-Botの包括的な使用方法ガイド
-  - インストールと設定
-  - 基本的な使用方法
-  - コマンドラインオプション
-  - バックテスト実行方法
-  - マルチシンボル対応
-  - ライブトレード設定
-  - データ管理と監視方法
-  - トラブルシューティング
-  - 動的パラメータ調整機能
-  - ボラティリティベースの資金配分機能
-- **cliCommands.md**: コマンドラインインターフェースのリファレンスガイド
-  - 基本コマンドと使用例
-  - パラメータ設定オプション
-  - 出力と保存オプション
-  - 設定オーバーライド方法
-  - 市場状態と動的調整オプション
-  - 資金配分設定オプション
-  - ショートカットコマンド
-  - 実行例と環境変数の連携
-
-### 管理者向けドキュメント
-
-- **Docker-Setup.md**: Docker環境構築ガイド
-  - 開発環境と本番環境のセットアップ
-  - コンテナ構成と依存関係
-  - ボリュームマウントとデータ永続化
-- **AWS-S3-SETUP.md**: AWS S3/Glacier設定ガイド
-  - データライフサイクル管理のAWS設定
-  - バケット設定と権限管理
-  - データ移行ポリシー
-- **gitleaks-setup.md**: セキュリティスキャン設定ガイド
-  - Gitleaksのセットアップと設定
-  - スキャン実行方法と結果解釈
-  - 誤検知の除外設定
-
-### ドキュメント整備と管理
-
-- **index.md**: ドキュメント索引
-  - 全ドキュメントへの一元的なアクセスポイント
-  - 主要ドキュメントの簡単な説明とリンク
-  - クイックスタートガイド
-- **SECURITY.md**: セキュリティポリシーとガイドライン
-  - セキュリティ対策の概要
-  - 脆弱性報告方法
-  - セキュリティベストプラクティス
-- **PROJECT_STRUCTURE.md**: プロジェクト構造の包括的な説明
-  - フォルダ構成と役割
-  - コンポーネント設計
-  - モジュール間の依存関係
-  - 拡張方法
-
-ドキュメントは`docs/`ディレクトリと`src/scripts/cliCommands.md`に配置され、READMEからリンクされています。すべてのドキュメントは更新時に他のドキュメントとの一貫性を維持するよう管理されています。
-
-## 開発環境とツール
-
-### 既知の問題
-
-- **REF-032**: Docker環境でのESモジュール起動問題
-  - 現在、Docker環境でアプリケーション起動時に「ERR_UNKNOWN_MODULE_FORMAT」エラーが発生
-  - ts-nodeとESモジュールの設定問題により、/api/statusエンドポイントが正常に動作しない
-  - ヘルスチェック機能自体は実装済みで、アプリケーション起動問題の解決が必要
-
-### 依存関係
-
-- **typescript**: 静的型付け
-- **ccxt**: 暗号資産取引所API接続
-- **technicalindicators**: テクニカル分析
-- **express**: REST API提供
-- **winston**: 構造化ロギング
-- **duckdb**: 高性能分析データベース
-- **parquetjs**: Parquetデータ処理
-- **optuna**: パラメータ最適化
-- **prom-client**: Prometheusメトリクス生成
-
-### 実行モード
-
-- **シミュレーション**: `npm run simulation`
-- **バックテスト**: `npm run backtest`
-- **ライブ取引**: `npm run live`
-- **最適化**: `npm run optimize`
-- **サンプルデータ生成**: `npm run generate-sample-data`
-- **テスト**: `npm test`
-- **Docker開発環境**: `docker-compose up solbot-dev`
-- **Docker本番環境**: `docker-compose up solbot-prod`
-- **監視システム**: `cd monitoring && docker-compose up -d`
-
-### セットアップ手順
-
-1. リポジトリをクローン
-2. `npm install` で依存関係をインストール
-3. `.env.example` を `.env` にコピーして設定
-4. `npm run dev` で開発モードで実行
-5. または `docker-compose up solbot-dev` でDockerコンテナとして実行
-
-詳細は README.md を参照してください。
-
-## 開発環境
-
-- **言語**: TypeScript（Node.js環境）
-- **パッケージ管理**: npm
-- **ビルドツール**: tsc（TypeScriptコンパイラ）
-- **開発補助**:
-  - ESLint（コード品質）
-  - Prettier（フォーマット）
-  - Jest（テスト）
-- **外部ライブラリ**:
-  - ccxt: 取引所API統一インターフェース
-  - technicalindicators: テクニカル指標計算
-  - parquetjs: Parquetファイル操作
-  - lru-cache: メモリキャッシュ最適化
-  - express: API公開
-  - winston: ロギング
-  - dotenv: 環境変数
-  - commander: CLIインターフェース
-  - @solana/web3.js: Solanaブロックチェーン連携
-  - node-cron: スケジュールタスク
-  - @aws-sdk: S3/Glacierデータアーカイブ
-
-## モジュール構成
-
-### ESMとCommonJSの共存
--Jest自体がESMをネイティブにサポートしていないことから、現状のJestはCommonJSベースで、ESMモジュールをテストするために様々なワークアラウンドが必要
- 現状の Jest は内部的に CommonJS をベースに動いており、ESM をネイティブでフルサポートしているわけではありません。
-
--Jest のアーキテクチャ
-  -Jest 本体やプラグイン群は CommonJS モジュールとして書かれており、Node.js の ESM ローダーに完全対応するにはまだ"橋渡し"が必要な部分があります。
-
--公式の ESM 実験機能
-  Node.js の --experimental-vm-modules フラグや、ts-jest/presets/default-esm などのプリセットで ESM テストは可能ですが、テストランナー、モジュールリゾルバ、トランスフォーム周りで細かな不整合や未対応ケースが残っていて、繰り返しワークアラウンドが必要になるのが現状です。
-
--踏まえESM フルサポートまでの「つなぎ」として一旦 CommonJS モードと共存し実装。将来的に ESM へ移行するメリットは確かにありますが、今は「動くものを動かす」ことにフォーカス。
-
-- **デュアルフォーマットパッケージ**: 両方のモジュールシステムに対応
-- **package.json設定**:
-  - `"type": "module"` は指定せず、拡張子で区別
-  - `"exports"` フィールドで両形式の入口点を指定
-  - `"main"`: `"dist/index.js"` (CommonJS)
-  - `"module"`: `"dist/index.mjs"` (ESM)
-- **拡張子規約**:
-  - `.js`: CommonJSモジュール
-  - `.mjs`: ESMモジュール
-  - `.d.ts`: TypeScript型定義
-- **ビルドプロセス**:
-  - `npm run build:cjs`: CommonJSビルド
-  - `npm run build:esm`: ESMビルド
-  - `npm run build`: 両方のビルドを実行
-- **推奨ベストプラクティス**:
-  - 新規モジュールはESMで作成（`.mjs`拡張子）
-  - インポート時は拡張子を明示（`.js`または`.mjs`）
-  - 名前付きインポートの使用を推奨、ワイルドカードは避ける
-
-### 環境変数
-
-- **API_KEY**: 取引所APIキー
-- **SECRET_KEY**: 取引所APIシークレット
-- **TIMEFRAME**: 使用する時間足（1h, 4h, 1d）
-- **SYMBOLS**: 対象通貨ペア（例：SOL/USDT, BTC/USDT）
-- **DATA_DIR**: データディレクトリ
-- **LOG_LEVEL**: ログレベル（debug, info, warn, error）
-- **DISCORD_WEBHOOK_URL**: Discord通知用URL
-- **AWS_REGION**: AWSリージョン設定
-- **AWS_ACCESS_KEY_ID**: AWSアクセスキー
-- **AWS_SECRET_ACCESS_KEY**: AWSシークレットキー
-- **S3_BUCKET**: S3バケット名
-- **S3_ARCHIVE_BUCKET**: S3アーカイブバケット名
-- **DATA_RETENTION_DAYS**: データローカル保持日数
-
-### スケジュールタスク（crontab.txt）
-
-- 監視スクリプト実行（毎時5分）
-- ログローテーション（毎日午前2時）
-- データバックアップ（毎日午前3時）
-- システムアップデート（毎週日曜午前4時）
-- ディスク使用量レポート作成（毎月1日午前5時）
-- S3へのログ同期（毎時30分）
-- 古いログファイルをS3 Glacierに移行（毎週月曜午前1時）
-- データライフサイクル管理（毎日午前4時）
-
-## Todo管理システム
-
-プロジェクトの進捗管理は`.todo/`ディレクトリで専用フォーマットを使用：
-
-### タスク構造
-
-- **backlog.mdc**: 未着手タスク（inbox）
-- **sprint.mdc**: 現スプリントのWIP/Done
-- **archive.mdc**: 完了タスク（3ヶ月経過後）
-- **フォーマット**:
-  ```
-  - [ ] TASK‑ID: <タイトル>
-        - 📅 Due        : YYYY‑MM‑DD
-        - 👤 Owner      : <担当者>
-        - 🔗 Depends-on : TASK‑ID1, TASK‑ID2
-        - 🏷️ Label      : bug / feat / doc / infra
-        - 🩺 Health     : ⏳ / ⚠️ / 🚑 / ✅
-        - 📊 Progress   : 0% / 25% / 50% / 75% / 100%
-        - ✎ Notes      : (メモ)
-  ```
-
-### GitHub Actions連携
-
-- **フォーマットチェック**: Todoファイル変更時の自動検証
-- **タスク自動更新**: PRマージ時の完了状態更新
-- **PRテンプレート**: タスクID参照の強制
-- **セキュリティスキャン**:
-  - プッシュ時のGitleaksチェック
-  - 週次のTrivy脆弱性スキャン
-  - SBOM自動生成と管理
-  - Dependabotによる依存関係更新
-
-### Todo検証ツール
-
-```bash
-npm run todo-lint
-```
-
-- **検証項目**:
-  - タスクID重複
-  - 進捗率/Health整合性
-  - 期限切れタスク
-  - 依存関係整合性
-  - 必須フィールド確認
-  - 日付フォーマット検証
-  - フィールド値空チェック
-  - タスクIDフォーマット
-  - アーカイブタスク処理
-- **オプション**:
-  - `--quiet`: エラーのみ表示
-  - `--format=json`: JSON出力
-  - `--fix`: 自動修正（一部対応）
-- **高度な機能**:
-  - front-matterブロックスキップ（`---`
+### 運用上の注意点
+1. **ポート競合回避**: 各環境で異なるポートを使用
+2. **プロセス分離**: systemdサービスによる独立管理
+3. **データ分離**: 環境ごとに異なるデータディレクトリ
+4. **設定分離**: SSM Parameter Storeによる本番設定管理
+5. **監視分離**: 環境ごとのヘルスチェックエンドポイント
