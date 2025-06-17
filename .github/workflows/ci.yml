@@ -7,7 +7,7 @@ on:
     branches: [master, main]
 
 jobs:
-  lint-and-test:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -79,7 +79,7 @@ jobs:
           fi
 
   build:
-    needs: lint-and-test
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
