@@ -1,28 +1,6 @@
 {
   "runs": [
     {
-      "timestamp": 1747050723397,
-      "totalTime": 0.026,
-      "groupResults": [
-        {
-          "groupName": "medium",
-          "exitCode": 255,
-          "duration": 0.024
-        }
-      ]
-    },
-    {
-      "timestamp": 1747050788409,
-      "totalTime": 60.943,
-      "groupResults": [
-        {
-          "groupName": "slow",
-          "exitCode": 1,
-          "duration": 60.943
-        }
-      ]
-    },
-    {
       "timestamp": 1747050804112,
       "totalTime": 8.344,
       "groupResults": [
@@ -109,12 +87,34 @@
           "duration": 8.431
         }
       ]
+    },
+    {
+      "timestamp": 1750141053617,
+      "totalTime": 8.734,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 0,
+          "duration": 8.734
+        }
+      ]
+    },
+    {
+      "timestamp": 1750141675558,
+      "totalTime": 8.168,
+      "groupResults": [
+        {
+          "groupName": "fast",
+          "exitCode": 0,
+          "duration": 8.168
+        }
+      ]
     }
   ],
   "averages": {
-    "fast": 7.9799999999999995,
+    "fast": 8.444333333333333,
     "medium": 5.94,
     "heavy": 1.378,
-    "total": 5.6706
+    "total": 6.5304
   }
 }

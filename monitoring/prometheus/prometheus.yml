@@ -25,6 +25,30 @@ scrape_configs:
           instance: 'solbot'
           service: 'trading_bot'
 
+  # SOL-Bot ステージング環境のメトリクス (OBS-009対応)
+  - job_name: 'solbot-staging'
+    static_configs:
+      - targets: ['ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com:3000']
+        labels:
+          instance: 'solbot-staging'
+          service: 'trading_bot'
+          environment: 'staging'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # SOL-Bot 本番環境のメトリクス (OBS-009対応)
+  - job_name: 'solbot-production'
+    static_configs:
+      - targets: ['ec2-13-158-58-241.ap-northeast-1.compute.amazonaws.com:3001']
+        labels:
+          instance: 'solbot-production'
+          service: 'trading_bot'
+          environment: 'production'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
   # Node Exporterのメトリクス（ホストマシンのリソース監視）
   - job_name: 'node'
     static_configs:
