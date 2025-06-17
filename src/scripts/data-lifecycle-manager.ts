@@ -19,7 +19,7 @@ import {
 import { GlacierClient, InitiateJobCommand } from '@aws-sdk/client-glacier';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
-import logger from '../utils/logger.js';
+import logger from '../utils/logger';
 
 // 環境変数を読み込む
 dotenv.config();
@@ -28,27 +28,21 @@ dotenv.config();
 const DEFAULT_RETENTION_DAYS = 90; // 90日経過したファイルをS3に移行
 const DEFAULT_GLACIER_MOVE_DAYS = 30; // S3に保存してから30日経過したらGlacierに移行
 const S3_BUCKET = process.env.S3_BUCKET || 'solbot-data';
-const S3_ARCHIVE_BUCKET = process.env.S3_ARCHIVE_BUCKET || 'solbot-archive';
+const S3_ARCHIVE_BUCKET = process.env.S3_ARCHIVE_BUCKET || 'solbot-archive-nijori';
 const AWS_REGION = process.env.AWS_REGION || 'ap-northeast-1';
 const DATA_DIR = path.join(process.cwd(), 'data');
 const LOG_DIR = path.join(process.cwd(), 'logs');
 
-// S3クライアントの初期化
+// S3クライアントの初期化（IAMロールを使用）
 const s3Client = new S3Client({
-  region: AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-  }
+  region: AWS_REGION
+  // EC2インスタンスロールを使用するため、credentialsは指定しない
 });
 
-// Glacierクライアントの初期化
+// Glacierクライアントの初期化（IAMロールを使用）
 const glacierClient = new GlacierClient({
-  region: AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-  }
+  region: AWS_REGION
+  // EC2インスタンスロールを使用するため、credentialsは指定しない
 });
 
 /**
