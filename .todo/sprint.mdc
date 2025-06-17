@@ -153,8 +153,8 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 👤 Owner      : @nijor
       - 🏷️  Label      : cicd
       - 🩺 Health     : ⏳
-      - 📊 Progress   : 80%
-      - ✎ Notes      : trivy-dependency-scan.yml削除完了。security-scan.ymlに詳細脆弱性スキャン機能統合完了（PRコメント、SARIF、JSON、手動実行対応）。ドキュメント更新完了。GitHubでワークフロー成功確認後に完了とする。
+      - 📊 Progress   : 90%
+      - ✎ Notes      : trivy-dependency-scan.yml削除完了。security-scan.yml統合・強化完了（PRコメント、SARIF、JSON、手動実行対応）。ドキュメント更新完了。upload-artifact@v3→v4修正完了。GitHubワークフロー成功確認後に完了とする。
 
 12. [x] REF-037: ESM関連ファイルとドキュメント完全削除
       - 📅 Due        : 2026-07-04
