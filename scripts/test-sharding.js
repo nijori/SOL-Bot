@@ -49,6 +49,10 @@ const JEST_BIN = path.join(process.cwd(), 'node_modules', 'jest', 'bin', 'jest.j
 
 // 特別な設定が必要なテストグループ
 const TEST_CONFIG = {
+  fast: {
+    // Node.jsアサーションエラー回避のため単独実行
+    runInBand: true
+  },
   heavy: {
     // 重いテストは長めのタイムアウトを設定
     testTimeout: 300000, // 5分
@@ -264,6 +268,9 @@ function runJest(groupName, testPaths, options = {}) {
     // インバンド実行フラグを追加
     if (options.runInBand) {
       args.push('--runInBand');
+    } else if (options.maxWorkers) {
+      // runInBandとmaxWorkersは競合するため、runInBandが指定されていない場合のみmaxWorkersを設定
+      args.push(`--maxWorkers=${options.maxWorkers}`);
     }
 
     // テストパスを追加

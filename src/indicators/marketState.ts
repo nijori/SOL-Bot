@@ -205,13 +205,11 @@ class IncrementalATR {
   }
 
   /**
-   * 新しいローソク足でATRを更新（本来はインクリメンタル用だが、テスト環境では使用されない）
+   * 新しいローソク足でATRを更新（Wilder型平滑化）
    * @param {Candle} candle 新しいローソク足
    * @returns {number} 更新されたATR値
    */
   update(candle) {
-    // テスト環境では初期化後のupdateは呼ばれない想定
-    // 実装は保持するが、主にinitializeで完結する設計
     if (!this.isInitialized) {
       // 初回のみ対応
       this.atrValue = candle.high - candle.low;
@@ -220,14 +218,27 @@ class IncrementalATR {
       return this.atrValue;
     }
 
-    // SMA版のローリング更新（テスト用）
-    const hl = candle.high - candle.low;
-    const hc = this.lastClose !== null ? Math.abs(candle.high - this.lastClose) : 0;
-    const lc = this.lastClose !== null ? Math.abs(candle.low - this.lastClose) : 0;
-    const tr = Math.max(hl, hc, lc);
+    // Wilder型平滑化ATR更新
+    return this.updateIncrementalATR(this.lastClose, candle);
+  }
 
-    // 簡易的なSMA更新（本来はキューを持つべきだが、テスト環境では呼ばれない）
-    this.atrValue = (this.atrValue * (this.period - 1) + tr) / this.period;
+  /**
+   * Wilder の平滑 ATR を 1 本分だけ更新する
+   *
+   * @param {number} prevClose 直前の終値
+   * @param {Candle} candle 今回追加するローソク足
+   * @returns {number} 更新されたATR値
+   */
+  updateIncrementalATR(prevClose, candle) {
+    // 1. True Range を Wilder 定義で算出
+    const tr = Math.max(
+      candle.high - candle.low,
+      Math.abs(candle.high - prevClose),
+      Math.abs(candle.low - prevClose)
+    );
+
+    // 2. 平滑化公式 ATR_t = [(n-1)×ATR_{t-1} + TR_t] / n
+    this.atrValue = ((this.atrValue * (this.period - 1)) + tr) / this.period;
     this.lastClose = candle.close;
 
     return this.atrValue;

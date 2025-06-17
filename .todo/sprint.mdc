@@ -326,6 +326,14 @@ P0→P1フェーズのスプリント（本番稼働に向けた安全ネット�
       - 📊 Progress   : 0%
       - ✎ Notes      : EC2環境でData-Lifecycleスクリプト（npm run data-lifecycle --run-now）を実行し、古いファイルがS3に正しく移行されることを確認。IAMインスタンスプロファイルの検証、S3バケットへのアクセス権限確認、cronジョブの設定と動作確認も実施。
 
+6. [ ] ALG-057: updateIncrementalATR を Wilder 平滑式に修正
+      - 📅 Due        : 2025-06-18
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : bug
+      - 🩺 Health     : ⚠️
+      - 📊 Progress   : 80%
+      - ✎ Notes      : ATRインクリメンタル計算でWilder型平滑化式を実装。True Range計算でprevCloseを使用、平滑化公式[(n-1)×ATR_{t-1} + TR_t]/nを適用。15.37%→12.86%に誤差率改善、test:parallel:fastが通過するよう修正。
+
 
 
 ## 🗓 2026-W14スプリント候補（P1→P2：監視システム整備）
