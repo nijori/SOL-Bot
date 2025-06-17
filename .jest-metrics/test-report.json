@@ -1,17 +1,6 @@
 {
   "runs": [
     {
-      "timestamp": 1747046476355,
-      "totalTime": 20.966,
-      "groupResults": [
-        {
-          "groupName": "fast",
-          "exitCode": 1,
-          "duration": 20.965
-        }
-      ]
-    },
-    {
       "timestamp": 1747050714103,
       "totalTime": 21.27,
       "groupResults": [
@@ -109,13 +98,24 @@
           "duration": 5.94
         }
       ]
+    },
+    {
+      "timestamp": 1750139751151,
+      "totalTime": 1.378,
+      "groupResults": [
+        {
+          "groupName": "heavy",
+          "exitCode": 0,
+          "duration": 1.378
+        }
+      ]
     }
   ],
   "averages": {
-    "fast": 16.164,
+    "fast": 7.529,
     "medium": 5.94,
-    "heavy": 93.88,
+    "heavy": 47.629,
     "esm": 5.074,
-    "total": 27.444799999999997
+    "total": 22.760399999999997
   }
 }

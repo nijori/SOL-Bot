@@ -32,7 +32,7 @@ const TEST_GROUPS = {
   ],
   // 特に重いテストは別グループで実行
   heavy: [
-    'src/__tests__/data/RealTimeDataProcessor.test.ts'
+    'src/__tests__/data/RealTimeDataProcessor.test.js'
   ],
   core: [
     'src/__tests__/core'
