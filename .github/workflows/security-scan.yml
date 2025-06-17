@@ -167,7 +167,7 @@ jobs:
 
       # 成果物のアップロード
       - name: Upload vulnerability report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trivy-vulnerability-report
           path: trivy-results.json
@@ -195,7 +195,7 @@ jobs:
           output: ./bom.xml
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cyclonedx-sbom
           path: ./bom.xml
@@ -244,7 +244,7 @@ jobs:
           echo "- Ensure proper secrets management" >> security-report.md
 
       - name: Upload Security Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-report
           path: ./security-report.md
