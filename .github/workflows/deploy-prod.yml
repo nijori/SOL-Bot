@@ -185,9 +185,14 @@ jobs:
             echo "Detected OS version: $OS_VERSION"
             
             if [[ "$OS_VERSION" =~ ^2023 ]]; then
-              # Amazon Linux 2023 - use dnf with Node.js 18+
-              echo "Installing Node.js 18 on Amazon Linux 2023..."
-              sudo dnf install -y nodejs npm
+              # Amazon Linux 2023 - use existing Node.js installation
+              echo "Using existing Node.js installation on Amazon Linux 2023..."
+              if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+                echo "Installing Node.js 18 on Amazon Linux 2023..."
+                sudo dnf install -y nodejs npm
+              else
+                echo "Node.js and npm are already installed"
+              fi
             elif [[ "$OS_VERSION" =~ ^2\. ]]; then
               # Amazon Linux 2 - try Amazon Linux Extras first
               echo "Installing Node.js on Amazon Linux 2..."
@@ -227,11 +232,14 @@ jobs:
             if ! id solbot &>/dev/null; then
               echo "Creating solbot user..."
               sudo useradd -m -s /bin/bash solbot
-              sudo mkdir -p /opt/solbot
-              sudo chown -R solbot:solbot /opt/solbot
             fi
             
-            # Install dependencies
+            # Create production directory first
+            echo "Creating production directory structure..."
+            sudo mkdir -p /opt/solbot-prod
+            sudo chown -R solbot:solbot /opt/solbot-prod
+            
+            # Change to production directory
             cd /opt/solbot-prod
             
             # Verify npm is available
