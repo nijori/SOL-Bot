@@ -156,6 +156,14 @@ P0フェーズのタスクが完了次第、P1フェーズに進み、その後�
       - 📊 Progress   : 0%
       - ✎ Notes      : trivy-dependency-scan.ymlをsecurity-scan.ymlに統合済みのため削除。不要なワークフローファイルの整理とREADME更新。実際にワークフローが成功することを確認してからタスク完了とする。
 
+12. [x] REF-037: ESM関連ファイルとドキュメント完全削除
+      - 📅 Due        : 2026-07-04
+      - 👤 Owner      : @nijor
+      - 🏷️  Label      : refactor
+      - 🩺 Health     : ✅
+      - 📊 Progress   : 100%
+      - ✎ Notes      : CommonJS統一方針に従い、ESM関連の残存ファイルとドキュメントを完全削除。削除対象：.github/workflows/esm-tests.yml、ESM関連ドキュメント（ESM-Migration-Guide.md等）、ESMスクリプト（run-esm-tests*.js等）、全.mjsファイル、ESM設定ファイル（jest.config.esm.js、tsconfig.esm.json）、package.jsonのESMスクリプト。README.md、PROJECT_STRUCTURE.md、docs/github-actions-workflows.mdからESM記載削除。50ファイル変更、7079行削除でCommonJS統一完了。
+
 ### 🗓 2026-W12スプリント計画と優先順位:（Secrets & Smoke on Staging）
 目的：Parameter Store 経由の Secrets 取得と "PnL=0 Smoke" を自動化。Blue/Green 準備を開始
 
