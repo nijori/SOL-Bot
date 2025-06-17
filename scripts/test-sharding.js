@@ -21,11 +21,14 @@ const TEST_GROUPS = {
   ],
   medium: [
     'src/__tests__/strategies',
-    'src/__tests__/services/!(symbolInfoService|MultiTimeframeDataFetcher).test.ts'
+    'src/__tests__/services/exchangeService.test.js',
+    'src/__tests__/services/orderSizingService.test.js',
+    'src/__tests__/services/parameterService.test.js',
+    'src/__tests__/services/UnifiedOrderManager.test.js'
   ],
   slow: [
-    'src/__tests__/services/symbolInfoService.test.ts',
-    'src/__tests__/services/MultiTimeframeDataFetcher.test.ts'
+    'src/__tests__/services/symbolInfoService.test.js',
+    'src/__tests__/services/MultiTimeframeDataFetcher.test.js'
   ],
   // 特に重いテストは別グループで実行
   heavy: [
